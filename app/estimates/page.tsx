@@ -366,15 +366,39 @@ function EstimatesPageInner() {
         const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
-        // Boards: per segment -> ceil((segmentLf / 12) * 13), summed
-        const boardsBase = segmentLengths.length
-          ? segmentLengths.reduce((sum, segLf) => sum + Math.ceil((segLf / 12) * 13), 0)
-          : (lf > 0 ? Math.ceil((lf / 12) * 13) : 0);
+        // Boards: rule is (segmentLF/12)*13 rounded up.
+        // If a segment is < 12', it normally consumes a full set of 13 boards,
+        // but short segments can share the same 13 boards if they can be cut from the same 12' boards.
+        // We model that by bin-packing short segments into 12' bins (each bin costs 13 boards).
+        const boardsBase = (() => {
+          if (!segmentLengths.length) return lf > 0 ? Math.ceil((lf / 12) * 13) : 0;
+
+          const longBoards = segmentLengths
+            .filter((len) => len >= 12)
+            .reduce((sum, len) => sum + Math.ceil((len / 12) * 13), 0);
+
+          const shorts = segmentLengths.filter((len) => len > 0 && len < 12).sort((a, b) => b - a);
+          const bins: number[] = [];
+          for (const len of shorts) {
+            let placed = false;
+            for (let i = 0; i < bins.length; i++) {
+              if (bins[i] >= len) {
+                bins[i] -= len;
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) bins.push(12 - len);
+          }
+          const shortBoards = bins.length * 13;
+          return longBoards + shortBoards;
+        })();
         const boardsPanelExtra = panels > 0 ? Math.ceil(panels * 0.25) : 0;
+        const boardsGateExtra = walkGates * 2 + doubleGates * 4;
         const boardsVerticalsExtra = materialsDetails.horizontalCedarVerticals
           ? Math.ceil(cornerCount * 1 + posts * 0.5)
           : 0;
-        const boards = boardsBase + boardsPanelExtra + boardsVerticalsExtra;
+        const boards = boardsBase + boardsPanelExtra + boardsGateExtra + boardsVerticalsExtra;
 
         // Keep these proportional to the reference sheet (274 LF):
         const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
