@@ -396,33 +396,8 @@ function EstimatesPageInner() {
         const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
-        // Boards: rule is (segmentLF/12)*13 rounded up.
-        // If a segment is < 12', it normally consumes a full set of 13 boards,
-        // but short segments can share the same 13 boards if they can be cut from the same 12' boards.
-        // We model that by bin-packing short segments into 12' bins (each bin costs 13 boards).
-        const boardsBase = (() => {
-          if (!segmentLengths.length) return lf > 0 ? Math.ceil((lf / 12) * 13) : 0;
-
-          const longBoards = segmentLengths
-            .filter((len) => len >= 12)
-            .reduce((sum, len) => sum + Math.ceil((len / 12) * 13), 0);
-
-          const shorts = segmentLengths.filter((len) => len > 0 && len < 12).sort((a, b) => b - a);
-          const bins: number[] = [];
-          for (const len of shorts) {
-            let placed = false;
-            for (let i = 0; i < bins.length; i++) {
-              if (bins[i] >= len) {
-                bins[i] -= len;
-                placed = true;
-                break;
-              }
-            }
-            if (!placed) bins.push(12 - len);
-          }
-          const shortBoards = bins.length * 13;
-          return longBoards + shortBoards;
-        })();
+        // Boards: panels/3 * 13, round up
+        const boardsBase = panels > 0 ? Math.ceil((panels / 3) * 13) : 0;
         const boardsPanelExtra = panels > 0 ? Math.ceil(panels * 0.25) : 0;
         const boardsGateExtra = walkGates * 2 + doubleGates * 4;
         const boardsVerticalsExtra = materialsDetails.horizontalCedarVerticals
