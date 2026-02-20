@@ -342,6 +342,11 @@ function EstimatesPageInner() {
     return segments.filter((s) => Boolean((s as any).gate)).length;
   }, [segments]);
 
+  function normalizeUnitPriceKey(name: string) {
+    if (name.startsWith("Concrete 60lb Bag")) return "Concrete 60lb Bag";
+    return name;
+  }
+
   const generatedMaterials = useMemo(() => {
     if (!selectedStyle) return [] as QuoteItem[];
 
@@ -430,7 +435,7 @@ function EstimatesPageInner() {
         return rows
           .filter((r) => (Number(r.qty) || 0) > 0)
           .map((r) => {
-            const unitPrice = Number(materialUnitPrices[r.name] ?? 0);
+            const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
             const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
             return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
           });
@@ -492,7 +497,7 @@ function EstimatesPageInner() {
       ];
 
       return rows.map((r) => {
-        const unitPrice = Number(materialUnitPrices[r.name] ?? 0);
+        const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
         const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
         return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
       });
@@ -525,7 +530,7 @@ function EstimatesPageInner() {
     ];
 
     return rows.map((r) => {
-      const unitPrice = Number(materialUnitPrices[r.name] ?? 0);
+      const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
@@ -2308,27 +2313,28 @@ function EstimatesPageInner() {
                                       <Input
                                         inputMode="decimal"
                                         value={
-                                          materialUnitPriceDrafts[m.name] ??
-                                          String(materialUnitPrices[m.name] ?? m.unitPrice ?? 0)
+                                          materialUnitPriceDrafts[normalizeUnitPriceKey(m.name)] ??
+                                          String(materialUnitPrices[normalizeUnitPriceKey(m.name)] ?? m.unitPrice ?? 0)
                                         }
                                         onChange={(e) =>
                                           setMaterialUnitPriceDrafts((prev) => ({
                                             ...prev,
-                                            [m.name]: e.target.value
+                                            [normalizeUnitPriceKey(m.name)]: e.target.value
                                           }))
                                         }
                                         onBlur={() => {
-                                          const raw = materialUnitPriceDrafts[m.name];
+                                          const k = normalizeUnitPriceKey(m.name);
+                                          const raw = materialUnitPriceDrafts[k];
                                           if (raw === undefined) return;
                                           const n = Number(raw);
-                                          touchedMaterialUnitPricesRef.current.add(m.name);
+                                          touchedMaterialUnitPricesRef.current.add(k);
                                           setMaterialUnitPrices((prev) => ({
                                             ...prev,
-                                            [m.name]: Number.isFinite(n) ? n : 0
+                                            [k]: Number.isFinite(n) ? n : 0
                                           }));
                                           setMaterialUnitPriceDrafts((prev) => {
                                             const next = { ...prev };
-                                            delete next[m.name];
+                                            delete next[k];
                                             return next;
                                           });
                                         }}
@@ -2350,7 +2356,17 @@ function EstimatesPageInner() {
                                   <div className="text-sm font-black">
                                     {money(
                                       Math.round(
-                                        generatedMaterials.reduce((sum, m) => sum + (Number(m.lineTotal) || 0), 0) * 100
+                                        (() => {
+                                          const feeNames = new Set(["Delivery", "Disposal", "Equipment Fees"]);
+                                          const baseSum = generatedMaterials
+                                            .filter((m) => !feeNames.has(m.name))
+                                            .reduce((sum, m) => sum + (Number(m.lineTotal) || 0), 0);
+                                          const feesSum = generatedMaterials
+                                            .filter((m) => feeNames.has(m.name))
+                                            .reduce((sum, m) => sum + (Number(m.lineTotal) || 0), 0);
+                                          const total = ((baseSum * 1.08) + feesSum) * 1.2;
+                                          return total;
+                                        })() * 100
                                       ) / 100
                                     )}
                                   </div>
