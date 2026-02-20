@@ -224,7 +224,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .headerRight{ text-align:right; font-size:11px; line-height:1.3; max-width: 3.0in; }
 .rightBold{ font-weight:800; }
 .divider{ height:1px; background:#000; opacity:.28; margin:12px 0 12px; }
-.estimateTitle{ text-align:center; font-size:26px; font-weight:900; letter-spacing:.08em; margin: 0 0 10px; }
+.estimateTitle{ text-align:center; font-size:26px; font-weight:900; letter-spacing:.08em; margin: 0 0 10px; transform: translateX(-0.04em); }
 .infoGrid{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 .infoBox{ border:1px solid var(--mid); border-radius:10px; padding:10px; }
 .infoLabel{ font-size:11px; opacity:.7; }
