@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { createPortal } from "react-dom";
@@ -20,11 +21,35 @@ type DraftEntry = {
   email?: string;
   selectedStyle?: { name: string } | null;
   notes?: string;
+  projectPhotoDataUrl?: string | null;
+  preInstallPhotos?: unknown;
   segments?: Array<{ length: number; removed: boolean }>;
   items?: QuoteItem[];
   contract?: any;
   photos?: Array<{ url: string; createdAt?: number }>;
 };
+
+function normalizePreInstallPhotos(input: unknown) {
+  if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
+  const out: Array<{ src: string; note: string; createdAt: number }> = [];
+  for (const v of input) {
+    if (typeof v === "string") {
+      if (!v.startsWith("data:")) continue;
+      out.push({ src: v, note: "", createdAt: Date.now() });
+      continue;
+    }
+    if (v && typeof v === "object") {
+      const src = typeof (v as any).src === "string" ? (v as any).src : "";
+      if (!src.startsWith("data:")) continue;
+      out.push({
+        src,
+        note: typeof (v as any).note === "string" ? (v as any).note : "",
+        createdAt: Number((v as any).createdAt) || Date.now()
+      });
+    }
+  }
+  return out;
+}
 
 function readDraftStore(): Record<string, DraftEntry> {
   if (typeof window === "undefined") return {};
@@ -214,6 +239,40 @@ export default function QuoteDetailPage() {
             <div className="text-[var(--muted)]">Contract</div>
             <SecondaryButton onClick={viewContract} disabled={!draft.contract}>Open</SecondaryButton>
           </div>
+
+          {typeof (draft as any).projectPhotoDataUrl === "string" && (draft as any).projectPhotoDataUrl ? (
+            <div className="mt-2">
+              <div className="text-[11px] text-[var(--muted)] mb-2">Project photo</div>
+              <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                <NextImage
+                  src={(draft as any).projectPhotoDataUrl}
+                  alt=""
+                  fill
+                  sizes="(max-width: 980px) 92vw, 980px"
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {normalizePreInstallPhotos((draft as any).preInstallPhotos).length ? (
+            <div className="mt-3">
+              <div className="text-[11px] text-[var(--muted)] mb-2">Pre-install photos</div>
+              <div className="grid grid-cols-3 gap-2">
+                {normalizePreInstallPhotos((draft as any).preInstallPhotos).map((p, idx) => (
+                  <div key={`${draft.id}:pre:${idx}`} className="grid gap-1">
+                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                      <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
+                    </div>
+                    {p.note ? (
+                      <div className="text-[11px] text-[var(--muted)] truncate">{p.note}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex items-center justify-between gap-3 text-sm">
             <div className="text-[var(--muted)]">Photos</div>
             <div className="text-[11px] text-[var(--muted)]">

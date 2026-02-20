@@ -50,8 +50,9 @@ function EstimatesPageInner() {
   const [referenceLength, setReferenceLength] = useState(0);
   const [segments, setSegments] = useState<Array<{ id: string; label: string; length: number; removed: boolean; gate?: boolean }>>([]);
   const [notes, setNotes] = useState("");
-  const [preInstallPhotos, setPreInstallPhotos] = useState<string[]>([]);
+  const [preInstallPhotos, setPreInstallPhotos] = useState<Array<{ src: string; note: string; createdAt: number }>>([]);
   const preInstallPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const [notePhotoIdx, setNotePhotoIdx] = useState<number | null>(null);
   const [laborDays, setLaborDays] = useState<number>(0);
   const [laborManualDays, setLaborManualDays] = useState<string>("");
   const [laborManualCost, setLaborManualCost] = useState<string>("");
@@ -183,6 +184,52 @@ function EstimatesPageInner() {
     "Delivery": 100,
     "Equipment Fees": 100
   });
+
+  const defaultMaterialUnitPricesRef = useRef(materialUnitPrices);
+  const touchedMaterialUnitPricesRef = useRef<Set<string>>(new Set());
+
+  const cedarToneUnitPricesRef = useRef<Record<string, number>>({
+    "6' Pressure Treated Dog Ear Pickets": 3.89,
+    "2x4 16' Pressure Treated Rails": 15.89,
+    "4x4 x 8' Post": 16.49,
+    "3\" Deck Screws": 29.97
+  });
+
+  const materialUnitPricesActive = useMemo(() => {
+    const base = defaultMaterialUnitPricesRef.current;
+    for (const k of Object.keys(base)) {
+      if (Number(materialUnitPrices[k]) !== Number(base[k])) return true;
+    }
+    return false;
+  }, [materialUnitPrices]);
+
+  useEffect(() => {
+    const wood = materialsDetails.woodType;
+    const base = defaultMaterialUnitPricesRef.current;
+    const preset = cedarToneUnitPricesRef.current;
+    const touched = touchedMaterialUnitPricesRef.current;
+
+    setMaterialUnitPrices((prev) => {
+      const next = { ...prev };
+      const keys = Object.keys(base);
+      let changed = false;
+
+      for (const k of keys) {
+        if (touched.has(k)) continue;
+
+        const target = wood === "Cedar tone"
+          ? (typeof preset[k] === "number" ? preset[k] : base[k])
+          : base[k];
+
+        if (Number(next[k]) !== Number(target)) {
+          next[k] = target;
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [materialsDetails.woodType]);
 
   const [materialUnitPriceDrafts, setMaterialUnitPriceDrafts] = useState<Record<string, string>>({});
   const [itemNumberDrafts, setItemNumberDrafts] = useState<Record<string, string>>({});
@@ -498,7 +545,7 @@ function EstimatesPageInner() {
 
   const [items, setItems] = useState<QuoteItem[]>([]);
 
-  function fileToCompressedDataUrl(file: File, maxSide = 1600, quality = 0.78): Promise<string | null> {
+  function fileToCompressedDataUrl(file: File, maxSide = 1280, quality = 0.72): Promise<string | null> {
     if (typeof window === "undefined") return Promise.resolve(null);
 
     return new Promise((resolve) => {
@@ -620,11 +667,75 @@ function EstimatesPageInner() {
     return msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("exceeded") || msg.toLowerCase().includes("storage");
   }
 
+  function sanitizePhotosForStorage(input: {
+    projectPhotoDataUrl: string | null;
+    preInstallPhotos: Array<{ src: string; note: string; createdAt: number }>;
+  }) {
+    const MAX_PROJECT_PHOTO_CHARS = 650_000;
+    const MAX_PREINSTALL_PHOTO_CHARS = 420_000;
+    const MAX_TOTAL_PREINSTALL_CHARS = 1_200_000;
+
+    const project =
+      typeof input.projectPhotoDataUrl === "string" && input.projectPhotoDataUrl.startsWith("data:")
+        ? input.projectPhotoDataUrl
+        : null;
+
+    const projectOk = project && project.length <= MAX_PROJECT_PHOTO_CHARS ? project : null;
+
+    const cleanedPre = Array.isArray(input.preInstallPhotos)
+      ? input.preInstallPhotos.filter((p) => p && typeof (p as any).src === "string" && (p as any).src.startsWith("data:"))
+      : [];
+
+    const cappedEach = cleanedPre.filter((p) => String((p as any).src || "").length <= MAX_PREINSTALL_PHOTO_CHARS);
+    const outPre: Array<{ src: string; note: string; createdAt: number }> = [];
+    let total = 0;
+    for (const p of cappedEach) {
+      const src = String((p as any).src || "");
+      if (total + src.length > MAX_TOTAL_PREINSTALL_CHARS) break;
+      outPre.push({
+        src,
+        note: String((p as any).note || ""),
+        createdAt: Number((p as any).createdAt) || Date.now()
+      });
+      total += src.length;
+    }
+
+    return {
+      projectPhotoDataUrl: projectOk,
+      preInstallPhotos: outPre,
+      droppedProject: Boolean(project && !projectOk),
+      droppedPreInstallCount: Math.max(0, cleanedPre.length - outPre.length)
+    };
+  }
+
+  function normalizePreInstallPhotos(input: unknown) {
+    if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
+
+    const out: Array<{ src: string; note: string; createdAt: number }> = [];
+    for (const v of input) {
+      if (typeof v === "string") {
+        if (!v.startsWith("data:")) continue;
+        out.push({ src: v, note: "", createdAt: Date.now() });
+        continue;
+      }
+      if (v && typeof v === "object") {
+        const src = typeof (v as any).src === "string" ? (v as any).src : "";
+        if (!src.startsWith("data:")) continue;
+        out.push({
+          src,
+          note: typeof (v as any).note === "string" ? (v as any).note : "",
+          createdAt: Number((v as any).createdAt) || Date.now()
+        });
+      }
+    }
+    return out;
+  }
+
   useEffect(() => {
     let cancelled = false;
 
     if (projectPhoto) {
-      fileToCompressedDataUrl(projectPhoto).then((result) => {
+      fileToCompressedDataUrl(projectPhoto, 1280, 0.72).then((result) => {
         if (cancelled) return;
         setProjectPhotoDataUrl(result);
         setProjectPhotoUrl(result);
@@ -694,7 +805,7 @@ function EstimatesPageInner() {
       setDoubleGateCount(Number((snap as any).doubleGateCount ?? 0));
       setReferenceLength(Number((snap as any).referenceLength ?? 0));
       setNotes(String((snap as any).notes ?? ""));
-      setPreInstallPhotos(Array.isArray((snap as any).preInstallPhotos) ? (snap as any).preInstallPhotos.filter((p: any) => typeof p === "string") : []);
+      setPreInstallPhotos(normalizePreInstallPhotos((snap as any).preInstallPhotos));
       setSegments(Array.isArray((snap as any).segments) ? (snap as any).segments : []);
       setItems(Array.isArray((snap as any).items) ? (snap as any).items : []);
       setProjectPhoto(null);
@@ -942,6 +1053,7 @@ function EstimatesPageInner() {
     setExtraPosts(0);
     setNotes("");
     setPreInstallPhotos([]);
+    setNotePhotoIdx(null);
     setLaborDays(0);
     setLaborManualDays("");
     setLaborManualCost("");
@@ -1092,6 +1204,7 @@ function EstimatesPageInner() {
     const prevStatus = store[id]?.status;
     const isNewDraft = !store[id];
     const status = isNewDraft ? (hasCustomerInfo && hasEstimateContent ? "pending" : prevStatus ?? "estimate") : prevStatus;
+    const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
     const baseDraft = {
       id,
       createdAt: store[id]?.createdAt ?? now,
@@ -1102,7 +1215,7 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
-      projectPhotoDataUrl,
+      projectPhotoDataUrl: sanitized.projectPhotoDataUrl,
       selectedFenceType,
       selectedStyle,
       materialsDetails,
@@ -1119,11 +1232,19 @@ function EstimatesPageInner() {
       doubleGateCount,
       referenceLength,
       notes,
-      preInstallPhotos,
+      preInstallPhotos: sanitized.preInstallPhotos,
       segments,
       items,
       contract: buildContractPayload(id)
     };
+
+    if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
+      setSaveError(
+        sanitized.droppedProject
+          ? "Photos were too large for device storage and were omitted before saving."
+          : "Some photos were too large for device storage and were omitted before saving."
+      );
+    }
 
     const finishOk = () => {
       clearUnsavedSnapshot();
@@ -1177,9 +1298,7 @@ function EstimatesPageInner() {
         finishFail(e);
       }
     })().finally(() => {
-      setTimeout(() => {
-        setSaving(false);
-      }, 250);
+      setSaving(false);
     });
   }
 
@@ -1222,6 +1341,7 @@ function EstimatesPageInner() {
       );
     };
 
+    const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
     const baseDraft = {
       id,
       createdAt: now,
@@ -1232,7 +1352,7 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
-      projectPhotoDataUrl,
+      projectPhotoDataUrl: sanitized.projectPhotoDataUrl,
       selectedFenceType,
       selectedStyle,
       materialsDetails,
@@ -1249,11 +1369,19 @@ function EstimatesPageInner() {
       doubleGateCount,
       referenceLength,
       notes,
-      preInstallPhotos,
+      preInstallPhotos: sanitized.preInstallPhotos,
       segments,
       items,
       contract: buildContractPayload(id)
     };
+
+    if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
+      setSaveError(
+        sanitized.droppedProject
+          ? "Photos were too large for device storage and were omitted before saving."
+          : "Some photos were too large for device storage and were omitted before saving."
+      );
+    }
 
     (async () => {
       try {
@@ -1297,9 +1425,7 @@ function EstimatesPageInner() {
         finishFail(e);
       }
     })().finally(() => {
-      setTimeout(() => {
-        setSavingAsNew(false);
-      }, 250);
+      setSavingAsNew(false);
     });
   }
 
@@ -1353,7 +1479,7 @@ function EstimatesPageInner() {
     setDoubleGateCount(Number(d.doubleGateCount ?? 0));
     setReferenceLength(Number(d.referenceLength ?? 0));
     setNotes(String(d.notes ?? ""));
-    setPreInstallPhotos(Array.isArray((d as any).preInstallPhotos) ? (d as any).preInstallPhotos.filter((p: any) => typeof p === "string") : []);
+    setPreInstallPhotos(normalizePreInstallPhotos((d as any).preInstallPhotos));
     setSegments(Array.isArray(d.segments) ? d.segments : []);
     setItems(Array.isArray(d.items) ? d.items : []);
 
@@ -1854,7 +1980,7 @@ function EstimatesPageInner() {
                             onClick={() => setMaterialsDetailsOpen(true)}
                             data-no-swipe="true"
                             className={
-                              (materialsDetailsActive
+                              ((materialsDetailsOpen || materialsDetailsActive || materialUnitPricesActive)
                                 ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)] "
                                 : "") +
                               "transition-colors duration-0 active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
@@ -1935,6 +2061,7 @@ function EstimatesPageInner() {
                                           const raw = materialUnitPriceDrafts[m.name];
                                           if (raw === undefined) return;
                                           const n = Number(raw);
+                                          touchedMaterialUnitPricesRef.current.add(m.name);
                                           setMaterialUnitPrices((prev) => ({
                                             ...prev,
                                             [m.name]: Number.isFinite(n) ? n : 0
@@ -2203,15 +2330,18 @@ function EstimatesPageInner() {
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
             if (files.length === 0) return;
+            const startIdx = preInstallPhotos.length;
 
             Promise.all(
               files.map(
-                (file) => fileToCompressedDataUrl(file)
+                (file) => fileToCompressedDataUrl(file, 1280, 0.72)
               )
             ).then((results) => {
               const urls = results.filter((r): r is string => typeof r === "string" && r.startsWith("data:"));
               if (urls.length === 0) return;
-              setPreInstallPhotos((prev) => [...prev, ...urls]);
+              const added = urls.map((src) => ({ src, note: "", createdAt: Date.now() }));
+              setPreInstallPhotos((prev) => [...prev, ...added]);
+              setNotePhotoIdx((cur) => (cur == null ? startIdx : cur));
             });
 
             e.target.value = "";
@@ -2220,26 +2350,95 @@ function EstimatesPageInner() {
 
         {preInstallPhotos.length ? (
           <div className="mt-3 grid grid-cols-4 gap-2">
-            {preInstallPhotos.map((src, idx) => (
+            {preInstallPhotos.map((p, idx) => (
               <div key={`${idx}`} className="relative rounded-xl overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]">
                 <div className="relative w-full aspect-square">
-                  <NextImage src={src} alt="" fill sizes="120px" className="object-cover" />
+                  <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
                 </div>
                 <button
                   type="button"
                   data-no-swipe="true"
                   onClick={() => {
                     setPreInstallPhotos((prev) => prev.filter((_, i) => i !== idx));
+                    setNotePhotoIdx((cur) => (cur === idx ? null : cur != null && cur > idx ? cur - 1 : cur));
                   }}
                   className="absolute top-1 right-1 rounded-full border border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)] backdrop-blur-ios px-2 py-1 text-[11px] font-extrabold"
                 >
                   ✕
                 </button>
+
+                {p.note ? (
+                  <div className="absolute left-1 bottom-1 right-1 rounded-lg border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.72)] backdrop-blur-ios px-2 py-1 text-[10px] font-extrabold truncate">
+                    {p.note}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => setNotePhotoIdx(idx)}
+                    className="absolute left-1 bottom-1 rounded-lg border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.72)] backdrop-blur-ios px-2 py-1 text-[10px] font-extrabold"
+                  >
+                    Add note
+                  </button>
+                )}
               </div>
             ))}
           </div>
         ) : null}
       </GlassCard>
+
+      {portalReady && notePhotoIdx != null && preInstallPhotos[notePhotoIdx] ? createPortal(
+        <div className="fixed inset-0 z-[70] grid place-items-center p-4" data-no-swipe="true">
+          <div
+            className="absolute inset-0 bg-[rgba(0,0,0,.45)]"
+            onClick={() => setNotePhotoIdx(null)}
+          />
+          <div className="relative w-full max-w-[520px]" onClick={(e) => e.stopPropagation()}>
+            <GlassCard className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-black">Photo note</div>
+                <SecondaryButton onClick={() => setNotePhotoIdx(null)}>Close</SecondaryButton>
+              </div>
+
+              <div className="mt-3 relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                <NextImage src={preInstallPhotos[notePhotoIdx].src} alt="" fill sizes="520px" className="object-cover" />
+              </div>
+
+              <div className="mt-3">
+                <div className="text-[11px] text-[var(--muted)] mb-1">Comment</div>
+                <Input
+                  value={preInstallPhotos[notePhotoIdx].note}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPreInstallPhotos((prev) => prev.map((p, i) => (i === notePhotoIdx ? { ...p, note: v } : p)));
+                  }}
+                  placeholder=""
+                />
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <SecondaryButton
+                  data-no-swipe="true"
+                  onClick={() => {
+                    const next = notePhotoIdx + 1;
+                    if (next < preInstallPhotos.length) setNotePhotoIdx(next);
+                    else setNotePhotoIdx(null);
+                  }}
+                >
+                  Next
+                </SecondaryButton>
+                <PrimaryButton
+                  data-no-swipe="true"
+                  onClick={() => setNotePhotoIdx(null)}
+                >
+                  Done
+                </PrimaryButton>
+              </div>
+            </GlassCard>
+          </div>
+        </div>,
+        document.body
+      ) : null}
 
       {portalReady && stylePickerIdx
         ? createPortal(
