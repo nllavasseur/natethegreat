@@ -1273,6 +1273,19 @@ function EstimatesPageInner() {
       }
 
       try {
+        store[id] = { ...baseDraft, projectPhotoDataUrl: null };
+        writeDraftStore(store);
+        setSaveError("Saved, but project photo was omitted to fit device storage.");
+        finishOk();
+        return;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          finishFail(e);
+          return;
+        }
+      }
+
+      try {
         const recompressed = projectPhotoDataUrl
           ? (await recompressDataUrl(projectPhotoDataUrl, 1024, 0.7))
           : null;
@@ -1290,10 +1303,24 @@ function EstimatesPageInner() {
       }
 
       try {
-        store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: [] };
-        writeDraftStore(store);
-        setSaveError("Saved, but photos were omitted to fit device storage.");
-        finishOk();
+        const photos = Array.isArray((baseDraft as any).preInstallPhotos) ? ((baseDraft as any).preInstallPhotos as any[]) : [];
+        for (let keep = photos.length; keep >= 0; keep -= 1) {
+          try {
+            store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: photos.slice(0, keep) };
+            writeDraftStore(store);
+            setSaveError(
+              keep === photos.length
+                ? "Saved, but project photo was omitted to fit device storage."
+                : keep > 0
+                  ? "Saved, but some photos were omitted to fit device storage."
+                  : "Saved, but photos were omitted to fit device storage."
+            );
+            finishOk();
+            return;
+          } catch (e) {
+            if (!isQuotaError(e)) throw e;
+          }
+        }
       } catch (e) {
         finishFail(e);
       }
@@ -1398,6 +1425,20 @@ function EstimatesPageInner() {
       }
 
       try {
+        const store = readDraftStore();
+        store[id] = { ...baseDraft, projectPhotoDataUrl: null };
+        writeDraftStore(store);
+        setSaveError("Saved, but project photo was omitted to fit device storage.");
+        finishOk();
+        return;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          finishFail(e);
+          return;
+        }
+      }
+
+      try {
         const recompressed = projectPhotoDataUrl
           ? (await recompressDataUrl(projectPhotoDataUrl, 1024, 0.7))
           : null;
@@ -1417,10 +1458,24 @@ function EstimatesPageInner() {
 
       try {
         const store = readDraftStore();
-        store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: [] };
-        writeDraftStore(store);
-        setSaveError("Saved, but photos were omitted to fit device storage.");
-        finishOk();
+        const photos = Array.isArray((baseDraft as any).preInstallPhotos) ? ((baseDraft as any).preInstallPhotos as any[]) : [];
+        for (let keep = photos.length; keep >= 0; keep -= 1) {
+          try {
+            store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: photos.slice(0, keep) };
+            writeDraftStore(store);
+            setSaveError(
+              keep === photos.length
+                ? "Saved, but project photo was omitted to fit device storage."
+                : keep > 0
+                  ? "Saved, but some photos were omitted to fit device storage."
+                  : "Saved, but photos were omitted to fit device storage."
+            );
+            finishOk();
+            return;
+          } catch (e) {
+            if (!isQuotaError(e)) throw e;
+          }
+        }
       } catch (e) {
         finishFail(e);
       }
