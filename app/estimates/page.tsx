@@ -150,6 +150,8 @@ function EstimatesPageInner() {
     arbor: boolean;
     pictureFrameTrimPieces: 2 | 3;
     pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+    takeoffPreset: "standard" | "horizontal_cedar";
+    horizontalCedarVerticals: boolean;
   }>({
     woodType: "Pressure treated",
     postSize: 8,
@@ -157,7 +159,9 @@ function EstimatesPageInner() {
     postCaps: false,
     arbor: false,
     pictureFrameTrimPieces: 3,
-    pictureFrameTrimMaterial: "Pressure treated"
+    pictureFrameTrimMaterial: "Pressure treated",
+    takeoffPreset: "standard",
+    horizontalCedarVerticals: false
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -171,6 +175,8 @@ function EstimatesPageInner() {
       materialsDetails.arbor ||
       materialsDetails.pictureFrameTrimPieces !== 3 ||
       materialsDetails.pictureFrameTrimMaterial !== "Pressure treated" ||
+      materialsDetails.takeoffPreset !== "standard" ||
+      materialsDetails.horizontalCedarVerticals ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -181,6 +187,11 @@ function EstimatesPageInner() {
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
+    "5/4x6x12 Cedar Boards": 29.79,
+    "2\" Screws 125 ct stainless steel": 20.99,
+    "Concrete 80lb Bag": 4.48,
+    "gate hardware": 90,
+    "2x4 4' Red Cedar S4S": 10.99,
     "80 lb Quickcrete": 5.31,
     "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails": 98,
     "Gate Hinge Kit": 90,
@@ -309,6 +320,63 @@ function EstimatesPageInner() {
     if (selectedStyle.name === "Standard Privacy" || selectedStyle.name === "Picture Framed") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
 
+      if (selectedStyle.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") {
+        const lf = Number(totalLf) || 0;
+
+        const segmentLengths = segments
+          .filter((s) => !s.removed)
+          .map((s) => Number(s.length) || 0)
+          .filter((n) => n > 0);
+
+        // Posts: same as Standard Privacy, but 5.5' spacing.
+        // Sum ceil(segment/5.5) + 1 (first post) for base line.
+        const postsBase = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0) + 1
+          : (lf > 0 ? Math.max(2, Math.ceil(lf / 5.5) + 1) : 0);
+        const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+        const panels = lf > 0 ? Math.ceil(lf / 8) : 0;
+        const cornerCount = Math.max(0, segmentLengths.length - 1);
+
+        // Boards: per segment -> ceil((segmentLf / 12) * 13), summed
+        const boardsBase = segmentLengths.length
+          ? segmentLengths.reduce((sum, segLf) => sum + Math.ceil((segLf / 12) * 13), 0)
+          : (lf > 0 ? Math.ceil((lf / 12) * 13) : 0);
+        const boardsVerticalsExtra = materialsDetails.horizontalCedarVerticals
+          ? Math.ceil(panels * 0.25 + cornerCount * 1 + posts * 0.5)
+          : 0;
+        const boards = boardsBase + boardsVerticalsExtra;
+
+        // Keep these proportional to the reference sheet (274 LF):
+        const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
+        const concreteBags = posts > 0 ? Math.ceil(posts * (150 / 55)) : 0;
+        const redCedarS4S = lf > 0 ? Math.ceil(lf * (10 / 274)) : 0;
+
+        const gateHardware = gateHingeKitsAdd + doubleGateKitsAdd;
+
+        const rows: Array<{ name: string; qty: number; unit: string }> = [
+          { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
+          { name: "5/4x6x12 Cedar Boards", qty: boards, unit: "ea" },
+          { name: "2\" Screws 125 ct stainless steel", qty: stainlessScrews, unit: "ea" },
+          { name: "Concrete 80lb Bag", qty: concreteBags, unit: "bag" },
+          { name: "2x4 4' Red Cedar S4S", qty: redCedarS4S, unit: "ea" },
+          ...(gateHardware > 0 ? [{ name: "gate hardware", qty: gateHardware, unit: "ea" }] : []),
+          ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+          { name: "3\" Deck Screws", qty: fixedOrZero(1), unit: "box" },
+          { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+          { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+          { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+        ];
+
+        return rows
+          .filter((r) => (Number(r.qty) || 0) > 0)
+          .map((r) => {
+            const unitPrice = Number(materialUnitPrices[r.name] ?? 0);
+            const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+            return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          });
+      }
+
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
@@ -399,7 +467,7 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, segments, selectedStyle, totalLf, walkGateCountDerived]);
+  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, segments, selectedStyle, totalLf, walkGateCountDerived]);
 
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
@@ -1070,7 +1138,9 @@ function EstimatesPageInner() {
       postCaps: false,
       arbor: false,
       pictureFrameTrimPieces: 3,
-      pictureFrameTrimMaterial: "Pressure treated"
+      pictureFrameTrimMaterial: "Pressure treated",
+      takeoffPreset: "standard",
+      horizontalCedarVerticals: false
     });
     setExtraPosts(0);
     setNotes("");
@@ -1536,6 +1606,10 @@ function EstimatesPageInner() {
       const pictureFrameTrimMaterial = (dd.pictureFrameTrimMaterial === "Cedar" || dd.pictureFrameTrimMaterial === "Cedar tone" || dd.pictureFrameTrimMaterial === "Pressure treated")
         ? dd.pictureFrameTrimMaterial
         : "Pressure treated";
+      const takeoffPreset = dd.takeoffPreset === "horizontal_cedar" || dd.takeoffPreset === "standard"
+        ? dd.takeoffPreset
+        : "standard";
+      const horizontalCedarVerticals = typeof dd.horizontalCedarVerticals === "boolean" ? dd.horizontalCedarVerticals : false;
 
       setMaterialsDetails((prev) => ({
         ...prev,
@@ -1545,7 +1619,9 @@ function EstimatesPageInner() {
         postCaps,
         arbor,
         pictureFrameTrimPieces,
-        pictureFrameTrimMaterial
+        pictureFrameTrimMaterial,
+        takeoffPreset,
+        horizontalCedarVerticals
       }));
     }
     if (d.materialUnitPrices && typeof d.materialUnitPrices === "object") {
@@ -2573,6 +2649,65 @@ function EstimatesPageInner() {
                 </div>
 
                 <div className="mt-3 grid gap-3">
+                  {selectedStyle?.name === "Standard Privacy" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Materials preset</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, takeoffPreset: "standard" }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                            (materialsDetails.takeoffPreset === "standard"
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          Standard
+                        </button>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, takeoffPreset: "horizontal_cedar" }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                            (materialsDetails.takeoffPreset === "horizontal_cedar"
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          Horizontal cedar
+                        </button>
+                      </div>
+
+                      {materialsDetails.takeoffPreset === "horizontal_cedar" ? (
+                        <div className="mt-3">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarVerticals: !p.horizontalCedarVerticals }))}
+                            className={
+                              "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                              (materialsDetails.horizontalCedarVerticals
+                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                            }
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-extrabold">{materialsDetails.horizontalCedarVerticals ? "On" : "Off"}</div>
+                              <div className="text-[11px] text-[var(--muted)]">Adds boards</div>
+                            </div>
+                          </button>
+                          <div className="mt-2 text-[11px] text-[var(--muted)]">Adds: .25 boards/panel + 1 board/corner + .5 boards/post.</div>
+                        </div>
+                      ) : null}
+
+                      <div className="mt-2 text-[11px] text-[var(--muted)]">Switches generated line items; you can still override prices/qty after.</div>
+                    </div>
+                  ) : null}
+
                   <div>
                     <div className="text-[11px] text-[var(--muted)] mb-1">Wood type</div>
                     <Select
