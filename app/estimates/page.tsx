@@ -210,6 +210,7 @@ function EstimatesPageInner() {
     "1x4 x 8' CedarTone Trim": 0,
     "5/4x6x12 Cedar Boards": 29.79,
     "1x6x12' Red Cedar Boards": 27.43,
+    "5/4x6x12 Pressure Treated Boards": 10.59,
     "2\" Screws 125 ct stainless steel": 20.99,
     "3\" screws 60 ct stainless steel": 20.99,
     "Concrete 80lb Bag": 4.48,
@@ -350,6 +351,10 @@ function EstimatesPageInner() {
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
         const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+        const boardName =
+          materialsDetails.woodType === "Pressure treated"
+            ? "5/4x6x12 Pressure Treated Boards"
+            : "1x6x12' Red Cedar Boards";
 
         const segmentLengths = segments
           .filter((s) => !s.removed)
@@ -411,7 +416,7 @@ function EstimatesPageInner() {
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
-          { name: "1x6x12' Red Cedar Boards", qty: boards, unit: "ea" },
+          { name: boardName, qty: boards, unit: "ea" },
           { name: "3\" screws 60 ct stainless steel", qty: stainlessScrews, unit: "ea" },
           { name: "Concrete 80lb Bag", qty: concreteBags, unit: "bag" },
           { name: "2x4 4' Red Cedar S4S", qty: redCedarS4S, unit: "ea" },
