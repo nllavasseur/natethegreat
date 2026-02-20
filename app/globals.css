@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  /* Match your current vibe: deep green + warm brown + iOS glass */
+  --vf-green: #1F4D3A;
+  --vf-brown: #8A5A2B;
+
+  --pantone-7511c: #B77729;
+  --pantone-574c: #4E5B31;
+
+  --bg: var(--pantone-7511c);
+  --bg2: #9C621F;
+  --card: rgba(78, 91, 49, .58);
+  --card2: rgba(78, 91, 49, .74);
+  --stroke: rgba(255,255,255,.14);
+  --text: rgba(255,255,255,.92);
+  --muted: rgba(255,255,255,.70);
+}
+
+html, body{
+  height: 100%;
+}
+
+body{
+  -webkit-text-size-adjust: 100%;
+  color: var(--text);
+  background: var(--bg2);
+}
+
+.vf-app-bg{
+  background:
+    radial-gradient(1200px 800px at 10% 0%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(900px 600px at 90% 20%, rgba(31,77,58,.22), transparent 55%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+}
+
+@media print{
+  html, body{
+    background: #fff !important;
+  }
+  .vf-app-bg{
+    background: #fff !important;
+  }
+}
+
+/* iOS-ish scroll + tap */
+* { -webkit-tap-highlight-color: transparent; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 10px; }
