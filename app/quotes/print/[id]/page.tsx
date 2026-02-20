@@ -245,9 +245,9 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .depositWrap{ display:flex; justify-content:flex-end; margin-top:10px; }
 .depositBox{ background:var(--brown); color:#fff; border-radius:10px; padding:10px 12px; min-width: 2.6in; }
 .depositLine{ display:flex; justify-content:space-between; gap:16px; font-weight:900; font-size:12px; }
-.notesBox{ margin-top:12px; border:1px solid var(--mid); border-radius:10px; padding:10px; background:var(--light); }
-.notesTitle{ font-weight:900; margin-bottom:6px; font-size:12px; }
-.notesText{ font-size:11px; line-height:1.35; }
+.notesBox{ margin-top:12px; border:1px solid var(--mid); border-radius:10px; padding:10px; background:var(--light); text-align:center; }
+.notesTitle{ font-weight:900; margin-bottom:6px; font-size:12px; text-align:center; }
+.notesText{ font-size:11px; line-height:1.35; white-space: pre-wrap; text-align:center; }
 .bottomRow{ display:grid; grid-template-columns: 1.5fr 1fr; gap:12px; margin-top:14px; align-items:stretch; }
 .disclaimerBox{ border:1px solid var(--mid); border-radius:10px; padding:10px; }
 .finePrint{ font-size:10px; line-height:1.35; }
