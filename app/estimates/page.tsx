@@ -2235,7 +2235,7 @@ function EstimatesPageInner() {
                             onClick={() => setMaterialsDetailsOpen(true)}
                             data-no-swipe="true"
                             className={
-                              ((materialsDetailsOpen || materialsDetailsActive || materialUnitPricesActive)
+                              ((materialsDetailsOpen || materialsDetailsActive || materialUnitPricesActive || selectedStyle?.name === "Horizontal Cedar")
                                 ? "!bg-[rgba(255,214,10,.34)] !border-[rgba(255,214,10,.65)] !text-[rgba(255,244,200,.98)] hover:!bg-[rgba(255,214,10,.34)] "
                                 : "") +
                               "transition-colors duration-0 active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
