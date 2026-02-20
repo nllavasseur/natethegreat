@@ -368,7 +368,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .workText{ line-height:1.35; }
 .workPrice{ background:var(--brown); color:#fff; font-weight:900; padding:3px 7px; font-size:9.5px; width: 2.0in; margin-left:auto; text-align:right; }
 .notesBlock{ margin-top:6px; border:1px solid var(--mid); }
-.notesBody{ padding:6px 7px; font-size:8.5px; }
+.notesBody{ padding:6px 7px; font-size:8.5px; text-align:center; }
 .bottomGrid{ display:grid; grid-template-columns: 1fr 2.0in; gap:10px; margin-top:8px; align-items:end; }
 .disclaimer{ border-top:1px solid #000; padding-top:6px; font-size:7.5px; }
 .discTitle{ font-weight:900; margin-bottom:4px; }
@@ -401,9 +401,8 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 12px 30px rgba(0,0,0,.35);
 }
-@page{ size: letter; margin: 0; }
-body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 @media print{
+  @page{ size: letter; margin: 0.20in; }
   .noPrint{ display:none !important; }
   html, body{
     background:#fff !important;
@@ -419,13 +418,14 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .page{
     width: 8.5in;
     margin: 0;
-    padding:0.12in;
+    padding:0.08in;
     background:#fff;
     box-shadow:none;
-    height: 11in;
-    overflow: hidden;
-    zoom: var(--vf-print-scale);
-    transform: none;
+    height: auto;
+    overflow: visible;
+    zoom: 1;
+    transform: scale(var(--vf-print-scale));
+    transform-origin: top left;
   }
 }
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }

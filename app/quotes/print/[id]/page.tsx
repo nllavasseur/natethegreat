@@ -224,7 +224,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .headerRight{ text-align:right; font-size:11px; line-height:1.3; max-width: 3.0in; }
 .rightBold{ font-weight:800; }
 .divider{ height:1px; background:#000; opacity:.28; margin:12px 0 12px; }
-.estimateTitle{ text-align:center; font-size:26px; font-weight:900; letter-spacing:.08em; margin: 0 0 10px; transform: translateX(-0.04em); }
+.estimateTitle{ display:flex; justify-content:center; font-size:26px; font-weight:900; letter-spacing:.08em; margin: 0 0 10px; padding-left:.08em; transform:none; }
 .infoGrid{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 .infoBox{ border:1px solid var(--mid); border-radius:10px; padding:10px; }
 .infoLabel{ font-size:11px; opacity:.7; }
@@ -265,10 +265,10 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .sigLabel{ font-size:10px; opacity:.75; margin-top:4px; }
 body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 @media print{
-  @page{ size: letter; margin: 0.35in; }
+  @page{ size: letter; margin: 0.20in; }
   .noPrint{ display:none !important; }
-  html,body{ height:auto; }
-  .page{ width:auto; margin:0; padding:0; }
+  html,body{ height:auto; margin:0; padding:0; }
+  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; }
 }
 .section, .table, .infoBox, .notesBox, .disclaimerBox, .totalsBox, .signatureBlock{
   break-inside: avoid;
