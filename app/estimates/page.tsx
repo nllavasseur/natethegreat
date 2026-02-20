@@ -431,7 +431,7 @@ function EstimatesPageInner() {
 
         // Keep these proportional to the reference sheet (274 LF):
         const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
-        const concreteBags = posts > 0 ? Math.ceil(posts * (150 / 55)) : 0;
+        const concreteBags = posts > 0 ? Math.ceil(posts * 2) : 0;
         const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const gateHardware = gateHingeKitsAdd + doubleGateKitsAdd;
