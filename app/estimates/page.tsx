@@ -1082,6 +1082,9 @@ function EstimatesPageInner() {
     if (style.name === "Horizontal Cedar") {
       setMaterialsDetails((prev) => ({
         ...prev,
+        woodType: "Cedar",
+        postSize: 10,
+        postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar"
       }));
     }
