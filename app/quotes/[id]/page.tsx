@@ -67,6 +67,7 @@ export default function QuoteDetailPage() {
   const id = String(params?.id ?? "");
   const [draft, setDraft] = React.useState<DraftEntry | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
+  const [viewerIdx, setViewerIdx] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     const store = readDraftStore();
@@ -80,6 +81,24 @@ export default function QuoteDetailPage() {
   const title = String(draft?.title || draft?.customerName || draft?.projectAddress || draft?.selectedStyle?.name || `Quote #${id}`);
   const items = Array.isArray(draft?.items) ? draft!.items! : [];
   const totals = React.useMemo(() => computeTotals(items, 0, 0, 0), [items]);
+
+  const preInstall = React.useMemo(() => normalizePreInstallPhotos((draft as any)?.preInstallPhotos), [draft]);
+  const hasProjectPhoto = typeof (draft as any)?.projectPhotoDataUrl === "string" && Boolean((draft as any)?.projectPhotoDataUrl);
+  const viewerItems = React.useMemo(() => {
+    const out: Array<{ src: string; note?: string; label: string }> = [];
+    const project = (draft as any)?.projectPhotoDataUrl;
+    if (typeof project === "string" && project) {
+      out.push({ src: project, label: "Project photo" });
+    }
+    for (const p of preInstall) {
+      out.push({ src: p.src, note: p.note, label: "Pre-install" });
+    }
+    return out;
+  }, [draft, preInstall]);
+
+  const curViewer = typeof viewerIdx === "number" && viewerIdx >= 0 && viewerIdx < viewerItems.length
+    ? viewerItems[viewerIdx]
+    : null;
 
   const segments = Array.isArray(draft?.segments) ? draft!.segments! : [];
   const totalLf = segments.reduce((sum, s) => sum + (Number(s.length) || 0), 0);
@@ -188,6 +207,60 @@ export default function QuoteDetailPage() {
         </div>
       </GlassCard>
 
+      {portalReady && curViewer ? createPortal(
+        <div className="fixed inset-0 z-[80] grid place-items-center p-3" data-no-swipe="true">
+          <div
+            className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
+            onClick={() => setViewerIdx(null)}
+          />
+          <div
+            className="relative w-full max-w-[980px]"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <GlassCard className="p-3 overflow-hidden">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-black truncate">{curViewer.label}</div>
+                <div className="flex items-center gap-2">
+                  <SecondaryButton
+                    data-no-swipe="true"
+                    disabled={viewerIdx === 0}
+                    onClick={() => setViewerIdx((v) => (typeof v === "number" ? Math.max(0, v - 1) : v))}
+                  >
+                    Prev
+                  </SecondaryButton>
+                  <SecondaryButton
+                    data-no-swipe="true"
+                    disabled={typeof viewerIdx !== "number" || viewerIdx >= viewerItems.length - 1}
+                    onClick={() => setViewerIdx((v) => (typeof v === "number" ? Math.min(viewerItems.length - 1, v + 1) : v))}
+                  >
+                    Next
+                  </SecondaryButton>
+                  <SecondaryButton data-no-swipe="true" onClick={() => setViewerIdx(null)}>Close</SecondaryButton>
+                </div>
+              </div>
+
+              <div className="mt-2 relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                <NextImage
+                  src={curViewer.src}
+                  alt=""
+                  fill
+                  sizes="(max-width: 980px) 92vw, 980px"
+                  className="object-contain"
+                />
+              </div>
+
+              {curViewer.note ? (
+                <div className="mt-2 rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-2 text-[12px] font-black text-[rgba(255,255,255,.90)]">
+                  {curViewer.note}
+                </div>
+              ) : null}
+            </GlassCard>
+          </div>
+        </div>,
+        document.body
+      ) : null}
+
       <SectionTitle title="Job details" />
       <GlassCard className="p-4">
         <div className="grid gap-2 text-sm">
@@ -243,27 +316,41 @@ export default function QuoteDetailPage() {
           {typeof (draft as any).projectPhotoDataUrl === "string" && (draft as any).projectPhotoDataUrl ? (
             <div className="mt-2">
               <div className="text-[11px] text-[var(--muted)] mb-2">Project photo</div>
-              <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
-                <NextImage
-                  src={(draft as any).projectPhotoDataUrl}
-                  alt=""
-                  fill
-                  sizes="(max-width: 980px) 92vw, 980px"
-                  className="object-cover"
-                />
-              </div>
+              <button
+                type="button"
+                data-no-swipe="true"
+                onClick={() => setViewerIdx(0)}
+                className="block w-full text-left"
+              >
+                <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                  <NextImage
+                    src={(draft as any).projectPhotoDataUrl}
+                    alt=""
+                    fill
+                    sizes="(max-width: 980px) 92vw, 980px"
+                    className="object-cover"
+                  />
+                </div>
+              </button>
             </div>
           ) : null}
 
-          {normalizePreInstallPhotos((draft as any).preInstallPhotos).length ? (
+          {preInstall.length ? (
             <div className="mt-3">
               <div className="text-[11px] text-[var(--muted)] mb-2">Pre-install photos</div>
               <div className="grid grid-cols-3 gap-2">
-                {normalizePreInstallPhotos((draft as any).preInstallPhotos).map((p, idx) => (
+                {preInstall.map((p, idx) => (
                   <div key={`${draft.id}:pre:${idx}`} className="grid gap-1">
-                    <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
-                      <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
-                    </div>
+                    <button
+                      type="button"
+                      data-no-swipe="true"
+                      onClick={() => setViewerIdx((hasProjectPhoto ? 1 : 0) + idx)}
+                      className="block w-full text-left"
+                    >
+                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                        <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
+                      </div>
+                    </button>
                     {p.note ? (
                       <div className="text-[11px] text-[var(--muted)] truncate">{p.note}</div>
                     ) : null}
