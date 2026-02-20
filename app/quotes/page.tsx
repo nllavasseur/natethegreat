@@ -16,6 +16,10 @@ type DraftEntry = {
   phoneNumber?: string;
   projectAddress?: string;
   selectedStyle?: { name: string } | null;
+  materialsDetails?: {
+    woodType?: string;
+    horizontalCedarBoardMaterial?: string;
+  };
   segments?: Array<{ length: number; removed: boolean }>;
   items?: QuoteItem[];
   status?: "estimate" | "pending" | "sold" | "void";
@@ -341,21 +345,42 @@ export default function QuotesPage() {
       const additionalServicesSubtotal = items
         .filter((i) => i.section === "additional")
         .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-      const materialsAndExpensesTotal = Math.round(
-        (materialsUsed * 1.08 + materialsFees + (Number(additionalServicesSubtotal) || 0) * 0.2) * 100
-      ) / 100;
+      const materialsAndExpensesTotal = Math.round((Number(materialsSubtotal) || 0) * 100) / 100;
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments.filter((s) => Boolean(s.removed)).reduce((sum, s) => sum + (Number(s.length) || 0), 0);
       const removalTotal = Math.round(removalLf * 6 * 100) / 100;
 
-      const laborTotal = Math.round(((Number(totals.laborSubtotal) || 0) + (Number(removalTotal) || 0)) * 100) / 100;
-      const total = Math.round(((Number(materialsAndExpensesTotal) || 0) + laborTotal) * 100) / 100;
+      const laborBaseTotal = items
+        .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
+        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+      const laborFeesTotal = items
+        .filter((i) => i.section === "labor" && String(i.name || "") !== "Days labor")
+        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+
+      const additionalFeesTotal = items
+        .filter((i) => i.section === "additional")
+        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+
+      const total = Math.round(
+        ((Number(materialsAndExpensesTotal) || 0) +
+          (Number(laborBaseTotal) || 0) +
+          (Number(laborFeesTotal) || 0) +
+          (Number(additionalFeesTotal) || 0) +
+          (Number(removalTotal) || 0)) *
+          100
+      ) / 100;
       const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
       const due = Math.max(0, Math.round((total - depositTotal) * 100) / 100);
 
       const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
       const style = String(d.selectedStyle?.name || "");
+      const material = (() => {
+        const md = (d as any).materialsDetails as any;
+        if (!md || typeof md !== "object") return "";
+        if (style === "Horizontal Cedar") return String(md.horizontalCedarBoardMaterial || "");
+        return String(md.woodType || "");
+      })();
       const status = (d.status ?? "estimate") as DraftEntry["status"];
       const phoneNumber = String((d as any).phoneNumber || "");
       const startDate = String((d as any).startDate || d.installDate || "");
@@ -369,6 +394,7 @@ export default function QuotesPage() {
         id: d.id,
         title,
         style,
+        material,
         status,
         startDate,
         endDate,
@@ -730,8 +756,22 @@ export default function QuotesPage() {
                 <div className="text-sm font-extrabold truncate">{q.title}</div>
                 <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
               </div>
-              <div className="text-[11px] text-[var(--muted)] mt-1">
-                {q.style ? `${q.style} · ` : ""}Total {money(q.total)}
+              {q.style || (q as any).material ? (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {q.style ? (
+                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
+                      Style: {q.style}
+                    </div>
+                  ) : null}
+                  {(q as any).material ? (
+                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
+                      Material type: {(q as any).material}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="text-[11px] text-[var(--muted)]">
+                Total {money(q.total)}
                 {typeof (q as any).roundedHalfDays === "number" && typeof (q as any).spanDays === "number"
                   ? (Number((q as any).spanDays) > 0
                       ? ` · Install ${(q as any).roundedHalfDays}d (${(q as any).spanDays} day${(q as any).spanDays === 1 ? "" : "s"})`

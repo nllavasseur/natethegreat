@@ -665,7 +665,7 @@ function EstimatesPageInner() {
         additional: additionalRows
       },
       totals: {
-        materialsSubtotal: Number(materialsAndExpensesTotal) || 0,
+        materialsSubtotal: Number(materialsDepositTotal) || 0,
         laborSubtotal: Number(totals.laborSubtotal) || 0,
         additionalSubtotal: Number(additionalServicesSubtotal) || 0,
         removalTotal: Number(removalTotal) || 0,
@@ -986,6 +986,11 @@ function EstimatesPageInner() {
       .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
   }, [items]);
 
+  const takeoffMaterialsTotal = useMemo(() => {
+    const v = generatedMaterials.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
+    return Math.round(v * 100) / 100;
+  }, [generatedMaterials]);
+
   const additionalServicesSubtotal = useMemo(() => {
     const v = items
       .filter((i) => i.section === "additional")
@@ -993,29 +998,50 @@ function EstimatesPageInner() {
     return Math.round(v * 100) / 100;
   }, [items]);
 
-  const materialsAndExpensesTotal = useMemo(() => {
-    const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
-    const materialsFees = items
-      .filter((i) => i.section === "materials" && feeNames.has(i.name))
-      .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-
-    const materialsUsed = (Number(materialsSubtotal) || 0) - materialsFees;
-    const taxed = materialsUsed * 1.08;
-    const additionalServicesSurcharge = (Number(additionalServicesSubtotal) || 0) * 0.2;
-
-    const v = taxed + materialsFees + additionalServicesSurcharge;
+  const materialsDepositTotal = useMemo(() => {
+    const v = Number(takeoffMaterialsTotal) || 0;
     return Math.round(v * 100) / 100;
-  }, [additionalServicesSubtotal, items, materialsSubtotal]);
+  }, [takeoffMaterialsTotal]);
+
+  const laborBaseTotal = useMemo(() => {
+    const base = items
+      .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
+      .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+    return Math.round(base * 100) / 100;
+  }, [items]);
+
+  const laborFeeItems = useMemo(() => {
+    return items
+      .filter((i) => i.section === "labor" && String(i.name || "") !== "Days labor")
+      .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+      .filter((i) => i.lineTotal !== 0);
+  }, [items]);
+
+  const additionalFeeItems = useMemo(() => {
+    const additional = items
+      .filter((i) => i.section === "additional")
+      .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+      .filter((i) => i.lineTotal !== 0);
+    return [...laborFeeItems, ...additional];
+  }, [items, laborFeeItems]);
+
+  const laborFeesTotal = useMemo(() => {
+    const v = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+    return Math.round(v * 100) / 100;
+  }, [additionalFeeItems]);
 
   const grandTotal = useMemo(() => {
-    const laborTotal = (Number(totals.laborSubtotal) || 0) + (Number(removalTotal) || 0);
-    const v = (Number(materialsAndExpensesTotal) || 0) + laborTotal;
+    const v =
+      (Number(materialsDepositTotal) || 0) +
+      (Number(laborBaseTotal) || 0) +
+      (Number(laborFeesTotal) || 0) +
+      (Number(removalTotal) || 0);
     return Math.round(v * 100) / 100;
-  }, [materialsAndExpensesTotal, removalTotal, totals.laborSubtotal]);
+  }, [laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
 
   const depositTotal = useMemo(() => {
-    return Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
-  }, [materialsAndExpensesTotal]);
+    return Math.round((Number(materialsDepositTotal) || 0) * 100) / 100;
+  }, [materialsDepositTotal]);
 
   const laborRatePerHalfDay = 650;
   const laborItem = useMemo<QuoteItem>(() => {
@@ -1176,10 +1202,16 @@ function EstimatesPageInner() {
     // Keep generated materials + labor line in sync so totals work.
     setItems((prev) => {
       const manual = prev.filter((it) => it.section !== "materials" && it.section !== "labor");
-      const laborExtras = [toughDigItem, gradeSurchargeItem].filter((it) => it.lineTotal !== 0);
+      const laborExtras = [
+        toughDigItem,
+        gradeSurchargeItem,
+        gradingItem,
+        treeRemovalItem,
+        stumpGrindingItem
+      ].filter((it) => it.lineTotal !== 0);
       return [...generatedMaterials, laborItem, ...laborExtras, ...manual];
     });
-  }, [generatedMaterials, laborItem, toughDigItem, gradeSurchargeItem]);
+  }, [generatedMaterials, laborItem, toughDigItem, gradeSurchargeItem, gradingItem, treeRemovalItem, stumpGrindingItem]);
 
   function addItem(section: SectionKey) {
     setItems((prev) => [...prev, emptyItem(section)]);
@@ -2358,21 +2390,7 @@ function EstimatesPageInner() {
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="text-sm font-extrabold">Materials &amp; Expenses Total</div>
                                   <div className="text-sm font-black">
-                                    {money(
-                                      Math.round(
-                                        (() => {
-                                          const feeNames = new Set(["Delivery", "Disposal", "Equipment Fees"]);
-                                          const baseSum = generatedMaterials
-                                            .filter((m) => !feeNames.has(m.name))
-                                            .reduce((sum, m) => sum + (Number(m.lineTotal) || 0), 0);
-                                          const feesSum = generatedMaterials
-                                            .filter((m) => feeNames.has(m.name))
-                                            .reduce((sum, m) => sum + (Number(m.lineTotal) || 0), 0);
-                                          const total = ((baseSum * 1.08) + feesSum) * 1.2;
-                                          return total;
-                                        })() * 100
-                                      ) / 100
-                                    )}
+                                    {money(takeoffMaterialsTotal)}
                                   </div>
                                 </div>
                               </div>
@@ -3125,18 +3143,41 @@ function EstimatesPageInner() {
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Materials &amp; expenses · Deposit</span>
-            <span className="font-black">{money(materialsAndExpensesTotal)}</span>
+            <span className="font-black">{money(takeoffMaterialsTotal)}</span>
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Labor</span>
-            <span className="font-black">{money((Number(totals.laborSubtotal) || 0) + (Number(removalTotal) || 0))}</span>
+            <span className="font-black">{money(laborBaseTotal)}</span>
           </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-[var(--muted)]">Fence removal</span>
+            <span className="font-black">{money(removalTotal)}</span>
+          </div>
+
+          {additionalFeeItems.length ? (
+            <div className="mt-1 grid gap-1">
+              <div className="text-[11px] font-extrabold text-[var(--muted)]">Additional fees</div>
+              {additionalFeeItems.map((f) => (
+                <div key={f.name} className="flex justify-between gap-2">
+                  <span className="text-[var(--muted)] truncate">{f.name}</span>
+                  <span className="font-black">{money(f.lineTotal)}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="h-px bg-[rgba(255,255,255,.12)] my-1" />
           <div className="flex justify-between text-base">
             <span className="font-black">TOTAL</span>
             <span className="font-black">{money(grandTotal)}</span>
           </div>
         </div>
+
+        {searchParams?.get("debugTotals") === "1" ? (
+          <div className="mt-3 text-[11px] text-[var(--muted)]">
+            takeoffMaterialsTotal={String(takeoffMaterialsTotal)} materialsDepositTotal={String(materialsDepositTotal)} materialsSubtotal(items)={String(materialsSubtotal)}
+          </div>
+        ) : null}
       </GlassCard>
 
       <div className="flex justify-end">

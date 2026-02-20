@@ -113,11 +113,26 @@ export default function QuoteDetailPage() {
     .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
   const materialsUsed = (Number(materialsSubtotal) || 0) - materialsFees;
   const additionalServicesSubtotal = items.filter((i) => i.section === "additional").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-  const materialsAndExpensesTotal = Math.round(
-    (materialsUsed * 1.08 + materialsFees + (Number(additionalServicesSubtotal) || 0) * 0.2) * 100
+  const materialsAndExpensesTotal = Math.round((Number(materialsSubtotal) || 0) * 100) / 100;
+
+  const laborBaseTotal = items
+    .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
+    .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+  const laborFeeItems = items
+    .filter((i) => i.section === "labor" && String(i.name || "") !== "Days labor")
+    .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+    .filter((i) => i.lineTotal !== 0);
+  const additionalSectionFeeItems = items
+    .filter((i) => i.section === "additional")
+    .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+    .filter((i) => i.lineTotal !== 0);
+  const additionalFeeItems = [...laborFeeItems, ...additionalSectionFeeItems];
+  const laborFeesTotal = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+
+  const total = Math.round(
+    ((Number(materialsAndExpensesTotal) || 0) + (Number(laborBaseTotal) || 0) + (Number(laborFeesTotal) || 0) + (Number(removalTotal) || 0)) *
+      100
   ) / 100;
-  const laborTotal = Math.round(((Number(totals.laborSubtotal) || 0) + (Number(removalTotal) || 0)) * 100) / 100;
-  const total = Math.round(((Number(materialsAndExpensesTotal) || 0) + laborTotal) * 100) / 100;
   const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
 
   const phoneDigits = String(draft?.phoneNumber || "").replace(/[^0-9+]/g, "");
@@ -286,17 +301,30 @@ export default function QuoteDetailPage() {
       <GlassCard className="p-4">
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-3">
-            <div className="text-[var(--muted)]">Materials &amp; expenses</div>
+            <div className="text-[var(--muted)]">Materials &amp; expenses · Deposit</div>
             <div className="font-extrabold">{money(materialsAndExpensesTotal)}</div>
           </div>
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Labor</div>
-            <div className="font-extrabold">{money(laborTotal)}</div>
+            <div className="font-extrabold">{money(laborBaseTotal)}</div>
           </div>
           <div className="flex justify-between gap-3">
-            <div className="text-[var(--muted)]">Deposit total</div>
-            <div className="font-extrabold">{money(depositTotal)}</div>
+            <div className="text-[var(--muted)]">Fence removal</div>
+            <div className="font-extrabold">{money(removalTotal)}</div>
           </div>
+
+          {additionalFeeItems.length ? (
+            <div className="mt-1 grid gap-1">
+              <div className="text-[11px] font-extrabold text-[var(--muted)]">Additional fees</div>
+              {additionalFeeItems.map((f) => (
+                <div key={f.name} className="flex justify-between gap-3">
+                  <div className="text-[var(--muted)] truncate">{f.name}</div>
+                  <div className="font-extrabold">{money(f.lineTotal)}</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="h-px bg-[rgba(255,255,255,.12)] my-1" />
           <div className="flex justify-between gap-3">
             <div className="font-black">TOTAL</div>

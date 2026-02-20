@@ -197,6 +197,7 @@ export default function CalendarPage() {
   const [blockDesc, setBlockDesc] = React.useState("");
   const blockStartInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockEndInputRef = React.useRef<HTMLInputElement | null>(null);
+  const blockDescInputRef = React.useRef<HTMLInputElement | null>(null);
   const [queueOpen, setQueueOpen] = React.useState(false);
   const [holdOpenId, setHoldOpenId] = React.useState<string | null>(null);
   const [holdDraftIso, setHoldDraftIso] = React.useState<string>("");
@@ -271,15 +272,7 @@ export default function CalendarPage() {
   React.useEffect(() => {
     if (!blockOpen) return;
 
-    const close = () => setBlockOpen(false);
-
-    window.addEventListener("wheel", close, { passive: true });
-    window.addEventListener("scroll", close, { passive: true, capture: true } as any);
-
-    return () => {
-      window.removeEventListener("wheel", close as any);
-      window.removeEventListener("scroll", close as any);
-    };
+    return;
   }, [blockOpen]);
 
   const blockedDays = React.useMemo(() => {
@@ -940,52 +933,24 @@ export default function CalendarPage() {
     return blockedDays.byKey.get(key) ?? [];
   }, [blockedDays.byKey, selected]);
 
-  const dayPreviewGestureRef = React.useRef<{
-    downX: number;
-    downY: number;
-    moved: boolean;
-    activePointers: number;
-  } | null>(null);
-
   return (
     <div className="space-y-4">
       {dayPreviewOpen ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center p-3"
-          onPointerDown={(e) => {
-            // Do NOT preventDefault: allow native scroll/pinch behavior.
-            e.stopPropagation();
-            dayPreviewGestureRef.current = {
-              downX: e.clientX,
-              downY: e.clientY,
-              moved: false,
-              activePointers: 1
-            };
-          }}
-          onPointerMove={(e) => {
-            const g = dayPreviewGestureRef.current;
-            if (!g) return;
-            const dx = Math.abs(e.clientX - g.downX);
-            const dy = Math.abs(e.clientY - g.downY);
-            if (dx + dy > 8) g.moved = true;
-          }}
-          onPointerUp={(e) => {
-            const g = dayPreviewGestureRef.current;
-            dayPreviewGestureRef.current = null;
-            if (!g) return;
-            // Only close on a real tap (no movement). Scroll/pinch should not close.
-            if (!g.moved) {
-              e.preventDefault();
-              e.stopPropagation();
-              // Delay close so the synthetic click doesn't land on the calendar grid beneath.
-              window.setTimeout(() => setDayPreviewOpen(false), 0);
-            }
-          }}
           role="dialog"
           aria-modal="true"
           style={{ touchAction: "manipulation" }}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onPointerDown={(e) => {
+              if (e.target !== e.currentTarget) return;
+              e.preventDefault();
+              e.stopPropagation();
+              window.setTimeout(() => setDayPreviewOpen(false), 0);
+            }}
+          />
           <div
             className="relative w-full max-w-[520px] max-h-[85dvh] overflow-auto rounded-3xl border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.92)] shadow-glass backdrop-blur-ios p-4 pb-24"
             onClick={(e) => {
@@ -1017,7 +982,11 @@ export default function CalendarPage() {
                       className="rounded-2xl border border-[rgba(255,80,80,.35)] bg-[rgba(255,80,80,.10)] px-3 py-2"
                     >
                       <div className="text-[12px] font-black">Blocked</div>
-                      <div className="text-[11px] text-[var(--muted)] mt-1">{b.description}</div>
+                      <div className="mt-1">
+                        <div className="inline-flex max-w-full rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] truncate">
+                          {b.description}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1148,7 +1117,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="p-4">
+            <GlassCard className="p-4 max-h-[calc(100dvh-24px)] overflow-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
                 <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
@@ -1156,7 +1125,7 @@ export default function CalendarPage() {
 
               <div
                 ref={queueListRef}
-                className="mt-3 grid gap-2 max-h-[70dvh] overflow-auto overflow-x-hidden"
+                className="mt-3 grid gap-2 flex-1 min-h-0 overflow-auto overflow-x-hidden"
                 style={{ overflowAnchor: "none" }}
               >
                 {soldQueue.length === 0 ? (
@@ -1476,25 +1445,28 @@ export default function CalendarPage() {
           className="fixed inset-0 z-50 grid place-items-center p-3"
           role="dialog"
           aria-modal="true"
+          data-no-swipe="true"
+          onPointerDownCapture={(e) => {
+            e.stopPropagation();
+          }}
         >
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setBlockOpen(false);
-            }}
-            onPointerDown={(e) => {
+            data-no-swipe="true"
+            onPointerDownCapture={(e) => {
               e.stopPropagation();
             }}
           />
           <div
             className="relative w-full max-w-[520px]"
+            data-no-swipe="true"
             onClick={(e) => {
-              e.preventDefault();
               e.stopPropagation();
             }}
             onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+            onPointerDownCapture={(e) => {
               e.stopPropagation();
             }}
           >
@@ -1560,6 +1532,14 @@ export default function CalendarPage() {
                 </div>
 
                 <input
+                  ref={blockDescInputRef}
+                  data-no-swipe="true"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
                   value={blockDesc}
                   onChange={(e) => setBlockDesc(e.currentTarget.value)}
                   className="w-full rounded-xl px-3 py-2 text-[12px] font-black bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.14)] outline-none"
@@ -1608,7 +1588,9 @@ export default function CalendarPage() {
                         className="rounded-2xl border border-[rgba(255,80,80,.35)] bg-[rgba(255,80,80,.10)] px-3 py-2"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div className="text-[12px] font-black truncate">{b.description}</div>
+                          <div className="inline-flex min-w-0 max-w-full rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] truncate">
+                            {b.description}
+                          </div>
                           <button
                             type="button"
                             data-no-swipe="true"
@@ -1736,7 +1718,11 @@ export default function CalendarPage() {
                 className="rounded-2xl border border-[rgba(255,80,80,.35)] bg-[rgba(255,80,80,.10)] px-3 py-2"
               >
                 <div className="text-[12px] font-black">Blocked</div>
-                <div className="text-[11px] text-[var(--muted)] mt-1">{b.description}</div>
+                <div className="mt-1">
+                  <div className="inline-flex max-w-full rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] truncate">
+                    {b.description}
+                  </div>
+                </div>
               </div>
             ))}
           </div>

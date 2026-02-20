@@ -336,12 +336,12 @@ const PRINT_CSS = `
 :root{ --green:#244B2A; --brown:#8A5A2B; --text:#111; --light:#F4F4F4; --mid:#E6E6E6; --vf-print-scale:1; }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; background:#fff; }
-.page{ width: 8.5in; margin: 0 auto; padding: 0.10in 0.14in 0.14in; }
+.page{ width: 8.5in; margin: 0 auto; padding: 0.10in 0.28in 0.14in; }
 .controls{ padding:10px; display:flex; justify-content:center; }
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; font-weight:600; }
 .noPrint{ display:block; }
-.topHeader{ display:grid; grid-template-columns: 2.7in 1fr 2.0in; align-items:start; gap:6px; }
-.headerImage{ display:block; height:62px; width:auto; object-fit:contain; margin-top:-4px; }
+.topHeader{ display:grid; grid-template-columns: 3.2in 1fr 2.0in; align-items:start; gap:6px; }
+.headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:-4px; }
 .docTitle{ text-align:center; font-size:30px; font-weight:900; margin-top:-4px; line-height:1; }
 .contact{ text-align:right; font-size:9px; line-height:1.2; }
 .contactBold{ font-weight:800; }
@@ -417,16 +417,19 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     -webkit-backdrop-filter:none !important;
   }
   .page{
-    width: 8.5in;
+    width: auto;
+    max-width: 100%;
     margin: 0;
-    padding:0.08in;
+    padding:0.12in 0.34in;
     background:#fff;
     box-shadow:none;
     height: auto;
     overflow: visible;
     zoom: 1;
-    transform: scale(var(--vf-print-scale));
-    transform-origin: top left;
+    transform: none;
+    transform-origin: initial;
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }
@@ -436,9 +439,9 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   .page{
     box-shadow: 0 10px 30px rgba(0,0,0,.12);
     background:#fff;
-    width: min(816px, calc(100vw - 24px));
-    max-width: 816px;
-    padding: 18px;
+    width: min(720px, calc(100vw - 48px));
+    max-width: 720px;
+    padding: 22px;
     margin-top: 8px;
     margin-bottom: 84px;
   }
