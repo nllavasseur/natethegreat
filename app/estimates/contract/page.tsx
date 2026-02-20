@@ -297,12 +297,12 @@ export default function EstimateContractPage() {
           <div className="totalCost">
             <div className="totalCostLabel">Total Cost</div>
             <div className="totalCostValue">{money(totals.total)}</div>
-            <div className="totalTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
           </div>
         </section>
 
         <div className="contractBar">Homeowner Contract</div>
         <div className="contractText">
+          <div className="totalTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
           <div style={{ whiteSpace: "pre-wrap" }}>{acceptanceText}</div>
           {estimate.contractText ? (
             <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{estimate.contractText}</div>
@@ -374,7 +374,8 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .totalCostLabel{ color:#A52B2B; font-weight:900; font-size:11px; }
 .totalCostValue{ font-weight:900; font-size:12px; margin-top:1px; }
 .contractBar{ margin-top:6px; background:var(--brown); color:#fff; padding:5px 7px; text-align:center; font-weight:900; font-size:10px; }
-.contractText{ background:var(--brown); color:#fff; padding:6px 7px; text-align:center; font-size:8.5px; line-height:1.25; }
+.contractText{ background:var(--brown); color:#fff; padding:5px 7px; text-align:center; font-size:8.2px; line-height:1.2; }
+.contractText .totalTerms{ font-size:7.3px; line-height:1.15; margin-bottom:4px; }
 .sigLines{ margin-top:8px; }
 .sigLineRow{ margin-top:8px; }
 .sigLine{ height:1px; background:#000; opacity:.8; }
