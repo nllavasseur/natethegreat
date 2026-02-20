@@ -231,6 +231,7 @@ function EstimatesPageInner() {
     "2\" Screws 125 ct stainless steel": 20.99,
     "3\" screws 60 ct stainless steel": 20.99,
     "Concrete 80lb Bag": 4.48,
+    "Concrete 60lb Bag": 4.27,
     "gate hardware": 90,
     "2x4 4' Red Cedar S4S": 10.99,
     "2x4 8' Red Cedar S4S": 10.99,
@@ -431,7 +432,8 @@ function EstimatesPageInner() {
 
         // Keep these proportional to the reference sheet (274 LF):
         const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
-        const concreteBags = posts > 0 ? Math.ceil(posts * 2) : 0;
+        const concrete80Bags = posts > 0 ? Math.ceil(posts * 2) : 0;
+        const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
         const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const gateHardware = gateHingeKitsAdd + doubleGateKitsAdd;
@@ -440,7 +442,7 @@ function EstimatesPageInner() {
           { name: postName, qty: posts, unit: "ea" },
           { name: boardName, qty: boards, unit: "ea" },
           { name: "3\" screws 60 ct stainless steel", qty: stainlessScrews, unit: "ea" },
-          { name: "Concrete 80lb Bag", qty: concreteBags, unit: "bag" },
+          ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
           ...(gateFramingS4S > 0 ? [{ name: "2x4 8' Red Cedar S4S", qty: gateFramingS4S, unit: "ea" }] : []),
           ...(gateHardware > 0 ? [{ name: "gate hardware", qty: gateHardware, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -475,7 +477,8 @@ function EstimatesPageInner() {
       // Pickets = ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
       const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0;
 
-      const concrete = posts * 2;
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       // Nails: pickets*6 nails, 2000 per box
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
@@ -500,7 +503,7 @@ function EstimatesPageInner() {
         { name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" },
         { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
-        { name: "80 lb Quickcrete", qty: concrete, unit: "bag" },
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
@@ -530,14 +533,14 @@ function EstimatesPageInner() {
     const rails = posts > 1 ? (posts - 1) * railsPerSection : 0;
     const picketsPerFt = 1.3;
     const pickets = lf > 0 ? Math.ceil(lf * picketsPerFt) : 0;
-    const concreteBagsPerPost = 2;
-    const concrete = posts * concreteBagsPerPost;
+    const concrete80Bags = posts * 2;
+    const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
     const rows: Array<{ name: string; qty: number; unit: string }> = [
       { name: "4x4 Post", qty: posts, unit: "ea" },
       { name: "2x4 Treated", qty: rails, unit: "ea" },
       { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
-      { name: "Concrete (bags)", qty: concrete, unit: "ea" },
+      ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
       { name: "Fasteners", qty: 1, unit: "ea" },
       ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
       ...(materialsDetails.arbor ? [{ name: "Arbor", qty: 1, unit: "ea" }] : []),
