@@ -85,6 +85,23 @@ function EstimatesPageInner() {
     },
     {
       type: "wood",
+      name: "Horizontal Cedar",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <rect width='80' height='80' rx='14' fill='#244B2A'/>
+            <g opacity='.34' stroke='#fff' stroke-width='6' stroke-linecap='round'>
+              <path d='M16 22h48'/>
+              <path d='M16 36h48'/>
+              <path d='M16 50h48'/>
+              <path d='M16 64h48'/>
+            </g>
+          </svg>`
+        )
+    },
+    {
+      type: "wood",
       name: "Picture Framed",
       thumb:
         "data:image/svg+xml;charset=utf-8," +
@@ -317,10 +334,14 @@ function EstimatesPageInner() {
     const doubleGateKitsAdd = doubleGates;
     const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
-    if (selectedStyle.name === "Standard Privacy" || selectedStyle.name === "Picture Framed") {
+    if (selectedStyle.name === "Standard Privacy" || selectedStyle.name === "Picture Framed" || selectedStyle.name === "Horizontal Cedar") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
 
-      if (selectedStyle.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") {
+      const useHorizontalCedarTakeoff =
+        (selectedStyle.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
+        selectedStyle.name === "Horizontal Cedar";
+
+      if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
 
         const segmentLengths = segments
@@ -1058,6 +1079,12 @@ function EstimatesPageInner() {
 
   function setMaterialStyle(style: { name: string; thumb: string }) {
     setSelectedStyle(style);
+    if (style.name === "Horizontal Cedar") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        takeoffPreset: "horizontal_cedar"
+      }));
+    }
     setStylePickerIdx(false);
   }
 
@@ -2705,6 +2732,29 @@ function EstimatesPageInner() {
                       ) : null}
 
                       <div className="mt-2 text-[11px] text-[var(--muted)]">Switches generated line items; you can still override prices/qty after.</div>
+                    </div>
+                  ) : null}
+
+                  {selectedStyle?.name === "Horizontal Cedar" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarVerticals: !p.horizontalCedarVerticals }))}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                          (materialsDetails.horizontalCedarVerticals
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-extrabold">{materialsDetails.horizontalCedarVerticals ? "On" : "Off"}</div>
+                          <div className="text-[11px] text-[var(--muted)]">Adds boards</div>
+                        </div>
+                      </button>
+                      <div className="mt-2 text-[11px] text-[var(--muted)]">Adds: .25 boards/panel + 1 board/corner + .5 boards/post.</div>
                     </div>
                   ) : null}
 
