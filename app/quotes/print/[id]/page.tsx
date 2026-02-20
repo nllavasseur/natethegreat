@@ -90,6 +90,11 @@ export default async function QuotePrintPage({ params }: { params: { id: string 
   const data = await getQuoteForPrint(params.id);
   const { company, estimate, sections, totals } = data;
   const subtotal = totals.materialsSubtotal + totals.laborSubtotal + totals.additionalSubtotal;
+  const remainingBalance = Math.max(0, Math.round((Number(totals.total) - Number(estimate.depositTotal)) * 100) / 100);
+  const estimateIncludesText =
+    "Estimate Includes all labor, materials, taxes, 811 miss dig ticket, and a 12 month workmanship warranty.\n" +
+    `-The \"Materials & Expences\" ${money(estimate.depositTotal)} must be paid prior to ordering materials.\n` +
+    `-The remaining Balance of ${money(remainingBalance)} is due upon completion of the fence.`;
 
   return (
     <html>
@@ -177,6 +182,7 @@ export default async function QuotePrintPage({ params }: { params: { id: string 
               <div className="totLine"><div className="totLabel">Additional</div><div className="totValue">{money(totals.additionalSubtotal)}</div></div>
               <div className="totLine"><div className="totLabel">Subtotal</div><div className="totValue">{money(subtotal)}</div></div>
               <div className="totalBig"><div className="totalBigLabel">TOTAL</div><div className="totalBigValue">{money(totals.total)}</div></div>
+              <div className="totalTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
             </div>
           </section>
 

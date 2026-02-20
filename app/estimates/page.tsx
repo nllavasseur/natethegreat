@@ -148,12 +148,16 @@ function EstimatesPageInner() {
     postType: "Pressure treated" | "Cedar" | "Cedar tone";
     postCaps: boolean;
     arbor: boolean;
+    pictureFrameTrimPieces: 2 | 3;
+    pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
   }>({
     woodType: "Pressure treated",
     postSize: 8,
     postType: "Pressure treated",
     postCaps: false,
-    arbor: false
+    arbor: false,
+    pictureFrameTrimPieces: 3,
+    pictureFrameTrimMaterial: "Pressure treated"
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -165,6 +169,8 @@ function EstimatesPageInner() {
       materialsDetails.postSize !== 8 ||
       materialsDetails.postCaps ||
       materialsDetails.arbor ||
+      materialsDetails.pictureFrameTrimPieces !== 3 ||
+      materialsDetails.pictureFrameTrimMaterial !== "Pressure treated" ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -172,6 +178,9 @@ function EstimatesPageInner() {
     "4x4 x 8' Post": 11.08,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
     "2x4 16' Pressure Treated Rails": 13.78,
+    "1x4 x 8' Trim": 0,
+    "1x4 x 8' Cedar Trim": 0,
+    "1x4 x 8' CedarTone Trim": 0,
     "80 lb Quickcrete": 5.31,
     "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails": 98,
     "Gate Hinge Kit": 90,
@@ -297,7 +306,7 @@ function EstimatesPageInner() {
     const doubleGateKitsAdd = doubleGates;
     const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
-    if (selectedStyle.name === "Standard Privacy") {
+    if (selectedStyle.name === "Standard Privacy" || selectedStyle.name === "Picture Framed") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
 
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
@@ -324,10 +333,21 @@ function EstimatesPageInner() {
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails > 0 ? Math.ceil((rails * 6) / 350) : 0;
 
+      const panels = totalLf > 0 ? Math.ceil(totalLf / 8) : 0;
+      const trimBoards = selectedStyle.name === "Picture Framed"
+        ? panels * (materialsDetails.pictureFrameTrimPieces || 3)
+        : 0;
+      const trimName = materialsDetails.pictureFrameTrimMaterial === "Cedar"
+        ? "1x4 x 8' Cedar Trim"
+        : materialsDetails.pictureFrameTrimMaterial === "Cedar tone"
+          ? "1x4 x 8' CedarTone Trim"
+          : "1x4 x 8' Trim";
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
         { name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" },
         { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
+        ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         { name: "80 lb Quickcrete", qty: concrete, unit: "bag" },
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
@@ -379,7 +399,7 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.postCaps, segments, selectedStyle, totalLf, walkGateCountDerived]);
+  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, segments, selectedStyle, totalLf, walkGateCountDerived]);
 
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
@@ -1048,7 +1068,9 @@ function EstimatesPageInner() {
       postSize: 8,
       postType: "Pressure treated",
       postCaps: false,
-      arbor: false
+      arbor: false,
+      pictureFrameTrimPieces: 3,
+      pictureFrameTrimMaterial: "Pressure treated"
     });
     setExtraPosts(0);
     setNotes("");
@@ -1508,6 +1530,12 @@ function EstimatesPageInner() {
 
       const postCaps = typeof dd.postCaps === "boolean" ? dd.postCaps : Boolean(dd.topCap);
       const arbor = typeof dd.arbor === "boolean" ? dd.arbor : String(dd.arbor).toLowerCase() === "yes";
+      const pictureFrameTrimPieces = (dd.pictureFrameTrimPieces === 2 || dd.pictureFrameTrimPieces === 3)
+        ? dd.pictureFrameTrimPieces
+        : 3;
+      const pictureFrameTrimMaterial = (dd.pictureFrameTrimMaterial === "Cedar" || dd.pictureFrameTrimMaterial === "Cedar tone" || dd.pictureFrameTrimMaterial === "Pressure treated")
+        ? dd.pictureFrameTrimMaterial
+        : "Pressure treated";
 
       setMaterialsDetails((prev) => ({
         ...prev,
@@ -1515,7 +1543,9 @@ function EstimatesPageInner() {
         woodType,
         postType,
         postCaps,
-        arbor
+        arbor,
+        pictureFrameTrimPieces,
+        pictureFrameTrimMaterial
       }));
     }
     if (d.materialUnitPrices && typeof d.materialUnitPrices === "object") {
@@ -2658,6 +2688,57 @@ function EstimatesPageInner() {
                       </button>
                     </div>
                   </div>
+
+                  {selectedStyle?.name === "Picture Framed" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Picture frame trim</div>
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Trim material</div>
+                        <Select
+                          value={materialsDetails.pictureFrameTrimMaterial}
+                          onChange={(e) =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              pictureFrameTrimMaterial: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                            }))
+                          }
+                        >
+                          <option value="Pressure treated">Pressure treated</option>
+                          <option value="Cedar">Cedar</option>
+                          <option value="Cedar tone">Cedar tone</option>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, pictureFrameTrimPieces: 2 }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                            (materialsDetails.pictureFrameTrimPieces === 2
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          2x
+                        </button>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, pictureFrameTrimPieces: 3 }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                            (materialsDetails.pictureFrameTrimPieces === 3
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          3x
+                        </button>
+                      </div>
+                      <div className="mt-2 text-[11px] text-[var(--muted)]">Controls trim boards: {materialsDetails.pictureFrameTrimPieces} x 1x4x8 per panel.</div>
+                    </div>
+                  ) : null}
                 </div>
               </GlassCard>
             </div>

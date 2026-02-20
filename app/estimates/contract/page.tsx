@@ -154,6 +154,15 @@ export default function EstimateContractPage() {
   const gateCount =
     (Number(estimate.walkGateCount ?? 0) || 0) + (Number(estimate.doubleGateCount ?? 0) || 0);
   const descriptionText = `${estimate.styleTitle}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`;
+  const acceptanceText =
+    "The above prices, specifications and conditions are satisfactory and hereby accepted. You are authorized to do the work as specified.\n" +
+    "By signing below you agree to have Vasseur Fencing complete all listed line items above in this document.\n" +
+    "We look forward to working with you!";
+  const remainingBalance = Math.max(0, Math.round((Number(totals.total) - Number(estimate.depositTotal)) * 100) / 100);
+  const estimateIncludesText =
+    "Estimate Includes all labor, materials, taxes, 811 miss dig ticket, and a 12 month workmanship warranty.\n" +
+    `-The \"Materials & Expences\" ${money(estimate.depositTotal)} must be paid prior to ordering materials.\n` +
+    `-The remaining Balance of ${money(remainingBalance)} is due upon completion of the fence.`;
 
   return (
     <>
@@ -288,12 +297,16 @@ export default function EstimateContractPage() {
           <div className="totalCost">
             <div className="totalCostLabel">Total Cost</div>
             <div className="totalCostValue">{money(totals.total)}</div>
+            <div className="totalTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
           </div>
         </section>
 
         <div className="contractBar">Homeowner Contract</div>
         <div className="contractText">
-          <div>{estimate.contractText}</div>
+          <div style={{ whiteSpace: "pre-wrap" }}>{acceptanceText}</div>
+          {estimate.contractText ? (
+            <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{estimate.contractText}</div>
+          ) : null}
         </div>
 
         <div className="sigLines">
