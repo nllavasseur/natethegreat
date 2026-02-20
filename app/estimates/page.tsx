@@ -173,7 +173,7 @@ function EstimatesPageInner() {
     horizontalCedarCornerAdjust: number;
   }>({
     woodType: "Pressure treated",
-    horizontalCedarBoardMaterial: "1x6 cedar",
+    horizontalCedarBoardMaterial: "5/4 cedar",
     postSize: 8,
     postType: "Pressure treated",
     postCaps: false,
@@ -190,7 +190,6 @@ function EstimatesPageInner() {
   const materialsDetailsActive = useMemo(() => {
     return (
       materialsDetails.woodType !== "Pressure treated" ||
-      materialsDetails.horizontalCedarBoardMaterial !== "1x6 cedar" ||
       materialsDetails.postSize !== 8 ||
       materialsDetails.postType !== "Pressure treated" ||
       materialsDetails.arbor ||
@@ -209,7 +208,7 @@ function EstimatesPageInner() {
     return (
       materialsDetails.horizontalCedarVerticals ||
       (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
-      materialsDetails.horizontalCedarBoardMaterial !== "1x6 cedar" ||
+      materialsDetails.horizontalCedarBoardMaterial !== "5/4 cedar" ||
       materialsDetails.postSize !== 10 ||
       materialsDetails.postType !== "Pressure treated" ||
       Boolean(materialsDetails.postCaps) ||
@@ -1146,7 +1145,7 @@ function EstimatesPageInner() {
     if (style.name === "Horizontal Cedar") {
       setMaterialsDetails((prev) => ({
         ...prev,
-        horizontalCedarBoardMaterial: "1x6 cedar",
+        horizontalCedarBoardMaterial: "5/4 cedar",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar"
@@ -1227,7 +1226,7 @@ function EstimatesPageInner() {
     setMaterialsDetailsOpen(false);
     setMaterialsDetails({
       woodType: "Pressure treated",
-      horizontalCedarBoardMaterial: "1x6 cedar",
+      horizontalCedarBoardMaterial: "5/4 cedar",
       postSize: 8,
       postType: "Pressure treated",
       postCaps: false,
@@ -1716,7 +1715,7 @@ function EstimatesPageInner() {
         dd.horizontalCedarBoardMaterial === "CedarTone" ||
         dd.horizontalCedarBoardMaterial === "Pressure Treated"
           ? dd.horizontalCedarBoardMaterial
-          : "1x6 cedar";
+          : "5/4 cedar";
 
       const postType = (dd.postType === "Cedar" || dd.postType === "Cedar tone" || dd.postType === "Pressure treated")
         ? dd.postType
