@@ -203,6 +203,20 @@ function EstimatesPageInner() {
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
+
+  const horizontalCedarDetailsActive = useMemo(() => {
+    if (selectedStyle?.name !== "Horizontal Cedar") return false;
+    return (
+      materialsDetails.horizontalCedarVerticals ||
+      (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
+      materialsDetails.horizontalCedarBoardMaterial !== "1x6 cedar" ||
+      materialsDetails.postSize !== 10 ||
+      materialsDetails.postType !== "Pressure treated" ||
+      Boolean(materialsDetails.postCaps) ||
+      Boolean(materialsDetails.arbor) ||
+      (Number(extraPosts) || 0) !== 0
+    );
+  }, [extraPosts, materialsDetails, selectedStyle?.name]);
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "4x4 x 10' Post": 16.88,
@@ -2253,7 +2267,7 @@ function EstimatesPageInner() {
                             onClick={() => setMaterialsDetailsOpen(true)}
                             data-no-swipe="true"
                             className={
-                              ((materialsDetailsOpen || materialsDetailsActive || materialUnitPricesActive || selectedStyle?.name === "Horizontal Cedar")
+                              ((materialsDetailsOpen || materialUnitPricesActive || (selectedStyle?.name === "Horizontal Cedar" ? horizontalCedarDetailsActive : materialsDetailsActive))
                                 ? "!bg-[rgba(255,214,10,.34)] !border-[rgba(255,214,10,.65)] !text-[rgba(255,244,200,.98)] hover:!bg-[rgba(255,214,10,.34)] "
                                 : "") +
                               "transition-colors duration-0 active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
