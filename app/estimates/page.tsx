@@ -37,6 +37,7 @@ function EstimatesPageInner() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [projectPhoto, setProjectPhoto] = useState<File | null>(null);
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
+  const [projectPhotoDataUrl, setProjectPhotoDataUrl] = useState<string | null>(null);
   const [measureOpen, setMeasureOpen] = useState(false);
   const [tracePoints, setTracePoints] = useState<Array<{ x: number; y: number }>>([]);
   const [ocrBusy, setOcrBusy] = useState(false);
@@ -363,6 +364,7 @@ function EstimatesPageInner() {
         projectAddress,
         phoneNumber,
         email,
+        projectPhotoDataUrl,
         selectedFenceType,
         selectedStyle,
         materialsDetails,
@@ -491,17 +493,28 @@ function EstimatesPageInner() {
   const [items, setItems] = useState<QuoteItem[]>([]);
 
   useEffect(() => {
-    if (!projectPhoto) {
-      setProjectPhotoUrl(null);
+    if (projectPhoto) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = typeof reader.result === "string" ? reader.result : null;
+        setProjectPhotoDataUrl(result);
+        setProjectPhotoUrl(result);
+      };
+      reader.onerror = () => {
+        setProjectPhotoDataUrl(null);
+        setProjectPhotoUrl(null);
+      };
+      reader.readAsDataURL(projectPhoto);
       return;
     }
 
-    const url = URL.createObjectURL(projectPhoto);
-    setProjectPhotoUrl(url);
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [projectPhoto]);
+    if (projectPhotoDataUrl) {
+      setProjectPhotoUrl(projectPhotoDataUrl);
+      return;
+    }
+
+    setProjectPhotoUrl(null);
+  }, [projectPhoto, projectPhotoDataUrl]);
 
   useEffect(() => {
     const id = searchParams?.get("draft");
@@ -554,6 +567,8 @@ function EstimatesPageInner() {
       setNotes(String((snap as any).notes ?? ""));
       setSegments(Array.isArray((snap as any).segments) ? (snap as any).segments : []);
       setItems(Array.isArray((snap as any).items) ? (snap as any).items : []);
+      setProjectPhoto(null);
+      setProjectPhotoDataUrl(typeof (snap as any).projectPhotoDataUrl === "string" ? (snap as any).projectPhotoDataUrl : null);
     } catch {
       // ignore
     }
@@ -955,6 +970,7 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
+      projectPhotoDataUrl,
       selectedFenceType,
       selectedStyle,
       materialsDetails,
@@ -1016,6 +1032,7 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
+      projectPhotoDataUrl,
       selectedFenceType,
       selectedStyle,
       materialsDetails,
@@ -1058,6 +1075,8 @@ function EstimatesPageInner() {
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
     setEmail(String(d.email ?? ""));
+    setProjectPhoto(null);
+    setProjectPhotoDataUrl(typeof (d as any).projectPhotoDataUrl === "string" ? (d as any).projectPhotoDataUrl : null);
     setSelectedFenceType(d.selectedFenceType ?? "wood");
     setSelectedStyle(d.selectedStyle ?? null);
     setExtraPosts(Number((d as any).extraPosts) || 0);
@@ -1230,7 +1249,14 @@ function EstimatesPageInner() {
             />
 
             <div className="mt-2 flex items-center gap-2">
-              <SecondaryButton onClick={() => setProjectPhoto(null)} disabled={!projectPhoto}>
+              <SecondaryButton
+                onClick={() => {
+                  setProjectPhoto(null);
+                  setProjectPhotoDataUrl(null);
+                  setProjectPhotoUrl(null);
+                }}
+                disabled={!projectPhoto && !projectPhotoDataUrl}
+              >
                 Clear
               </SecondaryButton>
             </div>
