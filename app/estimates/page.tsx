@@ -2343,6 +2343,19 @@ function EstimatesPageInner() {
                                   </div>
                                 </div>
                               ))}
+
+                              <div className="rounded-xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-sm font-extrabold">Materials &amp; Expenses Total</div>
+                                  <div className="text-sm font-black">
+                                    {money(
+                                      Math.round(
+                                        generatedMaterials.reduce((sum, m) => sum + (Number(m.lineTotal) || 0), 0) * 100
+                                      ) / 100
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
