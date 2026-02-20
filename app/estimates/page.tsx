@@ -234,6 +234,7 @@ function EstimatesPageInner() {
     "Concrete 80lb Bag": 4.48,
     "gate hardware": 90,
     "2x4 4' Red Cedar S4S": 10.99,
+    "2x4 8' Red Cedar S4S": 10.99,
     "80 lb Quickcrete": 5.31,
     "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails": 98,
     "Gate Hinge Kit": 90,
@@ -432,7 +433,7 @@ function EstimatesPageInner() {
         // Keep these proportional to the reference sheet (274 LF):
         const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
         const concreteBags = posts > 0 ? Math.ceil(posts * (150 / 55)) : 0;
-        const redCedarS4S = lf > 0 ? Math.ceil(lf * (10 / 274)) : 0;
+        const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const gateHardware = gateHingeKitsAdd + doubleGateKitsAdd;
 
@@ -441,7 +442,7 @@ function EstimatesPageInner() {
           { name: boardName, qty: boards, unit: "ea" },
           { name: "3\" screws 60 ct stainless steel", qty: stainlessScrews, unit: "ea" },
           { name: "Concrete 80lb Bag", qty: concreteBags, unit: "bag" },
-          { name: "2x4 4' Red Cedar S4S", qty: redCedarS4S, unit: "ea" },
+          ...(gateFramingS4S > 0 ? [{ name: "2x4 8' Red Cedar S4S", qty: gateFramingS4S, unit: "ea" }] : []),
           ...(gateHardware > 0 ? [{ name: "gate hardware", qty: gateHardware, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
           { name: "3\" Deck Screws", qty: fixedOrZero(1), unit: "box" },
