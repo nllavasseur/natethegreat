@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
@@ -19,6 +19,14 @@ function emptyItem(section: SectionKey): QuoteItem {
 }
 
 export default function EstimatesPage() {
+  return (
+    <Suspense>
+      <EstimatesPageInner />
+    </Suspense>
+  );
+}
+
+function EstimatesPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [portalReady, setPortalReady] = useState(false);
