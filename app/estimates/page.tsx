@@ -209,7 +209,9 @@ function EstimatesPageInner() {
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
     "5/4x6x12 Cedar Boards": 29.79,
+    "1x6x12' Red Cedar Boards": 27.43,
     "2\" Screws 125 ct stainless steel": 20.99,
+    "3\" screws 60 ct stainless steel": 20.99,
     "Concrete 80lb Bag": 4.48,
     "gate hardware": 90,
     "2x4 4' Red Cedar S4S": 10.99,
@@ -409,8 +411,8 @@ function EstimatesPageInner() {
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
-          { name: "5/4x6x12 Cedar Boards", qty: boards, unit: "ea" },
-          { name: "2\" Screws 125 ct stainless steel", qty: stainlessScrews, unit: "ea" },
+          { name: "1x6x12' Red Cedar Boards", qty: boards, unit: "ea" },
+          { name: "3\" screws 60 ct stainless steel", qty: stainlessScrews, unit: "ea" },
           { name: "Concrete 80lb Bag", qty: concreteBags, unit: "bag" },
           { name: "2x4 4' Red Cedar S4S", qty: redCedarS4S, unit: "ea" },
           ...(gateHardware > 0 ? [{ name: "gate hardware", qty: gateHardware, unit: "ea" }] : []),
