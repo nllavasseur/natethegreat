@@ -2646,7 +2646,12 @@ function EstimatesPageInner() {
                       key={st.name}
                       type="button"
                       onClick={() => setMaterialStyle(st)}
-                      className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2 text-left"
+                      className={
+                        "rounded-2xl border p-2 text-left transition-none " +
+                        (selectedStyle?.name === st.name
+                          ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)]"
+                          : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]")
+                      }
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={st.thumb} alt="" className="w-full aspect-[4/3] rounded-xl object-cover" />
