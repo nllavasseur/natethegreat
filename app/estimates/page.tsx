@@ -245,7 +245,7 @@ function EstimatesPageInner() {
     "Arbor": 200,
     "Disposal": 100,
     "Delivery": 100,
-    "Equipment Fees": 100
+    "Equipment Fees": 400
   });
 
   const defaultMaterialUnitPricesRef = useRef(materialUnitPrices);
