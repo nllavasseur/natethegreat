@@ -268,7 +268,7 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page{ size: letter; margin: 0.20in; }
   .noPrint{ display:none !important; }
   html,body{ height:auto; margin:0; padding:0; }
-  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; }
+  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; transform: scale(0.98); transform-origin: top left; }
 }
 .section, .table, .infoBox, .notesBox, .disclaimerBox, .totalsBox, .signatureBlock{
   break-inside: avoid;

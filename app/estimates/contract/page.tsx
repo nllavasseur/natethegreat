@@ -113,13 +113,14 @@ export default function EstimateContractPage() {
     const ppi = ruler.getBoundingClientRect().height || 96;
     ruler.remove();
 
-    // Use a small safety margin to account for browser print headers/margins.
-    const letterHeightPx = 10.8 * ppi;
+    // Use a conservative printable height (iOS Safari is sensitive to tiny overflows).
+    // Letter height is 11in, but after print margins and internal padding the usable height is smaller.
+    const letterHeightPx = 10.4 * ppi;
     const contentHeightPx = el.getBoundingClientRect().height;
     if (!contentHeightPx) return;
 
     const rawScale = letterHeightPx / contentHeightPx;
-    const scale = Math.max(0.25, Math.min(1, rawScale));
+    const scale = Math.max(0.25, Math.min(1, rawScale)) * 0.96;
     document.documentElement.style.setProperty("--vf-print-scale", String(scale));
   }, []);
 
