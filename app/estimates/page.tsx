@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import NextImage from "next/image";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeTotals } from "@/lib/totals";
@@ -49,6 +50,8 @@ function EstimatesPageInner() {
   const [referenceLength, setReferenceLength] = useState(0);
   const [segments, setSegments] = useState<Array<{ id: string; label: string; length: number; removed: boolean; gate?: boolean }>>([]);
   const [notes, setNotes] = useState("");
+  const [preInstallPhotos, setPreInstallPhotos] = useState<string[]>([]);
+  const preInstallPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [laborDays, setLaborDays] = useState<number>(0);
   const [laborManualDays, setLaborManualDays] = useState<string>("");
   const [laborManualCost, setLaborManualCost] = useState<string>("");
@@ -160,9 +163,10 @@ function EstimatesPageInner() {
       materialsDetails.postType !== "Pressure treated" ||
       materialsDetails.postSize !== 8 ||
       materialsDetails.postCaps ||
-      materialsDetails.arbor
+      materialsDetails.arbor ||
+      (Number(extraPosts) || 0) !== 0
     );
-  }, [materialsDetails]);
+  }, [extraPosts, materialsDetails]);
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
@@ -186,6 +190,7 @@ function EstimatesPageInner() {
   const [saving, setSaving] = useState(false);
   const [savingAsNew, setSavingAsNew] = useState(false);
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const totalLf = useMemo(() => {
     return segments.reduce((sum, s) => sum + (Number(s.length) || 0), 0);
@@ -381,6 +386,7 @@ function EstimatesPageInner() {
         doubleGateCount,
         referenceLength,
         notes,
+        preInstallPhotos,
         segments,
         items
       };
@@ -492,20 +498,140 @@ function EstimatesPageInner() {
 
   const [items, setItems] = useState<QuoteItem[]>([]);
 
+  function fileToCompressedDataUrl(file: File, maxSide = 1600, quality = 0.78): Promise<string | null> {
+    if (typeof window === "undefined") return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      let objectUrl: string | null = null;
+      try {
+        objectUrl = window.URL.createObjectURL(file);
+      } catch {
+        objectUrl = null;
+      }
+
+      if (!objectUrl) {
+        try {
+          const reader = new FileReader();
+          reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        } catch {
+          resolve(null);
+        }
+        return;
+      }
+
+      const img = new window.Image();
+      img.onload = () => {
+        try {
+          const w = Number(img.naturalWidth || img.width || 0);
+          const h = Number(img.naturalHeight || img.height || 0);
+          if (!w || !h) {
+            resolve(null);
+            return;
+          }
+
+          const scale = Math.min(1, maxSide / Math.max(w, h));
+          const outW = Math.max(1, Math.round(w * scale));
+          const outH = Math.max(1, Math.round(h * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = outW;
+          canvas.height = outH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, outW, outH);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(typeof dataUrl === "string" ? dataUrl : null);
+        } catch {
+          resolve(null);
+        } finally {
+          try {
+            if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+          } catch {
+            // ignore
+          }
+        }
+      };
+      img.onerror = () => {
+        try {
+          if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+        } catch {
+          // ignore
+        }
+        try {
+          const reader = new FileReader();
+          reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(file);
+        } catch {
+          resolve(null);
+        }
+      };
+      img.src = objectUrl;
+    });
+  }
+
+  function recompressDataUrl(dataUrl: string, maxSide = 1280, quality = 0.72): Promise<string | null> {
+    if (typeof window === "undefined") return Promise.resolve(null);
+    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        try {
+          const w = Number(img.naturalWidth || img.width || 0);
+          const h = Number(img.naturalHeight || img.height || 0);
+          if (!w || !h) {
+            resolve(null);
+            return;
+          }
+
+          const scale = Math.min(1, maxSide / Math.max(w, h));
+          const outW = Math.max(1, Math.round(w * scale));
+          const outH = Math.max(1, Math.round(h * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = outW;
+          canvas.height = outH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, outW, outH);
+          const next = canvas.toDataURL("image/jpeg", quality);
+          resolve(typeof next === "string" ? next : null);
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
+  }
+
+  function isQuotaError(e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e || "");
+    return msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("exceeded") || msg.toLowerCase().includes("storage");
+  }
+
   useEffect(() => {
+    let cancelled = false;
+
     if (projectPhoto) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = typeof reader.result === "string" ? reader.result : null;
+      fileToCompressedDataUrl(projectPhoto).then((result) => {
+        if (cancelled) return;
         setProjectPhotoDataUrl(result);
         setProjectPhotoUrl(result);
+      });
+      return () => {
+        cancelled = true;
       };
-      reader.onerror = () => {
-        setProjectPhotoDataUrl(null);
-        setProjectPhotoUrl(null);
-      };
-      reader.readAsDataURL(projectPhoto);
-      return;
     }
 
     if (projectPhotoDataUrl) {
@@ -514,6 +640,9 @@ function EstimatesPageInner() {
     }
 
     setProjectPhotoUrl(null);
+    return () => {
+      cancelled = true;
+    };
   }, [projectPhoto, projectPhotoDataUrl]);
 
   useEffect(() => {
@@ -565,6 +694,7 @@ function EstimatesPageInner() {
       setDoubleGateCount(Number((snap as any).doubleGateCount ?? 0));
       setReferenceLength(Number((snap as any).referenceLength ?? 0));
       setNotes(String((snap as any).notes ?? ""));
+      setPreInstallPhotos(Array.isArray((snap as any).preInstallPhotos) ? (snap as any).preInstallPhotos.filter((p: any) => typeof p === "string") : []);
       setSegments(Array.isArray((snap as any).segments) ? (snap as any).segments : []);
       setItems(Array.isArray((snap as any).items) ? (snap as any).items : []);
       setProjectPhoto(null);
@@ -811,6 +941,7 @@ function EstimatesPageInner() {
     });
     setExtraPosts(0);
     setNotes("");
+    setPreInstallPhotos([]);
     setLaborDays(0);
     setLaborManualDays("");
     setLaborManualCost("");
@@ -939,6 +1070,7 @@ function EstimatesPageInner() {
   function save() {
     if (saving || savingAsNew) return;
     setSaving(true);
+    setSaveError(null);
     const now = Date.now();
     const id = draftId ?? `${now}-${Math.random().toString(16).slice(2)}`;
     const title = customerName ? customerName : projectAddress ? projectAddress : "Draft estimate";
@@ -960,7 +1092,7 @@ function EstimatesPageInner() {
     const prevStatus = store[id]?.status;
     const isNewDraft = !store[id];
     const status = isNewDraft ? (hasCustomerInfo && hasEstimateContent ? "pending" : prevStatus ?? "estimate") : prevStatus;
-    store[id] = {
+    const baseDraft = {
       id,
       createdAt: store[id]?.createdAt ?? now,
       updatedAt: now,
@@ -987,23 +1119,75 @@ function EstimatesPageInner() {
       doubleGateCount,
       referenceLength,
       notes,
+      preInstallPhotos,
       segments,
       items,
       contract: buildContractPayload(id)
     };
-    writeDraftStore(store);
-    clearUnsavedSnapshot();
-    setDraftId(id);
 
-    setTimeout(() => {
-      setSaving(false);
-    }, 250);
+    const finishOk = () => {
+      clearUnsavedSnapshot();
+      setDraftId(id);
+    };
+
+    const finishFail = (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Save failed";
+      setSaveError(isQuotaError(e)
+        ? "Save failed: storage is full (photo too large)."
+        : `Save failed: ${msg}`
+      );
+    };
+
+    (async () => {
+      try {
+        store[id] = baseDraft;
+        writeDraftStore(store);
+        finishOk();
+        return;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          finishFail(e);
+          return;
+        }
+      }
+
+      try {
+        const recompressed = projectPhotoDataUrl
+          ? (await recompressDataUrl(projectPhotoDataUrl, 1024, 0.7))
+          : null;
+        if (recompressed) {
+          setProjectPhotoDataUrl(recompressed);
+          setProjectPhotoUrl(recompressed);
+          store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
+          writeDraftStore(store);
+          setSaveError("Saved, but project photo was compressed to fit storage.");
+          finishOk();
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: [] };
+        writeDraftStore(store);
+        setSaveError("Saved, but photos were omitted to fit device storage.");
+        finishOk();
+      } catch (e) {
+        finishFail(e);
+      }
+    })().finally(() => {
+      setTimeout(() => {
+        setSaving(false);
+      }, 250);
+    });
   }
 
   function saveAsNew() {
     if (saving || savingAsNew) return;
     setSavingAsNew(true);
     setSaveAsNewJustSaved(false);
+    setSaveError(null);
     const now = Date.now();
     const id = `${now}-${Math.random().toString(16).slice(2)}`;
     const title = customerName ? customerName : projectAddress ? projectAddress : "Draft estimate";
@@ -1021,8 +1205,24 @@ function EstimatesPageInner() {
       Boolean(selectedStyle) ||
       String(notes || "").trim() !== "";
 
-    const store = readDraftStore();
-    store[id] = {
+    const finishOk = () => {
+      clearUnsavedSnapshot();
+      setDraftId(id);
+      setSaveAsNewJustSaved(true);
+      setTimeout(() => {
+        setSaveAsNewJustSaved(false);
+      }, 1200);
+    };
+
+    const finishFail = (e: unknown) => {
+      const msg = e instanceof Error ? e.message : "Save failed";
+      setSaveError(isQuotaError(e)
+        ? "Save failed: storage is full (photo too large)."
+        : `Save failed: ${msg}`
+      );
+    };
+
+    const baseDraft = {
       id,
       createdAt: now,
       updatedAt: now,
@@ -1049,21 +1249,58 @@ function EstimatesPageInner() {
       doubleGateCount,
       referenceLength,
       notes,
+      preInstallPhotos,
       segments,
       items,
       contract: buildContractPayload(id)
     };
-    writeDraftStore(store);
-    clearUnsavedSnapshot();
-    setDraftId(id);
 
-    setSaveAsNewJustSaved(true);
-    setTimeout(() => {
-      setSavingAsNew(false);
-    }, 250);
-    setTimeout(() => {
-      setSaveAsNewJustSaved(false);
-    }, 1200);
+    (async () => {
+      try {
+        const store = readDraftStore();
+        store[id] = baseDraft;
+        writeDraftStore(store);
+        finishOk();
+        return;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          finishFail(e);
+          return;
+        }
+      }
+
+      try {
+        const recompressed = projectPhotoDataUrl
+          ? (await recompressDataUrl(projectPhotoDataUrl, 1024, 0.7))
+          : null;
+        if (recompressed) {
+          setProjectPhotoDataUrl(recompressed);
+          setProjectPhotoUrl(recompressed);
+          const store = readDraftStore();
+          store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
+          writeDraftStore(store);
+          setSaveError("Saved, but project photo was compressed to fit storage.");
+          finishOk();
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        const store = readDraftStore();
+        store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: [] };
+        writeDraftStore(store);
+        setSaveError("Saved, but photos were omitted to fit device storage.");
+        finishOk();
+      } catch (e) {
+        finishFail(e);
+      }
+    })().finally(() => {
+      setTimeout(() => {
+        setSavingAsNew(false);
+      }, 250);
+    });
   }
 
   function loadDraft(id: string) {
@@ -1116,6 +1353,7 @@ function EstimatesPageInner() {
     setDoubleGateCount(Number(d.doubleGateCount ?? 0));
     setReferenceLength(Number(d.referenceLength ?? 0));
     setNotes(String(d.notes ?? ""));
+    setPreInstallPhotos(Array.isArray((d as any).preInstallPhotos) ? (d as any).preInstallPhotos.filter((p: any) => typeof p === "string") : []);
     setSegments(Array.isArray(d.segments) ? d.segments : []);
     setItems(Array.isArray(d.items) ? d.items : []);
 
@@ -1943,6 +2181,64 @@ function EstimatesPageInner() {
             "outline-none focus:ring-2 focus:ring-[rgba(138,90,43,.55)]"
           }
         />
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="text-[11px] text-[var(--muted)]">Pre-install photos</div>
+          <SecondaryButton
+            data-no-swipe="true"
+            onClick={() => {
+              preInstallPhotoInputRef.current?.click();
+            }}
+          >
+            Add photo
+          </SecondaryButton>
+        </div>
+
+        <input
+          ref={preInstallPhotoInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length === 0) return;
+
+            Promise.all(
+              files.map(
+                (file) => fileToCompressedDataUrl(file)
+              )
+            ).then((results) => {
+              const urls = results.filter((r): r is string => typeof r === "string" && r.startsWith("data:"));
+              if (urls.length === 0) return;
+              setPreInstallPhotos((prev) => [...prev, ...urls]);
+            });
+
+            e.target.value = "";
+          }}
+        />
+
+        {preInstallPhotos.length ? (
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            {preInstallPhotos.map((src, idx) => (
+              <div key={`${idx}`} className="relative rounded-xl overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]">
+                <div className="relative w-full aspect-square">
+                  <NextImage src={src} alt="" fill sizes="120px" className="object-cover" />
+                </div>
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  onClick={() => {
+                    setPreInstallPhotos((prev) => prev.filter((_, i) => i !== idx));
+                  }}
+                  className="absolute top-1 right-1 rounded-full border border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)] backdrop-blur-ios px-2 py-1 text-[11px] font-extrabold"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </GlassCard>
 
       {portalReady && stylePickerIdx
@@ -2149,6 +2445,11 @@ function EstimatesPageInner() {
         ? createPortal(
           <nav className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate" aria-label="Estimate actions">
             <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+              {saveError ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+                  {saveError}
+                </div>
+              ) : null}
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
                 <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
                 <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>

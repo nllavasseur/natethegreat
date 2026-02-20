@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import NextImage from "next/image";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeTotals } from "@/lib/totals";
@@ -24,6 +25,7 @@ type DraftEntry = {
   startDate?: string;
   laborDays?: number;
   calendarHidden?: boolean;
+  preInstallPhotos?: string[];
 };
 
 function readDraftStore(): Record<string, DraftEntry> {
@@ -339,6 +341,9 @@ export default function QuotesPage() {
       const roundedHalfDays = computeRoundedHalfDays(laborDays);
       const spanDays = computeSpanDays(laborDays);
       const endDate = startDate && spanDays > 0 ? addDaysIso(startDate, spanDays - 1) : "";
+      const preInstallPhotos = Array.isArray((d as any).preInstallPhotos)
+        ? (d as any).preInstallPhotos.filter((p: any) => typeof p === "string")
+        : [];
 
       return {
         id: d.id,
@@ -352,7 +357,8 @@ export default function QuotesPage() {
         total,
         due,
         scheduledAt: String((d as any).scheduledAt || ""),
-        phoneNumber
+        phoneNumber,
+        preInstallPhotos
       };
     });
   }, [drafts]);
@@ -698,6 +704,28 @@ export default function QuotesPage() {
                 <div className="text-sm font-extrabold truncate">{q.title}</div>
                 <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
               </div>
+
+              {Array.isArray((q as any).preInstallPhotos) && (q as any).preInstallPhotos.length ? (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1">
+                    {((q as any).preInstallPhotos as string[]).slice(0, 4).map((src, idx) => (
+                      <div
+                        key={`${q.id}:pre:${idx}`}
+                        className="relative h-10 w-10 rounded-lg overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]"
+                      >
+                        <NextImage src={src} alt="" fill sizes="40px" className="object-cover" />
+                      </div>
+                    ))}
+                    {((q as any).preInstallPhotos as string[]).length > 4 ? (
+                      <div className="h-10 w-10 rounded-lg border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] grid place-items-center text-[11px] font-extrabold text-[rgba(255,255,255,.85)]">
+                        +{((q as any).preInstallPhotos as string[]).length - 4}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="text-[11px] text-[var(--muted)] whitespace-nowrap">Photos {((q as any).preInstallPhotos as string[]).length}</div>
+                </div>
+              ) : null}
+
               <div className="text-[11px] text-[var(--muted)] mt-1">
                 {q.style ? `${q.style} · ` : ""}Total {money(q.total)}
                 {typeof (q as any).roundedHalfDays === "number" && typeof (q as any).spanDays === "number"

@@ -1476,13 +1476,18 @@ export default function CalendarPage() {
           className="fixed inset-0 z-50 grid place-items-center p-3"
           role="dialog"
           aria-modal="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setBlockOpen(false);
-          }}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setBlockOpen(false);
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+          />
           <div
             className="relative w-full max-w-[520px]"
             onClick={(e) => {
