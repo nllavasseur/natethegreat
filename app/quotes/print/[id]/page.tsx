@@ -263,11 +263,12 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .sigRow{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:14px; }
 .sigLine{ height:16px; border-bottom:1px solid #333; }
 .sigLabel{ font-size:10px; opacity:.75; margin-top:4px; }
-@page{ size: letter; margin: 0; }
 body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 @media print{
+  @page{ size: letter; margin: 0.35in; }
   .noPrint{ display:none !important; }
-  .page{ width:auto; margin:0; padding:0.35in; }
+  html,body{ height:auto; }
+  .page{ width:auto; margin:0; padding:0; }
 }
 .section, .table, .infoBox, .notesBox, .disclaimerBox, .totalsBox, .signatureBlock{
   break-inside: avoid;
