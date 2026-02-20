@@ -161,6 +161,7 @@ function EstimatesPageInner() {
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<{
     woodType: "Pressure treated" | "Cedar" | "Cedar tone";
+    horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
     postSize: 8 | 10 | 12 | 14;
     postType: "Pressure treated" | "Cedar" | "Cedar tone";
     postCaps: boolean;
@@ -172,6 +173,7 @@ function EstimatesPageInner() {
     horizontalCedarCornerAdjust: number;
   }>({
     woodType: "Pressure treated",
+    horizontalCedarBoardMaterial: "1x6 cedar",
     postSize: 8,
     postType: "Pressure treated",
     postCaps: false,
@@ -188,6 +190,7 @@ function EstimatesPageInner() {
   const materialsDetailsActive = useMemo(() => {
     return (
       materialsDetails.woodType !== "Pressure treated" ||
+      materialsDetails.horizontalCedarBoardMaterial !== "1x6 cedar" ||
       materialsDetails.postSize !== 8 ||
       materialsDetails.postType !== "Pressure treated" ||
       materialsDetails.arbor ||
@@ -211,6 +214,7 @@ function EstimatesPageInner() {
     "5/4x6x12 Cedar Boards": 29.79,
     "1x6x12' Red Cedar Boards": 27.43,
     "5/4x6x12 Pressure Treated Boards": 10.59,
+    "1x6x12' CedarTone Boards": 0,
     "2\" Screws 125 ct stainless steel": 20.99,
     "3\" screws 60 ct stainless steel": 20.99,
     "Concrete 80lb Bag": 4.48,
@@ -352,9 +356,13 @@ function EstimatesPageInner() {
         const lf = Number(totalLf) || 0;
         const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
         const boardName =
-          materialsDetails.woodType === "Pressure treated"
+          materialsDetails.horizontalCedarBoardMaterial === "Pressure Treated"
             ? "5/4x6x12 Pressure Treated Boards"
-            : "1x6x12' Red Cedar Boards";
+            : materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar"
+              ? "5/4x6x12 Cedar Boards"
+              : materialsDetails.horizontalCedarBoardMaterial === "CedarTone"
+                ? "1x6x12' CedarTone Boards"
+                : "1x6x12' Red Cedar Boards";
 
         const segmentLengths = segments
           .filter((s) => !s.removed)
@@ -1123,7 +1131,7 @@ function EstimatesPageInner() {
     if (style.name === "Horizontal Cedar") {
       setMaterialsDetails((prev) => ({
         ...prev,
-        woodType: "Cedar",
+        horizontalCedarBoardMaterial: "1x6 cedar",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar"
@@ -1204,6 +1212,7 @@ function EstimatesPageInner() {
     setMaterialsDetailsOpen(false);
     setMaterialsDetails({
       woodType: "Pressure treated",
+      horizontalCedarBoardMaterial: "1x6 cedar",
       postSize: 8,
       postType: "Pressure treated",
       postCaps: false,
@@ -1686,6 +1695,14 @@ function EstimatesPageInner() {
         ? dd.woodType
         : "Pressure treated";
 
+      const horizontalCedarBoardMaterial =
+        dd.horizontalCedarBoardMaterial === "5/4 cedar" ||
+        dd.horizontalCedarBoardMaterial === "1x6 cedar" ||
+        dd.horizontalCedarBoardMaterial === "CedarTone" ||
+        dd.horizontalCedarBoardMaterial === "Pressure Treated"
+          ? dd.horizontalCedarBoardMaterial
+          : "1x6 cedar";
+
       const postType = (dd.postType === "Cedar" || dd.postType === "Cedar tone" || dd.postType === "Pressure treated")
         ? dd.postType
         : "Pressure treated";
@@ -1710,6 +1727,7 @@ function EstimatesPageInner() {
         ...prev,
         ...dd,
         woodType,
+        horizontalCedarBoardMaterial,
         postType,
         postCaps,
         arbor,
@@ -2884,22 +2902,42 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  <div>
-                    <div className="text-[11px] text-[var(--muted)] mb-1">Wood type</div>
-                    <Select
-                      value={materialsDetails.woodType}
-                      onChange={(e) =>
-                        setMaterialsDetails((p) => ({
-                          ...p,
-                          woodType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
-                        }))
-                      }
-                    >
-                      <option value="Pressure treated">Pressure treated</option>
-                      <option value="Cedar">Cedar</option>
-                      <option value="Cedar tone">Cedar tone</option>
-                    </Select>
-                  </div>
+                  {selectedStyle?.name === "Horizontal Cedar" || (selectedStyle?.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
+                    <div>
+                      <div className="text-[11px] text-[var(--muted)] mb-1">Wood materials</div>
+                      <Select
+                        value={materialsDetails.horizontalCedarBoardMaterial}
+                        onChange={(e) =>
+                          setMaterialsDetails((p) => ({
+                            ...p,
+                            horizontalCedarBoardMaterial: e.target.value as "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated"
+                          }))
+                        }
+                      >
+                        <option value="5/4 cedar">5/4 cedar</option>
+                        <option value="1x6 cedar">1x6 cedar</option>
+                        <option value="CedarTone">CedarTone</option>
+                        <option value="Pressure Treated">Pressure Treated</option>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-[11px] text-[var(--muted)] mb-1">Wood type</div>
+                      <Select
+                        value={materialsDetails.woodType}
+                        onChange={(e) =>
+                          setMaterialsDetails((p) => ({
+                            ...p,
+                            woodType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                          }))
+                        }
+                      >
+                        <option value="Pressure treated">Pressure treated</option>
+                        <option value="Cedar">Cedar</option>
+                        <option value="Cedar tone">Cedar tone</option>
+                      </Select>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
