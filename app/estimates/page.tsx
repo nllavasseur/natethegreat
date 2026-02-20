@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import NextImage from "next/image";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
-import { computeTotals } from "@/lib/totals";
+import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import type { QuoteItem, SectionKey } from "@/lib/types";
 
 const sectionOptions: { key: SectionKey; label: string }[] = [
@@ -991,6 +991,10 @@ function EstimatesPageInner() {
     return Math.round(v * 100) / 100;
   }, [generatedMaterials]);
 
+  const takeoffMaterialsAndExpensesTotal = useMemo(() => {
+    return computeMaterialsAndExpensesTotal(generatedMaterials);
+  }, [generatedMaterials]);
+
   const additionalServicesSubtotal = useMemo(() => {
     const v = items
       .filter((i) => i.section === "additional")
@@ -999,9 +1003,9 @@ function EstimatesPageInner() {
   }, [items]);
 
   const materialsDepositTotal = useMemo(() => {
-    const v = Number(takeoffMaterialsTotal) || 0;
+    const v = Number(takeoffMaterialsAndExpensesTotal) || 0;
     return Math.round(v * 100) / 100;
-  }, [takeoffMaterialsTotal]);
+  }, [takeoffMaterialsAndExpensesTotal]);
 
   const laborBaseTotal = useMemo(() => {
     const base = items
@@ -2390,7 +2394,7 @@ function EstimatesPageInner() {
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="text-sm font-extrabold">Materials &amp; Expenses Total</div>
                                   <div className="text-sm font-black">
-                                    {money(takeoffMaterialsTotal)}
+                                    {money(takeoffMaterialsAndExpensesTotal)}
                                   </div>
                                 </div>
                               </div>
@@ -3143,7 +3147,7 @@ function EstimatesPageInner() {
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Materials &amp; expenses · Deposit</span>
-            <span className="font-black">{money(takeoffMaterialsTotal)}</span>
+            <span className="font-black">{money(takeoffMaterialsAndExpensesTotal)}</span>
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Labor</span>
@@ -3175,7 +3179,7 @@ function EstimatesPageInner() {
 
         {searchParams?.get("debugTotals") === "1" ? (
           <div className="mt-3 text-[11px] text-[var(--muted)]">
-            takeoffMaterialsTotal={String(takeoffMaterialsTotal)} materialsDepositTotal={String(materialsDepositTotal)} materialsSubtotal(items)={String(materialsSubtotal)}
+            takeoffMaterialsTotal={String(takeoffMaterialsTotal)} takeoffMaterialsAndExpensesTotal={String(takeoffMaterialsAndExpensesTotal)} materialsDepositTotal={String(materialsDepositTotal)} materialsSubtotal(items)={String(materialsSubtotal)}
           </div>
         ) : null}
       </GlassCard>

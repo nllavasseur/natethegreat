@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import type { QuoteItem } from "@/lib/types";
 import { money } from "@/lib/money";
-import { computeTotals } from "@/lib/totals";
+import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 
 type DraftEntry = {
   id: string;
@@ -113,7 +113,7 @@ export default function QuoteDetailPage() {
     .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
   const materialsUsed = (Number(materialsSubtotal) || 0) - materialsFees;
   const additionalServicesSubtotal = items.filter((i) => i.section === "additional").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-  const materialsAndExpensesTotal = Math.round((Number(materialsSubtotal) || 0) * 100) / 100;
+  const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
 
   const laborBaseTotal = items
     .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")

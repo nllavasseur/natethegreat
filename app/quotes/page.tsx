@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
-import { computeTotals } from "@/lib/totals";
+import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import type { QuoteItem } from "@/lib/types";
 
 type DraftEntry = {
@@ -345,7 +345,7 @@ export default function QuotesPage() {
       const additionalServicesSubtotal = items
         .filter((i) => i.section === "additional")
         .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-      const materialsAndExpensesTotal = Math.round((Number(materialsSubtotal) || 0) * 100) / 100;
+      const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments.filter((s) => Boolean(s.removed)).reduce((sum, s) => sum + (Number(s.length) || 0), 0);
