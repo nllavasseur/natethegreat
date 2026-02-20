@@ -363,10 +363,11 @@ function EstimatesPageInner() {
         const boardsBase = segmentLengths.length
           ? segmentLengths.reduce((sum, segLf) => sum + Math.ceil((segLf / 12) * 13), 0)
           : (lf > 0 ? Math.ceil((lf / 12) * 13) : 0);
+        const boardsPanelExtra = panels > 0 ? Math.ceil(panels * 0.25) : 0;
         const boardsVerticalsExtra = materialsDetails.horizontalCedarVerticals
-          ? Math.ceil(panels * 0.25 + cornerCount * 1 + posts * 0.5)
+          ? Math.ceil(cornerCount * 1 + posts * 0.5)
           : 0;
-        const boards = boardsBase + boardsVerticalsExtra;
+        const boards = boardsBase + boardsPanelExtra + boardsVerticalsExtra;
 
         // Keep these proportional to the reference sheet (274 LF):
         const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
@@ -2735,7 +2736,7 @@ function EstimatesPageInner() {
                               <div className="text-[11px] text-[var(--muted)]">Adds boards</div>
                             </div>
                           </button>
-                          <div className="mt-2 text-[11px] text-[var(--muted)]">Adds: .25 boards/panel + 1 board/corner + .5 boards/post.</div>
+                          <div className="mt-2 text-[11px] text-[var(--muted)]">Base includes: .25 boards/panel. Toggle adds: 1 board/corner + .5 boards/post.</div>
                         </div>
                       ) : null}
 
@@ -2762,7 +2763,7 @@ function EstimatesPageInner() {
                           <div className="text-[11px] text-[var(--muted)]">Adds boards</div>
                         </div>
                       </button>
-                      <div className="mt-2 text-[11px] text-[var(--muted)]">Adds: .25 boards/panel + 1 board/corner + .5 boards/post.</div>
+                      <div className="mt-2 text-[11px] text-[var(--muted)]">Base includes: .25 boards/panel. Toggle adds: 1 board/corner + .5 boards/post.</div>
                     </div>
                   ) : null}
 
