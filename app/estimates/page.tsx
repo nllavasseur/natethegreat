@@ -169,6 +169,7 @@ function EstimatesPageInner() {
     pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
     takeoffPreset: "standard" | "horizontal_cedar";
     horizontalCedarVerticals: boolean;
+    horizontalCedarCornerAdjust: number;
   }>({
     woodType: "Pressure treated",
     postSize: 8,
@@ -178,7 +179,8 @@ function EstimatesPageInner() {
     pictureFrameTrimPieces: 3,
     pictureFrameTrimMaterial: "Pressure treated",
     takeoffPreset: "standard",
-    horizontalCedarVerticals: false
+    horizontalCedarVerticals: false,
+    horizontalCedarCornerAdjust: 0
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -186,14 +188,15 @@ function EstimatesPageInner() {
   const materialsDetailsActive = useMemo(() => {
     return (
       materialsDetails.woodType !== "Pressure treated" ||
-      materialsDetails.postType !== "Pressure treated" ||
       materialsDetails.postSize !== 8 ||
-      materialsDetails.postCaps ||
+      materialsDetails.postType !== "Pressure treated" ||
       materialsDetails.arbor ||
+      materialsDetails.postCaps ||
       materialsDetails.pictureFrameTrimPieces !== 3 ||
       materialsDetails.pictureFrameTrimMaterial !== "Pressure treated" ||
       materialsDetails.takeoffPreset !== "standard" ||
       materialsDetails.horizontalCedarVerticals ||
+      (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -357,7 +360,9 @@ function EstimatesPageInner() {
         const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
         const panels = lf > 0 ? Math.ceil(lf / 8) : 0;
-        const cornerCount = Math.max(0, segmentLengths.length - 1);
+        const cornerBase = Math.max(0, segmentLengths.length - 1);
+        const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
+        const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
         // Boards: per segment -> ceil((segmentLf / 12) * 13), summed
         const boardsBase = segmentLengths.length
@@ -489,7 +494,7 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, segments, selectedStyle, totalLf, walkGateCountDerived]);
+  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, segments, selectedStyle, totalLf, walkGateCountDerived]);
 
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
@@ -1171,7 +1176,8 @@ function EstimatesPageInner() {
       pictureFrameTrimPieces: 3,
       pictureFrameTrimMaterial: "Pressure treated",
       takeoffPreset: "standard",
-      horizontalCedarVerticals: false
+      horizontalCedarVerticals: false,
+      horizontalCedarCornerAdjust: 0
     });
     setExtraPosts(0);
     setNotes("");
@@ -1641,6 +1647,9 @@ function EstimatesPageInner() {
         ? dd.takeoffPreset
         : "standard";
       const horizontalCedarVerticals = typeof dd.horizontalCedarVerticals === "boolean" ? dd.horizontalCedarVerticals : false;
+      const horizontalCedarCornerAdjust = Number.isFinite(Number(dd.horizontalCedarCornerAdjust))
+        ? Number(dd.horizontalCedarCornerAdjust)
+        : 0;
 
       setMaterialsDetails((prev) => ({
         ...prev,
@@ -1652,7 +1661,8 @@ function EstimatesPageInner() {
         pictureFrameTrimPieces,
         pictureFrameTrimMaterial,
         takeoffPreset,
-        horizontalCedarVerticals
+        horizontalCedarVerticals,
+        horizontalCedarCornerAdjust
       }));
     }
     if (d.materialUnitPrices && typeof d.materialUnitPrices === "object") {
@@ -2737,6 +2747,32 @@ function EstimatesPageInner() {
                             </div>
                           </button>
                           <div className="mt-2 text-[11px] text-[var(--muted)]">Base includes: .25 boards/panel. Toggle adds: 1 board/corner + .5 boards/post.</div>
+
+                          <div className="mt-3">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Corners</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) - 1 }))}
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {(Number(materialsDetails.horizontalCedarCornerAdjust) || 0) >= 0 ? "+" : ""}{Number(materialsDetails.horizontalCedarCornerAdjust) || 0}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) + 1 }))}
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                            <div className="mt-2 text-[11px] text-[var(--muted)]">Adjusts corners used for takeoff. Default is based on segment count.</div>
+                          </div>
                         </div>
                       ) : null}
 
@@ -2764,6 +2800,32 @@ function EstimatesPageInner() {
                         </div>
                       </button>
                       <div className="mt-2 text-[11px] text-[var(--muted)]">Base includes: .25 boards/panel. Toggle adds: 1 board/corner + .5 boards/post.</div>
+
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Corners</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) - 1 }))}
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {(Number(materialsDetails.horizontalCedarCornerAdjust) || 0) >= 0 ? "+" : ""}{Number(materialsDetails.horizontalCedarCornerAdjust) || 0}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) + 1 }))}
+                          >
+                            +
+                          </PrimaryButton>
+                        </div>
+                        <div className="mt-2 text-[11px] text-[var(--muted)]">Adjusts corners used for takeoff. Default is based on segment count.</div>
+                      </div>
                     </div>
                   ) : null}
 
