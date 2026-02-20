@@ -202,6 +202,7 @@ function EstimatesPageInner() {
   }, [extraPosts, materialsDetails]);
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
+    "4x4 x 10' Post": 16.88,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
     "2x4 16' Pressure Treated Rails": 13.78,
     "1x4 x 8' Trim": 0,
@@ -346,6 +347,7 @@ function EstimatesPageInner() {
 
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
+        const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
 
         const segmentLengths = segments
           .filter((s) => !s.removed)
@@ -382,7 +384,7 @@ function EstimatesPageInner() {
         const gateHardware = gateHingeKitsAdd + doubleGateKitsAdd;
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
-          { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
+          { name: postName, qty: posts, unit: "ea" },
           { name: "5/4x6x12 Cedar Boards", qty: boards, unit: "ea" },
           { name: "2\" Screws 125 ct stainless steel", qty: stainlessScrews, unit: "ea" },
           { name: "Concrete 80lb Bag", qty: concreteBags, unit: "bag" },
@@ -438,8 +440,10 @@ function EstimatesPageInner() {
           ? "1x4 x 8' CedarTone Trim"
           : "1x4 x 8' Trim";
 
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
+        { name: postName, qty: posts, unit: "ea" },
         { name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" },
         { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
