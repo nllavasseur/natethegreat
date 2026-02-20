@@ -396,7 +396,9 @@ function EstimatesPageInner() {
           : (lf > 0 ? Math.max(2, Math.ceil(lf / 5.5) + 1) : 0);
         const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
-        const panels = lf > 0 ? Math.ceil(lf / 8) : 0;
+        const panels = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0)
+          : (lf > 0 ? Math.ceil(lf / 5.5) : 0);
         const cornerBase = Math.max(0, segmentLengths.length - 1);
         const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
