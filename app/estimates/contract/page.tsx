@@ -285,12 +285,16 @@ export default function EstimateContractPage() {
 
         <section className="notesBlock">
           <div className="sectionBar single">Notes</div>
-          <div className="notesBody">Homeowner is responsible for pulling necessary permits.</div>
+          <div className="notesBody" style={{ whiteSpace: "pre-wrap" }}>
+            {"All of the utilities for the property will have been marked by 811 Miss Dig under Vasseur Fencing's name for liability purposes,\n" +
+              "and it is homeowners responcibility to obtain appropriate permits for project if necessary, including any compliance's with HOA."}
+          </div>
         </section>
 
         <section className="bottomGrid">
           <div className="disclaimer">
             <div className="discTitle">Disclaimer:</div>
+            <div className="discTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
             <div className="discText">{estimate.disclaimer}</div>
           </div>
 
@@ -302,7 +306,6 @@ export default function EstimateContractPage() {
 
         <div className="contractBar">Homeowner Contract</div>
         <div className="contractText">
-          <div className="totalTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
           <div style={{ whiteSpace: "pre-wrap" }}>{acceptanceText}</div>
           {estimate.contractText ? (
             <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{estimate.contractText}</div>
