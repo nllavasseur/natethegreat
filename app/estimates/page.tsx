@@ -468,7 +468,9 @@ function EstimatesPageInner() {
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails > 0 ? Math.ceil((rails * 6) / 350) : 0;
 
-      const panels = totalLf > 0 ? Math.ceil(totalLf / 8) : 0;
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+        : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
       const trimBoards = selectedStyle.name === "Picture Framed"
         ? panels * (materialsDetails.pictureFrameTrimPieces || 3)
         : 0;
