@@ -2216,7 +2216,7 @@ function EstimatesPageInner() {
                             data-no-swipe="true"
                             className={
                               ((materialsDetailsOpen || materialsDetailsActive || materialUnitPricesActive)
-                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)] "
+                                ? "!bg-[rgba(255,214,10,.34)] !border-[rgba(255,214,10,.65)] !text-[rgba(255,244,200,.98)] hover:!bg-[rgba(255,214,10,.34)] "
                                 : "") +
                               "transition-colors duration-0 active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
                             }
