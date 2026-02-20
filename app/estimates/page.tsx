@@ -1273,23 +1273,16 @@ function EstimatesPageInner() {
       }
 
       try {
-        store[id] = { ...baseDraft, projectPhotoDataUrl: null };
-        writeDraftStore(store);
-        setSaveError("Saved, but project photo was omitted to fit device storage.");
-        finishOk();
-        return;
-      } catch (e) {
-        if (!isQuotaError(e)) {
-          finishFail(e);
-          return;
-        }
-      }
-
-      try {
-        const recompressed = projectPhotoDataUrl
-          ? (await recompressDataUrl(projectPhotoDataUrl, 1024, 0.7))
-          : null;
-        if (recompressed) {
+        const attempts: Array<[number, number]> = [
+          [1024, 0.7],
+          [768, 0.62],
+          [640, 0.6]
+        ];
+        for (const [maxSide, quality] of attempts) {
+          const recompressed = projectPhotoDataUrl
+            ? (await recompressDataUrl(projectPhotoDataUrl, maxSide, quality))
+            : null;
+          if (!recompressed) continue;
           setProjectPhotoDataUrl(recompressed);
           setProjectPhotoUrl(recompressed);
           store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
@@ -1300,6 +1293,19 @@ function EstimatesPageInner() {
         }
       } catch {
         // ignore
+      }
+
+      try {
+        store[id] = { ...baseDraft, projectPhotoDataUrl: null };
+        writeDraftStore(store);
+        setSaveError("Saved, but project photo was omitted to fit device storage.");
+        finishOk();
+        return;
+      } catch (e) {
+        if (!isQuotaError(e)) {
+          finishFail(e);
+          return;
+        }
       }
 
       try {
@@ -1425,24 +1431,16 @@ function EstimatesPageInner() {
       }
 
       try {
-        const store = readDraftStore();
-        store[id] = { ...baseDraft, projectPhotoDataUrl: null };
-        writeDraftStore(store);
-        setSaveError("Saved, but project photo was omitted to fit device storage.");
-        finishOk();
-        return;
-      } catch (e) {
-        if (!isQuotaError(e)) {
-          finishFail(e);
-          return;
-        }
-      }
-
-      try {
-        const recompressed = projectPhotoDataUrl
-          ? (await recompressDataUrl(projectPhotoDataUrl, 1024, 0.7))
-          : null;
-        if (recompressed) {
+        const attempts: Array<[number, number]> = [
+          [1024, 0.7],
+          [768, 0.62],
+          [640, 0.6]
+        ];
+        for (const [maxSide, quality] of attempts) {
+          const recompressed = projectPhotoDataUrl
+            ? (await recompressDataUrl(projectPhotoDataUrl, maxSide, quality))
+            : null;
+          if (!recompressed) continue;
           setProjectPhotoDataUrl(recompressed);
           setProjectPhotoUrl(recompressed);
           const store = readDraftStore();
