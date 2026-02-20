@@ -1657,8 +1657,28 @@ function EstimatesPageInner() {
     setEmail(String(d.email ?? ""));
     setProjectPhoto(null);
     setProjectPhotoDataUrl(typeof (d as any).projectPhotoDataUrl === "string" ? (d as any).projectPhotoDataUrl : null);
-    setSelectedFenceType(d.selectedFenceType ?? "wood");
-    setSelectedStyle(d.selectedStyle ?? null);
+    const fenceType = (d.selectedFenceType ?? "wood") as "wood" | "vinyl" | "aluminum" | "chainlink";
+    setSelectedFenceType(fenceType);
+
+    const rawStyle = (d as any).selectedStyle;
+    const rawName =
+      typeof rawStyle === "string"
+        ? rawStyle
+        : rawStyle && typeof rawStyle === "object" && typeof rawStyle.name === "string"
+          ? rawStyle.name
+          : null;
+
+    const resolved = rawName
+      ? materialStyles.find((st) => st.type === fenceType && st.name === rawName) ?? materialStyles.find((st) => st.name === rawName)
+      : null;
+
+    setSelectedStyle(
+      resolved
+        ? { name: resolved.name, thumb: resolved.thumb }
+        : (rawStyle && typeof rawStyle === "object" && typeof rawStyle.name === "string" && typeof rawStyle.thumb === "string")
+          ? { name: rawStyle.name, thumb: rawStyle.thumb }
+          : null
+    );
     setExtraPosts(Number((d as any).extraPosts) || 0);
     if (d.materialsDetails && typeof d.materialsDetails === "object") {
       const dd = d.materialsDetails as any;
