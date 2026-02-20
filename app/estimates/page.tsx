@@ -1453,6 +1453,13 @@ function EstimatesPageInner() {
       try {
         store[id] = baseDraft;
         writeDraftStore(store);
+        if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
+          setSaveError(
+            sanitized.droppedProject
+              ? "Saved, but the project photo was omitted to fit device storage."
+              : `Saved, but ${sanitized.droppedPreInstallCount} pre-install photo(s) were omitted to fit device storage.`
+          );
+        }
         finishOk();
         return;
       } catch (e) {
@@ -1486,19 +1493,6 @@ function EstimatesPageInner() {
       }
 
       try {
-        store[id] = { ...baseDraft, projectPhotoDataUrl: null };
-        writeDraftStore(store);
-        setSaveError("Saved, but project photo was omitted to fit device storage.");
-        finishOk();
-        return;
-      } catch (e) {
-        if (!isQuotaError(e)) {
-          finishFail(e);
-          return;
-        }
-      }
-
-      try {
         const photos = Array.isArray((baseDraft as any).preInstallPhotos) ? ((baseDraft as any).preInstallPhotos as any[]) : [];
         for (let keep = photos.length; keep >= 0; keep -= 1) {
           try {
@@ -1521,7 +1515,9 @@ function EstimatesPageInner() {
         finishFail(e);
       }
     })().finally(() => {
-      setSaving(false);
+      setTimeout(() => {
+        setSaving(false);
+      }, 250);
     });
   }
 
@@ -1598,19 +1594,18 @@ function EstimatesPageInner() {
       contract: buildContractPayload(id)
     };
 
-    if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
-      setSaveError(
-        sanitized.droppedProject
-          ? "Photos were too large for device storage and were omitted before saving."
-          : "Some photos were too large for device storage and were omitted before saving."
-      );
-    }
-
     (async () => {
       try {
         const store = readDraftStore();
         store[id] = baseDraft;
         writeDraftStore(store);
+        if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
+          setSaveError(
+            sanitized.droppedProject
+              ? "Saved, but the project photo was omitted to fit device storage."
+              : `Saved, but ${sanitized.droppedPreInstallCount} pre-install photo(s) were omitted to fit device storage.`
+          );
+        }
         finishOk();
         return;
       } catch (e) {
