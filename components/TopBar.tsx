@@ -8,7 +8,7 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-40">
       <div className="backdrop-blur-ios bg-[rgba(10,18,14,.55)] border-b border-[var(--stroke)]">
-        <div className="max-w-[980px] mx-auto px-4 pt-[env(safe-area-inset-top)] h-14 grid grid-cols-[2.5rem_1fr_2.5rem] items-center">
+        <div className="max-w-[980px] mx-auto px-4 pt-[env(safe-area-inset-top)] h-[calc(3.5rem+env(safe-area-inset-top))] grid grid-cols-[2.5rem_1fr_2.5rem] items-center">
           <div className="flex items-center justify-start">
             {iconOk ? (
               // eslint-disable-next-line @next/next/no-img-element
