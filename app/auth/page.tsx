@@ -11,6 +11,11 @@ export default function AuthPage() {
   const [email, setEmail] = React.useState("");
   const [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = React.useState<string>("");
+  const [cooldownUntil, setCooldownUntil] = React.useState<number>(0);
+
+  const now = Date.now();
+  const cooldownMsLeft = Math.max(0, cooldownUntil - now);
+  const canSend = status !== "sending" && cooldownMsLeft === 0;
 
   React.useEffect(() => {
     let cancelled = false;
@@ -33,9 +38,12 @@ export default function AuthPage() {
   async function sendMagicLink() {
     const e = String(email || "").trim();
     if (!e) return;
+    if (!canSend) return;
     setStatus("sending");
     setMessage("");
     try {
+      // Prevent repeated taps / accidental spam.
+      setCooldownUntil(Date.now() + 60_000);
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const { error } = await supabase.auth.signInWithOtp({
         email: e,
@@ -48,7 +56,13 @@ export default function AuthPage() {
       setMessage("Magic link sent. Check your email.");
     } catch (err: any) {
       setStatus("error");
-      setMessage(err?.message ? String(err.message) : "Failed to send magic link");
+      const raw = err?.message ? String(err.message) : "Failed to send magic link";
+      const lower = raw.toLowerCase();
+      if (lower.includes("rate limit")) {
+        setMessage("Email rate limit exceeded. Wait a bit and try again.");
+      } else {
+        setMessage(raw);
+      }
     }
   }
 
@@ -82,8 +96,12 @@ export default function AuthPage() {
 
         <div className="mt-4 flex items-center justify-between gap-2">
           <SecondaryButton onClick={signOut}>Sign out</SecondaryButton>
-          <PrimaryButton onClick={sendMagicLink} disabled={status === "sending"}>
-            {status === "sending" ? "Sending..." : "Send magic link"}
+          <PrimaryButton onClick={sendMagicLink} disabled={!canSend}>
+            {status === "sending"
+              ? "Sending..."
+              : cooldownMsLeft > 0
+                ? `Try again in ${Math.ceil(cooldownMsLeft / 1000)}s`
+                : "Send magic link"}
           </PrimaryButton>
         </div>
       </GlassCard>
