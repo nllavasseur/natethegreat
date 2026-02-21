@@ -7,7 +7,7 @@ import Link from "next/link";
 import React from "react";
 import { IconCalendar, IconDoc, IconPortfolio, IconQuote } from "./icons";
 import TopBar from "./TopBar";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
 const tabs = [
   { href: "/portfolio", label: "Portfolio", icon: IconPortfolio },
@@ -29,6 +29,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
+        if (!supabaseConfigured) return;
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
 
@@ -46,18 +47,24 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       }
     })();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      const isAuthRoute = pathname?.startsWith("/auth");
-      const isPublicRoute = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/quotes/print");
-      const hasSession = Boolean(session);
-      if (!hasSession && !isAuthRoute && !isPublicRoute) {
-        router.replace("/auth");
-      }
-    });
+    const sub = supabaseConfigured
+      ? supabase.auth.onAuthStateChange((_event, session) => {
+          const isAuthRoute = pathname?.startsWith("/auth");
+          const isPublicRoute = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/quotes/print");
+          const hasSession = Boolean(session);
+          if (!hasSession && !isAuthRoute && !isPublicRoute) {
+            router.replace("/auth");
+          }
+        })
+      : null;
 
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
+      try {
+        sub?.data?.subscription?.unsubscribe();
+      } catch {
+        // ignore
+      }
     };
   }, [pathname, router]);
 
