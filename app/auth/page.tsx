@@ -12,6 +12,8 @@ export default function AuthPage() {
   const [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = React.useState<string>("");
   const [cooldownUntil, setCooldownUntil] = React.useState<number>(0);
+  const [code, setCode] = React.useState("");
+  const [verifying, setVerifying] = React.useState(false);
 
   const now = Date.now();
   const cooldownMsLeft = Math.max(0, cooldownUntil - now);
@@ -53,7 +55,7 @@ export default function AuthPage() {
       });
       if (error) throw error;
       setStatus("sent");
-      setMessage("Magic link sent. Check your email.");
+      setMessage("Email sent. Use the magic link or enter the 6-digit code from the email.");
     } catch (err: any) {
       setStatus("error");
       const raw = err?.message ? String(err.message) : "Failed to send magic link";
@@ -63,6 +65,29 @@ export default function AuthPage() {
       } else {
         setMessage(raw);
       }
+    }
+  }
+
+  async function verifyCode() {
+    const e = String(email || "").trim();
+    const t = String(code || "").trim().replace(/\s+/g, "");
+    if (!e || !t) return;
+    if (verifying) return;
+    setVerifying(true);
+    setMessage("");
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: e,
+        token: t,
+        type: "email"
+      });
+      if (error) throw error;
+      router.replace("/estimates");
+    } catch (err: any) {
+      const raw = err?.message ? String(err.message) : "Failed to verify code";
+      setMessage(raw);
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -90,6 +115,16 @@ export default function AuthPage() {
           />
         </div>
 
+        <div className="mt-4 grid gap-2">
+          <div className="text-[11px] text-[var(--muted)]">6-digit code (works best for Home Screen app)</div>
+          <Input
+            value={code}
+            inputMode="numeric"
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="123456"
+          />
+        </div>
+
         {message ? (
           <div className="mt-3 text-[12px] font-extrabold text-[rgba(255,255,255,.88)]">{message}</div>
         ) : null}
@@ -102,6 +137,12 @@ export default function AuthPage() {
               : cooldownMsLeft > 0
                 ? `Try again in ${Math.ceil(cooldownMsLeft / 1000)}s`
                 : "Send magic link"}
+          </PrimaryButton>
+        </div>
+
+        <div className="mt-2 flex items-center justify-end">
+          <PrimaryButton onClick={verifyCode} disabled={verifying || !String(email || "").trim() || !String(code || "").trim()}>
+            {verifying ? "Verifying..." : "Verify code"}
           </PrimaryButton>
         </div>
       </GlassCard>
