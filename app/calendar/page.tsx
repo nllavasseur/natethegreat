@@ -1108,7 +1108,7 @@ export default function CalendarPage() {
         >
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="relative w-full max-w-[520px]"
+            className="relative w-full max-w-[520px] max-w-[calc(100vw-24px)]"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -1117,7 +1117,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="p-4 max-h-[calc(100dvh-24px)] overflow-hidden flex flex-col">
+            <GlassCard className="p-4 max-h-[calc(100dvh-24px)] overflow-hidden overflow-x-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
                 <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
