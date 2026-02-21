@@ -7,6 +7,7 @@ import Link from "next/link";
 import React from "react";
 import { IconCalendar, IconDoc, IconPortfolio, IconQuote } from "./icons";
 import TopBar from "./TopBar";
+import { supabase } from "@/lib/supabaseClient";
 
 const tabs = [
   { href: "/portfolio", label: "Portfolio", icon: IconPortfolio },
@@ -20,7 +21,45 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const active = tabs.find(t => pathname?.startsWith(t.href))?.href ?? "/estimates";
 
-  const hideChrome = pathname?.startsWith("/estimates/contract");
+  const hideChrome = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/auth");
+
+  const [sessionChecked, setSessionChecked] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+
+        const isAuthRoute = pathname?.startsWith("/auth");
+        const isPublicRoute = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/quotes/print");
+        const hasSession = Boolean(data.session);
+
+        if (!hasSession && !isAuthRoute && !isPublicRoute) {
+          router.replace("/auth");
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setSessionChecked(true);
+      }
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const isAuthRoute = pathname?.startsWith("/auth");
+      const isPublicRoute = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/quotes/print");
+      const hasSession = Boolean(session);
+      if (!hasSession && !isAuthRoute && !isPublicRoute) {
+        router.replace("/auth");
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, [pathname, router]);
 
   const mainRef = React.useRef<HTMLElement | null>(null);
   const contentRef = React.useRef<HTMLDivElement | null>(null);
@@ -104,6 +143,10 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
   }, []);
+
+  if (!sessionChecked && !pathname?.startsWith("/quotes/print") && !pathname?.startsWith("/estimates/contract")) {
+    return null;
+  }
 
   return (
     <div className="min-h-dvh flex flex-col vf-app-bg">
