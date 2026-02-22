@@ -3422,26 +3422,48 @@ function EstimatesPageInner() {
         <SecondaryButton onClick={generateContract}>Generate Contract</SecondaryButton>
       </div>
 
-      <div
-        className="sticky bottom-0 z-50 px-4"
-        style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
-        aria-label="Estimate actions"
-      >
-        <div className="mx-auto max-w-[980px]">
-          {saveError ? (
-            <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-              {saveError}
-            </div>
-          ) : null}
-          <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-            <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-              {saving ? "Saving…" : "Save"}
-            </PrimaryButton>
-            <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-              {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-            </SecondaryButton>
-            <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+      <EstimatesBottomBar
+        saveError={saveError}
+        saving={saving}
+        savingAsNew={savingAsNew}
+        saveAsNewJustSaved={saveAsNewJustSaved}
+        save={save}
+        saveAsNew={saveAsNew}
+        reset={reset}
+      />
+    </div>
+  );
+}
+
+function EstimatesBottomBar(props: {
+  saveError: string | null;
+  saving: boolean;
+  savingAsNew: boolean;
+  saveAsNewJustSaved: boolean;
+  save: () => void;
+  saveAsNew: () => void;
+  reset: () => void;
+}) {
+  return (
+    <div
+      className="fixed left-0 right-0 z-[150] px-4 pointer-events-none"
+      style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
+      aria-label="Estimate actions"
+    >
+      <div className="mx-auto max-w-[980px]">
+        {props.saveError ? (
+          <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass pointer-events-auto">
+            {props.saveError}
           </div>
+        ) : null}
+        <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around pointer-events-auto">
+          <PrimaryButton onClick={props.save} disabled={props.saving || props.savingAsNew}>
+            {props.saving ? "Saving…" : "Save"}
+          </PrimaryButton>
+          <SecondaryButton onClick={props.saveAsNew} disabled={props.saving || props.savingAsNew}>
+            {props.savingAsNew ? "Saving…" : props.saveAsNewJustSaved ? "Saved" : "Save as new"}
+          </SecondaryButton>
+          <SecondaryButton onClick={props.reset} disabled={props.saving || props.savingAsNew}>Reset</SecondaryButton>
         </div>
       </div>
     </div>

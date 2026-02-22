@@ -161,7 +161,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       {hideChrome ? null : (
         <div
           ref={headerRef}
-          className="sticky z-40"
+          className="sticky z-[200]"
           style={{ top: "env(safe-area-inset-top, 0px)" }}
         >
           <TopBar />
