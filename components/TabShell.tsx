@@ -26,8 +26,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
   const [portalReady, setPortalReady] = React.useState(false);
-  const headerRef = React.useRef<HTMLDivElement | null>(null);
-  const [headerHeight, setHeaderHeight] = React.useState<number | null>(null);
 
   const go = React.useCallback(
     (href: string) => {
@@ -62,46 +60,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     setPortalReady(true);
   }, []);
 
-  React.useLayoutEffect(() => {
-    if (typeof window === "undefined") return;
-    if (hideChrome) return;
-    if (!portalReady) return;
-
-    const measure = () => {
-      const el = headerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const h = Math.max(0, Math.round(rect.height));
-      if (h > 0) setHeaderHeight(h);
-    };
-
-    measure();
-    const t1 = window.setTimeout(measure, 50);
-    const t2 = window.setTimeout(measure, 200);
-
-    let ro: ResizeObserver | null = null;
-    try {
-      if (typeof ResizeObserver !== "undefined" && headerRef.current) {
-        ro = new ResizeObserver(() => measure());
-        ro.observe(headerRef.current);
-      }
-    } catch {
-      ro = null;
-    }
-
-    window.addEventListener("resize", measure);
-    window.addEventListener("orientationchange", measure);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("orientationchange", measure);
-      try {
-        ro?.disconnect();
-      } catch {
-      }
-    };
-  }, [estimatesHeaderOffsetPx, hideChrome, portalReady]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -172,14 +130,13 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         : portalReady
           ? createPortal(
               <div
-                className="fixed left-0 right-0 z-40 pointer-events-none vf-app-bg"
+                className="fixed left-0 right-0 z-50 vf-app-bg"
                 style={{ top: estimatesHeaderOffsetPx ? `${estimatesHeaderOffsetPx}px` : "0px" }}
-                ref={headerRef}
               >
-                <div className="pointer-events-auto" style={{ touchAction: "manipulation" }}>
+                <div style={{ touchAction: "manipulation" }}>
                   <TopBar />
                 </div>
-                <nav aria-label="Top navigation" className="pointer-events-auto" style={{ touchAction: "manipulation" }}>
+                <nav aria-label="Top navigation" style={{ touchAction: "manipulation" }}>
                   <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
                     <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
                       {tabs.map((t) => {
@@ -244,10 +201,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
           hideChrome
             ? undefined
             : {
-                paddingTop:
-                  typeof headerHeight === "number"
-                    ? `${headerHeight}px`
-                    : `calc(9rem + min(env(safe-area-inset-top), 44px) + ${estimatesHeaderOffsetPx}px)`
+                paddingTop: `calc(9rem + min(env(safe-area-inset-top), 44px) + ${estimatesHeaderOffsetPx}px)`
               }
         }
       >
