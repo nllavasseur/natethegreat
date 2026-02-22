@@ -586,7 +586,13 @@ function EstimatesPageInner() {
       };
     }
 
-    const walkGates = Math.max(0, Number(walkGateCountDerived) || 0);
+    const walkGates = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => Boolean((s as any).gate))
+        .length
+    );
     const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
@@ -611,7 +617,7 @@ function EstimatesPageInner() {
     const line = Math.max(0, total - (corner + gate + end + blank));
 
     return { total, line, gateDerived };
-  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, materialsDetails.aluminumPanelWidthFt, segments, selectedFenceType, walkGateCountDerived]);
+  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, materialsDetails.aluminumPanelWidthFt, segments, selectedFenceType]);
 
   const horizontalCedarDetailsActive = useMemo(() => {
     if (selectedStyle?.name !== "Horizontal Cedar") return false;
