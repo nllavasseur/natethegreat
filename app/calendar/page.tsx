@@ -3,6 +3,7 @@
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { createPortal } from "react-dom";
 
 const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -205,6 +206,7 @@ export default function CalendarPage() {
   const [dayPreviewOpen, setDayPreviewOpen] = React.useState(false);
   const [drafts, setDrafts] = React.useState<DraftEntry[]>([]);
   const [blockOuts, setBlockOuts] = React.useState<BlockOut[]>([]);
+  const [portalReady, setPortalReady] = React.useState(false);
   const [blockOpen, setBlockOpen] = React.useState(false);
   const [blockStart, setBlockStart] = React.useState("");
   const [blockEnd, setBlockEnd] = React.useState("");
@@ -309,6 +311,10 @@ export default function CalendarPage() {
 
     return;
   }, [blockOpen]);
+
+  React.useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   const blockedDays = React.useMemo(() => {
     const set = new Set<string>();
@@ -1249,7 +1255,7 @@ export default function CalendarPage() {
         </div>
       ) : null}
 
-      {queueOpen ? (
+      {portalReady && queueOpen ? createPortal(
         <div
           className="fixed inset-0 z-50 overflow-x-hidden"
           role="dialog"
@@ -1647,7 +1653,8 @@ export default function CalendarPage() {
               </div>
             </GlassCard>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
 
       <div className="flex items-center justify-between gap-3">
