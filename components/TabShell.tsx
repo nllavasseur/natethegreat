@@ -46,46 +46,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     (window as any).__supabase = supabase;
   }, []);
 
-  const stableSatRef = React.useRef<number | null>(null);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const setSat = () => {
-      try {
-        const probe = document.createElement("div");
-        probe.style.paddingTop = "env(safe-area-inset-top)";
-        probe.style.position = "absolute";
-        probe.style.visibility = "hidden";
-        probe.style.pointerEvents = "none";
-        document.body.appendChild(probe);
-        const raw = window.getComputedStyle(probe).paddingTop;
-        document.body.removeChild(probe);
-
-        const envPx = Number.parseFloat(String(raw || "0")) || 0;
-        const clamped = Math.max(0, Math.min(Number.isFinite(envPx) ? envPx : 0, 44));
-
-        const next = clamped > 0 ? clamped : stableSatRef.current ?? 0;
-        if (next > 0) stableSatRef.current = next;
-        document.documentElement.style.setProperty("--vf-sat", `${next}px`);
-      } catch {
-        // ignore
-      }
-    };
-
-    setSat();
-    window.setTimeout(setSat, 60);
-    window.setTimeout(setSat, 260);
-    window.addEventListener("resize", setSat);
-    window.addEventListener("orientationchange", setSat);
-    window.addEventListener("pageshow", setSat);
-    return () => {
-      window.removeEventListener("resize", setSat);
-      window.removeEventListener("orientationchange", setSat);
-      window.removeEventListener("pageshow", setSat);
-    };
-  }, []);
-
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
