@@ -451,7 +451,7 @@ export default function QuotesPage() {
   }, [cards, statusFilter]);
 
   return (
-    <div className="pb-24">
+    <div className="pb-32">
       {scheduleForId ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center p-4"
@@ -551,33 +551,6 @@ export default function QuotesPage() {
           </div>
         </div>
       ) : null}
-
-      <div className="flex items-center justify-between gap-3">
-        <div />
-        <Link href="/estimates">
-          <PrimaryButton>New Quote</PrimaryButton>
-        </Link>
-      </div>
-
-      <div className="mt-4 flex items-center justify-between">
-        <div className="text-[11px] text-[var(--muted)]">Filter</div>
-        <button
-          type="button"
-          data-no-swipe="true"
-          onClick={() => {
-            const order: Array<DraftEntry["status"] | "all"> = ["all", "estimate", "pending", "sold", "void"];
-            const idx = order.indexOf(statusFilter);
-            const next = order[(idx + 1) % order.length];
-            setStatusFilter(next);
-          }}
-          className={
-            "rounded-full border px-3 py-2 text-[12px] font-extrabold text-white " +
-            filterPillClass(statusFilter)
-          }
-        >
-          {filterLabel(statusFilter)}
-        </button>
-      </div>
 
       <SectionTitle title="Recent quotes" />
       <GlassCard className="p-4">
@@ -815,6 +788,38 @@ export default function QuotesPage() {
           ))}
         </div>
       </GlassCard>
+
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-auto max-w-[980px] px-4 pb-3">
+          <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                data-no-swipe="true"
+                onClick={() => {
+                  const order: Array<DraftEntry["status"] | "all"> = ["all", "estimate", "pending", "sold", "void"];
+                  const idx = order.indexOf(statusFilter);
+                  const next = order[(idx + 1) % order.length];
+                  setStatusFilter(next);
+                }}
+                className={
+                  "rounded-full border px-3 py-2 text-[12px] font-extrabold text-white min-w-[108px] " +
+                  filterPillClass(statusFilter)
+                }
+              >
+                {filterLabel(statusFilter)}
+              </button>
+
+              <Link href="/estimates" className="shrink-0">
+                <PrimaryButton>New Quote</PrimaryButton>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
