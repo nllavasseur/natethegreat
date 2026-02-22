@@ -1139,9 +1139,9 @@ function EstimatesPageInner() {
           : "1x4 x 8' Trim";
 
       const pictureFramed2x4x8 = isPictureFramed
-        ? panels * (materialsDetails.postCaps ? 4 : 3)
+        ? panels * ((materialsDetails.postCaps || materialsDetails.topCaps) ? 4 : 3)
         : 0;
-      const pictureFramed2x4x16 = isPictureFramed && !materialsDetails.postCaps
+      const pictureFramed2x4x16 = isPictureFramed && !(materialsDetails.postCaps || materialsDetails.topCaps)
         ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
         : 0;
 
@@ -1940,6 +1940,19 @@ function EstimatesPageInner() {
         pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "2 trim picutre framed") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 2,
+        pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: true
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
