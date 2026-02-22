@@ -21,7 +21,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const active = tabs.find(t => pathname?.startsWith(t.href))?.href ?? "/estimates";
-  const estimatesHeaderOffsetPx = pathname?.startsWith("/estimates") ? 44 : 0;
+  const estimatesHeaderOffsetPx = pathname?.startsWith("/estimates") ? 88 : 0;
 
   const hideChrome = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/auth");
 
