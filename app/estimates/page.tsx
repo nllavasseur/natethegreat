@@ -306,6 +306,10 @@ function EstimatesPageInner() {
     postCaps: boolean;
     topCaps: boolean;
     arbor: boolean;
+    splitRailRails: 2 | 3;
+    splitRailWireMesh: boolean;
+    splitRailCornerPosts: number;
+    splitRailEndPosts: number;
     pictureFrameTrimPieces: 2 | 3;
     pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
     takeoffPreset: "standard" | "horizontal_cedar";
@@ -335,6 +339,10 @@ function EstimatesPageInner() {
     postCaps: false,
     topCaps: false,
     arbor: false,
+    splitRailRails: 3,
+    splitRailWireMesh: false,
+    splitRailCornerPosts: 0,
+    splitRailEndPosts: 0,
     pictureFrameTrimPieces: 3,
     pictureFrameTrimMaterial: "Pressure treated",
     takeoffPreset: "standard",
@@ -371,6 +379,10 @@ function EstimatesPageInner() {
       Boolean(materialsDetails.postCaps) ||
       Boolean(materialsDetails.topCaps) ||
       Boolean(materialsDetails.arbor) ||
+      (Number(materialsDetails.splitRailRails) || 3) !== 3 ||
+      Boolean(materialsDetails.splitRailWireMesh) ||
+      (Number(materialsDetails.splitRailCornerPosts) || 0) !== 0 ||
+      (Number(materialsDetails.splitRailEndPosts) || 0) !== 0 ||
       String(materialsDetails.vinylColor || "White") !== "White" ||
       (Number(materialsDetails.vinylPanelWidthFt) || 6) !== 6 ||
       (Number(materialsDetails.vinylPanelHeightFt) || 6) !== 6 ||
@@ -378,6 +390,48 @@ function EstimatesPageInner() {
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
+
+  const splitRailPostsSummary = useMemo(() => {
+    const n = String(selectedStyle?.name || "").trim().toLowerCase();
+    const styleKind = !n
+      ? ""
+      : (n === "standard privacy" || n === "standard")
+          ? "wood_standard"
+          : (n === "horizontal cedar" || n === "horizontal")
+              ? "wood_horizontal"
+              : (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed"))
+                  ? "wood_picture_framed"
+                  : (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh"))
+                      ? "wood_wire_mesh"
+                      : (n === "split rail" || n.includes("split rail"))
+                          ? "wood_split_rail"
+                          : n;
+
+    if (selectedFenceType !== "wood" || styleKind !== "wood_split_rail") {
+      return { total: 0, line: 0, gateDerived: 0 };
+    }
+
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => Boolean((s as any).gate)).length);
+    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const gateDerived = (walkGates + doubleGates) * 2;
+
+    const lf = segments.filter((s) => !s.removed).reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+    const segmentLengths = segments
+      .filter((s) => !s.removed)
+      .map((s) => Number(s.length) || 0)
+      .filter((n) => n > 0);
+    const panels = segmentLengths.length
+      ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 10), 0)
+      : (lf > 0 ? Math.ceil(lf / 10) : 0);
+    const postsBase = panels > 0 ? panels + 1 : 0;
+    const total = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
+
+    const corner = Math.max(0, Math.floor(Number(materialsDetails.splitRailCornerPosts) || 0));
+    const end = Math.max(0, Math.floor(Number(materialsDetails.splitRailEndPosts) || 0));
+    const line = Math.max(0, total - (corner + end + gateDerived));
+
+    return { total, line, gateDerived };
+  }, [doubleGateCount, extraPosts, materialsDetails.splitRailCornerPosts, materialsDetails.splitRailEndPosts, segments, selectedFenceType, selectedStyle?.name]);
 
   const selectedStyleKind = useMemo(() => {
     const n = String(selectedStyle?.name || "").trim().toLowerCase();
@@ -830,6 +884,65 @@ function EstimatesPageInner() {
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
+    if (selectedStyleKind === "wood_split_rail") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 10' centers.
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 10), 0)
+        : (lf > 0 ? Math.ceil(lf / 10) : 0);
+      const postsBase = panels > 0 ? panels + 1 : 0;
+      const walkGates = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
+      const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+      const gatePostsDerived = (walkGates + doubleGates) * 2;
+      const posts = Math.max(0, postsBase + gatePostsDerived + (Number(extraPosts) || 0));
+
+      // Rails: ceil((segmentLength/10) * railCount)
+      const railCount = materialsDetails.splitRailRails === 2 ? 2 : 3;
+      const rails = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 10) * railCount), 0)
+        : (lf > 0 ? Math.ceil((lf / 10) * railCount) : 0);
+
+      // Optional wire mesh (same as wood wire mesh: rolls + staples).
+      const meshRolls = materialsDetails.splitRailWireMesh && lf > 0 ? Math.ceil(lf / 50) : 0;
+      const staples = materialsDetails.splitRailWireMesh && posts > 0 ? Math.ceil(posts * 10) : 0;
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const gateFramingS4S = walkGates * 5 + doubleGates * 10;
+      const cedarPickets = walkGates * 10 + doubleGates * 20;
+
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: postName, qty: posts, unit: "ea" },
+        { name: "Split rail", qty: rails, unit: "ea" },
+        ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
+        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(gateFramingS4S > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" }] : []),
+        ...(cedarPickets > 0 ? [{ name: "Cedar pickets", qty: cedarPickets, unit: "ea" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -1781,6 +1894,18 @@ function EstimatesPageInner() {
         topCaps: false
       }));
     }
+    if (String(style.name || "").trim().toLowerCase().includes("split rail")) {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 8,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        splitRailRails: 3,
+        splitRailWireMesh: false,
+        topCaps: false
+      }));
+    }
     setStylePickerIdx(false);
   }
 
@@ -1879,6 +2004,10 @@ function EstimatesPageInner() {
       postCaps: false,
       topCaps: false,
       arbor: false,
+      splitRailRails: 3,
+      splitRailWireMesh: false,
+      splitRailCornerPosts: 0,
+      splitRailEndPosts: 0,
       pictureFrameTrimPieces: 3,
       pictureFrameTrimMaterial: "Pressure treated",
       takeoffPreset: "standard",
@@ -2427,6 +2556,17 @@ function EstimatesPageInner() {
         topCaps = false;
       }
       const arbor = typeof dd.arbor === "boolean" ? dd.arbor : String(dd.arbor).toLowerCase() === "yes";
+
+      const splitRailRails = dd.splitRailRails === 2 || dd.splitRailRails === 3
+        ? dd.splitRailRails
+        : 3;
+      const splitRailWireMesh = typeof dd.splitRailWireMesh === "boolean" ? dd.splitRailWireMesh : false;
+      const splitRailCornerPosts = Number.isFinite(Number(dd.splitRailCornerPosts))
+        ? Math.max(0, Math.floor(Number(dd.splitRailCornerPosts)))
+        : 0;
+      const splitRailEndPosts = Number.isFinite(Number(dd.splitRailEndPosts))
+        ? Math.max(0, Math.floor(Number(dd.splitRailEndPosts)))
+        : 0;
       const pictureFrameTrimPieces = (dd.pictureFrameTrimPieces === 2 || dd.pictureFrameTrimPieces === 3)
         ? dd.pictureFrameTrimPieces
         : 3;
@@ -2474,6 +2614,10 @@ function EstimatesPageInner() {
         postCaps,
         topCaps,
         arbor,
+        splitRailRails,
+        splitRailWireMesh,
+        splitRailCornerPosts,
+        splitRailEndPosts,
         pictureFrameTrimPieces,
         pictureFrameTrimMaterial,
         takeoffPreset,
@@ -4653,6 +4797,133 @@ function EstimatesPageInner() {
                           <div className="text-[11px] text-[var(--muted)]">Tap</div>
                         </div>
                       </button>
+                    </div>
+                  ) : null}
+
+                  {selectedStyleKind === "wood_split_rail" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Split rail details</div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
+                          <Select
+                            value={String(materialsDetails.splitRailRails)}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                splitRailRails: (Number(e.target.value) === 2 ? 2 : 3) as 2 | 3
+                              }))
+                            }
+                          >
+                            <option value="3">3 rail</option>
+                            <option value="2">2 rail</option>
+                          </Select>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Wire mesh</div>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={() => setMaterialsDetails((p) => ({ ...p, splitRailWireMesh: !p.splitRailWireMesh }))}
+                            className={
+                              "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                              (materialsDetails.splitRailWireMesh
+                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                            }
+                            aria-pressed={materialsDetails.splitRailWireMesh}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-extrabold">{materialsDetails.splitRailWireMesh ? "On" : "Off"}</div>
+                              <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Corner posts</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  splitRailCornerPosts: Math.max(0, (Number(p.splitRailCornerPosts) || 0) - 1)
+                                }))
+                              }
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                              {Math.max(0, Number(materialsDetails.splitRailCornerPosts) || 0)}
+                            </div>
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  splitRailCornerPosts: Math.max(0, (Number(p.splitRailCornerPosts) || 0) + 1)
+                                }))
+                              }
+                            >
+                              +
+                            </PrimaryButton>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">End posts</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  splitRailEndPosts: Math.max(0, (Number(p.splitRailEndPosts) || 0) - 1)
+                                }))
+                              }
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                              {Math.max(0, Number(materialsDetails.splitRailEndPosts) || 0)}
+                            </div>
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  splitRailEndPosts: Math.max(0, (Number(p.splitRailEndPosts) || 0) + 1)
+                                }))
+                              }
+                            >
+                              +
+                            </PrimaryButton>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2">
+                          <div className="text-[11px] text-[var(--muted)]">Total posts</div>
+                          <div className="text-[14px] font-black">{splitRailPostsSummary.total}</div>
+                        </div>
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2">
+                          <div className="text-[11px] text-[var(--muted)]">Line posts</div>
+                          <div className="text-[14px] font-black">{splitRailPostsSummary.line}</div>
+                        </div>
+                      </div>
                     </div>
                   ) : null}
 
