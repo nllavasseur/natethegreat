@@ -3,9 +3,9 @@ import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 export const DEFAULT_WORKSPACE_ID = "b0fbbfe6-9ee1-4e1b-bb9a-cb51ef240df7";
 
 type DraftRow = {
-  id: string;
   workspace_id: string;
-  data: any;
+  draft_id: string;
+  draft: any;
   updated_at?: string;
 };
 
@@ -15,12 +15,12 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
 
   try {
     const payload: DraftRow = {
-      id: params.id,
       workspace_id: workspaceId,
-      data: params.data
+      draft_id: params.id,
+      draft: params.data
     };
 
-    const { error } = await supabase.from("drafts").upsert(payload, { onConflict: "id" });
+    const { error } = await supabase.from("drafts").upsert(payload, { onConflict: "workspace_id,draft_id" });
     if (error) throw error;
     return { ok: true as const };
   } catch (e) {
@@ -33,7 +33,11 @@ export async function deleteDraftRemote(params: { id: string; workspaceId?: stri
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
 
   try {
-    const { error } = await supabase.from("drafts").delete().eq("workspace_id", workspaceId).eq("id", params.id);
+    const { error } = await supabase
+      .from("drafts")
+      .delete()
+      .eq("workspace_id", workspaceId)
+      .eq("draft_id", params.id);
     if (error) throw error;
     return { ok: true as const };
   } catch (e) {
@@ -48,15 +52,15 @@ export async function fetchDrafts(params?: { workspaceId?: string }) {
   try {
     const { data, error } = await supabase
       .from("drafts")
-      .select("id, data, updated_at")
+      .select("draft_id, draft, updated_at")
       .eq("workspace_id", workspaceId)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;
 
     const drafts = (data ?? []).map((r: any) => {
-      const d = r?.data ?? {};
-      const id = String(r?.id ?? d?.id ?? "");
+      const d = r?.draft ?? {};
+      const id = String(r?.draft_id ?? d?.id ?? "");
       return { ...d, id };
     });
 
@@ -73,16 +77,16 @@ export async function fetchDraft(params: { id: string; workspaceId?: string }) {
   try {
     const { data, error } = await supabase
       .from("drafts")
-      .select("id, data")
+      .select("draft_id, draft")
       .eq("workspace_id", workspaceId)
-      .eq("id", params.id)
+      .eq("draft_id", params.id)
       .maybeSingle();
 
     if (error) throw error;
     if (!data) return { ok: true as const, draft: null as any };
 
-    const d = (data as any).data ?? {};
-    const id = String((data as any).id ?? d?.id ?? "");
+    const d = (data as any).draft ?? {};
+    const id = String((data as any).draft_id ?? d?.id ?? "");
     return { ok: true as const, draft: { ...d, id } };
   } catch (e) {
     return { ok: false as const, reason: "error" as const, error: e, draft: null as any };
