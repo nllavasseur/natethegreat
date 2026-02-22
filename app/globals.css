@@ -7,6 +7,8 @@
   --vf-green: #1F4D3A;
   --vf-brown: #8A5A2B;
 
+  --vf-sat: env(safe-area-inset-top);
+
   --pantone-7511c: #B77729;
   --pantone-574c: #4E5B31;
 
