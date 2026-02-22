@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import Link from "next/link";
 import React from "react";
 import { createPortal } from "react-dom";
 import { IconCalendar, IconDoc, IconPortfolio, IconQuote } from "./icons";
@@ -135,13 +134,26 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                         const isActive = active === t.href;
                         const Icon = t.icon;
                         return (
-                          <Link
+                          <button
                             key={t.href}
-                            href={t.href}
+                            type="button"
+                            onPointerDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (active === t.href) return;
+                              router.push(t.href);
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (active === t.href) return;
+                              router.push(t.href);
+                            }}
                             className={clsx(
                               "flex-1 h-full min-w-0 flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition select-none",
                               isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
                             )}
+                            aria-current={isActive ? "page" : undefined}
                           >
                             <Icon
                               className={clsx(
@@ -157,7 +169,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                             >
                               {t.label}
                             </span>
-                          </Link>
+                          </button>
                         );
                       })}
                     </div>
