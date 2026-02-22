@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import NextImage from "next/image";
@@ -26,6 +26,7 @@ export default function EstimatesPage() {
 
 function EstimatesPageInner() {
   const router = useRouter();
+  const pathname = usePathname();
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -2039,7 +2040,7 @@ function EstimatesPageInner() {
         document.body
       ) : null}
 
-      {portalReady
+      {portalReady && pathname === "/estimates"
         ? createPortal(
           <div
             className="fixed right-4 z-30 pointer-events-none"
@@ -3422,10 +3423,10 @@ function EstimatesPageInner() {
         <SecondaryButton onClick={generateContract}>Generate Contract</SecondaryButton>
       </div>
 
-      {portalReady
+      {portalReady && pathname === "/estimates"
         ? createPortal(
           <nav
-            className="fixed left-0 right-0 z-50 px-4 pointer-events-none"
+            className="fixed left-0 right-0 z-[120] px-4"
             style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
             aria-label="Estimate actions"
           >
@@ -3435,7 +3436,7 @@ function EstimatesPageInner() {
                   {saveError}
                 </div>
               ) : null}
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around pointer-events-auto">
+              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
