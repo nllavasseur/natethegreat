@@ -530,6 +530,8 @@ function EstimatesPageInner() {
     aluminumGatePosts: number;
     aluminumEndPosts: number;
     aluminumBlankPosts: number;
+    mansfieldWalkGateOptions: string[];
+    mansfieldDoubleGateOptions: string[];
   }>({
     woodType: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
@@ -547,7 +549,9 @@ function EstimatesPageInner() {
     aluminumCornerPosts: 0,
     aluminumGatePosts: 0,
     aluminumEndPosts: 0,
-    aluminumBlankPosts: 0
+    aluminumBlankPosts: 0,
+    mansfieldWalkGateOptions: [],
+    mansfieldDoubleGateOptions: []
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -570,6 +574,8 @@ function EstimatesPageInner() {
       (Number(materialsDetails.aluminumGatePosts) || 0) !== 0 ||
       (Number(materialsDetails.aluminumEndPosts) || 0) !== 0 ||
       (Number(materialsDetails.aluminumBlankPosts) || 0) !== 0 ||
+      (materialsDetails.mansfieldWalkGateOptions || []).some((v) => Boolean(v)) ||
+      (materialsDetails.mansfieldDoubleGateOptions || []).some((v) => Boolean(v)) ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -640,6 +646,34 @@ function EstimatesPageInner() {
     if (style === "Terrier") return [48];
     return [48];
   }, [selectedFenceType, selectedStyle?.name]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "aluminum") return;
+    if (String(selectedStyle?.name || "") !== "Mansfield") return;
+
+    const walkGates = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => Boolean((s as any).gate))
+        .length
+    );
+    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+
+    setMaterialsDetails((p) => {
+      const nextWalk = Array.from({ length: walkGates }, (_, i) => p.mansfieldWalkGateOptions?.[i] || "walk_48_4");
+      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.mansfieldDoubleGateOptions?.[i] || "double_48_4");
+
+      const walkSame = (p.mansfieldWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.mansfieldWalkGateOptions?.[i]);
+      const doubleSame = (p.mansfieldDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.mansfieldDoubleGateOptions?.[i]);
+      if (walkSame && doubleSame) return p;
+      return {
+        ...p,
+        mansfieldWalkGateOptions: nextWalk,
+        mansfieldDoubleGateOptions: nextDouble
+      };
+    });
+  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1766,7 +1800,9 @@ function EstimatesPageInner() {
       aluminumCornerPosts: 0,
       aluminumGatePosts: 0,
       aluminumEndPosts: 0,
-      aluminumBlankPosts: 0
+      aluminumBlankPosts: 0,
+      mansfieldWalkGateOptions: [],
+      mansfieldDoubleGateOptions: []
     });
     setExtraPosts(0);
     setNotes("");
@@ -3721,6 +3757,61 @@ function EstimatesPageInner() {
                             <div className="text-[11px] text-[var(--muted)]">{materialsDetails.aluminumGateAuto ? "On" : "Off"}</div>
                           </div>
                         </button>
+
+                        {selectedStyle?.name === "Mansfield" && (walkGateCountDerived > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
+                            <div className="text-[10px] text-[var(--muted)] mb-2">Applies after you mark gates. Select each gate’s size/price.</div>
+
+                            {Number(materialsDetails.aluminumPanelHeight) !== 48 ? (
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.04)] px-3 py-2 text-[11px] text-[var(--muted)]">
+                                Mansfield gate pricing currently configured for 4' height only.
+                              </div>
+                            ) : null}
+
+                            {(materialsDetails.mansfieldWalkGateOptions || []).map((v, i) => (
+                              <div key={`walk-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center mb-2">
+                                <div className="text-[12px] font-extrabold">Walk gate {i + 1}</div>
+                                <Select
+                                  value={v}
+                                  onChange={(e) =>
+                                    setMaterialsDetails((p) => ({
+                                      ...p,
+                                      mansfieldWalkGateOptions: (p.mansfieldWalkGateOptions || []).map((cur, idx) =>
+                                        idx === i ? String(e.target.value) : cur
+                                      )
+                                    }))
+                                  }
+                                  disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
+                                >
+                                  <option value="walk_48_4">48" wide x 4' high — $399.99</option>
+                                  <option value="walk_60_4">60" wide x 4' high — $445.00</option>
+                                </Select>
+                              </div>
+                            ))}
+
+                            {(materialsDetails.mansfieldDoubleGateOptions || []).map((v, i) => (
+                              <div key={`double-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center">
+                                <div className="text-[12px] font-extrabold">Double gate {i + 1}</div>
+                                <Select
+                                  value={v}
+                                  onChange={(e) =>
+                                    setMaterialsDetails((p) => ({
+                                      ...p,
+                                      mansfieldDoubleGateOptions: (p.mansfieldDoubleGateOptions || []).map((cur, idx) =>
+                                        idx === i ? String(e.target.value) : cur
+                                      )
+                                    }))
+                                  }
+                                  disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
+                                >
+                                  <option value="double_48_4">48" wide x 4' high — $795.00</option>
+                                  <option value="double_60_4">60" wide x 4' high — $859.90</option>
+                                </Select>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
