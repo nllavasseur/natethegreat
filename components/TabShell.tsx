@@ -78,8 +78,9 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         const finalPx = isStandalone
           ? (() => {
               if (clamped <= 0) {
-                stableSatRef.current = 0;
-                return 0;
+                // iOS standalone can transiently report 0 while scrolling/settling.
+                // Never lock to 0, otherwise the header can jump under the notch.
+                return stableSatRef.current ?? 0;
               }
               if (stableSatRef.current == null) {
                 stableSatRef.current = clamped;
