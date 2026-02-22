@@ -68,28 +68,124 @@ function EstimatesPageInner() {
   const materialStyles: Array<{ type: "wood" | "vinyl" | "aluminum" | "chainlink"; name: string; thumb: string; group?: "privacy" | "semi-privacy" | "pool" }> = [
     {
       type: "wood",
-      name: "Standard Privacy",
+      name: "standard",
       thumb: "/standard.jpeg"
     },
     {
       type: "wood",
-      name: "Horizontal Cedar",
+      name: "horizontal",
       thumb: "/horizontal.jpeg"
     },
     {
       type: "wood",
-      name: "Picture Framed",
+      name: "picture framed flat top",
       thumb: "/picture framed flat top.jpeg"
     },
     {
       type: "wood",
-      name: "3 Rail w/ Wire Mesh",
+      name: "4 rail wire mesh",
       thumb: "/4 rail wire mesh.jpeg"
     },
     {
       type: "wood",
-      name: "Split Rail",
+      name: "split rail",
       thumb: "/split rail.jpeg"
+    }
+    ,
+    {
+      type: "wood",
+      name: "1x4 shadowbox",
+      thumb: "/1x4 shadowbox.jpg"
+    },
+    {
+      type: "wood",
+      name: "2 trim picture framed",
+      thumb: "/2 trim picture framed.jpeg"
+    },
+    {
+      type: "wood",
+      name: "4' picture framed",
+      thumb: "/4' picture framed.jpeg"
+    },
+    {
+      type: "wood",
+      name: "5:4 2 rail mesh",
+      thumb: "/5:4 2 rail mesh.jpeg"
+    },
+    {
+      type: "wood",
+      name: "A & M",
+      thumb: "/A & M.jpg"
+    },
+    {
+      type: "wood",
+      name: "all cedar niko",
+      thumb: "/all cedar niko.jpeg"
+    },
+    {
+      type: "wood",
+      name: "all cedar picture framed",
+      thumb: "/all cedar picture framed.jpeg"
+    },
+    {
+      type: "wood",
+      name: "basket-weve",
+      thumb: "/basket-weve.jpeg"
+    },
+    {
+      type: "wood",
+      name: "board on board",
+      thumb: "/board on board.jpeg"
+    },
+    {
+      type: "wood",
+      name: "casto",
+      thumb: "/casto.jpg"
+    },
+    {
+      type: "wood",
+      name: "four rail poplar 6x6",
+      thumb: "/four rail poplar 6x6.jpg"
+    },
+    {
+      type: "wood",
+      name: "hog-wire",
+      thumb: "/hog-wire.jpeg"
+    },
+    {
+      type: "wood",
+      name: "mary-jane",
+      thumb: "/mary-jane.jpeg"
+    },
+    {
+      type: "wood",
+      name: "niko",
+      thumb: "/niko.jpeg"
+    },
+    {
+      type: "wood",
+      name: "picture framed caps",
+      thumb: "/picture framed caps.jpg"
+    },
+    {
+      type: "wood",
+      name: "picture framed lattice panel",
+      thumb: "/picture framed lattice panel.jpeg"
+    },
+    {
+      type: "wood",
+      name: "scalloped",
+      thumb: "/scalloped.jpeg"
+    },
+    {
+      type: "wood",
+      name: "shadowbox top cap",
+      thumb: "/shadowbox top cap.jpeg"
+    },
+    {
+      type: "wood",
+      name: "shadowbox",
+      thumb: "/shadowbox.jpeg"
     }
     ,
     {
@@ -294,6 +390,17 @@ function EstimatesPageInner() {
     );
   }, [extraPosts, materialsDetails]);
 
+  const selectedStyleKind = useMemo(() => {
+    const n = String(selectedStyle?.name || "").trim().toLowerCase();
+    if (!n) return "";
+    if (n === "standard privacy" || n === "standard") return "wood_standard";
+    if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
+    if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
+    if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
+    if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
+    return n;
+  }, [selectedStyle?.name]);
+
   const vinylPrivacyMatrix = useMemo(() => {
     const fourSixEight = [4, 6, 8];
     const sixEight = [6, 8];
@@ -416,7 +523,7 @@ function EstimatesPageInner() {
   }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, segments, selectedFenceType]);
 
   const horizontalCedarDetailsActive = useMemo(() => {
-    if (selectedStyle?.name !== "Horizontal Cedar") return false;
+    if (selectedStyleKind !== "wood_horizontal") return false;
     return (
       materialsDetails.horizontalCedarVerticals ||
       (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
@@ -427,7 +534,7 @@ function EstimatesPageInner() {
       Boolean(materialsDetails.arbor) ||
       (Number(extraPosts) || 0) !== 0
     );
-  }, [extraPosts, materialsDetails, selectedStyle?.name]);
+  }, [extraPosts, materialsDetails, selectedStyleKind]);
 
   const aluminumAllowedPanelHeights = useMemo(() => {
     if (selectedFenceType !== "aluminum") return [48];
@@ -682,15 +789,15 @@ function EstimatesPageInner() {
     const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
     if (
-      selectedStyle.name === "Standard Privacy" ||
-      selectedStyle.name === "Picture Framed" ||
-      selectedStyle.name === "Horizontal Cedar"
+      selectedStyleKind === "wood_standard" ||
+      selectedStyleKind === "wood_picture_framed" ||
+      selectedStyleKind === "wood_horizontal"
     ) {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
 
       const useHorizontalCedarTakeoff =
-        (selectedStyle.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
-        selectedStyle.name === "Horizontal Cedar";
+        (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
+        selectedStyleKind === "wood_horizontal";
 
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
@@ -793,7 +900,7 @@ function EstimatesPageInner() {
       const panels = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
-      const trimBoards = selectedStyle.name === "Picture Framed"
+      const trimBoards = selectedStyleKind === "wood_picture_framed"
         ? panels * (materialsDetails.pictureFrameTrimPieces || 3)
         : 0;
       const trimName = materialsDetails.pictureFrameTrimMaterial === "Cedar"
@@ -1572,7 +1679,7 @@ function EstimatesPageInner() {
 
   function setMaterialStyle(style: { name: string; thumb: string }) {
     setSelectedStyle(style);
-    if (style.name === "Horizontal Cedar") {
+    if (String(style.name || "").trim().toLowerCase() === "horizontal") {
       setMaterialsDetails((prev) => ({
         ...prev,
         horizontalCedarBoardMaterial: "5/4 cedar",
@@ -4099,7 +4206,7 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyle?.name === "Standard Privacy" ? (
+                  {selectedStyleKind === "wood_standard" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Materials preset</div>
                       <div className="grid grid-cols-2 gap-2">
@@ -4184,7 +4291,7 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyle?.name === "Horizontal Cedar" ? (
+                  {selectedStyleKind === "wood_horizontal" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
                       <button
@@ -4235,7 +4342,7 @@ function EstimatesPageInner() {
 
                   {selectedFenceType !== "aluminum" ? (
                     <>
-                      {selectedStyle?.name === "Horizontal Cedar" || (selectedStyle?.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
+                      {selectedStyleKind === "wood_horizontal" || (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
                         <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Wood materials</div>
                           <Select
@@ -4416,7 +4523,7 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyle?.name === "Picture Framed" ? (
+                  {selectedStyleKind === "wood_picture_framed" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Picture frame trim</div>
                       <div>
