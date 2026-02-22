@@ -1251,7 +1251,7 @@ export default function CalendarPage() {
 
       {queueOpen ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center p-3 overflow-x-hidden"
+          className="fixed inset-0 z-50 grid place-items-center p-2 overflow-x-hidden"
           role="dialog"
           aria-modal="true"
           onClick={(e) => {
@@ -1262,7 +1262,7 @@ export default function CalendarPage() {
         >
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="relative box-border w-[calc(100vw-24px)] max-w-[520px]"
+            className="relative box-border w-[calc(100vw-16px)] max-w-[520px]"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -1271,7 +1271,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="p-4 max-h-[calc(100dvh-24px)] overflow-hidden overflow-x-hidden flex flex-col">
+            <GlassCard className="p-3 max-h-[calc(100dvh-16px)] overflow-hidden overflow-x-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
                 <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
@@ -1417,7 +1417,7 @@ export default function CalendarPage() {
                       key={j.id}
                       data-queue-id={j.id}
                       className={
-                        "rounded-2xl border px-3 py-3 transition-colors duration-150 " +
+                        "rounded-2xl border px-2.5 py-2.5 transition-colors duration-150 " +
                         (isHi
                           ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.16)]"
                           : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]")
