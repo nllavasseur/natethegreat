@@ -60,6 +60,19 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     setPortalReady(true);
   }, []);
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    // If any modal left the body in a scroll-locked state, iOS can behave like taps are blocked
+    // until the next scroll/paint. Always clear stale locks on route changes.
+    const body = document.body;
+    if (body.style.position === "fixed" || body.style.overflow === "hidden") {
+      body.style.position = "";
+      body.style.top = "";
+      body.style.width = "";
+      body.style.overflow = "";
+    }
+  }, [pathname]);
+
 
   React.useEffect(() => {
     let cancelled = false;
@@ -130,7 +143,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         : portalReady
           ? createPortal(
               <div
-                className="fixed left-0 right-0 z-50 vf-app-bg"
+                className="fixed left-0 right-0 z-[9999] vf-app-bg isolate"
                 style={{ top: estimatesHeaderOffsetPx ? `${estimatesHeaderOffsetPx}px` : "0px" }}
               >
                 <div style={{ touchAction: "manipulation" }}>
