@@ -871,6 +871,7 @@ function EstimatesPageInner() {
       }
 
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+      const isPictureFramedFlatTop = String(selectedStyle?.name || "").trim().toLowerCase() === "picture framed flat top";
 
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
@@ -879,6 +880,7 @@ function EstimatesPageInner() {
       const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
       // Rails = ceil(segment/15 * 3) per segment
+      // Picture framed flat top uses per-panel rail logic (2x4x8) and optional 2x4x16.
       const rails = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
         : 0;
@@ -909,11 +911,23 @@ function EstimatesPageInner() {
           ? "1x4 x 8' CedarTone Trim"
           : "1x4 x 8' Trim";
 
+      const pictureFramedFlatTop2x4x8 = isPictureFramedFlatTop
+        ? panels * (materialsDetails.postCaps ? 4 : 3)
+        : 0;
+      const pictureFramedFlatTop2x4x16 = isPictureFramedFlatTop && !materialsDetails.postCaps
+        ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
+        : 0;
+
       const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        { name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" },
+        ...(isPictureFramedFlatTop
+          ? [
+            { name: "2x4 8' Pressure Treated Rails", qty: pictureFramedFlatTop2x4x8, unit: "ea" },
+            ...(pictureFramedFlatTop2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: pictureFramedFlatTop2x4x16, unit: "ea" }] : [])
+          ]
+          : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
         { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
@@ -1686,6 +1700,17 @@ function EstimatesPageInner() {
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar"
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "picture framed flat top") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 3,
+        pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard"
       }));
     }
     setStylePickerIdx(false);
