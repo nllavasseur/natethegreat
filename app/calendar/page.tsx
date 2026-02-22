@@ -2,6 +2,7 @@
 
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
+import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
 
 const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -116,6 +117,19 @@ function notifyDraftsChanged() {
   } catch {
     // ignore
   }
+}
+
+function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
+  const byId = new Map<string, DraftEntry>();
+  local.forEach((d) => {
+    if (!d || !d.id) return;
+    byId.set(String(d.id), { ...d });
+  });
+  remote.forEach((d) => {
+    if (!d || !d.id) return;
+    byId.set(String(d.id), { ...d });
+  });
+  return Array.from(byId.values());
 }
 
 function toKey(d: Date) {
@@ -239,33 +253,52 @@ export default function CalendarPage() {
 
     if (changed) {
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      try {
+        Object.values(store).forEach((d) => {
+          if ((d as any).status === "sold" && typeof (d as any).queueRank === "number") {
+            void upsertDraft({ id: d.id, data: d });
+          }
+        });
+      } catch {
+      }
       notifyDraftsChanged();
     }
   }, []);
 
   React.useEffect(() => {
-    const refresh = () => {
+    let cancelled = false;
+    const refresh = async () => {
       const store = readDraftStore();
-      const list = Object.values(store).map((d) => ({ ...d }));
-      setDrafts(list);
+      const localList = Object.values(store).map((d) => ({ ...d }));
+      let remoteList: DraftEntry[] = [];
+      try {
+        const remote = await fetchDrafts();
+        remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+      } catch {
+        remoteList = [];
+      }
+
+      const merged = mergeDraftLists(localList, remoteList);
+      if (!cancelled) setDrafts(merged);
 
       const blocks = readBlockOutStore();
-      setBlockOuts(blocks);
+      if (!cancelled) setBlockOuts(blocks);
     };
 
     // Ensure sold jobs have stable queue ranks before first render.
     ensureQueueRanks();
-    refresh();
+    void refresh();
 
     const onStorage = (e: StorageEvent) => {
       if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1") return;
-      refresh();
+      void refresh();
     };
-    const onDraftsChanged = () => refresh();
+    const onDraftsChanged = () => void refresh();
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("vf-drafts-changed", onDraftsChanged as any);
     return () => {
+      cancelled = true;
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("vf-drafts-changed", onDraftsChanged as any);
     };
@@ -435,6 +468,12 @@ export default function CalendarPage() {
     });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      rebuilt.forEach((d) => {
+        void upsertDraft({ id: d.id, data: (store as any)[d.id] ?? d });
+      });
+    } catch {
+    }
     notifyDraftsChanged();
 
     setHighlightQueueId(id);
@@ -494,7 +533,15 @@ export default function CalendarPage() {
     });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      rebuilt.forEach((d) => {
+        void upsertDraft({ id: d.id, data: (store as any)[d.id] ?? d });
+      });
+    } catch {
+    }
     notifyDraftsChanged();
+    // Update in-tab state immediately (storage events don't fire in the same tab).
+    setDrafts(Object.values(store).map((d) => ({ ...d })));
     setHighlightQueueId(id);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
@@ -511,6 +558,10 @@ export default function CalendarPage() {
         : { allowSaturday: curSat, allowSunday: !curSun };
     (store as any)[id] = { ...(store as any)[id], ...next, updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      void upsertDraft({ id, data: (store as any)[id] });
+    } catch {
+    }
     notifyDraftsChanged();
 
     // Update in-tab state immediately (storage events don't fire in the same tab).
@@ -528,6 +579,10 @@ export default function CalendarPage() {
     if (!Number.isFinite(orig) || orig <= 0) return;
     (store as any)[id] = { ...(store as any)[id], laborDays: Math.max(1, Math.round(orig)), updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      void upsertDraft({ id, data: (store as any)[id] });
+    } catch {
+    }
     notifyDraftsChanged();
 
     setHighlightQueueId(id);
@@ -540,6 +595,10 @@ export default function CalendarPage() {
     if (!(store as any)[id]) return;
     (store as any)[id] = { ...(store as any)[id], holdDate: iso, updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      void upsertDraft({ id, data: (store as any)[id] });
+    } catch {
+    }
     notifyDraftsChanged();
 
     setHighlightQueueId(id);
@@ -562,6 +621,10 @@ export default function CalendarPage() {
 
     (store as any)[id] = { ...(store as any)[id], laborDays: next, originalLaborDays, updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      void upsertDraft({ id, data: (store as any)[id] });
+    } catch {
+    }
     notifyDraftsChanged();
 
     setHighlightQueueId(id);
