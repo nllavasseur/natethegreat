@@ -532,6 +532,7 @@ function EstimatesPageInner() {
     aluminumBlankPosts: number;
     mansfieldWalkGateOptions: string[];
     mansfieldDoubleGateOptions: string[];
+    mansfieldBlankGatePost: boolean;
   }>({
     woodType: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
@@ -551,7 +552,8 @@ function EstimatesPageInner() {
     aluminumEndPosts: 0,
     aluminumBlankPosts: 0,
     mansfieldWalkGateOptions: [],
-    mansfieldDoubleGateOptions: []
+    mansfieldDoubleGateOptions: [],
+    mansfieldBlankGatePost: false
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -576,6 +578,7 @@ function EstimatesPageInner() {
       (Number(materialsDetails.aluminumBlankPosts) || 0) !== 0 ||
       (materialsDetails.mansfieldWalkGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.mansfieldDoubleGateOptions || []).some((v) => Boolean(v)) ||
+      Boolean(materialsDetails.mansfieldBlankGatePost) ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -712,6 +715,7 @@ function EstimatesPageInner() {
     "Cedar S4S Gate Framing": 12,
     "Post caps": 5,
     "Arbor": 200,
+    "Mansfield blank gate post": 65.99,
     "Disposal": 100,
     "Delivery": 100,
     "Equipment Fees": 400
@@ -998,6 +1002,9 @@ function EstimatesPageInner() {
       { name: "Fasteners", qty: 1, unit: "ea" },
       ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
       ...(materialsDetails.arbor ? [{ name: "Arbor", qty: 1, unit: "ea" }] : []),
+      ...(selectedFenceType === "aluminum" && selectedStyle?.name === "Mansfield" && materialsDetails.mansfieldBlankGatePost
+        ? [{ name: "Mansfield blank gate post", qty: 1, unit: "ea" }]
+        : []),
       ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
       ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
       ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : [])
@@ -1008,7 +1015,8 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, segments, selectedStyle, totalLf, walkGateCountDerived]);
+  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, segments, selectedStyle, totalLf, walkGateCountDerived
+  ]);
 
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
@@ -1802,7 +1810,8 @@ function EstimatesPageInner() {
       aluminumEndPosts: 0,
       aluminumBlankPosts: 0,
       mansfieldWalkGateOptions: [],
-      mansfieldDoubleGateOptions: []
+      mansfieldDoubleGateOptions: [],
+      mansfieldBlankGatePost: false
     });
     setExtraPosts(0);
     setNotes("");
@@ -3762,6 +3771,34 @@ function EstimatesPageInner() {
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Applies after you mark gates. Select each gate’s size/price.</div>
+
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div className="col-span-2">
+                                <div className="text-[11px] text-[var(--muted)] mb-1">Blank gate post ($65.99)</div>
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  onClick={() =>
+                                    setMaterialsDetails((p) => ({
+                                      ...p,
+                                      mansfieldBlankGatePost: !p.mansfieldBlankGatePost
+                                    }))
+                                  }
+                                  className={
+                                    "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                                    (materialsDetails.mansfieldBlankGatePost
+                                      ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                                      : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                  }
+                                  aria-pressed={materialsDetails.mansfieldBlankGatePost}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div>{materialsDetails.mansfieldBlankGatePost ? "On" : "Off"}</div>
+                                    <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                                  </div>
+                                </button>
+                              </div>
+                            </div>
 
                             {Number(materialsDetails.aluminumPanelHeight) !== 48 ? (
                               <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.04)] px-3 py-2 text-[11px] text-[var(--muted)]">
