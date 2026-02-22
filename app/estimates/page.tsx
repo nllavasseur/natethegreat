@@ -2042,7 +2042,7 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <div
-            className="fixed right-4 z-30"
+            className="fixed right-4 z-30 pointer-events-none"
             style={{ top: "calc(var(--vf-header-h, 0px) + 12px)" }}
             aria-label="Total lineal feet"
           >
