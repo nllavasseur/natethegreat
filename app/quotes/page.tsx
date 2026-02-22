@@ -796,6 +796,10 @@ export default function QuotesPage() {
         <div className="mx-auto max-w-[980px] px-4 pb-3">
           <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
             <div className="flex items-center justify-between gap-3">
+              <Link href="/estimates" className="shrink-0">
+                <PrimaryButton>New Quote</PrimaryButton>
+              </Link>
+
               <button
                 type="button"
                 data-no-swipe="true"
@@ -812,10 +816,6 @@ export default function QuotesPage() {
               >
                 {filterLabel(statusFilter)}
               </button>
-
-              <Link href="/estimates" className="shrink-0">
-                <PrimaryButton>New Quote</PrimaryButton>
-              </Link>
             </div>
           </div>
         </div>
