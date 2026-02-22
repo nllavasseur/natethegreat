@@ -158,7 +158,304 @@ function EstimatesPageInner() {
     ,
     {
       type: "vinyl",
-      name: "Vinyl Privacy",
+      name: "Savannah",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Pembroke",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Glenshire",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Tuscany",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Dora",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Calgary",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Gideon",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Ashton",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Agusta",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Bradford",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Mason",
+      group: "privacy",
+      thumb:
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
+            <defs>
+              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
+                <stop stop-color='#E9EEF2'/>
+                <stop offset='1' stop-color='#BFCAD3'/>
+              </linearGradient>
+            </defs>
+            <rect width='80' height='80' rx='14' fill='url(#g)'/>
+            <g opacity='.38' fill='#fff'>
+              <rect x='14' y='14' width='6' height='52' rx='3'/>
+              <rect x='26' y='14' width='6' height='52' rx='3'/>
+              <rect x='38' y='14' width='6' height='52' rx='3'/>
+              <rect x='50' y='14' width='6' height='52' rx='3'/>
+              <rect x='62' y='14' width='6' height='52' rx='3'/>
+            </g>
+            <rect x='12' y='22' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+            <rect x='12' y='44' width='56' height='3' rx='1.5' fill='rgba(0,0,0,.14)'/>
+          </svg>`
+        )
+    },
+    {
+      type: "vinyl",
+      name: "Scottsdale",
       group: "privacy",
       thumb:
         "data:image/svg+xml;charset=utf-8," +
