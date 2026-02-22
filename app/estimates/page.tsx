@@ -37,6 +37,7 @@ function EstimatesPageInner() {
   const [projectPhoto, setProjectPhoto] = useState<File | null>(null);
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
   const [projectPhotoDataUrl, setProjectPhotoDataUrl] = useState<string | null>(null);
+  const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
   const [measureOpen, setMeasureOpen] = useState(false);
   const [tracePoints, setTracePoints] = useState<Array<{ x: number; y: number }>>([]);
   const [ocrBusy, setOcrBusy] = useState(false);
@@ -1002,6 +1003,15 @@ function EstimatesPageInner() {
     setPortalReady(true);
   }, []);
 
+  useEffect(() => {
+    if (!photoViewerSrc) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPhotoViewerSrc(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [photoViewerSrc]);
+
   const totals = useMemo(() => computeTotals(items, 0, 0, 0), [items]);
   const materialsSubtotal = useMemo(() => {
     return items
@@ -1881,6 +1891,39 @@ function EstimatesPageInner() {
 
   return (
     <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+160px)]">
+      {portalReady && photoViewerSrc ? createPortal(
+        <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
+          <div
+            className="absolute inset-0 bg-[rgba(0,0,0,.78)]"
+            onClick={() => setPhotoViewerSrc(null)}
+          />
+          <div
+            className="relative w-full max-w-[980px]"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <GlassCard className="p-3 overflow-hidden">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-black truncate">Photo</div>
+                <SecondaryButton data-no-swipe="true" onClick={() => setPhotoViewerSrc(null)}>
+                  Close
+                </SecondaryButton>
+              </div>
+              <div className="mt-2 rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                <img
+                  src={photoViewerSrc}
+                  alt=""
+                  className="block w-full h-auto max-h-[78dvh] object-contain"
+                  style={{ touchAction: "pan-x pan-y pinch-zoom" }}
+                />
+              </div>
+              <div className="mt-2 text-[11px] text-[var(--muted)]">Pinch to zoom</div>
+            </GlassCard>
+          </div>
+        </div>,
+        document.body
+      ) : null}
+
       {portalReady
         ? createPortal(
           <div
@@ -2000,7 +2043,14 @@ function EstimatesPageInner() {
             <div className="text-[11px] text-[var(--muted)] mb-1">Preview</div>
             <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
               {projectPhotoUrl ? (
-                <img src={projectPhotoUrl ?? undefined} alt="Project photo" className="w-full h-[220px] object-cover" />
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  onClick={() => setPhotoViewerSrc(projectPhotoUrl)}
+                  className="block w-full text-left"
+                >
+                  <img src={projectPhotoUrl ?? undefined} alt="Project photo" className="w-full h-[220px] object-cover" />
+                </button>
               ) : (
                 <div className="h-[220px] flex items-center justify-center text-sm text-[var(--muted)]">
                   No photo uploaded yet
@@ -2729,9 +2779,16 @@ function EstimatesPageInner() {
           <div className="mt-3 grid grid-cols-4 gap-2">
             {preInstallPhotos.map((p, idx) => (
               <div key={`${idx}`} className="relative rounded-xl overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]">
-                <div className="relative w-full aspect-square">
-                  <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
-                </div>
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  onClick={() => setPhotoViewerSrc(p.src)}
+                  className="relative block w-full text-left"
+                >
+                  <div className="relative w-full aspect-square">
+                    <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
+                  </div>
+                </button>
                 <button
                   type="button"
                   data-no-swipe="true"

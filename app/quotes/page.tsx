@@ -773,9 +773,6 @@ export default function QuotesPage() {
                       }, 220);
                     } else {
                       setConfirmDeleteId(q.id);
-                      window.setTimeout(() => {
-                        setConfirmDeleteId((cur) => (cur === q.id ? null : cur));
-                      }, 500);
                     }
                   }}
                   className={
@@ -785,7 +782,7 @@ export default function QuotesPage() {
                       : "bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.85)]")
                   }
                 >
-                  Delete
+                  {confirmDeleteId === q.id ? "Confirm" : "Delete"}
                 </button>
               </div>
               <div className="flex items-center justify-between gap-2">
