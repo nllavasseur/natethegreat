@@ -1277,7 +1277,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="w-full max-w-[520px] mx-auto p-3 overflow-hidden overflow-x-hidden flex flex-col">
+            <GlassCard className="w-full max-w-[480px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
                 <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
@@ -1380,7 +1380,7 @@ export default function CalendarPage() {
 
               <div
                 ref={queueListRef}
-                className="mt-3 grid gap-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+                className="mt-2 grid gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
                 style={{ overflowAnchor: "none" }}
               >
                 {soldQueue.length === 0 ? (
@@ -1423,7 +1423,7 @@ export default function CalendarPage() {
                       key={j.id}
                       data-queue-id={j.id}
                       className={
-                        "rounded-2xl border px-2.5 py-2.5 transition-colors duration-150 " +
+                        "rounded-2xl border px-2 py-2 transition-colors duration-150 " +
                         (isHi
                           ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.16)]"
                           : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]")
@@ -1431,15 +1431,15 @@ export default function CalendarPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-sm font-black truncate min-w-0">
+                          <div className="text-[13px] font-black truncate min-w-0">
                             {j.customerName || j.title || j.projectAddress || j.selectedStyle?.name || "Job"}
                           </div>
-                          <div className="text-[11px] text-[var(--muted)] mt-1 truncate">
+                          <div className="text-[10px] text-[var(--muted)] mt-0.5 truncate">
                             {style ? style : ""}
                             {lf ? ` · ${Math.round(lf)} LF` : ""}
                             {j.projectAddress ? ` · ${j.projectAddress}` : ""}
                           </div>
-                          <div className="text-[11px] text-[var(--muted)] mt-1 break-words">
+                          <div className="text-[10px] text-[var(--muted)] mt-0.5 break-words">
                             {startIso ? `Start ${startIso}` : ""}
                             {endIso ? ` · End ${endIso}` : ""}
                             {hold ? ` · Hold ${hold}` : ""}
@@ -1476,8 +1476,8 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
+                      <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
                             data-no-swipe="true"
@@ -1486,13 +1486,13 @@ export default function CalendarPage() {
                               e.stopPropagation();
                               adjustLaborDays(j.id, -1);
                             }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2.5 py-2 text-[12px] font-black"
                             aria-label="Decrease labor days"
                           >
                             -
                           </button>
 
-                          <div className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] px-3 py-2 text-[12px] font-black leading-none min-w-[48px] text-center">
+                          <div className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] px-3 py-2 text-[12px] font-black leading-none min-w-[44px] text-center">
                             {labor}
                           </div>
 
@@ -1504,7 +1504,7 @@ export default function CalendarPage() {
                               e.stopPropagation();
                               adjustLaborDays(j.id, 1);
                             }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2.5 py-2 text-[12px] font-black"
                             aria-label="Increase labor days"
                           >
                             +
@@ -1526,7 +1526,7 @@ export default function CalendarPage() {
                       </div>
 
                       <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
                             data-no-swipe="true"
