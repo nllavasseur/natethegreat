@@ -1664,6 +1664,14 @@ function EstimatesPageInner() {
 
   const [stylePreview, setStylePreview] = useState<{ name: string; thumb: string } | null>(null);
 
+  const visibleStyleOptions = useMemo(() => {
+    return materialStyles.filter((st) => {
+      if (st.type !== selectedFenceType) return false;
+      if (selectedFenceType !== "vinyl") return true;
+      return (st as any).group === vinylStyleTab;
+    });
+  }, [materialStyles, selectedFenceType, vinylStyleTab]);
+
   useEffect(() => {
     const open = Boolean(stylePickerIdx || materialsDetailsOpen || measureOpen);
     if (!open) return;
@@ -3493,13 +3501,7 @@ function EstimatesPageInner() {
                 ) : null}
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  {materialStyles
-                    .filter((st) => {
-                      if (st.type !== selectedFenceType) return false;
-                      if (selectedFenceType !== "vinyl") return true;
-                      return (st as any).group === vinylStyleTab;
-                    })
-                    .map((st) => (
+                  {visibleStyleOptions.map((st) => (
                     <button
                       key={st.name}
                       type="button"
@@ -3544,6 +3546,64 @@ function EstimatesPageInner() {
                       onClick={() => setStylePreview(null)}
                     />
                     <div className="absolute inset-0 flex flex-col">
+                      {(() => {
+                        const idx = visibleStyleOptions.findIndex((s) => s.name === stylePreview.name);
+                        const hasPrev = idx > 0;
+                        const hasNext = idx >= 0 && idx < visibleStyleOptions.length - 1;
+                        const goPrev = () => {
+                          if (!hasPrev) return;
+                          const prev = visibleStyleOptions[idx - 1];
+                          setStylePreview({ name: prev.name, thumb: prev.thumb });
+                        };
+                        const goNext = () => {
+                          if (!hasNext) return;
+                          const next = visibleStyleOptions[idx + 1];
+                          setStylePreview({ name: next.name, thumb: next.thumb });
+                        };
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                goPrev();
+                              }}
+                              disabled={!hasPrev}
+                              className={
+                                "absolute left-3 top-1/2 -translate-y-1/2 z-[80] rounded-full border px-3 py-2 text-[18px] font-black backdrop-blur-ios " +
+                                (hasPrev
+                                  ? "border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)]"
+                                  : "border-[rgba(255,255,255,.10)] bg-[rgba(20,30,24,.35)] opacity-50")
+                              }
+                              aria-label="Previous style"
+                            >
+                              ‹
+                            </button>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                goNext();
+                              }}
+                              disabled={!hasNext}
+                              className={
+                                "absolute right-3 top-1/2 -translate-y-1/2 z-[80] rounded-full border px-3 py-2 text-[18px] font-black backdrop-blur-ios " +
+                                (hasNext
+                                  ? "border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)]"
+                                  : "border-[rgba(255,255,255,.10)] bg-[rgba(20,30,24,.35)] opacity-50")
+                              }
+                              aria-label="Next style"
+                            >
+                              ›
+                            </button>
+                          </>
+                        );
+                      })()}
+
                       <div className="flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
                         <SecondaryButton
                           data-no-swipe="true"
