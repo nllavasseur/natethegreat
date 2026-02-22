@@ -59,8 +59,15 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         document.body.appendChild(probe);
         const raw = window.getComputedStyle(probe).paddingTop;
         document.body.removeChild(probe);
-        const px = Number.parseFloat(String(raw || "0")) || 0;
-        const clamped = Math.max(0, Math.min(px, 44));
+
+        const envPx = Number.parseFloat(String(raw || "0")) || 0;
+        const vvTop = window.visualViewport ? Number(window.visualViewport.offsetTop || 0) : 0;
+
+        // In iOS standalone, the visual viewport can already be offset by the safe area.
+        // Subtracting vvTop prevents "double" application that can inflate header height.
+        const adjusted = envPx - vvTop;
+
+        const clamped = Math.max(0, Math.min(Number.isFinite(adjusted) ? adjusted : 0, 44));
         document.documentElement.style.setProperty("--vf-sat", `${clamped}px`);
       } catch {
         document.documentElement.style.setProperty("--vf-sat", "0px");
@@ -76,7 +83,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener("orientationchange", setSat);
       window.removeEventListener("pageshow", setSat);
     };
-  }, []);
+  }, [pathname]);
 
   React.useEffect(() => {
     let cancelled = false;
