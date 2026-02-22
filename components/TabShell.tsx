@@ -47,6 +47,38 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const setSat = () => {
+      try {
+        const probe = document.createElement("div");
+        probe.style.paddingTop = "env(safe-area-inset-top)";
+        probe.style.position = "absolute";
+        probe.style.visibility = "hidden";
+        probe.style.pointerEvents = "none";
+        document.body.appendChild(probe);
+        const raw = window.getComputedStyle(probe).paddingTop;
+        document.body.removeChild(probe);
+        const px = Number.parseFloat(String(raw || "0")) || 0;
+        const clamped = Math.max(0, Math.min(px, 44));
+        document.documentElement.style.setProperty("--vf-sat", `${clamped}px`);
+      } catch {
+        document.documentElement.style.setProperty("--vf-sat", "0px");
+      }
+    };
+
+    setSat();
+    window.addEventListener("resize", setSat);
+    window.addEventListener("orientationchange", setSat);
+    window.addEventListener("pageshow", setSat);
+    return () => {
+      window.removeEventListener("resize", setSat);
+      window.removeEventListener("orientationchange", setSat);
+      window.removeEventListener("pageshow", setSat);
+    };
+  }, []);
+
+  React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
