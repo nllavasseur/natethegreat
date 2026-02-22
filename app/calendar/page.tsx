@@ -7,22 +7,14 @@ import { createPortal } from "react-dom";
 
 const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const jobColorPalette = [
-  "rgba(64,156,255,.55)",
-  "rgba(31,200,120,.55)",
-  "rgba(255,214,10,.60)",
-  "rgba(255,80,80,.55)",
-  "rgba(180,120,255,.55)",
-  "rgba(255,140,40,.55)",
-  "rgba(0,220,255,.55)",
-  "rgba(255,0,200,.45)"
-];
-
 function colorForJobId(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  const idx = Math.abs(h) % jobColorPalette.length;
-  return jobColorPalette[idx];
+  const hue = Math.abs(h) % 360;
+  const sat = 82;
+  const light = 62;
+  const alpha = 0.55;
+  return `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
 }
 
 function startOfMonth(d: Date) {
