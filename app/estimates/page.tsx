@@ -533,6 +533,7 @@ function EstimatesPageInner() {
     mansfieldWalkGateOptions: string[];
     mansfieldDoubleGateOptions: string[];
     mansfieldBlankGatePost: boolean;
+    railEndBrackets: boolean;
   }>({
     woodType: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
@@ -553,7 +554,8 @@ function EstimatesPageInner() {
     aluminumBlankPosts: 0,
     mansfieldWalkGateOptions: [],
     mansfieldDoubleGateOptions: [],
-    mansfieldBlankGatePost: false
+    mansfieldBlankGatePost: false,
+    railEndBrackets: false
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -579,6 +581,7 @@ function EstimatesPageInner() {
       (materialsDetails.mansfieldWalkGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.mansfieldDoubleGateOptions || []).some((v) => Boolean(v)) ||
       Boolean(materialsDetails.mansfieldBlankGatePost) ||
+      Boolean(materialsDetails.railEndBrackets) ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -716,6 +719,7 @@ function EstimatesPageInner() {
     "Post caps": 5,
     "Arbor": 200,
     "Mansfield blank gate post": 65.99,
+    "Rail end bracket": 4.5,
     "Disposal": 100,
     "Delivery": 100,
     "Equipment Fees": 400
@@ -839,7 +843,11 @@ function EstimatesPageInner() {
     const doubleGateKitsAdd = doubleGates;
     const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
-    if (selectedStyle.name === "Standard Privacy" || selectedStyle.name === "Picture Framed" || selectedStyle.name === "Horizontal Cedar") {
+    if (
+      selectedStyle.name === "Standard Privacy" ||
+      selectedStyle.name === "Picture Framed" ||
+      selectedStyle.name === "Horizontal Cedar"
+    ) {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
 
       const useHorizontalCedarTakeoff =
@@ -942,6 +950,11 @@ function EstimatesPageInner() {
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails > 0 ? Math.ceil((rails * 6) / 350) : 0;
 
+      const railEndBracketsNeeded = rails > 0 ? rails * 2 : 0;
+      const railEndBracketsQty = railEndBracketsNeeded > 0
+        ? Math.ceil(railEndBracketsNeeded / 3) * 3
+        : 0;
+
       const panels = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
@@ -964,6 +977,9 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
+        ...(materialsDetails.railEndBrackets && railEndBracketsQty > 0
+          ? [{ name: "Rail end bracket", qty: railEndBracketsQty, unit: "ea" }]
+          : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -994,12 +1010,20 @@ function EstimatesPageInner() {
     const concrete80Bags = posts * 2;
     const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
+    const railEndBracketsNeeded = rails > 0 ? rails * 2 : 0;
+    const railEndBracketsQty = railEndBracketsNeeded > 0
+      ? Math.ceil(railEndBracketsNeeded / 3) * 3
+      : 0;
+
     const rows: Array<{ name: string; qty: number; unit: string }> = [
       { name: "4x4 Post", qty: posts, unit: "ea" },
       { name: "2x4 Treated", qty: rails, unit: "ea" },
       { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
       ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
       { name: "Fasteners", qty: 1, unit: "ea" },
+      ...(materialsDetails.railEndBrackets && railEndBracketsQty > 0
+        ? [{ name: "Rail end bracket", qty: railEndBracketsQty, unit: "ea" }]
+        : []),
       ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
       ...(materialsDetails.arbor ? [{ name: "Arbor", qty: 1, unit: "ea" }] : []),
       ...(selectedFenceType === "aluminum" && selectedStyle?.name === "Mansfield" && materialsDetails.mansfieldBlankGatePost
@@ -1811,7 +1835,8 @@ function EstimatesPageInner() {
       aluminumBlankPosts: 0,
       mansfieldWalkGateOptions: [],
       mansfieldDoubleGateOptions: [],
-      mansfieldBlankGatePost: false
+      mansfieldBlankGatePost: false,
+      railEndBrackets: false
     });
     setExtraPosts(0);
     setNotes("");
@@ -4240,6 +4265,30 @@ function EstimatesPageInner() {
                       </div>
                     </div>
                     <div className="mt-1 text-[11px] text-[var(--muted)]">Adds posts to the generated takeoff.</div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
+                    <div>
+                      <div className="text-[11px] text-[var(--muted)] mb-1">Rail end bracket ($4.50 ea, packs of 3)</div>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setMaterialsDetails((p) => ({ ...p, railEndBrackets: !p.railEndBrackets }))}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                          (materialsDetails.railEndBrackets
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                        aria-pressed={materialsDetails.railEndBrackets}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-extrabold">{materialsDetails.railEndBrackets ? "On" : "Off"}</div>
+                          <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
                   {selectedFenceType !== "aluminum" ? (
