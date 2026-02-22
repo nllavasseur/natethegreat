@@ -1251,7 +1251,7 @@ export default function CalendarPage() {
 
       {queueOpen ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center p-2 overflow-x-hidden"
+          className="fixed inset-0 z-50 overflow-x-hidden"
           role="dialog"
           aria-modal="true"
           onClick={(e) => {
@@ -1262,7 +1262,7 @@ export default function CalendarPage() {
         >
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="relative box-border w-[calc(100vw-16px)] max-w-[520px]"
+            className="absolute inset-0 p-2 flex"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -1271,7 +1271,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="p-3 max-h-[calc(100dvh-16px)] overflow-hidden overflow-x-hidden flex flex-col">
+            <GlassCard className="w-full max-w-[520px] mx-auto p-3 overflow-hidden overflow-x-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
                 <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
@@ -1374,7 +1374,7 @@ export default function CalendarPage() {
 
               <div
                 ref={queueListRef}
-                className="mt-3 grid gap-2 flex-1 min-h-0 overflow-auto overflow-x-hidden"
+                className="mt-3 grid gap-2 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
                 style={{ overflowAnchor: "none" }}
               >
                 {soldQueue.length === 0 ? (
