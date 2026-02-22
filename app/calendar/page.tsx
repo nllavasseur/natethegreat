@@ -1992,7 +1992,8 @@ export default function CalendarPage() {
                       ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]"
                       : "border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] opacity-60") +
                   (isPast ? " opacity-50 grayscale" : "") +
-                  (isSelected ? " ring-2 ring-[rgba(138,90,43,.55)]" : "")
+                  (isSelected ? " ring-2 ring-[rgba(138,90,43,.55)]" : "") +
+                  (isToday && !isSelected ? " ring-2 ring-[rgba(255,214,10,.55)] shadow-[0_0_0_2px_rgba(255,214,10,.18)]" : "")
                 }
               >
                 <div className="flex items-start justify-between">
