@@ -448,6 +448,7 @@ function EstimatesPageInner() {
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
     if (n.includes("shadowbox")) return "wood_shadowbox";
     if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
+    if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
     return n;
   }, [selectedStyle?.name]);
 
@@ -1145,9 +1146,19 @@ function EstimatesPageInner() {
     if (
       selectedStyleKind === "wood_standard" ||
       selectedStyleKind === "wood_picture_framed" ||
-      selectedStyleKind === "wood_horizontal"
+      selectedStyleKind === "wood_horizontal" ||
+      selectedStyleKind === "wood_board_on_board"
     ) {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+
+      const normalizedWoodStyle = String(selectedStyle?.name || "")
+        .trim()
+        .toLowerCase();
+      const isBoardOnBoard =
+        selectedStyleKind === "wood_board_on_board" ||
+        normalizedWoodStyle === "board on board" ||
+        normalizedWoodStyle.includes("board on board") ||
+        normalizedWoodStyle.includes("board-on-board");
 
       const useHorizontalCedarTakeoff =
         (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
@@ -1240,8 +1251,14 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
         : 0;
 
-      // Pickets = ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
-      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0;
+      // Pickets
+      // Standard: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
+      // Board-on-board: sum( ceil((segment inches / 8) * 2) )
+      const pickets = isBoardOnBoard
+        ? (segmentLengths.length
+            ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
+            : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0))
+        : (totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -2230,6 +2247,16 @@ function EstimatesPageInner() {
         pictureFrameTrimMaterial: "Cedar",
         takeoffPreset: "standard",
         postCaps: false,
+        topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "board on board") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
         topCaps: false
       }));
     }
