@@ -24,7 +24,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const hideChrome = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/auth");
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
-  const stableSatRef = React.useRef<number | null>(null);
 
   const hasLocalAuthToken = React.useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -45,47 +44,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     if (process.env.NODE_ENV !== "development") return;
     (window as any).supabase = supabase;
     (window as any).__supabase = supabase;
-  }, []);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const setSat = () => {
-      try {
-        const probe = document.createElement("div");
-        probe.style.paddingTop = "env(safe-area-inset-top)";
-        probe.style.position = "absolute";
-        probe.style.visibility = "hidden";
-        probe.style.pointerEvents = "none";
-        document.body.appendChild(probe);
-        const raw = window.getComputedStyle(probe).paddingTop;
-        document.body.removeChild(probe);
-
-        const envPx = Number.parseFloat(String(raw || "0")) || 0;
-        const clamped = Math.max(0, Math.min(Number.isFinite(envPx) ? envPx : 0, 44));
-
-        if (clamped > 0) stableSatRef.current = clamped;
-        const next = stableSatRef.current ?? 0;
-        document.documentElement.style.setProperty("--vf-sat", `${next}px`);
-      } catch {
-        // ignore
-      }
-    };
-
-    setSat();
-    const t1 = window.setTimeout(setSat, 80);
-    const t2 = window.setTimeout(setSat, 260);
-
-    window.addEventListener("resize", setSat);
-    window.addEventListener("orientationchange", setSat);
-    window.addEventListener("pageshow", setSat);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.removeEventListener("resize", setSat);
-      window.removeEventListener("orientationchange", setSat);
-      window.removeEventListener("pageshow", setSat);
-    };
   }, []);
 
   React.useEffect(() => {
