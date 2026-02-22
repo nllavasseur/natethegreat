@@ -1220,9 +1220,10 @@ function EstimatesPageInner() {
         .toLowerCase();
       const isAM = normalizedPictureFramedStyle === "a & m";
       const isAllCedarNiko = normalizedPictureFramedStyle === "all cedar niko";
+      const isAllCedarPictureFramed = normalizedPictureFramedStyle === "all cedar picture framed";
       const latticePanels = isPictureFramed && isAM ? Math.ceil(panels / 3) : 0;
 
-      const picketName = isAllCedarNiko
+      const picketName = (isAllCedarNiko || isAllCedarPictureFramed)
         ? "6' Cedar Dog Ear Pickets"
         : "6' Pressure Treated Dog Ear Pickets";
 
@@ -1243,6 +1244,8 @@ function EstimatesPageInner() {
 
       const postName = isAllCedarNiko
         ? "4x4 x 10' Cedar S4S Post"
+        : isAllCedarPictureFramed
+          ? "4x4 x 10' Cedar S4S Post"
         : (materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post");
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
@@ -1250,7 +1253,7 @@ function EstimatesPageInner() {
         ...(isPictureFramed
           ? [
             {
-              name: isAllCedarNiko ? "2x4 8' Cedar S4S Rails" : "2x4 8' Pressure Treated Rails",
+              name: (isAllCedarNiko || isAllCedarPictureFramed) ? "2x4 8' Cedar S4S Rails" : "2x4 8' Pressure Treated Rails",
               qty: pictureFramed2x4x8,
               unit: "ea"
             },
@@ -1258,7 +1261,7 @@ function EstimatesPageInner() {
               ? [{ name: "2x2 8' Cedar S4S", qty: panels * 8, unit: "ea" }]
               : []),
             ...(pictureFramed2x4x16 > 0
-              ? [{ name: isAllCedarNiko ? "2x4 16' Cedar S4S Rails" : "2x4 16' Pressure Treated Rails", qty: pictureFramed2x4x16, unit: "ea" }]
+              ? [{ name: (isAllCedarNiko || isAllCedarPictureFramed) ? "2x4 16' Cedar S4S Rails" : "2x4 16' Pressure Treated Rails", qty: pictureFramed2x4x16, unit: "ea" }]
               : [])
           ]
           : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
@@ -2067,7 +2070,7 @@ function EstimatesPageInner() {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
-        postSize: 8,
+        postSize: 10,
         postType: "Pressure treated",
         pictureFrameTrimPieces: 2,
         pictureFrameTrimMaterial: "Pressure treated",
@@ -2108,6 +2111,19 @@ function EstimatesPageInner() {
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "all cedar niko") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Cedar",
+        postSize: 10,
+        postType: "Cedar",
+        pictureFrameTrimPieces: 3,
+        pictureFrameTrimMaterial: "Cedar",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "all cedar picture framed") {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Cedar",
