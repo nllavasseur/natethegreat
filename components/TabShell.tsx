@@ -47,72 +47,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const setSat = () => {
-      try {
-        const isStandalone =
-          (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
-          Boolean((navigator as any).standalone);
-
-        const probe = document.createElement("div");
-        probe.style.paddingTop = "env(safe-area-inset-top)";
-        probe.style.position = "absolute";
-        probe.style.visibility = "hidden";
-        probe.style.pointerEvents = "none";
-        document.body.appendChild(probe);
-        const raw = window.getComputedStyle(probe).paddingTop;
-        document.body.removeChild(probe);
-
-        const envPx = Number.parseFloat(String(raw || "0")) || 0;
-        const vvTop = window.visualViewport ? Number(window.visualViewport.offsetTop || 0) : 0;
-
-        // In iOS standalone, some navigations can report a doubled env inset.
-        // visualViewport.offsetTop tends to remain the "real" inset, so cap with it when present.
-        const inferred = vvTop > 0 ? Math.min(envPx, vvTop) : envPx;
-
-        const clamped = Math.max(0, Math.min(Number.isFinite(inferred) ? inferred : 0, 44));
-
-        // Standalone/PWA can occasionally "grow" the reported inset after navigation.
-        // Lock to the smallest stable value seen so the header can never get taller.
-        const finalPx = isStandalone
-          ? (() => {
-              if (clamped <= 0) {
-                stableSatRef.current = 0;
-                return 0;
-              }
-              if (stableSatRef.current == null) {
-                stableSatRef.current = clamped;
-                return clamped;
-              }
-              if (clamped < stableSatRef.current) stableSatRef.current = clamped;
-              return stableSatRef.current;
-            })()
-          : clamped;
-
-        document.documentElement.style.setProperty("--vf-sat", `${finalPx}px`);
-      } catch {
-        document.documentElement.style.setProperty("--vf-sat", "0px");
-      }
-    };
-
-    setSat();
-    window.addEventListener("resize", setSat);
-    window.addEventListener("orientationchange", setSat);
-    window.addEventListener("pageshow", setSat);
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", setSat);
-    vv?.addEventListener("scroll", setSat);
-    return () => {
-      window.removeEventListener("resize", setSat);
-      window.removeEventListener("orientationchange", setSat);
-      window.removeEventListener("pageshow", setSat);
-      vv?.removeEventListener("resize", setSat);
-      vv?.removeEventListener("scroll", setSat);
-    };
-  }, [pathname]);
-
-  React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -175,7 +109,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const dragXRef = React.useRef(0);
   const draggingRef = React.useRef(false);
   const settlingRef = React.useRef(false);
-  const stableSatRef = React.useRef<number | null>(null);
 
   const swipeRef = React.useRef<{
     x0: number;
