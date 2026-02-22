@@ -49,7 +49,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const computeSat = () => {
+    const setSat = () => {
       try {
         const isStandalone =
           (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
@@ -73,46 +73,40 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
         const clamped = Math.max(0, Math.min(Number.isFinite(inferred) ? inferred : 0, 44));
 
-        // Home Screen (standalone) can momentarily report 0 inset during scroll/viewport shifts.
-        // If we ever lock to 0, the header slides under the notch/camera. So:
-        // - Lock to the *first non-zero* value we see.
-        // - Ignore transient 0 readings once locked.
-        if (isStandalone) {
-          if (stableSatRef.current == null) {
-            if (clamped > 0) stableSatRef.current = clamped;
-          }
-          const finalPx = stableSatRef.current != null ? stableSatRef.current : clamped;
-          document.documentElement.style.setProperty("--vf-sat", `${finalPx}px`);
-          return;
-        }
+        // Standalone/PWA can occasionally "grow" the reported inset after navigation.
+        // Lock to the smallest stable value seen so the header can never get taller.
+        const finalPx = isStandalone
+          ? (() => {
+              if (clamped <= 0) {
+                stableSatRef.current = 0;
+                return 0;
+              }
+              if (stableSatRef.current == null) {
+                stableSatRef.current = clamped;
+                return clamped;
+              }
+              if (clamped < stableSatRef.current) stableSatRef.current = clamped;
+              return stableSatRef.current;
+            })()
+          : clamped;
 
-        document.documentElement.style.setProperty("--vf-sat", `${clamped}px`);
+        document.documentElement.style.setProperty("--vf-sat", `${finalPx}px`);
       } catch {
         document.documentElement.style.setProperty("--vf-sat", "0px");
       }
     };
 
-    const setSat = () => computeSat();
-    const resetAndSetSat = () => {
-      stableSatRef.current = null;
-      computeSat();
-    };
-
     setSat();
-    // iOS sometimes resolves env(safe-area-inset-top) after first paint.
-    window.setTimeout(setSat, 60);
-    window.setTimeout(setSat, 260);
-
-    window.addEventListener("resize", resetAndSetSat);
-    window.addEventListener("orientationchange", resetAndSetSat);
-    window.addEventListener("pageshow", resetAndSetSat);
+    window.addEventListener("resize", setSat);
+    window.addEventListener("orientationchange", setSat);
+    window.addEventListener("pageshow", setSat);
     const vv = window.visualViewport;
     vv?.addEventListener("resize", setSat);
     vv?.addEventListener("scroll", setSat);
     return () => {
-      window.removeEventListener("resize", resetAndSetSat);
-      window.removeEventListener("orientationchange", resetAndSetSat);
-      window.removeEventListener("pageshow", resetAndSetSat);
+      window.removeEventListener("resize", setSat);
+      window.removeEventListener("orientationchange", setSat);
+      window.removeEventListener("pageshow", setSat);
       vv?.removeEventListener("resize", setSat);
       vv?.removeEventListener("scroll", setSat);
     };
