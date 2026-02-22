@@ -3934,75 +3934,79 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyle?.name === "Horizontal Cedar" || (selectedStyle?.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Wood materials</div>
-                      <Select
-                        value={materialsDetails.horizontalCedarBoardMaterial}
-                        onChange={(e) =>
-                          setMaterialsDetails((p) => ({
-                            ...p,
-                            horizontalCedarBoardMaterial: e.target.value as "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated"
-                          }))
-                        }
-                      >
-                        <option value="5/4 cedar">5/4 cedar</option>
-                        <option value="1x6 cedar">1x6 cedar</option>
-                        <option value="CedarTone">CedarTone</option>
-                        <option value="Pressure Treated">Pressure Treated</option>
-                      </Select>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Wood type</div>
-                      <Select
-                        value={materialsDetails.woodType}
-                        onChange={(e) =>
-                          setMaterialsDetails((p) => ({
-                            ...p,
-                            woodType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
-                          }))
-                        }
-                      >
-                        <option value="Pressure treated">Pressure treated</option>
-                        <option value="Cedar">Cedar</option>
-                        <option value="Cedar tone">Cedar tone</option>
-                      </Select>
-                    </div>
-                  )}
+                  {selectedFenceType !== "aluminum" ? (
+                    <>
+                      {selectedStyle?.name === "Horizontal Cedar" || (selectedStyle?.name === "Standard Privacy" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Wood materials</div>
+                          <Select
+                            value={materialsDetails.horizontalCedarBoardMaterial}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                horizontalCedarBoardMaterial: e.target.value as "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated"
+                              }))
+                            }
+                          >
+                            <option value="5/4 cedar">5/4 cedar</option>
+                            <option value="1x6 cedar">1x6 cedar</option>
+                            <option value="CedarTone">CedarTone</option>
+                            <option value="Pressure Treated">Pressure Treated</option>
+                          </Select>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Wood type</div>
+                          <Select
+                            value={materialsDetails.woodType}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                woodType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                              }))
+                            }
+                          >
+                            <option value="Pressure treated">Pressure treated</option>
+                            <option value="Cedar">Cedar</option>
+                            <option value="Cedar tone">Cedar tone</option>
+                          </Select>
+                        </div>
+                      )}
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Post size</div>
-                      <Select
-                        value={String(materialsDetails.postSize)}
-                        onChange={(e) =>
-                          setMaterialsDetails((p) => ({ ...p, postSize: Number(e.target.value) as 8 | 10 | 12 | 14 }))
-                        }
-                      >
-                        <option value="8">8</option>
-                        <option value="10">10</option>
-                        <option value="12">12</option>
-                        <option value="14">14</option>
-                      </Select>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Posts</div>
-                      <Select
-                        value={materialsDetails.postType}
-                        onChange={(e) =>
-                          setMaterialsDetails((p) => ({
-                            ...p,
-                            postType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
-                          }))
-                        }
-                      >
-                        <option value="Pressure treated">Pressure treated</option>
-                        <option value="Cedar">Cedar</option>
-                        <option value="Cedar tone">Cedar tone</option>
-                      </Select>
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Post size</div>
+                          <Select
+                            value={String(materialsDetails.postSize)}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({ ...p, postSize: Number(e.target.value) as 8 | 10 | 12 | 14 }))
+                            }
+                          >
+                            <option value="8">8</option>
+                            <option value="10">10</option>
+                            <option value="12">12</option>
+                            <option value="14">14</option>
+                          </Select>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Posts</div>
+                          <Select
+                            value={materialsDetails.postType}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                postType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                              }))
+                            }
+                          >
+                            <option value="Pressure treated">Pressure treated</option>
+                            <option value="Cedar">Cedar</option>
+                            <option value="Cedar tone">Cedar tone</option>
+                          </Select>
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
 
                   <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                     <div className="text-[11px] text-[var(--muted)] mb-2">Add posts</div>
@@ -4029,46 +4033,48 @@ function EstimatesPageInner() {
                     <div className="mt-1 text-[11px] text-[var(--muted)]">Adds posts to the generated takeoff.</div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
-                      <button
-                        type="button"
-                        data-no-swipe="true"
-                        onClick={() => setMaterialsDetails((p) => ({ ...p, postCaps: !p.postCaps }))}
-                        className={
-                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                          (materialsDetails.postCaps
-                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                        }
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-extrabold">{materialsDetails.postCaps ? "On" : "Off"}</div>
-                          <div className="text-[11px] text-[var(--muted)]">Tap</div>
-                        </div>
-                      </button>
+                  {selectedFenceType !== "aluminum" ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, postCaps: !p.postCaps }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.postCaps
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.postCaps ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.arbor
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.arbor ? "Yes" : "No"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
-                      <button
-                        type="button"
-                        data-no-swipe="true"
-                        onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
-                        className={
-                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                          (materialsDetails.arbor
-                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                        }
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-extrabold">{materialsDetails.arbor ? "Yes" : "No"}</div>
-                          <div className="text-[11px] text-[var(--muted)]">Tap</div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
+                  ) : null}
 
                   {selectedStyle?.name === "Picture Framed" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
