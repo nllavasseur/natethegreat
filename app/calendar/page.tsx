@@ -1713,7 +1713,7 @@ export default function CalendarPage() {
 
               <div className="sticky bottom-0 -mx-2 mt-2 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)]">
                 <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-2">
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-center justify-start px-1">
                     <SecondaryButton data-no-swipe="true" onClick={() => setQueueOpen(false)}>
                       Close
                     </SecondaryButton>
