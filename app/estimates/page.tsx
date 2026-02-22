@@ -629,6 +629,28 @@ function EstimatesPageInner() {
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails, selectedStyle?.name]);
+
+  const aluminumAllowedPanelHeights = useMemo(() => {
+    if (selectedFenceType !== "aluminum") return [48];
+    const style = String(selectedStyle?.name || "");
+    if (style === "Mansfield") return [48, 60];
+    if (style === "Atlantic") return [48];
+    if (style === "Pacific") return [54];
+    if (style === "Toledo") return [48, 60];
+    if (style === "Terrier") return [48];
+    return [48];
+  }, [selectedFenceType, selectedStyle?.name]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "aluminum") return;
+    const allowed = aluminumAllowedPanelHeights;
+    if (!allowed.length) return;
+    const cur = Number(materialsDetails.aluminumPanelHeight) || 0;
+    if (allowed.includes(cur)) return;
+    const next = allowed[0];
+    if (next === cur) return;
+    setMaterialsDetails((p) => ({ ...p, aluminumPanelHeight: next }));
+  }, [aluminumAllowedPanelHeights, materialsDetails.aluminumPanelHeight, selectedFenceType]);
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "4x4 x 10' Post": 16.88,
@@ -3604,12 +3626,11 @@ function EstimatesPageInner() {
                               }))
                             }
                           >
-                            <option value="36">36</option>
-                            <option value="42">42</option>
-                            <option value="48">48</option>
-                            <option value="54">54</option>
-                            <option value="60">60</option>
-                            <option value="72">72</option>
+                            {aluminumAllowedPanelHeights.map((h) => (
+                              <option key={h} value={String(h)}>
+                                {h === 54 ? "4.5'" : `${Math.round(h / 12)}'`}
+                              </option>
+                            ))}
                           </Select>
                         </div>
                         <div>
