@@ -316,6 +316,33 @@ export default function CalendarPage() {
     setPortalReady(true);
   }, []);
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!queueOpen) return;
+
+    const body = document.body;
+    const prev = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width
+    };
+    const scrollY = window.scrollY;
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+
+    return () => {
+      body.style.overflow = prev.overflow;
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [queueOpen]);
+
   const blockedDays = React.useMemo(() => {
     const set = new Set<string>();
     const byKey = new Map<string, BlockOut[]>();
@@ -1271,13 +1298,17 @@ export default function CalendarPage() {
           className="fixed inset-0 z-50 overflow-x-hidden"
           role="dialog"
           aria-modal="true"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setQueueOpen(false);
-          }}
+          style={{ touchAction: "none" }}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onPointerDown={(e) => {
+              if (e.target !== e.currentTarget) return;
+              e.preventDefault();
+              e.stopPropagation();
+              window.setTimeout(() => setQueueOpen(false), 0);
+            }}
+          />
 
           {moveOpenId ? (
             <div
