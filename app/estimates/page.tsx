@@ -7,6 +7,7 @@ import NextImage from "next/image";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
+import { upsertDraft } from "@/lib/draftsStore";
 import type { QuoteItem, SectionKey } from "@/lib/types";
 
 const sectionOptions: { key: SectionKey; label: string }[] = [
@@ -1473,6 +1474,10 @@ function EstimatesPageInner() {
       try {
         store[id] = baseDraft;
         writeDraftStore(store);
+        try {
+          void upsertDraft({ id, data: store[id] });
+        } catch {
+        }
         if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
           setSaveError(
             sanitized.droppedProject
@@ -1504,6 +1509,10 @@ function EstimatesPageInner() {
           setProjectPhotoUrl(recompressed);
           store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
           writeDraftStore(store);
+          try {
+            void upsertDraft({ id, data: store[id] });
+          } catch {
+          }
           setSaveError("Saved, but project photo was compressed to fit storage.");
           finishOk();
           return;
@@ -1518,6 +1527,10 @@ function EstimatesPageInner() {
           try {
             store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: photos.slice(0, keep) };
             writeDraftStore(store);
+            try {
+              void upsertDraft({ id, data: store[id] });
+            } catch {
+            }
             setSaveError(
               keep === photos.length
                 ? "Saved, but project photo was omitted to fit device storage."
@@ -1619,6 +1632,11 @@ function EstimatesPageInner() {
         const store = readDraftStore();
         store[id] = baseDraft;
         writeDraftStore(store);
+        try {
+          void upsertDraft({ id, data: store[id] });
+        } catch {
+          // ignore
+        }
         if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
           setSaveError(
             sanitized.droppedProject
@@ -1651,6 +1669,10 @@ function EstimatesPageInner() {
           const store = readDraftStore();
           store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
           writeDraftStore(store);
+          try {
+            void upsertDraft({ id, data: store[id] });
+          } catch {
+          }
           setSaveError("Saved, but project photo was compressed to fit storage.");
           finishOk();
           return;
@@ -1666,6 +1688,10 @@ function EstimatesPageInner() {
           try {
             store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: photos.slice(0, keep) };
             writeDraftStore(store);
+            try {
+              void upsertDraft({ id, data: store[id] });
+            } catch {
+            }
             setSaveError(
               keep === photos.length
                 ? "Saved, but project photo was omitted to fit device storage."

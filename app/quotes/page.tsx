@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
+import { deleteDraftRemote, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
 import type { QuoteItem } from "@/lib/types";
 
 type DraftEntry = {
@@ -85,6 +86,10 @@ export default function QuotesPage() {
         updatedAt: Date.now()
       };
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      try {
+        void upsertDraft({ id, data: store[id] });
+      } catch {
+      }
       setDrafts((prev) =>
         prev.map((d) =>
           d.id === id
@@ -199,11 +204,26 @@ export default function QuotesPage() {
   }
 
   useEffect(() => {
-    const store = readDraftStore();
-    const list = Object.values(store)
-      .map((d) => ({ ...d }))
-      .sort((a, b) => (Number(b.updatedAt ?? b.createdAt) || 0) - (Number(a.updatedAt ?? a.createdAt) || 0));
-    setDrafts(list);
+    let cancelled = false;
+    (async () => {
+      const localStore = readDraftStore();
+      const localList = Object.values(localStore).map((d) => ({ ...d }));
+
+      const remote = await fetchDrafts();
+      const remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+
+      const byId = new Map<string, DraftEntry>();
+      for (const d of localList) byId.set(String(d.id), d);
+      for (const d of remoteList) byId.set(String(d.id), d);
+
+      const merged = Array.from(byId.values()).sort(
+        (a, b) => (Number(b.updatedAt ?? b.createdAt) || 0) - (Number(a.updatedAt ?? a.createdAt) || 0)
+      );
+      if (!cancelled) setDrafts(merged);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -230,6 +250,10 @@ export default function QuotesPage() {
         installDate: status === "void" ? undefined : store[id].installDate
       };
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      try {
+        void upsertDraft({ id, data: store[id] });
+      } catch {
+      }
       setDrafts((prev) =>
         prev.map((d) =>
           d.id === id
@@ -256,6 +280,10 @@ export default function QuotesPage() {
       const next = { ...store };
       delete next[id];
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(next));
+      try {
+        void deleteDraftRemote({ id });
+      } catch {
+      }
       setDrafts((prev) => prev.filter((d) => d.id !== id));
       setConfirmDeleteId((cur) => (cur === id ? null : cur));
       setDeletingId((cur) => (cur === id ? null : cur));
@@ -271,6 +299,10 @@ export default function QuotesPage() {
       if (!store[id]) return;
       store[id] = { ...store[id], startDate, installDate: startDate, calendarHidden: false };
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      try {
+        void upsertDraft({ id, data: store[id] });
+      } catch {
+      }
       setDrafts((prev) =>
         prev.map((d) => (d.id === id ? { ...d, startDate, installDate: startDate, calendarHidden: false } : d))
       );
@@ -286,6 +318,10 @@ export default function QuotesPage() {
       if (!store[id]) return;
       store[id] = { ...store[id], startDate: undefined, installDate: undefined, calendarHidden: true };
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      try {
+        void upsertDraft({ id, data: store[id] });
+      } catch {
+      }
       setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, startDate: undefined, installDate: undefined, calendarHidden: true } : d)));
       notifyDraftsChanged();
     } catch {

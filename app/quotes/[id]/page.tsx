@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
+import { fetchDraft } from "@/lib/draftsStore";
 import type { QuoteItem } from "@/lib/types";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
@@ -70,8 +71,20 @@ export default function QuoteDetailPage() {
   const [viewerIdx, setViewerIdx] = React.useState<number | null>(null);
 
   React.useEffect(() => {
-    const store = readDraftStore();
-    setDraft(store[id] ?? null);
+    let cancelled = false;
+    (async () => {
+      const remote = await fetchDraft({ id });
+      if (cancelled) return;
+      if (remote.ok && remote.draft) {
+        setDraft(remote.draft);
+        return;
+      }
+      const store = readDraftStore();
+      setDraft(store[id] ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   React.useEffect(() => {
