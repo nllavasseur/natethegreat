@@ -25,19 +25,46 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
 
+  const hasLocalAuthToken = React.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (!k) continue;
+        if (k.startsWith("sb-") && k.endsWith("-auth-token")) return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (process.env.NODE_ENV !== "development") return;
+    (window as any).supabase = supabase;
+    (window as any).__supabase = supabase;
+  }, []);
+
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        if (!supabaseConfigured) return;
-        const { data } = await supabase.auth.getSession();
+        if (!supabaseConfigured) {
+          return;
+        }
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null } }>((resolve) => setTimeout(() => resolve({ data: { session: null } }), 1200))
+        ]);
+        const { data } = sessionResult as any;
         if (cancelled) return;
 
         const isAuthRoute = pathname?.startsWith("/auth");
         const isPublicRoute = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/quotes/print");
         const hasSession = Boolean(data.session);
 
-        if (!hasSession && !isAuthRoute && !isPublicRoute) {
+        if (!hasSession && !hasLocalAuthToken && !isAuthRoute && !isPublicRoute) {
           router.replace("/auth");
         }
       } catch {
@@ -47,12 +74,19 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       }
     })();
 
+    if (!supabaseConfigured) {
+      setSessionChecked(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const sub = supabaseConfigured
       ? supabase.auth.onAuthStateChange((_event, session) => {
           const isAuthRoute = pathname?.startsWith("/auth");
           const isPublicRoute = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/quotes/print");
           const hasSession = Boolean(session);
-          if (!hasSession && !isAuthRoute && !isPublicRoute) {
+          if (!hasSession && !hasLocalAuthToken && !isAuthRoute && !isPublicRoute) {
             router.replace("/auth");
           }
         })
@@ -152,7 +186,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (!sessionChecked && !pathname?.startsWith("/quotes/print") && !pathname?.startsWith("/estimates/contract")) {
-    return null;
+    return <div className="min-h-dvh vf-app-bg" />;
   }
 
   return (

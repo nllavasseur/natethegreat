@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import NextImage from "next/image";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
@@ -21,16 +21,13 @@ function emptyItem(section: SectionKey): QuoteItem {
 }
 
 export default function EstimatesPage() {
-  return (
-    <Suspense>
-      <EstimatesPageInner />
-    </Suspense>
-  );
+  return <EstimatesPageInner />;
 }
 
 function EstimatesPageInner() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const [draftParam, setDraftParam] = useState<string | null>(null);
+  const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
@@ -916,14 +913,40 @@ function EstimatesPageInner() {
   }, [projectPhoto, projectPhotoDataUrl]);
 
   useEffect(() => {
-    const id = searchParams?.get("draft");
+    const read = () => {
+      if (typeof window === "undefined") return;
+      try {
+        const q = new URLSearchParams(window.location.search);
+        const id = q.get("draft");
+        setDraftParam(id ? String(id) : null);
+        setDebugTotals(q.get("debugTotals") === "1");
+      } catch {
+        setDraftParam(null);
+        setDebugTotals(false);
+      }
+    };
+    read();
+    if (typeof window === "undefined") return;
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
+  }, []);
+
+  useEffect(() => {
+    const id = draftParam;
     if (!id) return;
     loadDraft(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [draftParam]);
 
   useEffect(() => {
-    const id = searchParams?.get("draft");
+    let id: string | null = null;
+    if (typeof window === "undefined") return;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      id = q.get("draft");
+    } catch {
+      id = null;
+    }
     if (id) return;
     try {
       const raw = window.localStorage.getItem(unsavedSnapshotKey);
@@ -1826,7 +1849,7 @@ function EstimatesPageInner() {
     try {
       const STORAGE_KEY = "vf_contract_preview_v1";
 
-      if (!searchParams?.get("draft")) {
+      if (!draftParam) {
         writeUnsavedSnapshot();
       }
       const payload = buildContractPayload();
@@ -2510,7 +2533,7 @@ function EstimatesPageInner() {
                               (toughDigEnabled
                                 ? "!bg-[rgba(255,214,10,.34)] !border-[rgba(255,214,10,.65)] hover:!bg-[rgba(255,214,10,.34)] "
                                 : "") +
-                              "w-full px-3 py-2 text-[12px] transition-none active:!bg-[rgba(255,214,10,.34)] active:!border-[rgba(255,214,10,.65)]"
+                              "w-full px-3 py-2 text-[12px] transition-none active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
                             }
                           >
                             Tough dig (adds 5%)
@@ -2526,7 +2549,7 @@ function EstimatesPageInner() {
                               (gradeEnabled
                                 ? "!bg-[rgba(255,214,10,.34)] !border-[rgba(255,214,10,.65)] hover:!bg-[rgba(255,214,10,.34)] "
                                 : "") +
-                              "w-full px-3 py-2 text-[12px] transition-none active:!bg-[rgba(255,214,10,.34)] active:!border-[rgba(255,214,10,.65)]"
+                              "w-full px-3 py-2 text-[12px] transition-none active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
                             }
                           >
                             Steep grade (adds 5%)
@@ -3202,11 +3225,11 @@ function EstimatesPageInner() {
           </div>
         </div>
 
-        {searchParams?.get("debugTotals") === "1" ? (
-          <div className="mt-3 text-[11px] text-[var(--muted)]">
-            takeoffMaterialsTotal={String(takeoffMaterialsTotal)} takeoffMaterialsAndExpensesTotal={String(takeoffMaterialsAndExpensesTotal)} materialsDepositTotal={String(materialsDepositTotal)} materialsSubtotal(items)={String(materialsSubtotal)}
-          </div>
-        ) : null}
+      {debugTotals ? (
+        <div className="mt-3 text-[11px] text-[var(--muted)]">
+          takeoffMaterialsTotal={String(takeoffMaterialsTotal)} takeoffMaterialsAndExpensesTotal={String(takeoffMaterialsAndExpensesTotal)} materialsDepositTotal={String(materialsDepositTotal)} materialsSubtotal(items)={String(materialsSubtotal)}
+        </div>
+      ) : null}
       </GlassCard>
 
       <div className="flex justify-end">
