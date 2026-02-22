@@ -311,7 +311,7 @@ function EstimatesPageInner() {
     splitRailWireMesh: boolean;
     splitRailCornerPosts: number;
     splitRailEndPosts: number;
-    pictureFrameTrimPieces: 2 | 3;
+    pictureFrameTrimPieces: 2 | 3 | 5;
     pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
     takeoffPreset: "standard" | "horizontal_cedar";
     horizontalCedarVerticals: boolean;
@@ -843,7 +843,9 @@ function EstimatesPageInner() {
       const normalizedWireMeshStyle = String(selectedStyle?.name || "")
         .trim()
         .toLowerCase()
-        .replaceAll("/", ":");
+        .replaceAll("/", ":")
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ");
       const isFiveQuarterTwoRailMesh = normalizedWireMeshStyle === "5:4 2 rail mesh";
 
       if (isFiveQuarterTwoRailMesh) {
@@ -1213,6 +1215,12 @@ function EstimatesPageInner() {
           ? "1x4 x 8' CedarTone Trim"
           : "1x4 x 8' Trim";
 
+      const normalizedPictureFramedStyle = String(selectedStyle?.name || "")
+        .trim()
+        .toLowerCase();
+      const isAM = normalizedPictureFramedStyle === "a & m";
+      const latticePanels = isPictureFramed && isAM ? Math.ceil(panels / 3) : 0;
+
       const pictureFramed2x4x8 = isPictureFramed
         ? (isFourFootPictureFramed
             ? panels * 2
@@ -1238,6 +1246,7 @@ function EstimatesPageInner() {
           : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
         { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
+        ...(latticePanels > 0 ? [{ name: "4x8 Lattice Panel", qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
@@ -2053,7 +2062,9 @@ function EstimatesPageInner() {
       String(style.name || "")
         .trim()
         .toLowerCase()
-        .replaceAll("/", ":") === "5:4 2 rail mesh"
+        .replaceAll("/", ":")
+        .replaceAll("-", " ")
+        .replaceAll("  ", " ") === "5:4 2 rail mesh"
     ) {
       setMaterialsDetails((prev) => ({
         ...prev,
@@ -2063,6 +2074,19 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "a & m") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 5,
+        pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: true
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
