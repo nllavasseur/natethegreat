@@ -536,6 +536,9 @@ function EstimatesPageInner() {
     atlanticDoubleGateOptions: string[];
     toledoWalkGateOptions: string[];
     toledoDoubleGateOptions: string[];
+    vinylColor: string;
+    vinylPanelWidthFt: number;
+    vinylPanelHeightFt: number;
     railEndBracketPacks: number;
   }>({
     woodType: "Pressure treated",
@@ -561,6 +564,9 @@ function EstimatesPageInner() {
     atlanticDoubleGateOptions: [],
     toledoWalkGateOptions: [],
     toledoDoubleGateOptions: [],
+    vinylColor: "White",
+    vinylPanelWidthFt: 6,
+    vinylPanelHeightFt: 6,
     railEndBracketPacks: 0
   });
 
@@ -590,10 +596,91 @@ function EstimatesPageInner() {
       (materialsDetails.atlanticDoubleGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.toledoWalkGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.toledoDoubleGateOptions || []).some((v) => Boolean(v)) ||
+      String(materialsDetails.vinylColor || "White") !== "White" ||
+      (Number(materialsDetails.vinylPanelWidthFt) || 6) !== 6 ||
+      (Number(materialsDetails.vinylPanelHeightFt) || 6) !== 6 ||
       (Number(materialsDetails.railEndBracketPacks) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
+
+  const vinylPrivacyMatrix = useMemo(() => {
+    const fourSixEight = [4, 6, 8];
+    const sixEight = [6, 8];
+    const heights456 = [4, 5, 6];
+    const heights5678 = [5, 6, 7, 8];
+    const heights678 = [6, 7, 8];
+    const heights45678 = [4, 5, 6, 7, 8];
+
+    return {
+      Savannah: {
+        colors: ["Coastal gray woodgrain", "Cedar woodgrain", "Black", "White", "Tan", "Gray", "Khaki"],
+        getWidths: (color: string) => (["Coastal gray woodgrain", "Cedar woodgrain", "Black"].includes(color) ? [8] : fourSixEight),
+        getHeights: (color: string) => (["Coastal gray woodgrain", "Cedar woodgrain", "Black"].includes(color) ? [6] : heights456)
+      },
+      Pembroke: { colors: ["White"], widths: sixEight, heights: heights45678 },
+      Glenshire: { colors: ["White"], widths: sixEight, heights: heights678 },
+      Tuscany: { colors: ["White"], widths: sixEight, heights: heights678 },
+      Dora: { colors: ["White"], widths: sixEight, heights: heights678 },
+      Calgary: { colors: ["White"], widths: sixEight, heights: heights678 },
+      Gideon: { colors: ["White"], widths: sixEight, heights: heights678 },
+      Ashton: { colors: ["White", "Tan", "Khaki"], widths: fourSixEight, heights: heights5678 },
+      Agusta: { colors: ["White", "Tan", "Gray", "Khaki"], widths: sixEight, heights: heights678 },
+      Bradford: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights5678 },
+      Mason: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights5678 },
+      Scottsdale: { colors: ["White"], widths: sixEight, heights: heights5678 }
+    } as const;
+  }, []);
+
+  const vinylAllowed = useMemo(() => {
+    if (selectedFenceType !== "vinyl" || !selectedStyle?.name) {
+      return {
+        colors: ["White"],
+        widths: [6],
+        heights: [6]
+      };
+    }
+
+    const entry = (vinylPrivacyMatrix as any)[selectedStyle.name];
+    if (!entry) {
+      return {
+        colors: ["White"],
+        widths: [6],
+        heights: [6]
+      };
+    }
+
+    const curColor = String(materialsDetails.vinylColor || "White");
+    const colors = Array.isArray(entry.colors) ? entry.colors : ["White"];
+    const widths = typeof entry.getWidths === "function" ? entry.getWidths(curColor) : (entry.widths || [6]);
+    const heights = typeof entry.getHeights === "function" ? entry.getHeights(curColor) : (entry.heights || [6]);
+    return { colors, widths, heights };
+  }, [materialsDetails.vinylColor, selectedFenceType, selectedStyle?.name, vinylPrivacyMatrix]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "vinyl") return;
+    if (!selectedStyle?.name) return;
+
+    setMaterialsDetails((p) => {
+      const curColor = String(p.vinylColor || "White");
+      const nextColor = vinylAllowed.colors.includes(curColor) ? curColor : (vinylAllowed.colors[0] || "White");
+
+      const curW = Number(p.vinylPanelWidthFt) || 0;
+      const nextW = vinylAllowed.widths.includes(curW) ? curW : Number(vinylAllowed.widths[0] || 6);
+
+      const curH = Number(p.vinylPanelHeightFt) || 0;
+      const nextH = vinylAllowed.heights.includes(curH) ? curH : Number(vinylAllowed.heights[0] || 6);
+
+      const same = curColor === nextColor && curW === nextW && curH === nextH;
+      if (same) return p;
+      return {
+        ...p,
+        vinylColor: nextColor,
+        vinylPanelWidthFt: nextW,
+        vinylPanelHeightFt: nextH
+      };
+    });
+  }, [selectedFenceType, selectedStyle?.name, vinylAllowed.colors, vinylAllowed.heights, vinylAllowed.widths]);
 
   const aluminumPostsSummary = useMemo(() => {
     if (selectedFenceType !== "aluminum") {
@@ -1879,6 +1966,9 @@ function EstimatesPageInner() {
       atlanticDoubleGateOptions: [],
       toledoWalkGateOptions: [],
       toledoDoubleGateOptions: [],
+      vinylColor: "White",
+      vinylPanelWidthFt: 6,
+      vinylPanelHeightFt: 6,
       railEndBracketPacks: 0
     };
 
@@ -2436,6 +2526,9 @@ function EstimatesPageInner() {
       const toledoDoubleGateOptions = Array.isArray(dd.toledoDoubleGateOptions)
         ? dd.toledoDoubleGateOptions.map((x: any) => String(x))
         : [];
+      const vinylColor = typeof dd.vinylColor === "string" ? dd.vinylColor : "White";
+      const vinylPanelWidthFt = Number.isFinite(Number(dd.vinylPanelWidthFt)) ? Number(dd.vinylPanelWidthFt) : 6;
+      const vinylPanelHeightFt = Number.isFinite(Number(dd.vinylPanelHeightFt)) ? Number(dd.vinylPanelHeightFt) : 6;
       const mansfieldBlankGatePost = typeof dd.mansfieldBlankGatePost === "boolean" ? dd.mansfieldBlankGatePost : false;
 
       setMaterialsDetails((prev) => ({
@@ -2457,6 +2550,9 @@ function EstimatesPageInner() {
         atlanticDoubleGateOptions,
         toledoWalkGateOptions,
         toledoDoubleGateOptions,
+        vinylColor,
+        vinylPanelWidthFt,
+        vinylPanelHeightFt,
         mansfieldBlankGatePost
       }));
     }
@@ -4182,6 +4278,55 @@ function EstimatesPageInner() {
                         <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2">
                           <div className="text-[11px] text-[var(--muted)]">Line posts</div>
                           <div className="text-[14px] font-black">{aluminumPostsSummary.line}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : selectedFenceType === "vinyl" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Vinyl details</div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Color</div>
+                          <Select
+                            value={materialsDetails.vinylColor}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylColor: String(e.target.value) }))}
+                            disabled={!selectedStyle}
+                          >
+                            {vinylAllowed.colors.map((c: string) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Panel width</div>
+                          <Select
+                            value={String(materialsDetails.vinylPanelWidthFt)}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylPanelWidthFt: Number(e.target.value) }))}
+                            disabled={!selectedStyle}
+                          >
+                            {vinylAllowed.widths.map((w: number) => (
+                              <option key={w} value={String(w)}>{w}'</option>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Panel height</div>
+                          <Select
+                            value={String(materialsDetails.vinylPanelHeightFt)}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylPanelHeightFt: Number(e.target.value) }))}
+                            disabled={!selectedStyle}
+                          >
+                            {vinylAllowed.heights.map((h: number) => (
+                              <option key={h} value={String(h)}>{h}'</option>
+                            ))}
+                          </Select>
+                        </div>
+
+                        <div className="text-[11px] text-[var(--muted)] flex items-end">
+                          {selectedStyle ? `${selectedStyle.name}` : "Select a style"}
                         </div>
                       </div>
                     </div>
