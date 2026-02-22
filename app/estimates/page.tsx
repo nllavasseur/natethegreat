@@ -483,71 +483,27 @@ function EstimatesPageInner() {
     {
       type: "aluminum",
       name: "Mansfield",
-      thumb: "/mansfield.jpg"
+      thumb: "/style-thumbs/aluminum/mansfield.jpg"
     },
     {
       type: "aluminum",
       name: "Atlantic",
-      thumb: "/atlantic.jpg"
+      thumb: "/style-thumbs/aluminum/atlantic.jpg"
     },
     {
       type: "aluminum",
       name: "Pacific",
-      thumb: "/pacific.jpg"
+      thumb: "/style-thumbs/aluminum/pacific.jpg"
     },
     {
       type: "aluminum",
       name: "Toledo",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <defs>
-              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
-                <stop stop-color='#3F4956'/>
-                <stop offset='1' stop-color='#121820'/>
-              </linearGradient>
-            </defs>
-            <rect width='80' height='80' rx='14' fill='url(#g)'/>
-            <g opacity='.40' fill='#fff'>
-              ${Array.from({ length: 7 }).map((_, i) => {
-                const x = 14 + i * 9;
-                return `<rect x='${x}' y='18' width='4' height='46' rx='2'/>`;
-              }).join("")}
-            </g>
-            <g opacity='.35' fill='#fff'>
-              <rect x='12' y='26' width='56' height='3' rx='1.5'/>
-              <rect x='12' y='50' width='56' height='3' rx='1.5'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/style-thumbs/aluminum/toledo.jpg"
     },
     {
       type: "aluminum",
       name: "Terrier",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <defs>
-              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
-                <stop stop-color='#3F4956'/>
-                <stop offset='1' stop-color='#121820'/>
-              </linearGradient>
-            </defs>
-            <rect width='80' height='80' rx='14' fill='url(#g)'/>
-            <g opacity='.40' fill='#fff'>
-              ${Array.from({ length: 7 }).map((_, i) => {
-                const x = 14 + i * 9;
-                return `<rect x='${x}' y='18' width='4' height='46' rx='2'/>`;
-              }).join("")}
-            </g>
-            <g opacity='.35' fill='#fff'>
-              <rect x='12' y='26' width='56' height='3' rx='1.5'/>
-              <rect x='12' y='50' width='56' height='3' rx='1.5'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/style-thumbs/aluminum/terrier.webp"
     }
   ];
 
@@ -3465,7 +3421,26 @@ function EstimatesPageInner() {
                       }
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={st.thumb} alt="" className="w-full aspect-[4/3] rounded-xl object-cover" />
+                      <img
+                        src={st.thumb}
+                        alt=""
+                        className="w-full aspect-[4/3] rounded-xl object-cover"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.dataset.fallbackDone === "1") return;
+                          img.dataset.fallbackDone = "1";
+                          img.src =
+                            "data:image/svg+xml;charset=utf-8," +
+                            encodeURIComponent(
+                              `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 60'>
+                                <rect width='80' height='60' rx='12' fill='rgba(255,255,255,.08)'/>
+                                <rect x='10' y='10' width='60' height='40' rx='10' fill='rgba(0,0,0,.18)'/>
+                                <path d='M18 40l10-10 10 10 10-12 14 18H18z' fill='rgba(255,255,255,.22)'/>
+                                <circle cx='28' cy='24' r='5' fill='rgba(255,255,255,.22)'/>
+                              </svg>`
+                            );
+                        }}
+                      />
                       <div className="mt-2 text-sm font-extrabold">{st.name}</div>
                     </button>
                   ))}
