@@ -840,6 +840,80 @@ function EstimatesPageInner() {
       const lf = Number(totalLf) || 0;
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
+      const normalizedWireMeshStyle = String(selectedStyle?.name || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("/", ":");
+      const isFiveQuarterTwoRailMesh = normalizedWireMeshStyle === "5:4 2 rail mesh";
+
+      if (isFiveQuarterTwoRailMesh) {
+        // 7.5' centers.
+        const postsBase = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
+          : (lf > 0 ? Math.max(2, Math.ceil(lf / 7.5) + 1) : 0);
+        const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+        const panels = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+          : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
+
+        const cornerCount = Math.max(0, segmentLengths.length - 1);
+
+        // 5/4 rails: (segmentLength/15) * 3
+        const rails5_4Base = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
+          : (lf > 0 ? Math.ceil((lf / 15) * 3) : 0);
+        const gateExtraRails5_4 = (walkGates + doubleGates) * 2;
+        const rails5_4 = rails5_4Base + gateExtraRails5_4;
+
+        // Verticals: +1/3 board per post + 1 per corner
+        const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+
+        // Cedar S4S: 2x 2x4x8 per panel
+        const cedarS4SRails2x4x8 = panels * 2;
+
+        // Wire mesh: total lf / 50 rolls, round up
+        const meshRolls = lf > 0 ? Math.ceil(lf / 50) : 0;
+
+        // Screws: 6 per 5/4 board
+        const stainlessScrews = rails5_4 > 0 ? Math.ceil(rails5_4 * 6) : 0;
+
+        // Staples: 10 per post
+        const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
+
+        const concrete80Bags = posts * 2;
+        const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+        const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
+        const rows: Array<{ name: string; qty: number; unit: string }> = [
+          { name: postName, qty: posts, unit: "ea" },
+          ...(rails5_4 > 0 ? [{ name: "5/4 x6 x16 Cedar Rails", qty: rails5_4, unit: "ea" }] : []),
+          ...(verticalBoards + cornerCount > 0 ? [{ name: "5/4 x6 x16 Cedar Verticals", qty: verticalBoards + cornerCount, unit: "ea" }] : []),
+          ...(cedarS4SRails2x4x8 > 0 ? [{ name: "2x4 8' Cedar S4S Rails", qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
+          ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
+          ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+          ...(stainlessScrews > 0 ? [{ name: "Stainless screws", qty: stainlessScrews, unit: "ea" }] : []),
+          ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+          ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+          ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+          ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+          ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+          ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+          { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+          { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+          { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+        ];
+
+        return rows
+          .filter((r) => (Number(r.qty) || 0) > 0)
+          .map((r) => {
+            const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+            const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+            return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          });
+      }
+
       // 5.5' centers.
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0) + 1
@@ -1970,6 +2044,22 @@ function EstimatesPageInner() {
         postType: "Pressure treated",
         pictureFrameTrimPieces: 2,
         pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: false
+      }));
+    }
+    if (
+      String(style.name || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("/", ":") === "5:4 2 rail mesh"
+    ) {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Cedar",
+        postSize: 8,
+        postType: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
