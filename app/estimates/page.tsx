@@ -304,6 +304,7 @@ function EstimatesPageInner() {
     postSize: 8 | 10 | 12 | 14;
     postType: "Pressure treated" | "Cedar" | "Cedar tone";
     postCaps: boolean;
+    topCaps: boolean;
     arbor: boolean;
     pictureFrameTrimPieces: 2 | 3;
     pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
@@ -332,6 +333,7 @@ function EstimatesPageInner() {
     postSize: 8,
     postType: "Pressure treated",
     postCaps: false,
+    topCaps: false,
     arbor: false,
     pictureFrameTrimPieces: 3,
     pictureFrameTrimMaterial: "Pressure treated",
@@ -360,28 +362,15 @@ function EstimatesPageInner() {
 
   const materialsDetailsActive = useMemo(() => {
     return (
-      materialsDetails.woodType !== "Pressure treated" ||
-      materialsDetails.postSize !== 8 ||
-      materialsDetails.postType !== "Pressure treated" ||
-      materialsDetails.arbor ||
-      materialsDetails.postCaps ||
-      materialsDetails.pictureFrameTrimPieces !== 3 ||
-      materialsDetails.pictureFrameTrimMaterial !== "Pressure treated" ||
-      materialsDetails.takeoffPreset !== "standard" ||
-      materialsDetails.horizontalCedarVerticals ||
-      (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
-      (Number(materialsDetails.aluminumPanelHeight) || 0) !== 48 ||
-      Boolean(materialsDetails.aluminumGateAuto) !== true ||
-      (Number(materialsDetails.aluminumCornerPosts) || 0) !== 0 ||
-      (Number(materialsDetails.aluminumGatePosts) || 0) !== 0 ||
-      (Number(materialsDetails.aluminumEndPosts) || 0) !== 0 ||
-      (Number(materialsDetails.aluminumBlankPosts) || 0) !== 0 ||
       (materialsDetails.mansfieldWalkGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.mansfieldDoubleGateOptions || []).some((v) => Boolean(v)) ||
       Boolean(materialsDetails.mansfieldBlankGatePost) ||
       (materialsDetails.atlanticDoubleGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.toledoWalkGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.toledoDoubleGateOptions || []).some((v) => Boolean(v)) ||
+      Boolean(materialsDetails.postCaps) ||
+      Boolean(materialsDetails.topCaps) ||
+      Boolean(materialsDetails.arbor) ||
       String(materialsDetails.vinylColor || "White") !== "White" ||
       (Number(materialsDetails.vinylPanelWidthFt) || 6) !== 6 ||
       (Number(materialsDetails.vinylPanelHeightFt) || 6) !== 6 ||
@@ -806,7 +795,7 @@ function EstimatesPageInner() {
       const cornerCount = Math.max(0, segmentLengths.length - 1);
 
       // Boards: (segmentLength/12) * (3 or 4)
-      const boardMultiplier = materialsDetails.postCaps ? 4 : 3;
+      const boardMultiplier = materialsDetails.topCaps ? 4 : 3;
       const boardsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * boardMultiplier), 0)
         : (lf > 0 ? Math.ceil((lf / 12) * boardMultiplier) : 0);
@@ -1766,7 +1755,8 @@ function EstimatesPageInner() {
         horizontalCedarBoardMaterial: "5/4 cedar",
         postSize: 10,
         postType: "Pressure treated",
-        takeoffPreset: "horizontal_cedar"
+        takeoffPreset: "horizontal_cedar",
+        topCaps: false
       }));
     }
     if (String(style.name || "").trim().toLowerCase().includes("picture framed")) {
@@ -1777,7 +1767,8 @@ function EstimatesPageInner() {
         postType: "Pressure treated",
         pictureFrameTrimPieces: 3,
         pictureFrameTrimMaterial: "Pressure treated",
-        takeoffPreset: "standard"
+        takeoffPreset: "standard",
+        topCaps: false
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
@@ -1786,7 +1777,8 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
-        takeoffPreset: "standard"
+        takeoffPreset: "standard",
+        topCaps: false
       }));
     }
     setStylePickerIdx(false);
@@ -1885,6 +1877,7 @@ function EstimatesPageInner() {
       postSize: 8,
       postType: "Pressure treated",
       postCaps: false,
+      topCaps: false,
       arbor: false,
       pictureFrameTrimPieces: 3,
       pictureFrameTrimMaterial: "Pressure treated",
@@ -2428,7 +2421,11 @@ function EstimatesPageInner() {
         ? dd.postType
         : "Pressure treated";
 
-      const postCaps = typeof dd.postCaps === "boolean" ? dd.postCaps : Boolean(dd.topCap);
+      let postCaps = typeof dd.postCaps === "boolean" ? dd.postCaps : false;
+      let topCaps = typeof (dd as any).topCaps === "boolean" ? (dd as any).topCaps : Boolean(dd.topCap);
+      if (postCaps && topCaps) {
+        topCaps = false;
+      }
       const arbor = typeof dd.arbor === "boolean" ? dd.arbor : String(dd.arbor).toLowerCase() === "yes";
       const pictureFrameTrimPieces = (dd.pictureFrameTrimPieces === 2 || dd.pictureFrameTrimPieces === 3)
         ? dd.pictureFrameTrimPieces
@@ -2475,6 +2472,7 @@ function EstimatesPageInner() {
         horizontalCedarBoardMaterial,
         postType,
         postCaps,
+        topCaps,
         arbor,
         pictureFrameTrimPieces,
         pictureFrameTrimMaterial,
@@ -4588,7 +4586,13 @@ function EstimatesPageInner() {
                         <button
                           type="button"
                           data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, postCaps: !p.postCaps }))}
+                          onClick={() =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              postCaps: !p.postCaps,
+                              topCaps: !p.postCaps ? false : p.topCaps
+                            }))
+                          }
                           className={
                             "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
                             (materialsDetails.postCaps
@@ -4603,24 +4607,52 @@ function EstimatesPageInner() {
                         </button>
                       </div>
                       <div>
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Top caps</div>
                         <button
                           type="button"
                           data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
+                          onClick={() =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              topCaps: !p.topCaps,
+                              postCaps: !p.topCaps ? false : p.postCaps
+                            }))
+                          }
                           className={
                             "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                            (materialsDetails.arbor
+                            (materialsDetails.topCaps
                               ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
                               : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
                           }
                         >
                           <div className="flex items-center justify-between">
-                            <div className="font-extrabold">{materialsDetails.arbor ? "Yes" : "No"}</div>
+                            <div className="font-extrabold">{materialsDetails.topCaps ? "On" : "Off"}</div>
                             <div className="text-[11px] text-[var(--muted)]">Tap</div>
                           </div>
                         </button>
                       </div>
+                    </div>
+                  ) : null}
+
+                  {selectedFenceType !== "aluminum" ? (
+                    <div className="mt-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                          (materialsDetails.arbor
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-extrabold">{materialsDetails.arbor ? "Yes" : "No"}</div>
+                          <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                        </div>
+                      </button>
                     </div>
                   ) : null}
 
