@@ -3424,8 +3424,12 @@ function EstimatesPageInner() {
 
       {portalReady
         ? createPortal(
-          <nav className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate" aria-label="Estimate actions">
-            <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+          <nav
+            className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+            aria-label="Estimate actions"
+          >
+            <div className="mx-auto max-w-[980px]">
               {saveError ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
                   {saveError}
