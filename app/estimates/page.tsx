@@ -524,6 +524,12 @@ function EstimatesPageInner() {
     takeoffPreset: "standard" | "horizontal_cedar";
     horizontalCedarVerticals: boolean;
     horizontalCedarCornerAdjust: number;
+    aluminumPanelHeight: number;
+    aluminumPanelWidthFt: number;
+    aluminumCornerPosts: number;
+    aluminumGatePosts: number;
+    aluminumEndPosts: number;
+    aluminumBlankPosts: number;
   }>({
     woodType: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
@@ -535,7 +541,13 @@ function EstimatesPageInner() {
     pictureFrameTrimMaterial: "Pressure treated",
     takeoffPreset: "standard",
     horizontalCedarVerticals: false,
-    horizontalCedarCornerAdjust: 0
+    horizontalCedarCornerAdjust: 0,
+    aluminumPanelHeight: 48,
+    aluminumPanelWidthFt: 6,
+    aluminumCornerPosts: 0,
+    aluminumGatePosts: 0,
+    aluminumEndPosts: 0,
+    aluminumBlankPosts: 0
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -552,9 +564,58 @@ function EstimatesPageInner() {
       materialsDetails.takeoffPreset !== "standard" ||
       materialsDetails.horizontalCedarVerticals ||
       (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
+      (Number(materialsDetails.aluminumPanelHeight) || 0) !== 48 ||
+      (Number(materialsDetails.aluminumPanelWidthFt) || 0) !== 6 ||
+      (Number(materialsDetails.aluminumCornerPosts) || 0) !== 0 ||
+      (Number(materialsDetails.aluminumGatePosts) || 0) !== 0 ||
+      (Number(materialsDetails.aluminumEndPosts) || 0) !== 0 ||
+      (Number(materialsDetails.aluminumBlankPosts) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
+
+  const aluminumPostsSummary = useMemo(() => {
+    if (selectedFenceType !== "aluminum") {
+      return {
+        total: 0,
+        line: 0,
+        gateDerived: 0
+      };
+    }
+
+    const walkGates = Number(walkGateCountDerived) || 0;
+    const doubleGates = Number(doubleGateCount) || 0;
+
+    const walkGatePostsAdd = segments
+      .filter((s) => !s.removed)
+      .filter((s) => Boolean((s as any).gate))
+      .reduce((sum, s) => {
+        const len = Number((s as any).length) || 0;
+        return sum + (len > 0 && len < 8 ? 2 : 1);
+      }, 0);
+
+    const gateDerived = walkGatePostsAdd + doubleGates;
+
+    const w = Math.max(1, Number(materialsDetails.aluminumPanelWidthFt) || 6);
+    const segmentLengths = segments
+      .filter((s) => !s.removed)
+      .map((s) => Number(s.length) || 0)
+      .filter((n) => n > 0);
+    const panels = segmentLengths.length
+      ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / w), 0)
+      : 0;
+
+    const postsBase = panels > 0 ? panels + 1 : 0;
+    const total = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
+
+    const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
+    const gate = Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
+    const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
+    const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
+    const line = Math.max(0, total - (corner + gate + end + blank));
+
+    return { total, line, gateDerived };
+  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGatePosts, materialsDetails.aluminumPanelWidthFt, segments, selectedFenceType, walkGateCountDerived]);
 
   const horizontalCedarDetailsActive = useMemo(() => {
     if (selectedStyle?.name !== "Horizontal Cedar") return false;
@@ -1667,7 +1728,13 @@ function EstimatesPageInner() {
       pictureFrameTrimMaterial: "Pressure treated",
       takeoffPreset: "standard",
       horizontalCedarVerticals: false,
-      horizontalCedarCornerAdjust: 0
+      horizontalCedarCornerAdjust: 0,
+      aluminumPanelHeight: 48,
+      aluminumPanelWidthFt: 6,
+      aluminumCornerPosts: 0,
+      aluminumGatePosts: 0,
+      aluminumEndPosts: 0,
+      aluminumBlankPosts: 0
     });
     setExtraPosts(0);
     setNotes("");
@@ -3467,6 +3534,209 @@ function EstimatesPageInner() {
                 </div>
 
                 <div className="mt-3 grid gap-3">
+                  {selectedFenceType === "aluminum" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Aluminum details</div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Panel height</div>
+                          <Select
+                            value={String(materialsDetails.aluminumPanelHeight)}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                aluminumPanelHeight: Math.max(0, Number(e.target.value) || 0)
+                              }))
+                            }
+                          >
+                            <option value="36">36</option>
+                            <option value="42">42</option>
+                            <option value="48">48</option>
+                            <option value="54">54</option>
+                            <option value="60">60</option>
+                            <option value="72">72</option>
+                          </Select>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Panel width</div>
+                          <Select
+                            value={String(materialsDetails.aluminumPanelWidthFt)}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                aluminumPanelWidthFt: Math.max(1, Number(e.target.value) || 1)
+                              }))
+                            }
+                          >
+                            <option value="5">5 ft</option>
+                            <option value="6">6 ft</option>
+                            <option value="7">7 ft</option>
+                            <option value="8">8 ft</option>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-2">
+                        <div className="text-[11px] text-[var(--muted)]">Post selectors</div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Corner posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumCornerPosts: Math.max(0, (Number(p.aluminumCornerPosts) || 0) - 1)
+                                  }))
+                                }
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Number(materialsDetails.aluminumCornerPosts) || 0)}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumCornerPosts: Math.max(0, (Number(p.aluminumCornerPosts) || 0) + 1)
+                                  }))
+                                }
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">End posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumEndPosts: Math.max(0, (Number(p.aluminumEndPosts) || 0) - 1)
+                                  }))
+                                }
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Number(materialsDetails.aluminumEndPosts) || 0)}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumEndPosts: Math.max(0, (Number(p.aluminumEndPosts) || 0) + 1)
+                                  }))
+                                }
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Gate posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumGatePosts: Math.max(0, (Number(p.aluminumGatePosts) || 0) - 1)
+                                  }))
+                                }
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Number(materialsDetails.aluminumGatePosts) || 0)}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumGatePosts: Math.max(0, (Number(p.aluminumGatePosts) || 0) + 1)
+                                  }))
+                                }
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                            <div className="mt-1 text-[10px] text-[var(--muted)]">Derived from gates: {aluminumPostsSummary.gateDerived}</div>
+                          </div>
+
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Blank posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumBlankPosts: Math.max(0, (Number(p.aluminumBlankPosts) || 0) - 1)
+                                  }))
+                                }
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Number(materialsDetails.aluminumBlankPosts) || 0)}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    aluminumBlankPosts: Math.max(0, (Number(p.aluminumBlankPosts) || 0) + 1)
+                                  }))
+                                }
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2">
+                          <div className="text-[11px] text-[var(--muted)]">Total posts</div>
+                          <div className="text-[14px] font-black">{aluminumPostsSummary.total}</div>
+                        </div>
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2">
+                          <div className="text-[11px] text-[var(--muted)]">Line posts</div>
+                          <div className="text-[14px] font-black">{aluminumPostsSummary.line}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
                   {selectedStyle?.name === "Standard Privacy" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Materials preset</div>
