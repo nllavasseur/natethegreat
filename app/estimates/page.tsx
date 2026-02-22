@@ -533,7 +533,7 @@ function EstimatesPageInner() {
     mansfieldWalkGateOptions: string[];
     mansfieldDoubleGateOptions: string[];
     mansfieldBlankGatePost: boolean;
-    railEndBrackets: boolean;
+    railEndBracketPacks: number;
   }>({
     woodType: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
@@ -555,7 +555,7 @@ function EstimatesPageInner() {
     mansfieldWalkGateOptions: [],
     mansfieldDoubleGateOptions: [],
     mansfieldBlankGatePost: false,
-    railEndBrackets: false
+    railEndBracketPacks: 0
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -581,7 +581,7 @@ function EstimatesPageInner() {
       (materialsDetails.mansfieldWalkGateOptions || []).some((v) => Boolean(v)) ||
       (materialsDetails.mansfieldDoubleGateOptions || []).some((v) => Boolean(v)) ||
       Boolean(materialsDetails.mansfieldBlankGatePost) ||
-      Boolean(materialsDetails.railEndBrackets) ||
+      (Number(materialsDetails.railEndBracketPacks) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -950,10 +950,7 @@ function EstimatesPageInner() {
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails > 0 ? Math.ceil((rails * 6) / 350) : 0;
 
-      const railEndBracketsNeeded = rails > 0 ? rails * 2 : 0;
-      const railEndBracketsQty = railEndBracketsNeeded > 0
-        ? Math.ceil(railEndBracketsNeeded / 3) * 3
-        : 0;
+      const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
       const panels = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
@@ -977,7 +974,7 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
-        ...(materialsDetails.railEndBrackets && railEndBracketsQty > 0
+        ...(railEndBracketsQty > 0
           ? [{ name: "Rail end bracket", qty: railEndBracketsQty, unit: "ea" }]
           : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
@@ -1010,10 +1007,7 @@ function EstimatesPageInner() {
     const concrete80Bags = posts * 2;
     const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-    const railEndBracketsNeeded = rails > 0 ? rails * 2 : 0;
-    const railEndBracketsQty = railEndBracketsNeeded > 0
-      ? Math.ceil(railEndBracketsNeeded / 3) * 3
-      : 0;
+    const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
     const rows: Array<{ name: string; qty: number; unit: string }> = [
       { name: "4x4 Post", qty: posts, unit: "ea" },
@@ -1021,7 +1015,7 @@ function EstimatesPageInner() {
       { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
       ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
       { name: "Fasteners", qty: 1, unit: "ea" },
-      ...(materialsDetails.railEndBrackets && railEndBracketsQty > 0
+      ...(railEndBracketsQty > 0
         ? [{ name: "Rail end bracket", qty: railEndBracketsQty, unit: "ea" }]
         : []),
       ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
@@ -1815,7 +1809,7 @@ function EstimatesPageInner() {
     setStylePickerIdx(false);
     setStylePreview(null);
     setMaterialsDetailsOpen(false);
-    setMaterialsDetails({
+    const dd: typeof materialsDetails = {
       woodType: "Pressure treated",
       horizontalCedarBoardMaterial: "5/4 cedar",
       postSize: 8,
@@ -1836,8 +1830,10 @@ function EstimatesPageInner() {
       mansfieldWalkGateOptions: [],
       mansfieldDoubleGateOptions: [],
       mansfieldBlankGatePost: false,
-      railEndBrackets: false
-    });
+      railEndBracketPacks: 0
+    };
+
+    setMaterialsDetails(dd);
     setExtraPosts(0);
     setNotes("");
     setPreInstallPhotos([]);
@@ -4270,24 +4266,41 @@ function EstimatesPageInner() {
                   <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                     <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
                     <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Rail end bracket ($4.50 ea, packs of 3)</div>
-                      <button
-                        type="button"
-                        data-no-swipe="true"
-                        onClick={() => setMaterialsDetails((p) => ({ ...p, railEndBrackets: !p.railEndBrackets }))}
-                        className={
-                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                          (materialsDetails.railEndBrackets
-                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                        }
-                        aria-pressed={materialsDetails.railEndBrackets}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-extrabold">{materialsDetails.railEndBrackets ? "On" : "Off"}</div>
-                          <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                      <div className="text-[11px] text-[var(--muted)] mb-1">Rail end bracket packs (3 per pack @ $4.50 ea)</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <PrimaryButton
+                          type="button"
+                          data-no-swipe="true"
+                          className="px-3 py-2 text-[12px]"
+                          onClick={() =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              railEndBracketPacks: Math.max(0, Math.floor(Number(p.railEndBracketPacks) || 0) - 1)
+                            }))
+                          }
+                        >
+                          -
+                        </PrimaryButton>
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                          {Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0))}
                         </div>
-                      </button>
+                        <PrimaryButton
+                          type="button"
+                          data-no-swipe="true"
+                          className="px-3 py-2 text-[12px]"
+                          onClick={() =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              railEndBracketPacks: Math.max(0, Math.floor(Number(p.railEndBracketPacks) || 0) + 1)
+                            }))
+                          }
+                        >
+                          +
+                        </PrimaryButton>
+                      </div>
+                      <div className="mt-1 text-[11px] text-[var(--muted)]">
+                        Total brackets: {Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3}
+                      </div>
                     </div>
                   </div>
 
