@@ -1278,33 +1278,28 @@ export default function CalendarPage() {
           }}
         >
           <div className="absolute inset-0 bg-black/40" />
-          <div
-            className="absolute inset-0 p-2 flex"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <GlassCard className="w-full max-w-[480px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-black">Job Queue</div>
-                <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
-              </div>
 
-              {moveOpenId ? (
-                <div
-                  className="mt-3 rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.18)] p-3"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
+          {moveOpenId ? (
+            <div
+              className="absolute inset-0 z-[60] grid place-items-center p-2"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMoveOpenId(null);
+                setMovePreviewPos(null);
+              }}
+            >
+              <div
+                className="w-full max-w-[420px]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                <GlassCard className="p-3 overflow-hidden overflow-x-hidden flex flex-col">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-sm font-black">Move job</div>
                     <SecondaryButton
@@ -1386,8 +1381,26 @@ export default function CalendarPage() {
                       Save
                     </PrimaryButton>
                   </div>
-                </div>
-              ) : null}
+                </GlassCard>
+              </div>
+            </div>
+          ) : null}
+
+          <div
+            className="absolute inset-0 p-2 flex"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <GlassCard className="w-full max-w-[480px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-black">Job Queue</div>
+                <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
+              </div>
 
               <div
                 ref={queueListRef}
