@@ -122,11 +122,13 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         : portalReady
           ? createPortal(
               <div
-                className="fixed left-0 right-0 z-40"
+                className="fixed left-0 right-0 z-40 pointer-events-none"
                 style={{ top: estimatesHeaderOffsetPx ? `${estimatesHeaderOffsetPx}px` : "0px" }}
               >
-                <TopBar />
-                <nav aria-label="Top navigation">
+                <div className="pointer-events-auto" style={{ touchAction: "manipulation" }}>
+                  <TopBar />
+                </div>
+                <nav aria-label="Top navigation" className="pointer-events-auto" style={{ touchAction: "manipulation" }}>
                   <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
                     <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
                       {tabs.map((t) => {
@@ -137,7 +139,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                             key={t.href}
                             href={t.href}
                             className={clsx(
-                              "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition",
+                              "flex-1 h-full min-w-0 flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition select-none",
                               isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
                             )}
                           >
