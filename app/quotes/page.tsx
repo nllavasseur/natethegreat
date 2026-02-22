@@ -69,6 +69,7 @@ function readDraftStore(): Record<string, DraftEntry> {
 export default function QuotesPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
@@ -452,9 +453,29 @@ export default function QuotesPage() {
   }, [drafts]);
 
   const filteredCards = useMemo(() => {
-    if (statusFilter === "all") return cards;
-    return cards.filter((c) => (c.status ?? "estimate") === statusFilter);
-  }, [cards, statusFilter]);
+    const q = String(searchQuery || "").trim().toLowerCase();
+    const byStatus = statusFilter === "all"
+      ? cards
+      : cards.filter((c) => (c.status ?? "estimate") === statusFilter);
+
+    if (!q) return byStatus;
+    return byStatus.filter((c) => {
+      const hay = [
+        c.id,
+        c.title,
+        c.style,
+        String((c as any).material || ""),
+        String((c as any).phoneNumber || ""),
+        c.status,
+        String((c as any).startDate || ""),
+        String((c as any).endDate || "")
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [cards, searchQuery, statusFilter]);
 
   return (
     <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
@@ -560,6 +581,15 @@ export default function QuotesPage() {
 
       <SectionTitle title="Recent quotes" />
       <GlassCard className="p-4">
+        <div className="mb-3">
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search quotes…"
+            className="block box-border w-full max-w-full min-w-0 rounded-full px-3 py-2 text-[13px] bg-[rgba(255,255,255,.10)] border border-[rgba(255,255,255,.16)] outline-none"
+            style={{ minWidth: 0, WebkitAppearance: "none", appearance: "none" }}
+          />
+        </div>
         <div className="mt-1 grid gap-2">
           {filteredCards.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">No saved quotes yet. Save an estimate to see it here.</div>
