@@ -1099,6 +1099,7 @@ function EstimatesPageInner() {
 
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
       const isPictureFramed = selectedStyleKind === "wood_picture_framed";
+      const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
 
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
@@ -1139,10 +1140,16 @@ function EstimatesPageInner() {
           : "1x4 x 8' Trim";
 
       const pictureFramed2x4x8 = isPictureFramed
-        ? panels * ((materialsDetails.postCaps || materialsDetails.topCaps) ? 4 : 3)
+        ? (isFourFootPictureFramed
+            ? panels * 2
+            : panels * ((materialsDetails.postCaps || materialsDetails.topCaps) ? 4 : 3))
         : 0;
-      const pictureFramed2x4x16 = isPictureFramed && !(materialsDetails.postCaps || materialsDetails.topCaps)
-        ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
+      const pictureFramed2x4x16 = isPictureFramed
+        ? (isFourFootPictureFramed
+            ? 0
+            : (!(materialsDetails.postCaps || materialsDetails.topCaps)
+                ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
+                : 0))
         : 0;
 
       const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
@@ -1953,6 +1960,19 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "4' picture framed") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 8,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 2,
+        pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: false
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
