@@ -21,6 +21,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const active = tabs.find(t => pathname?.startsWith(t.href))?.href ?? "/estimates";
+  const estimatesHeaderOffsetPx = pathname?.startsWith("/estimates") ? 18 : 0;
 
   const hideChrome = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/auth");
 
@@ -120,7 +121,10 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         ? null
         : portalReady
           ? createPortal(
-              <div className="fixed top-0 left-0 right-0 z-40">
+              <div
+                className="fixed left-0 right-0 z-40"
+                style={{ top: estimatesHeaderOffsetPx ? `${estimatesHeaderOffsetPx}px` : "0px" }}
+              >
                 <TopBar />
                 <nav aria-label="Top navigation">
                   <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
@@ -174,7 +178,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
           hideChrome
             ? undefined
             : {
-                paddingTop: "calc(9rem + min(env(safe-area-inset-top), 44px))"
+                paddingTop: `calc(9rem + min(env(safe-area-inset-top), 44px) + ${estimatesHeaderOffsetPx}px)`
               }
         }
       >
