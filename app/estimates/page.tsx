@@ -302,6 +302,7 @@ function EstimatesPageInner() {
   const [savingAsNew, setSavingAsNew] = useState(false);
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [items, setItems] = useState<QuoteItem[]>([]);
 
   const totalLf = useMemo(() => {
     return segments.reduce((sum, s) => sum + (Number(s.length) || 0), 0);
@@ -702,8 +703,6 @@ function EstimatesPageInner() {
   function deleteSegment(id: string) {
     setSegments((prev) => prev.filter((s) => s.id !== id));
   }
-
-  const [items, setItems] = useState<QuoteItem[]>([]);
 
   function fileToCompressedDataUrl(file: File, maxSide = 1280, quality = 0.72): Promise<string | null> {
     if (typeof window === "undefined") return Promise.resolve(null);
