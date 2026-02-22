@@ -1429,7 +1429,7 @@ export default function CalendarPage() {
                           : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]")
                       }
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                         <div className="min-w-0">
                           <div className="text-[13px] font-black truncate min-w-0">
                             {j.customerName || j.title || j.projectAddress || j.selectedStyle?.name || "Job"}
@@ -1445,9 +1445,9 @@ export default function CalendarPage() {
                             {hold ? ` · Hold ${hold}` : ""}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 sm:justify-end">
                           <div
-                            className="h-4 w-4 rounded-full shrink-0"
+                            className="h-3.5 w-3.5 rounded-full shrink-0"
                             style={{ background: dotColor }}
                             aria-hidden="true"
                           />
@@ -1463,7 +1463,7 @@ export default function CalendarPage() {
                               setMovePreviewPos(idx + 1);
                             }}
                             className={
-                              "rounded-xl border px-3 py-2 text-[12px] font-black leading-none " +
+                              "rounded-xl border px-2.5 py-2 text-[11px] font-black leading-none " +
                               (hold
                                 ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
                                 : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
