@@ -26,6 +26,8 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
   const [portalReady, setPortalReady] = React.useState(false);
+  const headerRef = React.useRef<HTMLDivElement | null>(null);
+  const [headerHeight, setHeaderHeight] = React.useState<number | null>(null);
 
   const hasLocalAuthToken = React.useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -51,6 +53,47 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  React.useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hideChrome) return;
+    if (!portalReady) return;
+
+    const measure = () => {
+      const el = headerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const h = Math.max(0, Math.round(rect.height));
+      if (h > 0) setHeaderHeight(h);
+    };
+
+    measure();
+    const t1 = window.setTimeout(measure, 50);
+    const t2 = window.setTimeout(measure, 200);
+
+    let ro: ResizeObserver | null = null;
+    try {
+      if (typeof ResizeObserver !== "undefined" && headerRef.current) {
+        ro = new ResizeObserver(() => measure());
+        ro.observe(headerRef.current);
+      }
+    } catch {
+      ro = null;
+    }
+
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+      try {
+        ro?.disconnect();
+      } catch {
+      }
+    };
+  }, [estimatesHeaderOffsetPx, hideChrome, portalReady]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -123,6 +166,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
               <div
                 className="fixed left-0 right-0 z-40 pointer-events-none"
                 style={{ top: estimatesHeaderOffsetPx ? `${estimatesHeaderOffsetPx}px` : "0px" }}
+                ref={headerRef}
               >
                 <div className="pointer-events-auto" style={{ touchAction: "manipulation" }}>
                   <TopBar />
@@ -192,7 +236,10 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
           hideChrome
             ? undefined
             : {
-                paddingTop: `calc(9rem + min(env(safe-area-inset-top), 44px) + ${estimatesHeaderOffsetPx}px)`
+                paddingTop:
+                  typeof headerHeight === "number"
+                    ? `${headerHeight}px`
+                    : `calc(9rem + min(env(safe-area-inset-top), 44px) + ${estimatesHeaderOffsetPx}px)`
               }
         }
       >
