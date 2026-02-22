@@ -788,6 +788,73 @@ function EstimatesPageInner() {
     const doubleGateKitsAdd = doubleGates;
     const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
+    if (selectedStyleKind === "wood_wire_mesh") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 5.5' centers.
+      const postsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0) + 1
+        : (lf > 0 ? Math.max(2, Math.ceil(lf / 5.5) + 1) : 0);
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0)
+        : (lf > 0 ? Math.ceil(lf / 5.5) : 0);
+
+      const cornerCount = Math.max(0, segmentLengths.length - 1);
+
+      // Boards: (segmentLength/12) * (3 or 4)
+      const boardMultiplier = materialsDetails.postCaps ? 4 : 3;
+      const boardsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * boardMultiplier), 0)
+        : (lf > 0 ? Math.ceil((lf / 12) * boardMultiplier) : 0);
+
+      // Verticals: +0.333333333333333 per post +1 per corner
+      const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+      const boards = boardsBase + verticalBoards + cornerCount;
+
+      // Wire mesh: total lf / 50 rolls, round up
+      const meshRolls = lf > 0 ? Math.ceil(lf / 50) : 0;
+
+      // Nails: 8 per board
+      const nails = boards > 0 ? Math.ceil(boards * 8) : 0;
+
+      // Staples: 10 per post
+      const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: postName, qty: posts, unit: "ea" },
+        { name: "1x6x12 Pressure Treated Boards", qty: boards, unit: "ea" },
+        ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(nails > 0 ? [{ name: "Nails", qty: nails, unit: "ea" }] : []),
+        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
     if (
       selectedStyleKind === "wood_standard" ||
       selectedStyleKind === "wood_picture_framed" ||
@@ -871,7 +938,7 @@ function EstimatesPageInner() {
       }
 
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
-      const isPictureFramedFlatTop = String(selectedStyle?.name || "").trim().toLowerCase() === "picture framed flat top";
+      const isPictureFramed = selectedStyleKind === "wood_picture_framed";
 
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
@@ -911,10 +978,10 @@ function EstimatesPageInner() {
           ? "1x4 x 8' CedarTone Trim"
           : "1x4 x 8' Trim";
 
-      const pictureFramedFlatTop2x4x8 = isPictureFramedFlatTop
+      const pictureFramed2x4x8 = isPictureFramed
         ? panels * (materialsDetails.postCaps ? 4 : 3)
         : 0;
-      const pictureFramedFlatTop2x4x16 = isPictureFramedFlatTop && !materialsDetails.postCaps
+      const pictureFramed2x4x16 = isPictureFramed && !materialsDetails.postCaps
         ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
         : 0;
 
@@ -922,10 +989,10 @@ function EstimatesPageInner() {
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(isPictureFramedFlatTop
+        ...(isPictureFramed
           ? [
-            { name: "2x4 8' Pressure Treated Rails", qty: pictureFramedFlatTop2x4x8, unit: "ea" },
-            ...(pictureFramedFlatTop2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: pictureFramedFlatTop2x4x16, unit: "ea" }] : [])
+            { name: "2x4 8' Pressure Treated Rails", qty: pictureFramed2x4x8, unit: "ea" },
+            ...(pictureFramed2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: pictureFramed2x4x16, unit: "ea" }] : [])
           ]
           : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
         { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
@@ -1702,7 +1769,7 @@ function EstimatesPageInner() {
         takeoffPreset: "horizontal_cedar"
       }));
     }
-    if (String(style.name || "").trim().toLowerCase() === "picture framed flat top") {
+    if (String(style.name || "").trim().toLowerCase().includes("picture framed")) {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
@@ -1710,6 +1777,15 @@ function EstimatesPageInner() {
         postType: "Pressure treated",
         pictureFrameTrimPieces: 3,
         pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard"
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 8,
+        postType: "Pressure treated",
         takeoffPreset: "standard"
       }));
     }
