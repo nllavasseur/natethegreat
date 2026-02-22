@@ -29,6 +29,14 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const headerRef = React.useRef<HTMLDivElement | null>(null);
   const [headerHeight, setHeaderHeight] = React.useState<number | null>(null);
 
+  const go = React.useCallback(
+    (href: string) => {
+      if (active === href) return;
+      router.push(href);
+    },
+    [active, router]
+  );
+
   const hasLocalAuthToken = React.useMemo(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -164,7 +172,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         : portalReady
           ? createPortal(
               <div
-                className="fixed left-0 right-0 z-40 pointer-events-none"
+                className="fixed left-0 right-0 z-40 pointer-events-none vf-app-bg"
                 style={{ top: estimatesHeaderOffsetPx ? `${estimatesHeaderOffsetPx}px` : "0px" }}
                 ref={headerRef}
               >
@@ -181,17 +189,17 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                           <button
                             key={t.href}
                             type="button"
-                            onPointerDown={(e) => {
-                              e.preventDefault();
+                            onTouchStart={(e) => {
                               e.stopPropagation();
-                              if (active === t.href) return;
-                              router.push(t.href);
+                              go(t.href);
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              go(t.href);
                             }}
                             onClick={(e) => {
-                              e.preventDefault();
                               e.stopPropagation();
-                              if (active === t.href) return;
-                              router.push(t.href);
+                              go(t.href);
                             }}
                             className={clsx(
                               "flex-1 h-full min-w-0 flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition select-none",
