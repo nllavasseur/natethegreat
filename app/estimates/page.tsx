@@ -7,7 +7,7 @@ import NextImage from "next/image";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { upsertDraft } from "@/lib/draftsStore";
+import { fetchDraft, upsertDraft } from "@/lib/draftsStore";
 import type { QuoteItem, SectionKey } from "@/lib/types";
 
 const sectionOptions: { key: SectionKey; label: string }[] = [
@@ -934,7 +934,7 @@ function EstimatesPageInner() {
   useEffect(() => {
     const id = draftParam;
     if (!id) return;
-    loadDraft(id);
+    void loadDraft(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftParam]);
 
@@ -1735,9 +1735,23 @@ function EstimatesPageInner() {
     });
   }
 
-  function loadDraft(id: string) {
+  async function loadDraft(id: string) {
     const store = readDraftStore();
-    const d = store[id];
+    let d = store[id] as any;
+    if (!d) {
+      try {
+        const remote = await fetchDraft({ id });
+        if (remote.ok && remote.draft) {
+          d = remote.draft as any;
+          try {
+            store[id] = d;
+            writeDraftStore(store);
+          } catch {
+          }
+        }
+      } catch {
+      }
+    }
     if (!d) return;
     setDraftId(id);
     setCustomerName(String(d.customerName ?? ""));
