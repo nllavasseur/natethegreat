@@ -65,7 +65,7 @@ function EstimatesPageInner() {
   const [stumpGrindingPrice, setStumpGrindingPrice] = useState<number>(0);
   const [doubleGateCount, setDoubleGateCount] = useState<number>(0);
 
-  const materialStyles: Array<{ type: "wood" | "vinyl" | "aluminum" | "chainlink"; name: string; thumb: string }> = [
+  const materialStyles: Array<{ type: "wood" | "vinyl" | "aluminum" | "chainlink"; name: string; thumb: string; group?: "privacy" | "semi-privacy" | "pool" }> = [
     {
       type: "wood",
       name: "Standard Privacy",
@@ -159,6 +159,7 @@ function EstimatesPageInner() {
     {
       type: "vinyl",
       name: "Vinyl Privacy",
+      group: "privacy",
       thumb:
         "data:image/svg+xml;charset=utf-8," +
         encodeURIComponent(
@@ -321,6 +322,7 @@ function EstimatesPageInner() {
 
   const [stylePickerIdx, setStylePickerIdx] = useState<boolean>(false);
   const [selectedFenceType, setSelectedFenceType] = useState<"wood" | "vinyl" | "aluminum" | "chainlink">("wood");
+  const [vinylStyleTab, setVinylStyleTab] = useState<"privacy" | "semi-privacy" | "pool">("privacy");
   const [selectedStyle, setSelectedStyle] = useState<{ name: string; thumb: string } | null>(null);
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<{
@@ -2639,6 +2641,7 @@ function EstimatesPageInner() {
                           const next = e.target.value as "wood" | "vinyl" | "aluminum" | "chainlink";
                           setSelectedFenceType(next);
                           setSelectedStyle(null);
+                          setVinylStyleTab("privacy");
                         }}>
                           <option value="wood">Wood</option>
                           <option value="vinyl">Vinyl</option>
@@ -3165,8 +3168,60 @@ function EstimatesPageInner() {
                   <SecondaryButton onClick={() => setStylePickerIdx(false)}>Close</SecondaryButton>
                 </div>
 
+                {selectedFenceType === "vinyl" ? (
+                  <div className="mt-3">
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setVinylStyleTab("privacy")}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                          (vinylStyleTab === "privacy"
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        Privacy
+                      </button>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setVinylStyleTab("semi-privacy")}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                          (vinylStyleTab === "semi-privacy"
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        Semi-Privacy
+                      </button>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setVinylStyleTab("pool")}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                          (vinylStyleTab === "pool"
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        Pool
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  {materialStyles.filter((st) => st.type === selectedFenceType).map((st) => (
+                  {materialStyles
+                    .filter((st) => {
+                      if (st.type !== selectedFenceType) return false;
+                      if (selectedFenceType !== "vinyl") return true;
+                      return (st as any).group === vinylStyleTab;
+                    })
+                    .map((st) => (
                     <button
                       key={st.name}
                       type="button"
