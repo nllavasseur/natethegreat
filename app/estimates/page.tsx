@@ -301,6 +301,7 @@ function EstimatesPageInner() {
   const [materialsDetails, setMaterialsDetails] = useState<{
     woodType: "Pressure treated" | "Cedar" | "Cedar tone";
     horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
+    shadowboxBoardMaterial: "Pressure Treated" | "Cedar";
     postSize: 8 | 10 | 12 | 14;
     postType: "Pressure treated" | "Cedar" | "Cedar tone";
     postCaps: boolean;
@@ -334,6 +335,7 @@ function EstimatesPageInner() {
   }>({
     woodType: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
+    shadowboxBoardMaterial: "Pressure Treated",
     postSize: 8,
     postType: "Pressure treated",
     postCaps: false,
@@ -379,6 +381,7 @@ function EstimatesPageInner() {
       Boolean(materialsDetails.postCaps) ||
       Boolean(materialsDetails.topCaps) ||
       Boolean(materialsDetails.arbor) ||
+      String(materialsDetails.shadowboxBoardMaterial || "Pressure Treated") !== "Pressure Treated" ||
       (Number(materialsDetails.splitRailRails) || 3) !== 3 ||
       Boolean(materialsDetails.splitRailWireMesh) ||
       (Number(materialsDetails.splitRailCornerPosts) || 0) !== 0 ||
@@ -926,11 +929,15 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
+      const boardName = materialsDetails.shadowboxBoardMaterial === "Cedar"
+        ? "1x4 Cedar Boards"
+        : "1x4 Pressure Treated Boards";
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
         ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
-        ...(shadowboxBoards > 0 ? [{ name: "1x4 Cedar Boards", qty: shadowboxBoards, unit: "ea" }] : []),
+        ...(shadowboxBoards > 0 ? [{ name: boardName, qty: shadowboxBoards, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -2050,6 +2057,7 @@ function EstimatesPageInner() {
     const dd: typeof materialsDetails = {
       woodType: "Pressure treated",
       horizontalCedarBoardMaterial: "5/4 cedar",
+      shadowboxBoardMaterial: "Pressure Treated",
       postSize: 8,
       postType: "Pressure treated",
       postCaps: false,
@@ -2597,6 +2605,10 @@ function EstimatesPageInner() {
           ? dd.horizontalCedarBoardMaterial
           : "5/4 cedar";
 
+      const shadowboxBoardMaterial = dd.shadowboxBoardMaterial === "Cedar" || dd.shadowboxBoardMaterial === "Pressure Treated"
+        ? dd.shadowboxBoardMaterial
+        : "Pressure Treated";
+
       const postType = (dd.postType === "Cedar" || dd.postType === "Cedar tone" || dd.postType === "Pressure treated")
         ? dd.postType
         : "Pressure treated";
@@ -2661,6 +2673,7 @@ function EstimatesPageInner() {
         ...dd,
         woodType,
         horizontalCedarBoardMaterial,
+        shadowboxBoardMaterial,
         postType,
         postCaps,
         topCaps,
@@ -4974,6 +4987,27 @@ function EstimatesPageInner() {
                           <div className="text-[11px] text-[var(--muted)]">Line posts</div>
                           <div className="text-[14px] font-black">{splitRailPostsSummary.line}</div>
                         </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedStyleKind === "wood_shadowbox" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Shadowbox details</div>
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">1x4 material</div>
+                        <Select
+                          value={materialsDetails.shadowboxBoardMaterial}
+                          onChange={(e) =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              shadowboxBoardMaterial: (e.target.value === "Cedar" ? "Cedar" : "Pressure Treated") as "Pressure Treated" | "Cedar"
+                            }))
+                          }
+                        >
+                          <option value="Pressure Treated">Pressure treated</option>
+                          <option value="Cedar">Cedar</option>
+                        </Select>
                       </div>
                     </div>
                   ) : null}
