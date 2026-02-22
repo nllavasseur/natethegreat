@@ -1564,7 +1564,7 @@ export default function CalendarPage() {
                             Sun
                           </button>
                         </div>
-                        <div className="text-[11px] text-[var(--muted)]">#{idx + 1}</div>
+                        <div className="text-[14px] font-black text-white">#{idx + 1}</div>
                       </div>
 
                       <div className="mt-2">
