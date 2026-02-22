@@ -441,6 +441,7 @@ function EstimatesPageInner() {
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
     if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
+    if (n.includes("shadowbox")) return "wood_shadowbox";
     return n;
   }, [selectedStyle?.name]);
 
@@ -884,6 +885,56 @@ function EstimatesPageInner() {
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
+    if (selectedStyleKind === "wood_shadowbox") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 7.5' centers.
+      const postsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
+        : (lf > 0 ? Math.max(2, Math.ceil(lf / 7.5) + 1) : 0);
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+        : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
+
+      // Rails: 3x 2x4x8 per panel + 2x4x16 at ceil(segmentLength/15)
+      const rails2x4x8 = panels * 3;
+      const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
+
+      // 1x4 boards: ceil((segment inches / 7.5 inches) * 2)
+      const shadowboxBoards = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 7.5) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / 7.5) * 2) : 0);
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
+        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
+        ...(shadowboxBoards > 0 ? [{ name: "1x4 Cedar Boards", qty: shadowboxBoards, unit: "ea" }] : []),
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
