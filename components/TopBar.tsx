@@ -11,8 +11,8 @@ export default function TopBar() {
         <div
           className="max-w-[980px] mx-auto px-4 grid grid-cols-[2.5rem_1fr_2.5rem] items-center"
           style={{
-            paddingTop: "min(env(safe-area-inset-top), 44px)",
-            height: "calc(3.5rem + min(env(safe-area-inset-top), 44px))"
+            paddingTop: "var(--vf-sat, min(env(safe-area-inset-top), 44px))",
+            height: "calc(3.5rem + var(--vf-sat, min(env(safe-area-inset-top), 44px)))"
           }}
         >
           <div className="flex items-center justify-start">
