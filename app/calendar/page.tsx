@@ -1238,7 +1238,7 @@ export default function CalendarPage() {
                     </SecondaryButton>
                   </div>
 
-                  <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <button
                       type="button"
                       data-no-swipe="true"
@@ -1250,18 +1250,18 @@ export default function CalendarPage() {
                         while (next >= 1 && holds[next - 1]) next -= 1;
                         if (next >= 1) setMovePreviewPos(next);
                       }}
-                      className="rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
+                      className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
                       aria-label="Move up"
                     >
                       ▲
                     </button>
 
-                    <div className="flex-1 text-center">
+                    <div className="flex-1 text-center min-w-0">
                       <div className="text-[11px] text-[var(--muted)]">Position</div>
                       <div className="text-3xl font-black leading-none">
                         {typeof movePreviewPos === "number" ? movePreviewPos : "—"}
                       </div>
-                      <div className="text-[11px] text-[var(--muted)] mt-1">Holds keep their slot</div>
+                      <div className="text-[11px] text-[var(--muted)] mt-1 break-words">Holds keep their slot</div>
                     </div>
 
                     <button
@@ -1275,7 +1275,7 @@ export default function CalendarPage() {
                         while (next <= holds.length && holds[next - 1]) next += 1;
                         if (next <= holds.length) setMovePreviewPos(next);
                       }}
-                      className="rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
+                      className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
                       aria-label="Move down"
                     >
                       ▼
