@@ -1632,7 +1632,13 @@ export default function CalendarPage() {
                             setHoldOpenId(j.id);
                             setHoldDraftIso(hold);
                           }}
-                          className="w-full min-w-0 truncate rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black text-left"
+                          aria-pressed={Boolean(hold)}
+                          className={
+                            "w-full min-w-0 truncate rounded-xl border px-3 py-2 text-[12px] font-black text-left transition " +
+                            (hold
+                              ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)] ring-1 ring-[rgba(255,214,10,.28)] shadow-[0_0_0_2px_rgba(255,214,10,.10)]"
+                              : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
+                          }
                         >
                           {hold ? `Hold: ${hold}` : "Set Hold Date"}
                         </button>
