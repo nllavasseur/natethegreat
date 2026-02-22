@@ -958,6 +958,20 @@ function EstimatesPageInner() {
     return name;
   }
 
+  const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = useMemo(() => {
+    return {
+      White: { label: "White", bg: "#FFFFFF", fg: "#111827", border: "rgba(0,0,0,.22)" },
+      Tan: { label: "Tan", bg: "#D6C2A2", fg: "#111827", border: "rgba(0,0,0,.18)" },
+      Khaki: { label: "Khaki", bg: "#8C7A5B", fg: "#0B0F19", border: "rgba(0,0,0,.18)" },
+      Gray: { label: "Gray", bg: "#9CA3AF", fg: "#0B0F19", border: "rgba(0,0,0,.18)" },
+      Cedar: { label: "Cedar", bg: "#8B6B55", fg: "#0B0F19", border: "rgba(0,0,0,.18)" },
+      Coastal: { label: "Coastal", bg: "#D9DEE2", fg: "#111827", border: "rgba(0,0,0,.18)" },
+      Black: { label: "Black", bg: "#0B0F19", fg: "#FFFFFF", border: "rgba(255,255,255,.22)" },
+      "Coastal gray woodgrain": { label: "Coastal*", bg: "#D9DEE2", fg: "#111827", border: "rgba(0,0,0,.18)" },
+      "Cedar woodgrain": { label: "Cedar*", bg: "#8B6B55", fg: "#0B0F19", border: "rgba(0,0,0,.18)" }
+    };
+  }, []);
+
   const generatedMaterials = useMemo(() => {
     if (!selectedStyle) return [] as QuoteItem[];
 
@@ -1127,6 +1141,30 @@ function EstimatesPageInner() {
       });
     }
 
+    if (selectedFenceType === "vinyl") {
+      const lf = Number(totalLf) || 0;
+      const panelW = Math.max(1, Number(materialsDetails.vinylPanelWidthFt) || 6);
+      const panelH = Math.max(1, Number(materialsDetails.vinylPanelHeightFt) || 6);
+      const color = String(materialsDetails.vinylColor || "White");
+
+      const panels = lf > 0 ? Math.ceil(lf / panelW) : 0;
+      const postsBase = panels > 0 ? panels + 1 : 0;
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: `Vinyl ${selectedStyle.name} panel ${panelH}' x ${panelW}' (${color})`, qty: panels, unit: "ea" },
+        { name: "Vinyl posts", qty: posts, unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
     // Placeholder rule set for now (iterate with you): driven by total LF.
     // We’ll replace these rules with your exact Standard Privacy rules.
     const lf = totalLf;
@@ -1166,7 +1204,7 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, segments, selectedStyle, totalLf, walkGateCountDerived
+  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, materialsDetails.vinylColor, materialsDetails.vinylPanelHeightFt, materialsDetails.vinylPanelWidthFt, segments, selectedFenceType, selectedStyle, totalLf, walkGateCountDerived
   ]);
 
   const storageKey = "vf_estimate_drafts_v1";
@@ -4288,15 +4326,53 @@ function EstimatesPageInner() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Color</div>
-                          <Select
-                            value={materialsDetails.vinylColor}
-                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylColor: String(e.target.value) }))}
-                            disabled={!selectedStyle}
-                          >
-                            {vinylAllowed.colors.map((c: string) => (
-                              <option key={c} value={c}>{c}</option>
-                            ))}
-                          </Select>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.04)] p-2">
+                            <div className="grid grid-cols-6 gap-2">
+                              {(() => {
+                                const preferredOrder = [
+                                  "White",
+                                  "Tan",
+                                  "Khaki",
+                                  "Gray",
+                                  "Cedar woodgrain",
+                                  "Coastal gray woodgrain",
+                                  "Black"
+                                ];
+                                const allowed = (vinylAllowed.colors || []) as string[];
+                                const ordered = preferredOrder.filter((c) => allowed.includes(c));
+                                const remainder = allowed.filter((c) => !preferredOrder.includes(c));
+                                const colors = [...ordered, ...remainder];
+
+                                return colors.map((c) => {
+                                  const sw = vinylColorSwatches[c] ?? { label: c, bg: "rgba(255,255,255,.10)", fg: "rgba(255,255,255,.92)", border: "rgba(255,255,255,.18)" };
+                                  const active = String(materialsDetails.vinylColor) === c;
+                                  return (
+                                    <button
+                                      key={c}
+                                      type="button"
+                                      data-no-swipe="true"
+                                      disabled={!selectedStyle}
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, vinylColor: c }))}
+                                      className={
+                                        "h-10 rounded-lg border text-[11px] font-black transition-none " +
+                                        (active
+                                          ? "ring-2 ring-[rgba(255,214,10,.55)]"
+                                          : "")
+                                      }
+                                      style={{
+                                        background: sw.bg,
+                                        color: sw.fg,
+                                        borderColor: active ? "rgba(255,214,10,.65)" : sw.border
+                                      }}
+                                      aria-pressed={active}
+                                    >
+                                      {sw.label}
+                                    </button>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
                         </div>
 
                         <div>
