@@ -1500,95 +1500,100 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              adjustLaborDays(j.id, -1);
-                            }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2.5 py-2 text-[12px] font-black"
-                            aria-label="Decrease labor days"
-                          >
-                            -
-                          </button>
-
-                          <div className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] px-3 py-2 text-[12px] font-black leading-none min-w-[44px] text-center">
-                            {labor}
+                      <div className="mt-2 grid gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] text-[var(--muted)] font-extrabold">Labor days</div>
+                          <div className="flex items-center gap-2">
+                            <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, -1);
+                                }}
+                                className="px-3 py-2 text-[12px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                aria-label="Decrease labor days"
+                              >
+                                -
+                              </button>
+                              <div className="px-3 py-2 text-[12px] font-black leading-none min-w-[40px] text-center">
+                                {labor}
+                              </div>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1);
+                                }}
+                                className="px-3 py-2 text-[12px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                aria-label="Increase labor days"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                resetLaborDays(j.id);
+                              }}
+                              className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                            >
+                              Reset
+                            </button>
                           </div>
-
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              adjustLaborDays(j.id, 1);
-                            }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2.5 py-2 text-[12px] font-black"
-                            aria-label="Increase labor days"
-                          >
-                            +
-                          </button>
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              resetLaborDays(j.id);
-                            }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
-                          >
-                            Reset
-                          </button>
                         </div>
-                        <div className="text-[11px] text-[var(--muted)] font-extrabold">Labor</div>
-                      </div>
 
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleWeekendAllowed(j.id, "sat");
-                            }}
-                            className={
-                              "rounded-xl border px-3 py-2 text-[12px] font-black transition-colors " +
-                              (usedWeekend.sat
-                                ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-70")
-                            }
-                            aria-pressed={allowSat}
-                          >
-                            Sat
-                          </button>
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleWeekendAllowed(j.id, "sun");
-                            }}
-                            className={
-                              "rounded-xl border px-3 py-2 text-[12px] font-black transition-colors " +
-                              (usedWeekend.sun
-                                ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-70")
-                            }
-                            aria-pressed={allowSun}
-                          >
-                            Sun
-                          </button>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] text-[var(--muted)] font-extrabold">Weekend</div>
+                          <div className="flex items-center gap-2">
+                            <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] overflow-hidden">
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWeekendAllowed(j.id, "sat");
+                                }}
+                                className={
+                                  "px-3 py-2 text-[12px] font-black transition-colors " +
+                                  (usedWeekend.sat
+                                    ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                    : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                }
+                                aria-pressed={allowSat}
+                              >
+                                Sat
+                              </button>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWeekendAllowed(j.id, "sun");
+                                }}
+                                className={
+                                  "px-3 py-2 text-[12px] font-black transition-colors " +
+                                  (usedWeekend.sun
+                                    ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                    : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                }
+                                aria-pressed={allowSun}
+                              >
+                                Sun
+                              </button>
+                            </div>
+                            <div className="text-[14px] font-black text-white">#{idx + 1}</div>
+                          </div>
                         </div>
-                        <div className="text-[14px] font-black text-white">#{idx + 1}</div>
                       </div>
 
                       <div className="mt-2">
