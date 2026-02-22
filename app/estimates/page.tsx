@@ -3426,7 +3426,7 @@ function EstimatesPageInner() {
         ? createPortal(
           <nav
             className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 0px)" }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
@@ -3436,13 +3436,13 @@ function EstimatesPageInner() {
                 </div>
               ) : null}
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-                <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
-                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                </SecondaryButton>
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
+                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                </SecondaryButton>
+                <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
               </div>
             </div>
           </nav>,
