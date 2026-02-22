@@ -1315,6 +1315,55 @@ function EstimatesPageInner() {
         });
     }
 
+    if (selectedFenceType === "aluminum") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const style = String(selectedStyle?.name || "Aluminum");
+      const h = Math.max(1, Math.floor(Number(materialsDetails.aluminumPanelHeight) || 48));
+
+      const w = 6;
+      const segmentLengths = segments
+        .filter((s) => !s.removed)
+        .map((s) => Number(s.length) || 0)
+        .filter((n) => n > 0);
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / w), 0)
+        : (lf > 0 ? Math.ceil(lf / w) : 0);
+
+      const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
+      const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
+      const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
+      const gate = materialsDetails.aluminumGateAuto
+        ? aluminumPostsSummary.gateDerived
+        : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
+      const line = Math.max(0, aluminumPostsSummary.total - (corner + gate + end + blank));
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        ...(panels > 0 ? [{ name: `${style} aluminum panel ${h}\" x ${w}'`, qty: panels, unit: "ea" }] : []),
+        ...(line > 0 ? [{ name: "Aluminum line post", qty: line, unit: "ea" }] : []),
+        ...(corner > 0 ? [{ name: "Aluminum corner post", qty: corner, unit: "ea" }] : []),
+        ...(end > 0 ? [{ name: "Aluminum end post", qty: end, unit: "ea" }] : []),
+        ...(blank > 0 ? [{ name: "Aluminum blank post", qty: blank, unit: "ea" }] : []),
+        ...(gate > 0 ? [{ name: "Aluminum gate post", qty: gate, unit: "ea" }] : []),
+        ...(selectedStyle?.name === "Mansfield" && materialsDetails.mansfieldBlankGatePost
+          ? [{ name: "Mansfield blank gate post", qty: 1, unit: "ea" }]
+          : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
     // Placeholder rule set for now (iterate with you): driven by total LF.
     // We’ll replace these rules with your exact Standard Privacy rules.
     const lf = totalLf;
@@ -1341,9 +1390,6 @@ function EstimatesPageInner() {
         : []),
       ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
       ...(materialsDetails.arbor ? [{ name: "Arbor", qty: 1, unit: "ea" }] : []),
-      ...(selectedFenceType === "aluminum" && selectedStyle?.name === "Mansfield" && materialsDetails.mansfieldBlankGatePost
-        ? [{ name: "Mansfield blank gate post", qty: 1, unit: "ea" }]
-        : []),
       ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
       ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
       ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : [])
