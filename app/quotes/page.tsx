@@ -82,7 +82,23 @@ export default function QuotesPage() {
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
       const store = readDraftStore();
-      if (!store[id]) return;
+      const existing = store[id] ?? drafts.find((d) => d.id === id);
+      if (!existing) {
+        store[id] = {
+          id,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+          calendarHidden: false
+        };
+      } else {
+        store[id] = {
+          ...existing,
+          scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+          updatedAt: Date.now(),
+          calendarHidden: false
+        };
+      }
       store[id] = {
         ...store[id],
         scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
@@ -96,7 +112,12 @@ export default function QuotesPage() {
       setDrafts((prev) =>
         prev.map((d) =>
           d.id === id
-            ? { ...d, scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined, updatedAt: Date.now() }
+            ? {
+                ...d,
+                scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+                updatedAt: Date.now(),
+                calendarHidden: false
+              }
             : d
         )
       );
