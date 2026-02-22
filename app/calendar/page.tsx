@@ -1430,12 +1430,11 @@ export default function CalendarPage() {
             <GlassCard className="w-full max-w-[480px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
-                <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
               </div>
 
               <div
                 ref={queueListRef}
-                className="mt-2 grid gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+                className="mt-2 grid gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
                 style={{ overflowAnchor: "none" }}
               >
                 {soldQueue.length === 0 ? (
@@ -1710,6 +1709,12 @@ export default function CalendarPage() {
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="sticky bottom-0 -mx-2 mt-2 border-t border-[rgba(255,255,255,.12)] bg-[rgba(20,30,24,.55)] backdrop-blur-ios px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+                <SecondaryButton data-no-swipe="true" onClick={() => setQueueOpen(false)}>
+                  Close
+                </SecondaryButton>
               </div>
             </GlassCard>
           </div>
