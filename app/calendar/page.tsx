@@ -1154,22 +1154,32 @@ export default function CalendarPage() {
 
               {dayJobs.length ? (
                 <div className="mt-3 grid gap-2">
-                  {dayJobs.map((j) => (
-                    <div
-                      key={j.id}
-                      className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-3"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openContractPreview(j);
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-black truncate">
-                          {j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
+                  {dayJobs.map((j) => {
+                    const pos = soldQueue.findIndex((q) => q.id === j.id);
+                    return (
+                      <div
+                        key={j.id}
+                        className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-3"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          openContractPreview(j);
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-black truncate">
+                              {j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {pos >= 0 ? <div className="text-[14px] font-black text-white">#{pos + 1}</div> : null}
+                            <div
+                              className="h-3 w-3 rounded-full"
+                              style={{ background: (j as any).color ?? "rgba(255,255,255,.25)" }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-3 w-3 rounded-full" style={{ background: (j as any).color ?? "rgba(255,255,255,.25)" }} />
-                      </div>
                       <div className="text-[11px] text-[var(--muted)] mt-1">
                         {(j as any).status === "estimate" && String((j as any).scheduledAt || "")
                           ? `Scheduled ${formatTimeLocal(String((j as any).scheduledAt))}`
@@ -1183,8 +1193,9 @@ export default function CalendarPage() {
                         {totalLfFromDraft(j) ? ` · ${Math.round(totalLfFromDraft(j))} LF` : ""}
                         {j.projectAddress ? ` · ${j.projectAddress}` : ""}
                       </div>
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="mt-3 text-sm text-[var(--muted)]">No jobs scheduled.</div>
