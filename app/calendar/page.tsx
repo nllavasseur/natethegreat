@@ -1094,7 +1094,7 @@ export default function CalendarPage() {
   }, [blockedDays.byKey, selected]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
       {dayPreviewOpen ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center p-3"
@@ -1686,36 +1686,47 @@ export default function CalendarPage() {
         document.body
       ) : null}
 
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          data-no-swipe="true"
-          onClick={() => {
-            setBlockOpen(true);
-          }}
-          className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-          aria-label="Block Out Dates"
-        >
-          Block
-        </button>
+      {portalReady
+        ? createPortal(
+            <div className="fixed left-0 right-0 z-50 px-4" style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}>
+              <div className="mx-auto max-w-[980px]">
+                <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
+                  <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      data-no-swipe="true"
+                      onClick={() => {
+                        setQueueOpen(true);
+                      }}
+                      className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.20)]"
+                      aria-label="Job Queue"
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <span>Job Queue</span>
+                        <span className="rounded-full border border-[rgba(255,255,255,.18)] bg-[rgba(0,0,0,.18)] px-2 py-[2px] text-[11px] font-black leading-none">
+                          {soldQueue.length}
+                        </span>
+                      </span>
+                    </button>
 
-        <button
-          type="button"
-          data-no-swipe="true"
-          onClick={() => {
-            setQueueOpen((v) => !v);
-          }}
-          className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.20)]"
-          aria-label="Job Queue"
-        >
-          <span className="inline-flex items-center gap-2">
-            <span>Job Queue</span>
-            <span className="rounded-full border border-[rgba(255,255,255,.18)] bg-[rgba(0,0,0,.18)] px-2 py-[2px] text-[11px] font-black leading-none">
-              {soldQueue.length}
-            </span>
-          </span>
-        </button>
-      </div>
+                    <button
+                      type="button"
+                      data-no-swipe="true"
+                      onClick={() => {
+                        setBlockOpen(true);
+                      }}
+                      className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                      aria-label="Block Out Dates"
+                    >
+                      Block
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
 
       {blockOpen ? (
         <div
