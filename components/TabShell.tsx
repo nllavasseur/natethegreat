@@ -51,6 +51,10 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
     const setSat = () => {
       try {
+        const isStandalone =
+          (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
+          Boolean((navigator as any).standalone);
+
         const probe = document.createElement("div");
         probe.style.paddingTop = "env(safe-area-inset-top)";
         probe.style.position = "absolute";
@@ -68,7 +72,25 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         const inferred = vvTop > 0 ? Math.min(envPx, vvTop) : envPx;
 
         const clamped = Math.max(0, Math.min(Number.isFinite(inferred) ? inferred : 0, 44));
-        document.documentElement.style.setProperty("--vf-sat", `${clamped}px`);
+
+        // Standalone/PWA can occasionally "grow" the reported inset after navigation.
+        // Lock to the smallest stable value seen so the header can never get taller.
+        const finalPx = isStandalone
+          ? (() => {
+              if (clamped <= 0) {
+                stableSatRef.current = 0;
+                return 0;
+              }
+              if (stableSatRef.current == null) {
+                stableSatRef.current = clamped;
+                return clamped;
+              }
+              if (clamped < stableSatRef.current) stableSatRef.current = clamped;
+              return stableSatRef.current;
+            })()
+          : clamped;
+
+        document.documentElement.style.setProperty("--vf-sat", `${finalPx}px`);
       } catch {
         document.documentElement.style.setProperty("--vf-sat", "0px");
       }
@@ -153,6 +175,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const dragXRef = React.useRef(0);
   const draggingRef = React.useRef(false);
   const settlingRef = React.useRef(false);
+  const stableSatRef = React.useRef<number | null>(null);
 
   const swipeRef = React.useRef<{
     x0: number;
