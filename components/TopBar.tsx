@@ -6,7 +6,7 @@ export default function TopBar() {
   const [iconOk, setIconOk] = React.useState(true);
 
   return (
-    <header className="sticky top-0 z-40">
+    <header>
       <div className="backdrop-blur-ios bg-[rgba(10,18,14,.55)] border-b border-[var(--stroke)]">
         <div
           className="max-w-[980px] mx-auto px-4 grid grid-cols-[2.5rem_1fr_2.5rem] items-center"

@@ -1188,7 +1188,7 @@ export default function CalendarPage() {
 
       {queueOpen ? (
         <div
-          className="fixed inset-0 z-50 grid place-items-center p-3"
+          className="fixed inset-0 z-50 grid place-items-center p-3 overflow-x-hidden"
           role="dialog"
           aria-modal="true"
           onClick={(e) => {
@@ -1199,7 +1199,7 @@ export default function CalendarPage() {
         >
           <div className="absolute inset-0 bg-black/40" />
           <div
-            className="relative w-full max-w-[520px] max-w-[calc(100vw-24px)]"
+            className="relative box-border w-[calc(100vw-24px)] max-w-[520px]"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -1362,7 +1362,7 @@ export default function CalendarPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-sm font-black truncate">
+                          <div className="text-sm font-black truncate min-w-0">
                             {j.customerName || j.title || j.projectAddress || j.selectedStyle?.name || "Job"}
                           </div>
                           <div className="text-[11px] text-[var(--muted)] mt-1 truncate">
@@ -1370,7 +1370,7 @@ export default function CalendarPage() {
                             {lf ? ` · ${Math.round(lf)} LF` : ""}
                             {j.projectAddress ? ` · ${j.projectAddress}` : ""}
                           </div>
-                          <div className="text-[11px] text-[var(--muted)] mt-1 truncate">
+                          <div className="text-[11px] text-[var(--muted)] mt-1 break-words">
                             {startIso ? `Start ${startIso}` : ""}
                             {endIso ? ` · End ${endIso}` : ""}
                             {hold ? ` · Hold ${hold}` : ""}

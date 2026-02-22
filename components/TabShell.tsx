@@ -191,43 +191,40 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh flex flex-col vf-app-bg">
-      {hideChrome ? null : <TopBar />}
-
       {hideChrome ? null : (
-        <nav
-          className="sticky z-30"
-          style={{ top: "calc(3.5rem + min(env(safe-area-inset-top), 44px))" }}
-          aria-label="Top navigation"
-        >
-          <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
-            <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-              {tabs.map((t) => {
-                const isActive = active === t.href;
-                const Icon = t.icon;
-                return (
-                  <Link
-                    key={t.href}
-                    href={t.href}
-                    className={clsx(
-                      "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition",
-                      isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
-                    )}
-                  >
-                    <Icon className={clsx("h-5 w-5", isActive ? "text-white" : "text-[rgba(255,255,255,.8)]")} />
-                    <span
+        <div className="sticky top-0 z-40">
+          <TopBar />
+          <nav aria-label="Top navigation">
+            <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
+              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+                {tabs.map((t) => {
+                  const isActive = active === t.href;
+                  const Icon = t.icon;
+                  return (
+                    <Link
+                      key={t.href}
+                      href={t.href}
                       className={clsx(
-                        "text-[11px] font-semibold",
-                        isActive ? "text-white" : "text-[rgba(255,255,255,.75)]"
+                        "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition",
+                        isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
                       )}
                     >
-                      {t.label}
-                    </span>
-                  </Link>
-                );
-              })}
+                      <Icon className={clsx("h-5 w-5", isActive ? "text-white" : "text-[rgba(255,255,255,.8)]")} />
+                      <span
+                        className={clsx(
+                          "text-[11px] font-semibold",
+                          isActive ? "text-white" : "text-[rgba(255,255,255,.75)]"
+                        )}
+                      >
+                        {t.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </div>
       )}
 
       <main
