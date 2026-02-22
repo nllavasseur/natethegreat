@@ -63,11 +63,11 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         const envPx = Number.parseFloat(String(raw || "0")) || 0;
         const vvTop = window.visualViewport ? Number(window.visualViewport.offsetTop || 0) : 0;
 
-        // In iOS standalone, the visual viewport can already be offset by the safe area.
-        // Subtracting vvTop prevents "double" application that can inflate header height.
-        const adjusted = envPx - vvTop;
+        // In iOS standalone, some navigations can report a doubled env inset.
+        // visualViewport.offsetTop tends to remain the "real" inset, so cap with it when present.
+        const inferred = vvTop > 0 ? Math.min(envPx, vvTop) : envPx;
 
-        const clamped = Math.max(0, Math.min(Number.isFinite(adjusted) ? adjusted : 0, 44));
+        const clamped = Math.max(0, Math.min(Number.isFinite(inferred) ? inferred : 0, 44));
         document.documentElement.style.setProperty("--vf-sat", `${clamped}px`);
       } catch {
         document.documentElement.style.setProperty("--vf-sat", "0px");
@@ -78,10 +78,15 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     window.addEventListener("resize", setSat);
     window.addEventListener("orientationchange", setSat);
     window.addEventListener("pageshow", setSat);
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", setSat);
+    vv?.addEventListener("scroll", setSat);
     return () => {
       window.removeEventListener("resize", setSat);
       window.removeEventListener("orientationchange", setSat);
       window.removeEventListener("pageshow", setSat);
+      vv?.removeEventListener("resize", setSat);
+      vv?.removeEventListener("scroll", setSat);
     };
   }, [pathname]);
 
