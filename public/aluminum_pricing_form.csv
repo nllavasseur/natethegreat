@@ -1,79 +1,78 @@
 key,description,unit,price_usd
-ALU_PANEL_MANSFIELD_48,Mansfield aluminum panel 6ft (4'),ea,
-ALU_POST_LINE_MANSFIELD_48,Mansfield line post (4'),ea,
-ALU_POST_CORNER_MANSFIELD_48,Mansfield corner post (4'),ea,
-ALU_POST_END_MANSFIELD_48,Mansfield end post (4'),ea,
-ALU_POST_GATE_MANSFIELD_48,Mansfield gate post (4'),ea,
-ALU_POST_BLANK_MANSFIELD_48,Mansfield blank post (4'),ea,
+ALU_PANEL_MANSFIELD_48,Mansfield aluminum panel 6ft (4'),ea,99.99
+ALU_POST_LINE_MANSFIELD_48,Mansfield line post (4'),ea,34.99
+ALU_POST_CORNER_MANSFIELD_48,Mansfield corner post (4'),ea,34.99
+ALU_POST_END_MANSFIELD_48,Mansfield end post (4'),ea,34.99
+ALU_POST_GATE_MANSFIELD_48,Mansfield gate post (4'),ea,65.99
+ALU_POST_BLANK_MANSFIELD_48,Mansfield blank post (4'),ea,34.99
 MANSFIELD_BLANK_GATE_POST_48,Mansfield blank gate post add-on (4'),ea,65.99
-MANSFIELD_GATE_WALK_48_4,Mansfield walk gate 48" x 4',ea,399.99
-MANSFIELD_GATE_WALK_60_4,Mansfield walk gate 60" x 4',ea,445.00
-MANSFIELD_GATE_DOUBLE_48_4,Mansfield double gate 48" x 4',ea,795.00
-MANSFIELD_GATE_DOUBLE_60_4,Mansfield double gate 60" x 4',ea,859.90
-ALU_PANEL_MANSFIELD_60,Mansfield aluminum panel 6ft (5'),ea,
-ALU_POST_LINE_MANSFIELD_60,Mansfield line post (5'),ea,
-ALU_POST_CORNER_MANSFIELD_60,Mansfield corner post (5'),ea,
-ALU_POST_END_MANSFIELD_60,Mansfield end post (5'),ea,
-ALU_POST_GATE_MANSFIELD_60,Mansfield gate post (5'),ea,
-ALU_POST_BLANK_MANSFIELD_60,Mansfield blank post (5'),ea,
-MANSFIELD_BLANK_GATE_POST_60,Mansfield blank gate post add-on (5'),ea,
-MANSFIELD_GATE_WALK_48_5,Mansfield walk gate 48" x 5',ea,
-MANSFIELD_GATE_WALK_60_5,Mansfield walk gate 60" x 5',ea,
-MANSFIELD_GATE_DOUBLE_48_5,Mansfield double gate 48" x 5',ea,
-MANSFIELD_GATE_DOUBLE_60_5,Mansfield double gate 60" x 5',ea,
-ALU_PANEL_ATLANTIC_48,Atlantic aluminum panel 6ft (4'),ea,
-ALU_POST_LINE_ATLANTIC_48,Atlantic line post (4'),ea,
-ALU_POST_CORNER_ATLANTIC_48,Atlantic corner post (4'),ea,
-ALU_POST_END_ATLANTIC_48,Atlantic end post (4'),ea,
-ALU_POST_GATE_ATLANTIC_48,Atlantic gate post (4'),ea,
-ALU_POST_BLANK_ATLANTIC_48,Atlantic blank post (4'),ea,
-ATLANTIC_BLANK_GATE_POST_48,Atlantic blank gate post add-on (4'),ea,
-ATLANTIC_GATE_WALK_48_4,Atlantic walk gate 48" x 4',ea,
-ATLANTIC_GATE_WALK_60_4,Atlantic walk gate 60" x 4',ea,
-ATLANTIC_GATE_DOUBLE_48_4,Atlantic double gate 48" x 4',ea,
-ATLANTIC_GATE_DOUBLE_60_4,Atlantic double gate 60" x 4',ea,
-ALU_PANEL_PACIFIC_54,Pacific aluminum panel 6ft (4.5'),ea,
-ALU_POST_LINE_PACIFIC_54,Pacific line post (4.5'),ea,
-ALU_POST_CORNER_PACIFIC_54,Pacific corner post (4.5'),ea,
-ALU_POST_END_PACIFIC_54,Pacific end post (4.5'),ea,
-ALU_POST_GATE_PACIFIC_54,Pacific gate post (4.5'),ea,
-ALU_POST_BLANK_PACIFIC_54,Pacific blank post (4.5'),ea,
-PACIFIC_BLANK_GATE_POST_54,Pacific blank gate post add-on (4.5'),ea,
-PACIFIC_GATE_WALK_48_45,Pacific walk gate 48" x 4.5',ea,
-PACIFIC_GATE_WALK_60_45,Pacific walk gate 60" x 4.5',ea,
-PACIFIC_GATE_DOUBLE_48_45,Pacific double gate 48" x 4.5',ea,
-PACIFIC_GATE_DOUBLE_60_45,Pacific double gate 60" x 4.5',ea,
-ALU_PANEL_TOLEDO_48,Toledo aluminum panel 6ft (4'),ea,
-ALU_POST_LINE_TOLEDO_48,Toledo line post (4'),ea,
-ALU_POST_CORNER_TOLEDO_48,Toledo corner post (4'),ea,
-ALU_POST_END_TOLEDO_48,Toledo end post (4'),ea,
-ALU_POST_GATE_TOLEDO_48,Toledo gate post (4'),ea,
-ALU_POST_BLANK_TOLEDO_48,Toledo blank post (4'),ea,
-TOLEDO_BLANK_GATE_POST_48,Toledo blank gate post add-on (4'),ea,
-TOLEDO_GATE_WALK_48_4,Toledo walk gate 48" x 4',ea,
-TOLEDO_GATE_WALK_60_4,Toledo walk gate 60" x 4',ea,
-TOLEDO_GATE_DOUBLE_48_4,Toledo double gate 48" x 4',ea,
-TOLEDO_GATE_DOUBLE_60_4,Toledo double gate 60" x 4',ea,
-ALU_PANEL_TOLEDO_60,Toledo aluminum panel 6ft (5'),ea,
-ALU_POST_LINE_TOLEDO_60,Toledo line post (5'),ea,
-ALU_POST_CORNER_TOLEDO_60,Toledo corner post (5'),ea,
-ALU_POST_END_TOLEDO_60,Toledo end post (5'),ea,
-ALU_POST_GATE_TOLEDO_60,Toledo gate post (5'),ea,
-ALU_POST_BLANK_TOLEDO_60,Toledo blank post (5'),ea,
-TOLEDO_BLANK_GATE_POST_60,Toledo blank gate post add-on (5'),ea,
-TOLEDO_GATE_WALK_48_5,Toledo walk gate 48" x 5',ea,
-TOLEDO_GATE_WALK_60_5,Toledo walk gate 60" x 5',ea,
-TOLEDO_GATE_DOUBLE_48_5,Toledo double gate 48" x 5',ea,
-TOLEDO_GATE_DOUBLE_60_5,Toledo double gate 60" x 5',ea,
-ALU_PANEL_TERRIER_48,Terrier aluminum panel 6ft (4'),ea,
-ALU_POST_LINE_TERRIER_48,Terrier line post (4'),ea,
-ALU_POST_CORNER_TERRIER_48,Terrier corner post (4'),ea,
-ALU_POST_END_TERRIER_48,Terrier end post (4'),ea,
-ALU_POST_GATE_TERRIER_48,Terrier gate post (4'),ea,
-ALU_POST_BLANK_TERRIER_48,Terrier blank post (4'),ea,
-TERRIER_BLANK_GATE_POST_48,Terrier blank gate post add-on (4'),ea,
-TERRIER_GATE_WALK_48_4,Terrier walk gate 48" x 4',ea,
-TERRIER_GATE_WALK_60_4,Terrier walk gate 60" x 4',ea,
-TERRIER_GATE_DOUBLE_48_4,Terrier double gate 48" x 4',ea,
-TERRIER_GATE_DOUBLE_60_4,Terrier double gate 60" x 4',ea,
-
+MANSFIELD_GATE_WALK_48_4,"Mansfield walk gate 48"" x 4'",ea,399.99
+MANSFIELD_GATE_WALK_60_4,"Mansfield walk gate 60"" x 4'",ea,445.00
+MANSFIELD_GATE_DOUBLE_48_4,"Mansfield double gate 48"" x 4'",ea,795.00
+MANSFIELD_GATE_DOUBLE_60_4,"Mansfield double gate 60"" x 4'",ea,859.90
+ALU_PANEL_MANSFIELD_60,Mansfield aluminum panel 6ft (5'),ea,119.99
+ALU_POST_LINE_MANSFIELD_60,Mansfield line post (5'),ea,39.99
+ALU_POST_CORNER_MANSFIELD_60,Mansfield corner post (5'),ea,39.99
+ALU_POST_END_MANSFIELD_60,Mansfield end post (5'),ea,39.99
+ALU_POST_GATE_MANSFIELD_60,Mansfield gate post (5'),ea,75.00
+ALU_POST_BLANK_MANSFIELD_60,Mansfield blank post (5'),ea,39.99
+MANSFIELD_BLANK_GATE_POST_60,Mansfield blank gate post add-on (5'),ea,74.99
+MANSFIELD_GATE_WALK_48_5,"Mansfield walk gate 48"" x 5'",ea,429.99
+MANSFIELD_GATE_WALK_60_5,"Mansfield walk gate 60"" x 5'",ea,459.99
+MANSFIELD_GATE_DOUBLE_48_5,"Mansfield double gate 48"" x 5'",ea,859.99
+MANSFIELD_GATE_DOUBLE_60_5,"Mansfield double gate 60"" x 5'",ea,899.99
+ALU_PANEL_ATLANTIC_48,Atlantic aluminum panel 6ft (4'),ea,124.99
+ALU_POST_LINE_ATLANTIC_48,Atlantic line post (4'),ea,34.99
+ALU_POST_CORNER_ATLANTIC_48,Atlantic corner post (4'),ea,34.99
+ALU_POST_END_ATLANTIC_48,Atlantic end post (4'),ea,34.99
+ALU_POST_GATE_ATLANTIC_48,Atlantic gate post (4'),ea,65.99
+ALU_POST_BLANK_ATLANTIC_48,Atlantic blank post (4'),ea,34.99
+ATLANTIC_BLANK_GATE_POST_48,Atlantic blank gate post add-on (4'),ea,65.99
+ATLANTIC_GATE_WALK_48_4,"Atlantic walk gate 48"" x 4'",ea,429.99
+ATLANTIC_GATE_WALK_60_4,"Atlantic walk gate 60"" x 4'",ea,459.99
+ATLANTIC_GATE_DOUBLE_48_4,"Atlantic double gate 48"" x 4'",ea,859.99
+ATLANTIC_GATE_DOUBLE_60_4,"Atlantic double gate 60"" x 4'",ea,909.5
+ALU_PANEL_PACIFIC_54,Pacific aluminum panel 6ft (4.5'),ea,119.99
+ALU_POST_LINE_PACIFIC_54,Pacific line post (4.5'),ea,39.99
+ALU_POST_CORNER_PACIFIC_54,Pacific corner post (4.5'),ea,39.99
+ALU_POST_END_PACIFIC_54,Pacific end post (4.5'),ea,39.99
+ALU_POST_GATE_PACIFIC_54,Pacific gate post (4.5'),ea,75.00
+ALU_POST_BLANK_PACIFIC_54,Pacific blank post (4.5'),ea,39.99
+PACIFIC_BLANK_GATE_POST_54,Pacific blank gate post add-on (4.5'),ea,49.99
+PACIFIC_GATE_WALK_48_45,"Pacific walk gate 48"" x 4.5'",ea,429.99
+PACIFIC_GATE_WALK_60_45,"Pacific walk gate 60"" x 4.5'",ea,459.99
+PACIFIC_GATE_DOUBLE_48_45,"Pacific double gate 48"" x 4.5'",ea,859.99
+PACIFIC_GATE_DOUBLE_60_45,"Pacific double gate 60"" x 4.5'",ea,899.99
+ALU_PANEL_TOLEDO_48,Toledo aluminum panel 6ft (4'),ea,105.99
+ALU_POST_LINE_TOLEDO_48,Toledo line post (4'),ea,34.99
+ALU_POST_CORNER_TOLEDO_48,Toledo corner post (4'),ea,34.99
+ALU_POST_END_TOLEDO_48,Toledo end post (4'),ea,34.99
+ALU_POST_GATE_TOLEDO_48,Toledo gate post (4'),ea,65.99
+ALU_POST_BLANK_TOLEDO_48,Toledo blank post (4'),ea,34.99
+TOLEDO_BLANK_GATE_POST_48,Toledo blank gate post add-on (4'),ea,65.99
+TOLEDO_GATE_WALK_48_4,"Toledo walk gate 48"" x 4'",ea,399.99
+TOLEDO_GATE_WALK_60_4,"Toledo walk gate 60"" x 4'",ea,445
+TOLEDO_GATE_DOUBLE_48_4,"Toledo double gate 48"" x 4'",ea,785
+TOLEDO_GATE_DOUBLE_60_4,"Toledo double gate 60"" x 4'",ea,859.9
+ALU_PANEL_TOLEDO_60,Toledo aluminum panel 6ft (5'),ea,124.99
+ALU_POST_LINE_TOLEDO_60,Toledo line post (5'),ea,39.99
+ALU_POST_CORNER_TOLEDO_60,Toledo corner post (5'),ea,39.99
+ALU_POST_END_TOLEDO_60,Toledo end post (5'),ea,39.99
+ALU_POST_GATE_TOLEDO_60,Toledo gate post (5'),ea,75
+ALU_POST_BLANK_TOLEDO_60,Toledo blank post (5'),ea,39.99
+TOLEDO_BLANK_GATE_POST_60,Toledo blank gate post add-on (5'),ea,75
+TOLEDO_GATE_WALK_48_5,"Toledo walk gate 48"" x 5'",ea,429.99
+TOLEDO_GATE_WALK_60_5,"Toledo walk gate 60"" x 5'",ea,459.99
+TOLEDO_GATE_DOUBLE_48_5,"Toledo double gate 48"" x 5'",ea,859.99
+TOLEDO_GATE_DOUBLE_60_5,"Toledo double gate 60"" x 5'",ea,899.99
+ALU_PANEL_TERRIER_48,Terrier aluminum panel 6ft (4'),ea,169.99
+ALU_POST_LINE_TERRIER_48,Terrier line post (4'),ea,34.99
+ALU_POST_CORNER_TERRIER_48,Terrier corner post (4'),ea,34.99
+ALU_POST_END_TERRIER_48,Terrier end post (4'),ea,34.99
+ALU_POST_GATE_TERRIER_48,Terrier gate post (4'),ea,65.99
+ALU_POST_BLANK_TERRIER_48,Terrier blank post (4'),ea,34.99
+TERRIER_BLANK_GATE_POST_48,Terrier blank gate post add-on (4'),ea,65.99
+TERRIER_GATE_WALK_48_4,"Terrier walk gate 48"" x 4'",ea,
+TERRIER_GATE_WALK_60_4,"Terrier walk gate 60"" x 4'",ea,
+TERRIER_GATE_DOUBLE_48_4,"Terrier double gate 48"" x 4'",ea,
+TERRIER_GATE_DOUBLE_60_4,"Terrier double gate 60"" x 4'",ea,
