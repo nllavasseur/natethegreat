@@ -457,7 +457,7 @@ export default function QuotesPage() {
   }, [cards, statusFilter]);
 
   return (
-    <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 120px)" }}>
+    <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
       {scheduleForId ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center p-4"
@@ -799,11 +799,11 @@ export default function QuotesPage() {
         ? createPortal(
             <div
               className="fixed left-0 right-0 z-50 px-4"
-              style={{ bottom: "calc(env(safe-area-inset-bottom) + 12px)" }}
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
             >
               <div className="mx-auto max-w-[980px]">
                 <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
                     <Link href="/estimates" className="shrink-0">
                       <PrimaryButton>New Quote</PrimaryButton>
                     </Link>
