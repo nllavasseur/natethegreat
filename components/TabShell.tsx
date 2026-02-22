@@ -67,9 +67,9 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         const envPx = Number.parseFloat(String(raw || "0")) || 0;
         const vvTop = window.visualViewport ? Number(window.visualViewport.offsetTop || 0) : 0;
 
-        // In iOS standalone, some navigations can report a doubled env inset.
-        // visualViewport.offsetTop tends to remain the "real" inset, so cap with it when present.
-        const inferred = vvTop > 0 ? Math.min(envPx, vvTop) : envPx;
+        // In iOS standalone, env(safe-area-inset-top) can sometimes be wrong (0 or doubled).
+        // visualViewport.offsetTop tends to track the *real* top inset when present.
+        const inferred = vvTop > 0 ? vvTop : envPx;
 
         const clamped = Math.max(0, Math.min(Number.isFinite(inferred) ? inferred : 0, 44));
 
@@ -78,10 +78,18 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
         // - Lock to the *first non-zero* value we see.
         // - Ignore transient 0 readings once locked.
         if (isStandalone) {
-          if (stableSatRef.current == null) {
-            if (clamped > 0) stableSatRef.current = clamped;
+          // Never apply a 0 inset in standalone mode; iOS can transiently report 0 during scroll.
+          // Keep the last known-good inset instead.
+          if (clamped <= 0) {
+            const keep = stableSatRef.current != null ? stableSatRef.current : lastSatAppliedRef.current;
+            if (keep > 0) document.documentElement.style.setProperty("--vf-sat", `${keep}px`);
+            return;
           }
-          const finalPx = stableSatRef.current != null ? stableSatRef.current : clamped;
+
+          // Lock once we get a real non-zero inset.
+          if (stableSatRef.current == null) stableSatRef.current = clamped;
+          const finalPx = stableSatRef.current;
+          lastSatAppliedRef.current = finalPx;
           document.documentElement.style.setProperty("--vf-sat", `${finalPx}px`);
           return;
         }
@@ -182,6 +190,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const draggingRef = React.useRef(false);
   const settlingRef = React.useRef(false);
   const stableSatRef = React.useRef<number | null>(null);
+  const lastSatAppliedRef = React.useRef<number>(0);
 
   const swipeRef = React.useRef<{
     x0: number;
