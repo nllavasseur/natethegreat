@@ -525,7 +525,6 @@ function EstimatesPageInner() {
     horizontalCedarVerticals: boolean;
     horizontalCedarCornerAdjust: number;
     aluminumPanelHeight: number;
-    aluminumPanelWidthFt: number;
     aluminumGateAuto: boolean;
     aluminumCornerPosts: number;
     aluminumGatePosts: number;
@@ -544,7 +543,6 @@ function EstimatesPageInner() {
     horizontalCedarVerticals: false,
     horizontalCedarCornerAdjust: 0,
     aluminumPanelHeight: 48,
-    aluminumPanelWidthFt: 6,
     aluminumGateAuto: true,
     aluminumCornerPosts: 0,
     aluminumGatePosts: 0,
@@ -567,7 +565,6 @@ function EstimatesPageInner() {
       materialsDetails.horizontalCedarVerticals ||
       (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
       (Number(materialsDetails.aluminumPanelHeight) || 0) !== 48 ||
-      (Number(materialsDetails.aluminumPanelWidthFt) || 0) !== 6 ||
       Boolean(materialsDetails.aluminumGateAuto) !== true ||
       (Number(materialsDetails.aluminumCornerPosts) || 0) !== 0 ||
       (Number(materialsDetails.aluminumGatePosts) || 0) !== 0 ||
@@ -596,7 +593,7 @@ function EstimatesPageInner() {
     const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
-    const w = Math.max(1, Number(materialsDetails.aluminumPanelWidthFt) || 6);
+    const w = 6;
     const segmentLengths = segments
       .filter((s) => !s.removed)
       .map((s) => Number(s.length) || 0)
@@ -617,7 +614,7 @@ function EstimatesPageInner() {
     const line = Math.max(0, total - (corner + gate + end + blank));
 
     return { total, line, gateDerived };
-  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, materialsDetails.aluminumPanelWidthFt, segments, selectedFenceType]);
+  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, segments, selectedFenceType]);
 
   const horizontalCedarDetailsActive = useMemo(() => {
     if (selectedStyle?.name !== "Horizontal Cedar") return false;
@@ -1735,7 +1732,6 @@ function EstimatesPageInner() {
       horizontalCedarVerticals: false,
       horizontalCedarCornerAdjust: 0,
       aluminumPanelHeight: 48,
-      aluminumPanelWidthFt: 6,
       aluminumGateAuto: true,
       aluminumCornerPosts: 0,
       aluminumGatePosts: 0,
@@ -3618,20 +3614,9 @@ function EstimatesPageInner() {
                         </div>
                         <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Panel width</div>
-                          <Select
-                            value={String(materialsDetails.aluminumPanelWidthFt)}
-                            onChange={(e) =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                aluminumPanelWidthFt: Math.max(1, Number(e.target.value) || 1)
-                              }))
-                            }
-                          >
-                            <option value="5">5 ft</option>
-                            <option value="6">6 ft</option>
-                            <option value="7">7 ft</option>
-                            <option value="8">8 ft</option>
-                          </Select>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-2 text-[13px] font-black">
+                            6 ft
+                          </div>
                         </div>
                       </div>
 
