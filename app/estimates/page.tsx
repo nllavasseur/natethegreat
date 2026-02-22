@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import NextImage from "next/image";
@@ -26,7 +26,6 @@ export default function EstimatesPage() {
 
 function EstimatesPageInner() {
   const router = useRouter();
-  const pathname = usePathname();
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -2040,7 +2039,7 @@ function EstimatesPageInner() {
         document.body
       ) : null}
 
-      {portalReady && pathname === "/estimates"
+      {portalReady
         ? createPortal(
           <div
             className="fixed right-4 z-30 pointer-events-none"
@@ -3423,33 +3422,28 @@ function EstimatesPageInner() {
         <SecondaryButton onClick={generateContract}>Generate Contract</SecondaryButton>
       </div>
 
-      {portalReady && pathname === "/estimates"
-        ? createPortal(
-          <nav
-            className="fixed left-0 right-0 z-[120] px-4"
-            style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
-            aria-label="Estimate actions"
-          >
-            <div className="mx-auto max-w-[980px]">
-              {saveError ? (
-                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-                  {saveError}
-                </div>
-              ) : null}
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-                <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                  {saving ? "Saving…" : "Save"}
-                </PrimaryButton>
-                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                </SecondaryButton>
-                <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
-              </div>
+      <div
+        className="sticky bottom-0 z-50 px-4"
+        style={{ paddingBottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
+        aria-label="Estimate actions"
+      >
+        <div className="mx-auto max-w-[980px]">
+          {saveError ? (
+            <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+              {saveError}
             </div>
-          </nav>,
-          document.body
-        )
-        : null}
+          ) : null}
+          <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+            <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+              {saving ? "Saving…" : "Save"}
+            </PrimaryButton>
+            <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+              {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+            </SecondaryButton>
+            <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
