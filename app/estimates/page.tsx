@@ -483,83 +483,17 @@ function EstimatesPageInner() {
     {
       type: "aluminum",
       name: "Mansfield",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <defs>
-              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
-                <stop stop-color='#3F4956'/>
-                <stop offset='1' stop-color='#121820'/>
-              </linearGradient>
-            </defs>
-            <rect width='80' height='80' rx='14' fill='url(#g)'/>
-            <g opacity='.40' fill='#fff'>
-              ${Array.from({ length: 7 }).map((_, i) => {
-                const x = 14 + i * 9;
-                return `<rect x='${x}' y='18' width='4' height='46' rx='2'/>`;
-              }).join("")}
-            </g>
-            <g opacity='.35' fill='#fff'>
-              <rect x='12' y='26' width='56' height='3' rx='1.5'/>
-              <rect x='12' y='50' width='56' height='3' rx='1.5'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/mansfield.jpg"
     },
     {
       type: "aluminum",
       name: "Atlantic",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <defs>
-              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
-                <stop stop-color='#3F4956'/>
-                <stop offset='1' stop-color='#121820'/>
-              </linearGradient>
-            </defs>
-            <rect width='80' height='80' rx='14' fill='url(#g)'/>
-            <g opacity='.40' fill='#fff'>
-              ${Array.from({ length: 7 }).map((_, i) => {
-                const x = 14 + i * 9;
-                return `<rect x='${x}' y='18' width='4' height='46' rx='2'/>`;
-              }).join("")}
-            </g>
-            <g opacity='.35' fill='#fff'>
-              <rect x='12' y='26' width='56' height='3' rx='1.5'/>
-              <rect x='12' y='50' width='56' height='3' rx='1.5'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/atlantic.jpg"
     },
     {
       type: "aluminum",
       name: "Pacific",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <defs>
-              <linearGradient id='g' x1='0' x2='1' y1='0' y2='1'>
-                <stop stop-color='#3F4956'/>
-                <stop offset='1' stop-color='#121820'/>
-              </linearGradient>
-            </defs>
-            <rect width='80' height='80' rx='14' fill='url(#g)'/>
-            <g opacity='.40' fill='#fff'>
-              ${Array.from({ length: 7 }).map((_, i) => {
-                const x = 14 + i * 9;
-                return `<rect x='${x}' y='18' width='4' height='46' rx='2'/>`;
-              }).join("")}
-            </g>
-            <g opacity='.35' fill='#fff'>
-              <rect x='12' y='26' width='56' height='3' rx='1.5'/>
-              <rect x='12' y='50' width='56' height='3' rx='1.5'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/pacific.jpg"
     },
     {
       type: "aluminum",
