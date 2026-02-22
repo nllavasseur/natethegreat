@@ -38,6 +38,9 @@ function EstimatesPageInner() {
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
   const [projectPhotoDataUrl, setProjectPhotoDataUrl] = useState<string | null>(null);
   const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
+  const [photoViewerScale, setPhotoViewerScale] = useState(1);
+  const [photoViewerX, setPhotoViewerX] = useState(0);
+  const [photoViewerY, setPhotoViewerY] = useState(0);
   const [measureOpen, setMeasureOpen] = useState(false);
   const [tracePoints, setTracePoints] = useState<Array<{ x: number; y: number }>>([]);
   const [ocrBusy, setOcrBusy] = useState(false);
@@ -1005,12 +1008,34 @@ function EstimatesPageInner() {
 
   useEffect(() => {
     if (!photoViewerSrc) return;
+    setPhotoViewerScale(1);
+    setPhotoViewerX(0);
+    setPhotoViewerY(0);
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPhotoViewerSrc(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [photoViewerSrc]);
+
+  const viewerPointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const viewerGestureRef = useRef<{
+    startScale: number;
+    startX: number;
+    startY: number;
+    startDist: number;
+    startCenter: { x: number; y: number };
+  } | null>(null);
+
+  function clamp(n: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function dist(a: { x: number; y: number }, b: { x: number; y: number }) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
 
   const totals = useMemo(() => computeTotals(items, 0, 0, 0), [items]);
   const materialsSubtotal = useMemo(() => {
@@ -1910,12 +1935,102 @@ function EstimatesPageInner() {
                 </SecondaryButton>
               </div>
               <div className="mt-2 rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
-                <img
-                  src={photoViewerSrc}
-                  alt=""
-                  className="block w-full h-auto max-h-[78dvh] object-contain"
-                  style={{ touchAction: "pan-x pan-y pinch-zoom" }}
-                />
+                <div
+                  className="relative w-full max-h-[78dvh] overflow-hidden"
+                  style={{ touchAction: "none" }}
+                  onPointerDown={(e) => {
+                    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+                    viewerPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    const pts = Array.from(viewerPointersRef.current.values());
+                    if (pts.length === 1) {
+                      viewerGestureRef.current = {
+                        startScale: photoViewerScale,
+                        startX: photoViewerX,
+                        startY: photoViewerY,
+                        startDist: 0,
+                        startCenter: { x: pts[0].x, y: pts[0].y }
+                      };
+                    }
+                    if (pts.length >= 2) {
+                      const a = pts[0];
+                      const b = pts[1];
+                      viewerGestureRef.current = {
+                        startScale: photoViewerScale,
+                        startX: photoViewerX,
+                        startY: photoViewerY,
+                        startDist: dist(a, b) || 1,
+                        startCenter: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+                      };
+                    }
+                  }}
+                  onPointerMove={(e) => {
+                    if (!viewerPointersRef.current.has(e.pointerId)) return;
+                    viewerPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                    const pts = Array.from(viewerPointersRef.current.values());
+                    const g = viewerGestureRef.current;
+                    if (!g) return;
+
+                    if (pts.length >= 2) {
+                      const a = pts[0];
+                      const b = pts[1];
+                      const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                      const dNow = dist(a, b) || 1;
+                      const nextScale = clamp(g.startScale * (dNow / (g.startDist || 1)), 1, 5);
+                      const dx = center.x - g.startCenter.x;
+                      const dy = center.y - g.startCenter.y;
+                      setPhotoViewerScale(nextScale);
+                      setPhotoViewerX(g.startX + dx);
+                      setPhotoViewerY(g.startY + dy);
+                      return;
+                    }
+
+                    if (pts.length === 1) {
+                      const p = pts[0];
+                      const dx = p.x - g.startCenter.x;
+                      const dy = p.y - g.startCenter.y;
+                      setPhotoViewerX(g.startX + dx);
+                      setPhotoViewerY(g.startY + dy);
+                    }
+                  }}
+                  onPointerUp={(e) => {
+                    viewerPointersRef.current.delete(e.pointerId);
+                    const pts = Array.from(viewerPointersRef.current.values());
+                    if (pts.length === 1) {
+                      viewerGestureRef.current = {
+                        startScale: photoViewerScale,
+                        startX: photoViewerX,
+                        startY: photoViewerY,
+                        startDist: 0,
+                        startCenter: { x: pts[0].x, y: pts[0].y }
+                      };
+                      return;
+                    }
+                    if (pts.length === 0) {
+                      viewerGestureRef.current = null;
+                    }
+                  }}
+                  onPointerCancel={(e) => {
+                    viewerPointersRef.current.delete(e.pointerId);
+                    if (viewerPointersRef.current.size === 0) viewerGestureRef.current = null;
+                  }}
+                  onDoubleClick={() => {
+                    setPhotoViewerScale(1);
+                    setPhotoViewerX(0);
+                    setPhotoViewerY(0);
+                  }}
+                >
+                  <img
+                    src={photoViewerSrc}
+                    alt=""
+                    className="block w-full h-auto object-contain"
+                    style={{
+                      transform: `translate3d(${photoViewerX}px, ${photoViewerY}px, 0) scale(${photoViewerScale})`,
+                      transformOrigin: "center center",
+                      willChange: "transform"
+                    }}
+                    draggable={false}
+                  />
+                </div>
               </div>
               <div className="mt-2 text-[11px] text-[var(--muted)]">Pinch to zoom</div>
             </GlassCard>
