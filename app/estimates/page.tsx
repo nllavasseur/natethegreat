@@ -69,91 +69,27 @@ function EstimatesPageInner() {
     {
       type: "wood",
       name: "Standard Privacy",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop stop-color='#4E5B31'/><stop offset='1' stop-color='#1F4D3A'/></linearGradient></defs>
-            <rect width='80' height='80' rx='14' fill='url(#g)'/>
-            <g opacity='.28' fill='#fff'>
-              <rect x='14' y='14' width='6' height='52' rx='3'/>
-              <rect x='26' y='14' width='6' height='52' rx='3'/>
-              <rect x='38' y='14' width='6' height='52' rx='3'/>
-              <rect x='50' y='14' width='6' height='52' rx='3'/>
-              <rect x='62' y='14' width='6' height='52' rx='3'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/standard.jpeg"
     },
     {
       type: "wood",
       name: "Horizontal Cedar",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <rect width='80' height='80' rx='14' fill='#244B2A'/>
-            <g opacity='.34' stroke='#fff' stroke-width='6' stroke-linecap='round'>
-              <path d='M16 22h48'/>
-              <path d='M16 36h48'/>
-              <path d='M16 50h48'/>
-              <path d='M16 64h48'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/horizontal.jpeg"
     },
     {
       type: "wood",
       name: "Picture Framed",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <rect width='80' height='80' rx='14' fill='#4E5B31'/>
-            <rect x='14' y='14' width='52' height='52' rx='10' fill='rgba(255,255,255,.10)' stroke='rgba(255,255,255,.35)' stroke-width='4'/>
-            <rect x='24' y='24' width='32' height='32' rx='8' fill='rgba(255,255,255,.08)'/>
-          </svg>`
-        )
+      thumb: "/picture framed flat top.jpeg"
     },
     {
       type: "wood",
       name: "3 Rail w/ Wire Mesh",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <rect width='80' height='80' rx='14' fill='#1F4D3A'/>
-            <g stroke='rgba(255,255,255,.35)' stroke-width='4' stroke-linecap='round'>
-              <path d='M16 24h48'/>
-              <path d='M16 40h48'/>
-              <path d='M16 56h48'/>
-            </g>
-            <g stroke='rgba(255,255,255,.18)' stroke-width='1'>
-              ${Array.from({ length: 10 })
-                .map((_, i) => `<path d='M16 ${18 + i * 5}h48'/>`)
-                .join("")}
-            </g>
-          </svg>`
-        )
+      thumb: "/4 rail wire mesh.jpeg"
     },
     {
       type: "wood",
       name: "Split Rail",
-      thumb:
-        "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(
-          `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'>
-            <rect width='80' height='80' rx='14' fill='#8A5A2B'/>
-            <g stroke='rgba(255,255,255,.35)' stroke-width='5' stroke-linecap='round'>
-              <path d='M16 28h48'/>
-              <path d='M16 52h48'/>
-            </g>
-            <g opacity='.25' fill='#fff'>
-              <rect x='18' y='18' width='6' height='44' rx='3'/>
-              <rect x='56' y='18' width='6' height='44' rx='3'/>
-            </g>
-          </svg>`
-        )
+      thumb: "/split rail.jpeg"
     }
     ,
     {
