@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import Link from "next/link";
 import React from "react";
+import { createPortal } from "react-dom";
 import { IconCalendar, IconDoc, IconPortfolio, IconQuote } from "./icons";
 import TopBar from "./TopBar";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
@@ -24,7 +25,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const hideChrome = pathname?.startsWith("/estimates/contract") || pathname?.startsWith("/auth");
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
-  const stableSatRef = React.useRef<number | null>(null);
+  const [portalReady, setPortalReady] = React.useState(false);
 
   const hasLocalAuthToken = React.useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -48,70 +49,8 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const setSat = () => {
-      try {
-        const isStandalone =
-          (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
-          Boolean((navigator as any).standalone);
-
-        const probe = document.createElement("div");
-        probe.style.paddingTop = "env(safe-area-inset-top)";
-        probe.style.position = "absolute";
-        probe.style.visibility = "hidden";
-        probe.style.pointerEvents = "none";
-        document.body.appendChild(probe);
-        const raw = window.getComputedStyle(probe).paddingTop;
-        document.body.removeChild(probe);
-
-        const envPx = Number.parseFloat(String(raw || "0")) || 0;
-        const vvTop = window.visualViewport ? Number(window.visualViewport.offsetTop || 0) : 0;
-
-        // In iOS standalone, some navigations can report a doubled env inset.
-        // visualViewport.offsetTop tends to remain the "real" inset, so cap with it when present.
-        const inferred = vvTop > 0 ? Math.min(envPx, vvTop) : envPx;
-
-        const clamped = Math.max(0, Math.min(Number.isFinite(inferred) ? inferred : 0, 44));
-
-        // Standalone/PWA can occasionally "grow" the reported inset after navigation.
-        // Lock to the smallest stable value seen so the header can never get taller.
-        const finalPx = isStandalone
-          ? (() => {
-              if (clamped <= 0) {
-                stableSatRef.current = 0;
-                return 0;
-              }
-              if (stableSatRef.current == null) {
-                stableSatRef.current = clamped;
-                return clamped;
-              }
-              if (clamped < stableSatRef.current) stableSatRef.current = clamped;
-              return stableSatRef.current;
-            })()
-          : clamped;
-
-        document.documentElement.style.setProperty("--vf-sat", `${finalPx}px`);
-      } catch {
-        document.documentElement.style.setProperty("--vf-sat", "0px");
-      }
-    };
-
-    setSat();
-    window.addEventListener("resize", setSat);
-    window.addEventListener("orientationchange", setSat);
-    window.addEventListener("pageshow", setSat);
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", setSat);
-    vv?.addEventListener("scroll", setSat);
-    return () => {
-      window.removeEventListener("resize", setSat);
-      window.removeEventListener("orientationchange", setSat);
-      window.removeEventListener("pageshow", setSat);
-      vv?.removeEventListener("resize", setSat);
-      vv?.removeEventListener("scroll", setSat);
-    };
-  }, [pathname]);
+    setPortalReady(true);
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -177,41 +116,51 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh flex flex-col vf-app-bg">
-      {hideChrome ? null : (
-        <div className="sticky top-0 z-40">
-          <TopBar />
-          <nav aria-label="Top navigation">
-            <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-                {tabs.map((t) => {
-                  const isActive = active === t.href;
-                  const Icon = t.icon;
-                  return (
-                    <Link
-                      key={t.href}
-                      href={t.href}
-                      className={clsx(
-                        "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition",
-                        isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
-                      )}
-                    >
-                      <Icon className={clsx("h-5 w-5", isActive ? "text-white" : "text-[rgba(255,255,255,.8)]")} />
-                      <span
-                        className={clsx(
-                          "text-[11px] font-semibold",
-                          isActive ? "text-white" : "text-[rgba(255,255,255,.75)]"
-                        )}
-                      >
-                        {t.label}
-                      </span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </nav>
-        </div>
-      )}
+      {hideChrome
+        ? null
+        : portalReady
+          ? createPortal(
+              <div className="fixed top-0 left-0 right-0 z-40">
+                <TopBar />
+                <nav aria-label="Top navigation">
+                  <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
+                    <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+                      {tabs.map((t) => {
+                        const isActive = active === t.href;
+                        const Icon = t.icon;
+                        return (
+                          <Link
+                            key={t.href}
+                            href={t.href}
+                            className={clsx(
+                              "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition",
+                              isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
+                            )}
+                          >
+                            <Icon
+                              className={clsx(
+                                "h-5 w-5",
+                                isActive ? "text-white" : "text-[rgba(255,255,255,.8)]"
+                              )}
+                            />
+                            <span
+                              className={clsx(
+                                "text-[11px] font-semibold",
+                                isActive ? "text-white" : "text-[rgba(255,255,255,.75)]"
+                              )}
+                            >
+                              {t.label}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </nav>
+              </div>,
+              document.body
+            )
+          : null}
 
       <main
         ref={(el) => {
@@ -221,6 +170,13 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
           "flex-1 max-w-[980px] w-full mx-auto",
           hideChrome ? "px-0 pb-0 pt-0" : "px-4 pb-6 pt-3"
         )}
+        style={
+          hideChrome
+            ? undefined
+            : {
+                paddingTop: "calc(9rem + min(env(safe-area-inset-top), 44px))"
+              }
+        }
       >
         {children}
       </main>
