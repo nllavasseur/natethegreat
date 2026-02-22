@@ -534,6 +534,7 @@ function EstimatesPageInner() {
     mansfieldDoubleGateOptions: string[];
     mansfieldBlankGatePost: boolean;
     atlanticDoubleGateOptions: string[];
+    toledoDoubleGateOptions: string[];
     railEndBracketPacks: number;
   }>({
     woodType: "Pressure treated",
@@ -557,6 +558,7 @@ function EstimatesPageInner() {
     mansfieldDoubleGateOptions: [],
     mansfieldBlankGatePost: false,
     atlanticDoubleGateOptions: [],
+    toledoDoubleGateOptions: [],
     railEndBracketPacks: 0
   });
 
@@ -584,6 +586,7 @@ function EstimatesPageInner() {
       (materialsDetails.mansfieldDoubleGateOptions || []).some((v) => Boolean(v)) ||
       Boolean(materialsDetails.mansfieldBlankGatePost) ||
       (materialsDetails.atlanticDoubleGateOptions || []).some((v) => Boolean(v)) ||
+      (materialsDetails.toledoDoubleGateOptions || []).some((v) => Boolean(v)) ||
       (Number(materialsDetails.railEndBracketPacks) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
@@ -696,6 +699,22 @@ function EstimatesPageInner() {
       return {
         ...p,
         atlanticDoubleGateOptions: nextDouble
+      };
+    });
+  }, [doubleGateCount, selectedFenceType, selectedStyle?.name]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "aluminum") return;
+    if (String(selectedStyle?.name || "") !== "Toledo") return;
+
+    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    setMaterialsDetails((p) => {
+      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.toledoDoubleGateOptions?.[i] || "double_60_4_arched");
+      const same = (p.toledoDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.toledoDoubleGateOptions?.[i]);
+      if (same) return p;
+      return {
+        ...p,
+        toledoDoubleGateOptions: nextDouble
       };
     });
   }, [doubleGateCount, selectedFenceType, selectedStyle?.name]);
@@ -1850,6 +1869,7 @@ function EstimatesPageInner() {
       mansfieldDoubleGateOptions: [],
       mansfieldBlankGatePost: false,
       atlanticDoubleGateOptions: [],
+      toledoDoubleGateOptions: [],
       railEndBracketPacks: 0
     };
 
@@ -2401,6 +2421,9 @@ function EstimatesPageInner() {
       const atlanticDoubleGateOptions = Array.isArray(dd.atlanticDoubleGateOptions)
         ? dd.atlanticDoubleGateOptions.map((x: any) => String(x))
         : [];
+      const toledoDoubleGateOptions = Array.isArray(dd.toledoDoubleGateOptions)
+        ? dd.toledoDoubleGateOptions.map((x: any) => String(x))
+        : [];
       const mansfieldBlankGatePost = typeof dd.mansfieldBlankGatePost === "boolean" ? dd.mansfieldBlankGatePost : false;
 
       setMaterialsDetails((prev) => ({
@@ -2420,6 +2443,7 @@ function EstimatesPageInner() {
         mansfieldWalkGateOptions,
         mansfieldDoubleGateOptions,
         atlanticDoubleGateOptions,
+        toledoDoubleGateOptions,
         mansfieldBlankGatePost
       }));
     }
@@ -3935,6 +3959,33 @@ function EstimatesPageInner() {
                                   disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
                                 >
                                   <option value="double_60_4_arched">60" wide x 4' high (arched) — $487.50</option>
+                                </Select>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {selectedStyle?.name === "Toledo" && (Number(doubleGateCount) || 0) > 0 ? (
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
+                            <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
+
+                            {(materialsDetails.toledoDoubleGateOptions || []).map((v, i) => (
+                              <div key={`tol-double-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center">
+                                <div className="text-[12px] font-extrabold">Double gate {i + 1}</div>
+                                <Select
+                                  value={v}
+                                  onChange={(e) =>
+                                    setMaterialsDetails((p) => ({
+                                      ...p,
+                                      toledoDoubleGateOptions: (p.toledoDoubleGateOptions || []).map((cur, idx) =>
+                                        idx === i ? String(e.target.value) : cur
+                                      )
+                                    }))
+                                  }
+                                  disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
+                                >
+                                  <option value="double_60_4_arched">60\" wide x 4' high (arched) — $499.00</option>
                                 </Select>
                               </div>
                             ))}
