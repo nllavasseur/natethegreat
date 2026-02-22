@@ -1,8 +1,8 @@
-style,height_ft,height_in,panel_price_usd,line_post_price_usd,corner_post_price_usd,end_post_price_usd,gate_post_price_usd,blank_post_price_usd
-Mansfield,4,48,,,,,,
-Mansfield,5,60,,,,,,
-Atlantic,4,48,,,,,,
-Pacific,4.5,54,,,,,,
-Toledo,4,48,,,,,,
-Toledo,5,60,,,,,,
-Terrier,4,48,,,,,,
+style,height_ft,height_in,panel_price_usd,line_post_price_usd,corner_post_price_usd,end_post_price_usd,gate_post_price_usd,blank_post_price_usd,gate_single_48in_price_usd,gate_single_60in_price_usd,gate_double_48in_price_usd,gate_double_60in_price_usd
+Mansfield,4,48,,,,,,,399.99,445.00,795.00,859.90
+Mansfield,5,60,,,,,,,,,,
+Atlantic,4,48,,,,,,,,,,
+Pacific,4.5,54,,,,,,,,,,
+Toledo,4,48,,,,,,,,,,
+Toledo,5,60,,,,,,,,,,
+Terrier,4,48,,,,,,,,,,
