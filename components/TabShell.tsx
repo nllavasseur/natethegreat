@@ -115,7 +115,42 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, router]);
 
+  const headerRef = React.useRef<HTMLDivElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hideChrome) {
+      document.documentElement.style.setProperty("--vf-header-h", "0px");
+      return;
+    }
+
+    const el = headerRef.current;
+    if (!el) return;
+
+    const setHeaderH = () => {
+      const h = Math.max(0, Math.ceil(el.getBoundingClientRect().height));
+      document.documentElement.style.setProperty("--vf-header-h", `${h}px`);
+    };
+
+    const raf = window.requestAnimationFrame(setHeaderH);
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => setHeaderH());
+      ro.observe(el);
+    }
+
+    window.addEventListener("resize", setHeaderH);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", setHeaderH);
+      try {
+        ro?.disconnect();
+      } catch {
+        // ignore
+      }
+    };
+  }, [hideChrome, pathname]);
 
   if (!sessionChecked && !pathname?.startsWith("/quotes/print") && !pathname?.startsWith("/estimates/contract")) {
     return <div className="min-h-dvh vf-app-bg" />;
@@ -124,7 +159,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh flex flex-col vf-app-bg">
       {hideChrome ? null : (
-        <div className="sticky top-0 z-40">
+        <div ref={headerRef} className="sticky top-0 z-40">
           <TopBar />
           <nav aria-label="Top navigation">
             <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
