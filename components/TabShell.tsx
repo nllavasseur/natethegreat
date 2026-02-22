@@ -194,7 +194,11 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       {hideChrome ? null : <TopBar />}
 
       {hideChrome ? null : (
-        <nav className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-30" aria-label="Top navigation">
+        <nav
+          className="sticky z-30"
+          style={{ top: "calc(3.5rem + min(env(safe-area-inset-top), 44px))" }}
+          aria-label="Top navigation"
+        >
           <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
             <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
               {tabs.map((t) => {
