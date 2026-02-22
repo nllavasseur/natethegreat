@@ -205,12 +205,12 @@ export default function QuoteDetailPage() {
         )
         : null}
 
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
           <div className="text-xl font-black tracking-tight truncate">{title}</div>
           <div className="text-sm text-[var(--muted)]">Read-only view</div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-start sm:justify-end gap-2 max-w-full">
           <Link href="/quotes"><SecondaryButton>Back</SecondaryButton></Link>
           <SecondaryButton onClick={viewContract} disabled={!draft.contract}>Contract</SecondaryButton>
           <Link href={`/estimates?draft=${encodeURIComponent(id)}`}><PrimaryButton>Edit</PrimaryButton></Link>
