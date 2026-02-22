@@ -3425,7 +3425,7 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <nav
-            className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
+            className="fixed left-0 right-0 z-50 px-4 pointer-events-none"
             style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
             aria-label="Estimate actions"
           >
@@ -3435,7 +3435,7 @@ function EstimatesPageInner() {
                   {saveError}
                 </div>
               ) : null}
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around pointer-events-auto">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
