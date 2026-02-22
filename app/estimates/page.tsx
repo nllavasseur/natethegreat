@@ -526,6 +526,7 @@ function EstimatesPageInner() {
     horizontalCedarCornerAdjust: number;
     aluminumPanelHeight: number;
     aluminumPanelWidthFt: number;
+    aluminumGateAuto: boolean;
     aluminumCornerPosts: number;
     aluminumGatePosts: number;
     aluminumEndPosts: number;
@@ -544,6 +545,7 @@ function EstimatesPageInner() {
     horizontalCedarCornerAdjust: 0,
     aluminumPanelHeight: 48,
     aluminumPanelWidthFt: 6,
+    aluminumGateAuto: true,
     aluminumCornerPosts: 0,
     aluminumGatePosts: 0,
     aluminumEndPosts: 0,
@@ -566,6 +568,7 @@ function EstimatesPageInner() {
       (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
       (Number(materialsDetails.aluminumPanelHeight) || 0) !== 48 ||
       (Number(materialsDetails.aluminumPanelWidthFt) || 0) !== 6 ||
+      Boolean(materialsDetails.aluminumGateAuto) !== true ||
       (Number(materialsDetails.aluminumCornerPosts) || 0) !== 0 ||
       (Number(materialsDetails.aluminumGatePosts) || 0) !== 0 ||
       (Number(materialsDetails.aluminumEndPosts) || 0) !== 0 ||
@@ -583,18 +586,9 @@ function EstimatesPageInner() {
       };
     }
 
-    const walkGates = Number(walkGateCountDerived) || 0;
-    const doubleGates = Number(doubleGateCount) || 0;
-
-    const walkGatePostsAdd = segments
-      .filter((s) => !s.removed)
-      .filter((s) => Boolean((s as any).gate))
-      .reduce((sum, s) => {
-        const len = Number((s as any).length) || 0;
-        return sum + (len > 0 && len < 8 ? 2 : 1);
-      }, 0);
-
-    const gateDerived = walkGatePostsAdd + doubleGates;
+    const walkGates = Math.max(0, Number(walkGateCountDerived) || 0);
+    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const gateDerived = (walkGates + doubleGates) * 2;
 
     const w = Math.max(1, Number(materialsDetails.aluminumPanelWidthFt) || 6);
     const segmentLengths = segments
@@ -609,13 +603,15 @@ function EstimatesPageInner() {
     const total = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
 
     const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
-    const gate = Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
+    const gate = materialsDetails.aluminumGateAuto
+      ? gateDerived
+      : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
     const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
     const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
     const line = Math.max(0, total - (corner + gate + end + blank));
 
     return { total, line, gateDerived };
-  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGatePosts, materialsDetails.aluminumPanelWidthFt, segments, selectedFenceType, walkGateCountDerived]);
+  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, materialsDetails.aluminumPanelWidthFt, segments, selectedFenceType, walkGateCountDerived]);
 
   const horizontalCedarDetailsActive = useMemo(() => {
     if (selectedStyle?.name !== "Horizontal Cedar") return false;
@@ -1641,6 +1637,8 @@ function EstimatesPageInner() {
     setStylePickerIdx(false);
   }
 
+  const [stylePreview, setStylePreview] = useState<{ name: string; thumb: string } | null>(null);
+
   useEffect(() => {
     const open = Boolean(stylePickerIdx || materialsDetailsOpen || measureOpen);
     if (!open) return;
@@ -1716,6 +1714,7 @@ function EstimatesPageInner() {
     setSelectedFenceType("wood");
     setSelectedStyle(null);
     setStylePickerIdx(false);
+    setStylePreview(null);
     setMaterialsDetailsOpen(false);
     setMaterialsDetails({
       woodType: "Pressure treated",
@@ -1731,6 +1730,7 @@ function EstimatesPageInner() {
       horizontalCedarCornerAdjust: 0,
       aluminumPanelHeight: 48,
       aluminumPanelWidthFt: 6,
+      aluminumGateAuto: true,
       aluminumCornerPosts: 0,
       aluminumGatePosts: 0,
       aluminumEndPosts: 0,
@@ -3479,7 +3479,7 @@ function EstimatesPageInner() {
                     <button
                       key={st.name}
                       type="button"
-                      onClick={() => setMaterialStyle(st)}
+                      onClick={() => setStylePreview({ name: st.name, thumb: st.thumb })}
                       className={
                         "rounded-2xl border p-2 text-left transition-none " +
                         (selectedStyle?.name === st.name
@@ -3512,6 +3512,58 @@ function EstimatesPageInner() {
                     </button>
                   ))}
                 </div>
+
+                {stylePreview ? (
+                  <div className="fixed inset-0 z-[70]" data-no-swipe="true">
+                    <div
+                      className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
+                      onClick={() => setStylePreview(null)}
+                    />
+                    <div className="absolute inset-0 flex flex-col">
+                      <div className="flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
+                        <SecondaryButton
+                          data-no-swipe="true"
+                          onClick={() => setStylePreview(null)}
+                        >
+                          Back
+                        </SecondaryButton>
+                        <div className="text-sm font-extrabold truncate">{stylePreview.name}</div>
+                        <PrimaryButton
+                          data-no-swipe="true"
+                          onClick={() => {
+                            setMaterialStyle(stylePreview);
+                            setStylePreview(null);
+                          }}
+                        >
+                          OK
+                        </PrimaryButton>
+                      </div>
+                      <div className="flex-1 grid place-items-center p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={stylePreview.thumb}
+                          alt=""
+                          className="max-h-[78dvh] w-full max-w-[980px] rounded-2xl object-contain border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]"
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.dataset.fallbackDone === "1") return;
+                            img.dataset.fallbackDone = "1";
+                            img.src =
+                              "data:image/svg+xml;charset=utf-8," +
+                              encodeURIComponent(
+                                `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 60'>
+                                  <rect width='80' height='60' rx='12' fill='rgba(255,255,255,.08)'/>
+                                  <rect x='10' y='10' width='60' height='40' rx='10' fill='rgba(0,0,0,.18)'/>
+                                  <path d='M18 40l10-10 10 10 10-12 14 18H18z' fill='rgba(255,255,255,.22)'/>
+                                  <circle cx='28' cy='24' r='5' fill='rgba(255,255,255,.22)'/>
+                                </svg>`
+                              );
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </GlassCard>
             </div>
           </div>,
@@ -3579,6 +3631,24 @@ function EstimatesPageInner() {
 
                       <div className="mt-3 grid gap-2">
                         <div className="text-[11px] text-[var(--muted)]">Post selectors</div>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, aluminumGateAuto: !p.aluminumGateAuto }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (materialsDetails.aluminumGateAuto
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.aluminumGateAuto}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>Auto-fill gate posts</div>
+                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.aluminumGateAuto ? "On" : "Off"}</div>
+                          </div>
+                        </button>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
@@ -3664,11 +3734,12 @@ function EstimatesPageInner() {
                                     aluminumGatePosts: Math.max(0, (Number(p.aluminumGatePosts) || 0) - 1)
                                   }))
                                 }
+                                disabled={materialsDetails.aluminumGateAuto}
                               >
                                 -
                               </PrimaryButton>
                               <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                                {Math.max(0, Number(materialsDetails.aluminumGatePosts) || 0)}
+                                {materialsDetails.aluminumGateAuto ? aluminumPostsSummary.gateDerived : Math.max(0, Number(materialsDetails.aluminumGatePosts) || 0)}
                               </div>
                               <PrimaryButton
                                 type="button"
@@ -3680,11 +3751,12 @@ function EstimatesPageInner() {
                                     aluminumGatePosts: Math.max(0, (Number(p.aluminumGatePosts) || 0) + 1)
                                   }))
                                 }
+                                disabled={materialsDetails.aluminumGateAuto}
                               >
                                 +
                               </PrimaryButton>
                             </div>
-                            <div className="mt-1 text-[10px] text-[var(--muted)]">Derived from gates: {aluminumPostsSummary.gateDerived}</div>
+                            <div className="mt-1 text-[10px] text-[var(--muted)]">Auto = 2 posts per gate (incl. doubles)</div>
                           </div>
 
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
