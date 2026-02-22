@@ -199,6 +199,8 @@ export default function CalendarPage() {
   const blockEndInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockDescInputRef = React.useRef<HTMLInputElement | null>(null);
   const [queueOpen, setQueueOpen] = React.useState(false);
+  const [moveOpenId, setMoveOpenId] = React.useState<string | null>(null);
+  const [movePreviewPos, setMovePreviewPos] = React.useState<number | null>(null);
   const [holdOpenId, setHoldOpenId] = React.useState<string | null>(null);
   const [holdDraftIso, setHoldDraftIso] = React.useState<string>("");
   const [highlightQueueId, setHighlightQueueId] = React.useState<string | null>(null);
@@ -387,22 +389,112 @@ export default function CalendarPage() {
         Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
       );
 
-    const idx = sold.findIndex((d) => d.id === id);
-    if (idx === -1) return;
-    const swapWith = idx + dir;
-    if (swapWith < 0 || swapWith >= sold.length) return;
+    const isHold = (d: DraftEntry) => Boolean(String((d as any).holdDate || "").slice(0, 10));
+    const full = sold.map((d) => ({ ...d }));
+    const holdSlots = new Set<number>();
+    const holds: DraftEntry[] = [];
+    const movable: DraftEntry[] = [];
+    full.forEach((d, idx) => {
+      if (isHold(d)) {
+        holdSlots.add(idx);
+        holds.push(d);
+      } else {
+        movable.push(d);
+      }
+    });
+    const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
 
-    const a = sold[idx];
-    const b = sold[swapWith];
-    const aRank = Number((a as any).queueRank ?? idx + 1);
-    const bRank = Number((b as any).queueRank ?? swapWith + 1);
+    const curFullIdx = full.findIndex((d) => d.id === id);
+    if (curFullIdx === -1) return;
+    if (holdSlots.has(curFullIdx)) return;
+    const curMovIdx = movableSlots.indexOf(curFullIdx);
+    if (curMovIdx === -1) return;
+    const nextMovIdx = curMovIdx + dir;
+    if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return;
 
-    (store as any)[a.id] = { ...(store as any)[a.id], queueRank: bRank };
-    (store as any)[b.id] = { ...(store as any)[b.id], queueRank: aRank };
+    const from = movable.findIndex((d) => d.id === id);
+    if (from === -1) return;
+    const to = nextMovIdx;
+    const [picked] = movable.splice(from, 1);
+    movable.splice(to, 0, picked);
+
+    const rebuilt: DraftEntry[] = new Array(full.length);
+    let h = 0;
+    let m = 0;
+    for (let i = 0; i < rebuilt.length; i++) {
+      if (holdSlots.has(i)) {
+        rebuilt[i] = holds[h++];
+      } else {
+        rebuilt[i] = movable[m++];
+      }
+    }
+
+    rebuilt.forEach((d, idx) => {
+      if (!(store as any)[d.id]) return;
+      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1 };
+    });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
     notifyDraftsChanged();
 
+    setHighlightQueueId(id);
+    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
+  }, []);
+
+  const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
+    const store = readDraftStore();
+    const sold = Object.values(store)
+      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
+      .slice()
+      .sort((a, b) =>
+        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
+        Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
+        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+      );
+
+    const isHold = (d: DraftEntry) => Boolean(String((d as any).holdDate || "").slice(0, 10));
+    const full = sold.map((d) => ({ ...d }));
+    const holdSlots = new Set<number>();
+    const holds: DraftEntry[] = [];
+    const movable: DraftEntry[] = [];
+    full.forEach((d, idx) => {
+      if (isHold(d)) {
+        holdSlots.add(idx);
+        holds.push(d);
+      } else {
+        movable.push(d);
+      }
+    });
+    const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
+    const curFullIdx = full.findIndex((d) => d.id === id);
+    if (curFullIdx === -1) return;
+    if (holdSlots.has(curFullIdx)) return;
+
+    const desiredFullIdx = Math.max(0, Math.min(full.length - 1, targetPos - 1));
+    const desiredMovIdx = movableSlots.findIndex((idx) => idx === desiredFullIdx);
+    if (desiredMovIdx === -1) return;
+
+    const from = movable.findIndex((d: DraftEntry) => d.id === id);
+    if (from === -1) return;
+    const [picked] = movable.splice(from, 1);
+    movable.splice(desiredMovIdx, 0, picked);
+
+    const rebuilt: DraftEntry[] = new Array(full.length);
+    let h = 0;
+    let m = 0;
+    for (let i = 0; i < rebuilt.length; i++) {
+      if (holdSlots.has(i)) rebuilt[i] = holds[h++];
+      else rebuilt[i] = movable[m++];
+    }
+
+    rebuilt.forEach((d, idx) => {
+      if (!(store as any)[d.id]) return;
+      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1 };
+    });
+
+    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    notifyDraftsChanged();
     setHighlightQueueId(id);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
@@ -504,47 +596,25 @@ export default function CalendarPage() {
       });
     };
 
+    const reserveGapDays = (from: Date, toExclusive: Date) => {
+      // Mark *all* days in the gap as occupied so other jobs cannot backfill.
+      // This intentionally includes weekends to keep the calendar visually "empty".
+      let cur = startOfDay(from);
+      const end = startOfDay(toExclusive);
+      for (let guard = 0; guard < 366; guard++) {
+        if (cur.getTime() >= end.getTime()) break;
+        const k = toKey(cur);
+        occupied.add(k);
+        occupiedEndByDay.set(k, cur);
+        cur = addDays(cur, 1);
+      }
+    };
+
     // Blocked days consume capacity for non-estimate/non-void work.
     blockedDays.set.forEach((k) => {
       occupied.add(k);
       const dt = new Date(k + "T12:00:00");
       occupiedEndByDay.set(k, dt);
-    });
-
-    // Schedule non-sold capacity jobs first (pending, etc.) using explicit date as minimum start.
-    const pendingJobs = drafts
-      .filter(
-        (d) =>
-          !(d as any).calendarHidden &&
-          (d as any).status !== "sold" &&
-          (d as any).status !== "estimate" &&
-          (d as any).status !== "void" &&
-          Boolean(explicitStartIso(d))
-      )
-      .slice()
-      .sort((a, b) => String(explicitStartIso(a)).localeCompare(String(explicitStartIso(b))));
-
-    pendingJobs.forEach((d) => {
-      const span = computeSpanDays((d as any).laborDays);
-      const allowSat = asBool((d as any).allowSaturday);
-      const allowSun = asBool((d as any).allowSunday);
-      let candidate = nextWorkdayForJob(new Date(explicitStartIso(d) + "T12:00:00"), allowSat, allowSun);
-      for (let guard = 0; guard < 365; guard++) {
-        const seq = workdaySequenceForJob(candidate, span, allowSat, allowSun);
-        const firstConflict = seq.find((day) => occupied.has(toKey(day)));
-        if (!firstConflict) {
-          const end = seq[seq.length - 1];
-          seq.forEach((day) => {
-            const k = toKey(day);
-            occupied.add(k);
-            const prev = occupiedEndByDay.get(k);
-            if (!prev || end.getTime() > prev.getTime()) occupiedEndByDay.set(k, end);
-          });
-          break;
-        }
-        const conflictEnd = occupiedEndByDay.get(toKey(firstConflict)) || firstConflict;
-        candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
-      }
     });
 
     const soldJobs = drafts
@@ -575,6 +645,11 @@ export default function CalendarPage() {
         : nextWorkdayForJob(today0, allowSat, allowSun);
 
       let candidate = maxDate(explicitMin, seqMin);
+
+      // If a hold pushes this job later than the natural sequence start, reserve the gap.
+      if (requested && explicitMin.getTime() > seqMin.getTime()) {
+        reserveGapDays(seqMin, explicitMin);
+      }
       for (let guard = 0; guard < 365; guard++) {
         if (isNonWorkingDayForJob(candidate, allowSat, allowSun)) {
           candidate = nextWorkdayForJob(addDays(candidate, 1), allowSat, allowSun);
@@ -698,7 +773,76 @@ export default function CalendarPage() {
 
     const scheduledStartById = new Map<string, string>();
 
-    // Schedule non-sold capacity jobs first (pending, etc.) using explicit date as minimum start.
+    // Schedule ALL SOLD jobs strictly in queue order.
+    const soldJobs = drafts
+      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
+      .slice()
+      .sort((a, b) =>
+        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
+          Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
+        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+      );
+
+    const maxDate = (a: Date, b: Date) => (a.getTime() >= b.getTime() ? a : b);
+
+    const reserveGapDays = (from: Date, toExclusive: Date) => {
+      let cur = startOfDay(from);
+      const end = startOfDay(toExclusive);
+      for (let guard = 0; guard < 366; guard++) {
+        if (cur.getTime() >= end.getTime()) break;
+        const k = toKey(cur);
+        occupied.add(k);
+        occupiedEndByDay.set(k, cur);
+        cur = addDays(cur, 1);
+      }
+    };
+
+    let lastQueuedEnd: Date | null = null;
+    soldJobs.forEach((d) => {
+      const span = computeSpanDays((d as any).laborDays);
+      const allowSat = asBool((d as any).allowSaturday);
+      const allowSun = asBool((d as any).allowSunday);
+      const minStart = lastQueuedEnd
+        ? nextWorkdayForJob(addDays(lastQueuedEnd, 1), allowSat, allowSun)
+        : nextWorkdayForJob(today0, allowSat, allowSun);
+
+      const requested = String((d as any).holdDate || explicitStartIso(d) || "");
+      const explicitMin = requested
+        ? nextWorkdayForJob(new Date(requested + "T12:00:00"), allowSat, allowSun)
+        : nextWorkdayForJob(today0, allowSat, allowSun);
+      let candidate = maxDate(explicitMin, minStart);
+
+      if (requested && explicitMin.getTime() > minStart.getTime()) {
+        reserveGapDays(minStart, explicitMin);
+      }
+
+      for (let guard = 0; guard < 365; guard++) {
+        if (isNonWorkingDayForJob(candidate, allowSat, allowSun)) {
+          candidate = nextWorkdayForJob(addDays(candidate, 1), allowSat, allowSun);
+          continue;
+        }
+        const seq = workdaySequenceForJob(candidate, span, allowSat, allowSun);
+        const firstConflict = seq.find((day) => occupied.has(toKey(day)));
+        if (!firstConflict) {
+          const iso = toKey(seq[0]);
+          scheduledStartById.set(d.id, iso);
+          const end = seq[seq.length - 1];
+          seq.forEach((day) => {
+            const k = toKey(day);
+            occupied.add(k);
+            const prev = occupiedEndByDay.get(k);
+            if (!prev || end.getTime() > prev.getTime()) occupiedEndByDay.set(k, end);
+          });
+          lastQueuedEnd = seq[span - 1];
+          break;
+        }
+
+        const conflictEnd = occupiedEndByDay.get(toKey(firstConflict)) || firstConflict;
+        candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
+      }
+    });
+
+    // Schedule non-sold capacity jobs AFTER sold queue so they can't backfill hold gaps.
     const nonSoldCapacity = drafts
       .filter(
         (d) =>
@@ -731,59 +875,6 @@ export default function CalendarPage() {
           });
           break;
         }
-        const conflictEnd = occupiedEndByDay.get(toKey(firstConflict)) || firstConflict;
-        candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
-      }
-    });
-
-    // Schedule ALL SOLD jobs strictly in queue order.
-    const soldJobs = drafts
-      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-      .slice()
-      .sort((a, b) =>
-        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
-          Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
-      );
-
-    const maxDate = (a: Date, b: Date) => (a.getTime() >= b.getTime() ? a : b);
-
-    let lastQueuedEnd: Date | null = null;
-    soldJobs.forEach((d) => {
-      const span = computeSpanDays((d as any).laborDays);
-      const allowSat = asBool((d as any).allowSaturday);
-      const allowSun = asBool((d as any).allowSunday);
-      const minStart = lastQueuedEnd
-        ? nextWorkdayForJob(addDays(lastQueuedEnd, 1), allowSat, allowSun)
-        : nextWorkdayForJob(today0, allowSat, allowSun);
-
-      const requested = String((d as any).holdDate || explicitStartIso(d) || "");
-      const explicitMin = requested
-        ? nextWorkdayForJob(new Date(requested + "T12:00:00"), allowSat, allowSun)
-        : nextWorkdayForJob(today0, allowSat, allowSun);
-      let candidate = maxDate(explicitMin, minStart);
-
-      for (let guard = 0; guard < 365; guard++) {
-        if (isNonWorkingDayForJob(candidate, allowSat, allowSun)) {
-          candidate = nextWorkdayForJob(addDays(candidate, 1), allowSat, allowSun);
-          continue;
-        }
-        const seq = workdaySequenceForJob(candidate, span, allowSat, allowSun);
-        const firstConflict = seq.find((day) => occupied.has(toKey(day)));
-        if (!firstConflict) {
-          const iso = toKey(seq[0]);
-          scheduledStartById.set(d.id, iso);
-          const end = seq[seq.length - 1];
-          seq.forEach((day) => {
-            const k = toKey(day);
-            occupied.add(k);
-            const prev = occupiedEndByDay.get(k);
-            if (!prev || end.getTime() > prev.getTime()) occupiedEndByDay.set(k, end);
-          });
-          lastQueuedEnd = seq[span - 1];
-          break;
-        }
-
         const conflictEnd = occupiedEndByDay.get(toKey(firstConflict)) || firstConflict;
         candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
       }
@@ -1123,6 +1214,101 @@ export default function CalendarPage() {
                 <SecondaryButton onClick={() => setQueueOpen(false)}>Close</SecondaryButton>
               </div>
 
+              {moveOpenId ? (
+                <div
+                  className="mt-3 rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.18)] p-3"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-black">Move job</div>
+                    <SecondaryButton
+                      data-no-swipe="true"
+                      onClick={() => {
+                        setMoveOpenId(null);
+                        setMovePreviewPos(null);
+                      }}
+                    >
+                      Close
+                    </SecondaryButton>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      data-no-swipe="true"
+                      onClick={() => {
+                        if (!moveOpenId) return;
+                        const cur = typeof movePreviewPos === "number" ? movePreviewPos : 1;
+                        const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
+                        let next = cur - 1;
+                        while (next >= 1 && holds[next - 1]) next -= 1;
+                        if (next >= 1) setMovePreviewPos(next);
+                      }}
+                      className="rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
+                      aria-label="Move up"
+                    >
+                      ▲
+                    </button>
+
+                    <div className="flex-1 text-center">
+                      <div className="text-[11px] text-[var(--muted)]">Position</div>
+                      <div className="text-3xl font-black leading-none">
+                        {typeof movePreviewPos === "number" ? movePreviewPos : "—"}
+                      </div>
+                      <div className="text-[11px] text-[var(--muted)] mt-1">Holds keep their slot</div>
+                    </div>
+
+                    <button
+                      type="button"
+                      data-no-swipe="true"
+                      onClick={() => {
+                        if (!moveOpenId) return;
+                        const cur = typeof movePreviewPos === "number" ? movePreviewPos : 1;
+                        const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
+                        let next = cur + 1;
+                        while (next <= holds.length && holds[next - 1]) next += 1;
+                        if (next <= holds.length) setMovePreviewPos(next);
+                      }}
+                      className="rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
+                      aria-label="Move down"
+                    >
+                      ▼
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <SecondaryButton
+                      data-no-swipe="true"
+                      onClick={() => {
+                        setMoveOpenId(null);
+                        setMovePreviewPos(null);
+                      }}
+                    >
+                      Cancel
+                    </SecondaryButton>
+                    <PrimaryButton
+                      data-no-swipe="true"
+                      onClick={() => {
+                        if (!moveOpenId) return;
+                        const pos = typeof movePreviewPos === "number" ? movePreviewPos : null;
+                        if (!pos) return;
+                        applyMoveToPosition(moveOpenId, pos);
+                        setMoveOpenId(null);
+                        setMovePreviewPos(null);
+                      }}
+                    >
+                      Save
+                    </PrimaryButton>
+                  </div>
+                </div>
+              ) : null}
+
               <div
                 ref={queueListRef}
                 className="mt-3 grid gap-2 flex-1 min-h-0 overflow-auto overflow-x-hidden"
@@ -1196,36 +1382,28 @@ export default function CalendarPage() {
                             style={{ background: dotColor }}
                             aria-hidden="true"
                           />
-                          <div className="grid gap-1">
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                moveQueue(j.id, -1);
-                              }}
-                              className="rounded-xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-3 py-2 text-[12px] font-black leading-none"
-                              aria-label="Move up"
-                              title="Move up"
-                            >
-                              ▲
-                            </button>
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                moveQueue(j.id, 1);
-                              }}
-                              className="rounded-xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-3 py-2 text-[12px] font-black leading-none"
-                              aria-label="Move down"
-                              title="Move down"
-                            >
-                              ▼
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            disabled={Boolean(hold)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (hold) return;
+                              setMoveOpenId(j.id);
+                              setMovePreviewPos(idx + 1);
+                            }}
+                            className={
+                              "rounded-xl border px-3 py-2 text-[12px] font-black leading-none " +
+                              (hold
+                                ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
+                                : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
+                            }
+                            aria-label="Move"
+                            title="Move"
+                          >
+                            Move
+                          </button>
                         </div>
                       </div>
 
