@@ -23,6 +23,10 @@ function emptyItem(section: SectionKey): QuoteItem {
 function normalizeUnitPriceKey(name: string) {
   const s = String(name || "").trim();
   if (s.startsWith("Concrete 60lb Bag")) return "Concrete 60lb Bag";
+  if (s === "Cedar trim") return "1x4 x 8' Cedar Trim";
+  if (s === "4x4x10' Pressure Treated Post") return "4x4 x 10' Pressure Treated Post";
+  if (s === "4x4x10' CedarTone Post") return "4x4 x 10' CedarTone Post";
+  if (s === "4x4x10' Cedar S4S Post") return "4x4 x 10' Cedar S4S Post";
   return s;
 }
 
@@ -2111,6 +2115,10 @@ function EstimatesPageInner() {
       const isPictureFramedLatticePanel = normalizedPictureFramedStyle === "picture framed lattice panel";
       const latticePanels = isPictureFramed && (isAM || isPictureFramedLatticePanel) ? Math.ceil(panels / 3) : 0;
 
+      const trimNameFinal = isMaryJane && materialsDetails.trimMaterial === "Cedar"
+        ? "Cedar trim"
+        : trimName;
+
       const nailsNameFinal = isAllCedarNiko
         ? "2\" Nails 1000ct Stainless Steel Ring Shank Nails"
         : nailsName;
@@ -2152,10 +2160,10 @@ function EstimatesPageInner() {
             ? woodPostItemName(10, materialsDetails.postType)
             : (isMaryJane
               ? (materialsDetails.postType === "Cedar tone"
-                ? "4x4 x 10' CedarTone Post"
+                ? "4x4x10' CedarTone Post"
                 : materialsDetails.postType === "Cedar"
-                  ? "4x4 x 10' Cedar S4S Post"
-                  : "4x4 x 10' Pressure Treated Post")
+                  ? "4x4x10' Cedar S4S Post"
+                  : "4x4x10' Pressure Treated Post")
               : woodPostItemName(materialsDetails.postSize, materialsDetails.postType)));
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
@@ -2179,7 +2187,7 @@ function EstimatesPageInner() {
           ]
           : [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: rails, unit: "ea" }]),
         { name: picketName, qty: pickets, unit: "ea" },
-        ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
+        ...(trimBoards > 0 ? [{ name: trimNameFinal, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxesFinal > 0 ? [{ name: nailsNameFinal, qty: nailsBoxesFinal, unit: "box" }] : []),
