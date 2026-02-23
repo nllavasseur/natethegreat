@@ -37,7 +37,7 @@ item_name,unit_price
 "4x4 x 8' Cedar S4S Post",
 "4x4 x 8' CedarTone Post",
 "4x4 x 8' Post",
-"4x8 Lattice Panel",
+"4x8 Lattice Panel",50.55
 "5/4x6x12 Cedar S4S Rails",
 "5/4x6x12 CedarTone Rails",17.69
 "5/4x6x12 Cedar S4S Verticals",
@@ -62,6 +62,11 @@ item_name,unit_price
 "Post caps",
 "Split rail",
 "Split rail (CedarTone)",
+"CedarTone split rail posts (2 rail)",15.78
+"CedarTone split rail line post (3 rail)",17.48
+"CedarTone split rail corner post (3 rail)",17.48
+"CedarTone split rail end post (3 rail)",17.48
+"CedarTone split rail rails",18.99
 "Stainless screws",
 "Staples",
 "Wire mesh roll",
