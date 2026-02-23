@@ -940,8 +940,10 @@ function EstimatesPageInner() {
       // 16' 2x4 rule
       const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
 
-      // Pickets: standard picket math
-      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0;
+      // Pickets: (lf inches / 8) * 2
+      const pickets = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / 8) * 2) : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1120,8 +1122,8 @@ function EstimatesPageInner() {
 
       // 1x4 boards: ceil((segment inches / 7.5 inches) * 2)
       const shadowboxBoards = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 7.5) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / 7.5) * 2) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 6) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / 6) * 2) : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1130,8 +1132,10 @@ function EstimatesPageInner() {
         ? "1x4 Cedar Boards"
         : "1x4 Pressure Treated Boards";
 
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
+        { name: postName, qty: posts, unit: "ea" },
         ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
         ...(shadowboxBoards > 0 ? [{ name: boardName, qty: shadowboxBoards, unit: "ea" }] : []),
@@ -1174,8 +1178,8 @@ function EstimatesPageInner() {
 
       // Pickets: use the prior shadowbox math, but output as pickets (not 1x4 boards)
       const pickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 7.5) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / 7.5) * 2) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / 8) * 2) : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
