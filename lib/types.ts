@@ -3,6 +3,7 @@ export type SectionKey = "materials" | "labor" | "additional";
 export type QuoteItem = {
   id?: string;
   section: SectionKey;
+  priceKey?: string;
   name: string;
   qty: number;
   unit: string;

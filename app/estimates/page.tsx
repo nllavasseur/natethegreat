@@ -26,6 +26,49 @@ function normalizeUnitPriceKey(name: string) {
   return s;
 }
 
+function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number>; name: string; priceKey?: string }) {
+  const { materialUnitPrices, name, priceKey } = params;
+  if (priceKey) {
+    const keyed = Number(materialUnitPrices[priceKey] ?? NaN);
+    if (Number.isFinite(keyed)) return keyed;
+  }
+  return Number(materialUnitPrices[normalizeUnitPriceKey(name)] ?? 0);
+}
+
+function aluminumHeightKeySuffix(hIn: number) {
+  if (hIn === 54) return "54";
+  if (hIn === 60) return "60";
+  return "48";
+}
+
+function aluminumGateHeightSuffix(hIn: number) {
+  if (hIn === 54) return "45";
+  if (hIn === 60) return "5";
+  return "4";
+}
+
+function aluminumStyleKeyPrefix(style: string) {
+  return String(style || "").trim().toUpperCase();
+}
+
+function aluminumPanelPriceKey(style: string, hIn: number) {
+  return `ALU_PANEL_${aluminumStyleKeyPrefix(style)}_${aluminumHeightKeySuffix(hIn)}`;
+}
+
+function aluminumPostPriceKey(kind: "LINE" | "CORNER" | "END" | "GATE" | "BLANK", style: string, hIn: number) {
+  return `ALU_POST_${kind}_${aluminumStyleKeyPrefix(style)}_${aluminumHeightKeySuffix(hIn)}`;
+}
+
+function aluminumBlankGatePostPriceKey(style: string, hIn: number) {
+  return `${aluminumStyleKeyPrefix(style)}_BLANK_GATE_POST_${aluminumHeightKeySuffix(hIn)}`;
+}
+
+function aluminumGatePriceKey(params: { style: string; kind: "WALK" | "DOUBLE"; widthIn: 48 | 60; hIn: number }) {
+  const styleKey = aluminumStyleKeyPrefix(params.style);
+  const h = aluminumGateHeightSuffix(params.hIn);
+  return `${styleKey}_GATE_${params.kind}_${params.widthIn}_${h}`;
+}
+
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
   let cur = "";
@@ -1050,6 +1093,40 @@ function EstimatesPageInner() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     let cancelled = false;
+    fetch("/aluminum_pricing_form.csv")
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((raw) => {
+        if (!raw || cancelled) return;
+        const lines = raw
+          .split(/\r?\n/)
+          .map((l) => String(l || "").trim())
+          .filter((l) => Boolean(l));
+        const headerIdx = lines.findIndex((l) => l.toLowerCase() === "key,description,unit,price_usd");
+        const start = headerIdx >= 0 ? headerIdx + 1 : 0;
+        const patch: Record<string, number> = {};
+        for (const line of lines.slice(start)) {
+          const cols = parseCsvLine(line);
+          const k = String(cols[0] || "").trim();
+          const price = Number(String(cols[3] || "").trim());
+          if (!k) continue;
+          if (!Number.isFinite(price)) continue;
+          patch[k] = price;
+        }
+        if (!Object.keys(patch).length) return;
+        setMaterialUnitPrices((prev) => ({ ...prev, ...patch }));
+      })
+      .catch(() => {
+        // ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
 
     fetch("/wood_unit_prices.csv")
       .then((r) => (r.ok ? r.text() : ""))
@@ -1176,9 +1253,9 @@ function EstimatesPageInner() {
         return rows
           .filter((r) => (Number(r.qty) || 0) > 0)
           .map((r) => {
-            const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+            const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
             const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-            return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+            return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
           });
       }
 
@@ -1242,9 +1319,9 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
     }
 
@@ -1306,9 +1383,9 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
     }
 
@@ -2014,7 +2091,15 @@ function EstimatesPageInner() {
       const blankPostName = `${style} blank post (${heightLabel})`;
       const blankGatePostName = `${style} blank gate post add-on (${heightLabel})`;
 
-      const walkGateItems = (() => {
+      const panelKey = aluminumPanelPriceKey(style, h);
+      const linePostKey = aluminumPostPriceKey("LINE", style, h);
+      const cornerPostKey = aluminumPostPriceKey("CORNER", style, h);
+      const endPostKey = aluminumPostPriceKey("END", style, h);
+      const gatePostKey = aluminumPostPriceKey("GATE", style, h);
+      const blankPostKey = aluminumPostPriceKey("BLANK", style, h);
+      const blankGatePostKey = aluminumBlankGatePostPriceKey(style, h);
+
+      const walkGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
         if (!selectedStyle) return [] as Array<{ name: string; qty: number; unit: string }>;
         const walkCount = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
         if (walkCount <= 0) return [];
@@ -2026,8 +2111,8 @@ function EstimatesPageInner() {
           const name48 = `Mansfield walk gate 48\" x ${heightLabel}`;
           const name60 = `Mansfield walk gate 60\" x ${heightLabel}`;
           return [
-            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
-            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "WALK", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "WALK", widthIn: 60, hIn: h }) }] : [])
           ];
         }
 
@@ -2038,8 +2123,8 @@ function EstimatesPageInner() {
           const name48 = `Toledo walk gate 48\" x ${heightLabel}`;
           const name60 = `Toledo walk gate 60\" x ${heightLabel}`;
           return [
-            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
-            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "WALK", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "WALK", widthIn: 60, hIn: h }) }] : [])
           ];
         }
 
@@ -2050,8 +2135,8 @@ function EstimatesPageInner() {
           const name48 = `Atlantic walk gate 48\" x ${heightLabel}`;
           const name60 = `Atlantic walk gate 60\" x ${heightLabel}`;
           return [
-            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
-            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "WALK", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "WALK", widthIn: 60, hIn: h }) }] : [])
           ];
         }
 
@@ -2062,15 +2147,15 @@ function EstimatesPageInner() {
           const name48 = `Pacific walk gate 48\" x ${heightLabel}`;
           const name60 = `Pacific walk gate 60\" x ${heightLabel}`;
           return [
-            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
-            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "WALK", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "WALK", widthIn: 60, hIn: h }) }] : [])
           ];
         }
 
         return [];
       })();
 
-      const doubleGateItems = (() => {
+      const doubleGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
         const doubleCount = Math.max(0, Number(doubleGateCount) || 0);
         if (doubleCount <= 0) return [] as Array<{ name: string; qty: number; unit: string }>;
 
@@ -2090,14 +2175,14 @@ function EstimatesPageInner() {
           const opts = materialsDetails.atlanticDoubleGateOptions || [];
           const qty60 = opts.filter((v) => v === "double_60_4_arched").length;
           const name60 = `Atlantic double gate 60\" x ${heightLabel}`;
-          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [];
+          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [];
         }
 
         if (style === "Toledo") {
           const opts = materialsDetails.toledoDoubleGateOptions || [];
           const qty60 = opts.filter((v) => v === "double_60_4_arched" || v === "double_60_5_arched").length;
           const name60 = `Toledo double gate 60\" x ${heightLabel}`;
-          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [];
+          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [];
         }
 
         if (style === "Pacific") {
@@ -2115,15 +2200,15 @@ function EstimatesPageInner() {
         return [];
       })();
 
-      const rows: Array<{ name: string; qty: number; unit: string }> = [
-        ...(panels > 0 ? [{ name: panelName, qty: panels, unit: "ea" }] : []),
-        ...(line > 0 ? [{ name: linePostName, qty: line, unit: "ea" }] : []),
-        ...(corner > 0 ? [{ name: cornerPostName, qty: corner, unit: "ea" }] : []),
-        ...(end > 0 ? [{ name: endPostName, qty: end, unit: "ea" }] : []),
-        ...(blank > 0 ? [{ name: blankPostName, qty: blank, unit: "ea" }] : []),
-        ...(gate > 0 ? [{ name: gatePostName, qty: gate, unit: "ea" }] : []),
+      const rows: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = [
+        ...(panels > 0 ? [{ name: panelName, qty: panels, unit: "ea", priceKey: panelKey }] : []),
+        ...(line > 0 ? [{ name: linePostName, qty: line, unit: "ea", priceKey: linePostKey }] : []),
+        ...(corner > 0 ? [{ name: cornerPostName, qty: corner, unit: "ea", priceKey: cornerPostKey }] : []),
+        ...(end > 0 ? [{ name: endPostName, qty: end, unit: "ea", priceKey: endPostKey }] : []),
+        ...(blank > 0 ? [{ name: blankPostName, qty: blank, unit: "ea", priceKey: blankPostKey }] : []),
+        ...(gate > 0 ? [{ name: gatePostName, qty: gate, unit: "ea", priceKey: gatePostKey }] : []),
         ...(selectedStyle?.name === "Mansfield" && materialsDetails.mansfieldBlankGatePost
-          ? [{ name: blankGatePostName, qty: 1, unit: "ea" }]
+          ? [{ name: blankGatePostName, qty: 1, unit: "ea", priceKey: blankGatePostKey }]
           : []),
         ...walkGateItems,
         ...doubleGateItems,
@@ -2173,9 +2258,9 @@ function EstimatesPageInner() {
     ];
 
     return rows.map((r) => {
-      const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+      const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-      return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+      return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
   }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.fourRailPoplarWireMesh, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, materialsDetails.vinylColor, materialsDetails.vinylPanelHeightFt, materialsDetails.vinylPanelWidthFt, segments, selectedFenceType, selectedStyle, totalLf, walkGateCount
   ]);
