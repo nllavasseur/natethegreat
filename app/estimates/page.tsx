@@ -158,6 +158,7 @@ function woodNailsBoxQty(picketMaterial: "Pressure treated" | "Cedar" | "Cedar t
 
 function woodNailsItemName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
   const qty = woodNailsBoxQty(picketMaterial);
+  if (picketMaterial === "Cedar") return `2\" Nails ${qty}ct Stainless Steel Ring Shank Nails`;
   return `2\" Nails ${qty}ct Hot-Dipped Galvanized Ring Shank Nails`;
 }
 
@@ -1452,7 +1453,7 @@ function EstimatesPageInner() {
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
-      const nailsName = materialsDetails.picketMaterial === "Cedar" ? "1 1/2\" Nails 1000ct Hot-Dipped Galvanized Ring Shank Nails" : "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
+      const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
@@ -1578,7 +1579,7 @@ function EstimatesPageInner() {
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
-      const nailsName = materialsDetails.picketMaterial === "Cedar" ? "1 1/2\" Nails 1000ct Hot-Dipped Galvanized Ring Shank Nails" : "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
+      const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
       // Screws: 6 per rail, 350 per box
@@ -1702,7 +1703,7 @@ function EstimatesPageInner() {
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
-      const nailsName = materialsDetails.picketMaterial === "Cedar" ? "1 1/2\" Nails 1000ct Hot-Dipped Galvanized Ring Shank Nails" : "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
+      const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
