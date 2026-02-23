@@ -971,8 +971,13 @@ function EstimatesPageInner() {
     );
     const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
     setMaterialsDetails((p) => {
-      const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5_arched" : "walk_48_4";
-      const nextWalk = Array.from({ length: walkGates }, (_, i) => p.toledoWalkGateOptions?.[i] || defaultWalk);
+      const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
+      const nextWalk = Array.from({ length: walkGates }, (_, i) => {
+        const cur = p.toledoWalkGateOptions?.[i] || defaultWalk;
+        if (cur === "walk_48_5_arched") return "walk_48_5";
+        if (cur === "walk_60_5_arched") return "walk_60_5";
+        return cur;
+      });
       const defaultDouble = (Number(p.aluminumPanelHeight) || 0) === 60 ? "double_48_5" : "double_48_4";
       const nextDouble = Array.from({ length: doubleGates }, (_, i) => {
         const cur = p.toledoDoubleGateOptions?.[i] || defaultDouble;
@@ -2127,8 +2132,8 @@ function EstimatesPageInner() {
 
         if (style === "Toledo") {
           const opts = materialsDetails.toledoWalkGateOptions || [];
-          const qty48 = opts.filter((v) => v === "walk_48_5_arched" || v === "walk_48_4").length;
-          const qty60 = opts.filter((v) => v === "walk_60_5_arched" || v === "walk_60_4").length;
+          const qty48 = opts.filter((v) => v === "walk_48_4" || v === "walk_48_5" || v === "walk_48_5_arched").length;
+          const qty60 = opts.filter((v) => v === "walk_60_4" || v === "walk_60_5" || v === "walk_60_5_arched").length;
           const name48 = `Toledo walk gate 48\" x ${heightLabel}`;
           const name60 = `Toledo walk gate 60\" x ${heightLabel}`;
           return [
@@ -3475,7 +3480,12 @@ function EstimatesPageInner() {
         ? dd.pacificDoubleGateOptions.map((x: any) => String(x))
         : [];
       const toledoWalkGateOptions = Array.isArray(dd.toledoWalkGateOptions)
-        ? dd.toledoWalkGateOptions.map((x: any) => String(x))
+        ? dd.toledoWalkGateOptions.map((x: any) => {
+          const v = String(x);
+          if (v === "walk_48_5_arched") return "walk_48_5";
+          if (v === "walk_60_5_arched") return "walk_60_5";
+          return v;
+        })
         : [];
       const toledoDoubleGateOptions = Array.isArray(dd.toledoDoubleGateOptions)
         ? dd.toledoDoubleGateOptions.map((x: any) => {
@@ -5173,8 +5183,8 @@ function EstimatesPageInner() {
                                   >
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
                                       <>
-                                        <option value="walk_48_5_arched">48\" wide x 5' high — $429.99</option>
-                                        <option value="walk_60_5_arched">60\" wide x 5' high — $459.99</option>
+                                        <option value="walk_48_5">48\" wide x 5' high — $429.99</option>
+                                        <option value="walk_60_5">60\" wide x 5' high — $459.99</option>
                                       </>
                                     ) : (
                                       <>
