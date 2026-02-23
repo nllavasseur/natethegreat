@@ -24,6 +24,41 @@ function normalizeUnitPriceKey(name: string) {
   return String(name || "").trim();
 }
 
+function woodMaterialLabel(m: "Pressure treated" | "Cedar" | "Cedar tone") {
+  return m === "Cedar tone" ? "CedarTone" : (m === "Cedar" ? "Cedar" : "Pressure Treated");
+}
+
+function woodPostItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone") {
+  const s = postSize === 10 ? "10" : "8";
+  if (postType === "Cedar") return `4x4 x ${s}' Cedar S4S Post`;
+  if (postType === "Cedar tone") return `4x4 x ${s}' CedarTone Post`;
+  return `4x4 x ${s}' Post`;
+}
+
+function woodRail2x4Name(lengthFt: 8 | 16, railMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (railMaterial === "Cedar") return `2x4 ${lengthFt}' Cedar S4S Rails`;
+  if (railMaterial === "Cedar tone") return `2x4 ${lengthFt}' CedarTone Rails`;
+  return `2x4 ${lengthFt}' Pressure Treated Rails`;
+}
+
+function woodPicketName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (picketMaterial === "Cedar") return "6' Cedar Dog Ear Pickets";
+  if (picketMaterial === "Cedar tone") return "6' CedarTone Dog Ear Pickets";
+  return "6' Pressure Treated Dog Ear Pickets";
+}
+
+function woodTrimName(trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (trimMaterial === "Cedar") return "1x4 x 8' Cedar Trim";
+  if (trimMaterial === "Cedar tone") return "1x4 x 8' CedarTone Trim";
+  return "1x4 x 8' Trim";
+}
+
+function woodTwoByTwoName(twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (twoByTwoMaterial === "Cedar") return "2x2 8' Cedar S4S";
+  if (twoByTwoMaterial === "Cedar tone") return "2x2 8' CedarTone";
+  return "2x2 8' Pressure Treated";
+}
+
 const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = {
   White: { label: "White", bg: "rgba(255,255,255,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(255,255,255,.55)" },
   Tan: { label: "Tan", bg: "rgba(226,206,166,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(226,206,166,.6)" },
@@ -322,8 +357,12 @@ function EstimatesPageInner() {
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<{
     woodType: "Pressure treated" | "Cedar" | "Cedar tone";
+    railMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+    picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+    trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+    twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
     horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
-    shadowboxBoardMaterial: "Pressure Treated" | "Cedar";
+    shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
     postSize: 8 | 10 | 12 | 14;
     postType: "Pressure treated" | "Cedar" | "Cedar tone";
     postCaps: boolean;
@@ -331,6 +370,7 @@ function EstimatesPageInner() {
     arbor: boolean;
     splitRailRails: 2 | 3;
     splitRailWireMesh: boolean;
+    splitRailMaterial: "Pressure treated" | "Cedar tone";
     fourRailPoplarWireMesh: boolean;
     splitRailCornerPosts: number;
     splitRailEndPosts: number;
@@ -357,6 +397,10 @@ function EstimatesPageInner() {
     railEndBracketPacks: number;
   }>({
     woodType: "Pressure treated",
+    railMaterial: "Pressure treated",
+    picketMaterial: "Pressure treated",
+    trimMaterial: "Pressure treated",
+    twoByTwoMaterial: "Pressure treated",
     horizontalCedarBoardMaterial: "5/4 cedar",
     shadowboxBoardMaterial: "Pressure Treated",
     postSize: 8,
@@ -366,6 +410,7 @@ function EstimatesPageInner() {
     arbor: false,
     splitRailRails: 3,
     splitRailWireMesh: false,
+    splitRailMaterial: "Pressure treated",
     fourRailPoplarWireMesh: false,
     splitRailCornerPosts: 0,
     splitRailEndPosts: 0,
@@ -420,9 +465,14 @@ function EstimatesPageInner() {
       Boolean(materialsDetails.postCaps) ||
       Boolean(materialsDetails.topCaps) ||
       Boolean(materialsDetails.arbor) ||
+      String(materialsDetails.railMaterial || "Pressure treated") !== "Pressure treated" ||
+      String(materialsDetails.picketMaterial || "Pressure treated") !== "Pressure treated" ||
+      String(materialsDetails.trimMaterial || "Pressure treated") !== "Pressure treated" ||
+      String(materialsDetails.twoByTwoMaterial || "Pressure treated") !== "Pressure treated" ||
       String(materialsDetails.shadowboxBoardMaterial || "Pressure Treated") !== "Pressure Treated" ||
       (Number(materialsDetails.splitRailRails) || 3) !== 3 ||
       Boolean(materialsDetails.splitRailWireMesh) ||
+      String(materialsDetails.splitRailMaterial || "Pressure treated") !== "Pressure treated" ||
       Boolean(materialsDetails.fourRailPoplarWireMesh) ||
       (Number(materialsDetails.splitRailCornerPosts) || 0) !== 0 ||
       (Number(materialsDetails.splitRailEndPosts) || 0) !== 0 ||
@@ -2697,6 +2747,10 @@ function EstimatesPageInner() {
     setMaterialsDetailsOpen(false);
     const dd: typeof materialsDetails = {
       woodType: "Pressure treated",
+      railMaterial: "Pressure treated",
+      picketMaterial: "Pressure treated",
+      trimMaterial: "Pressure treated",
+      twoByTwoMaterial: "Pressure treated",
       horizontalCedarBoardMaterial: "5/4 cedar",
       shadowboxBoardMaterial: "Pressure Treated",
       postSize: 8,
@@ -2706,6 +2760,7 @@ function EstimatesPageInner() {
       arbor: false,
       splitRailRails: 3,
       splitRailWireMesh: false,
+      splitRailMaterial: "Pressure treated",
       fourRailPoplarWireMesh: false,
       splitRailCornerPosts: 0,
       splitRailEndPosts: 0,
@@ -3251,6 +3306,22 @@ function EstimatesPageInner() {
         ? dd.shadowboxBoardMaterial
         : "Pressure Treated";
 
+      const railMaterial = (dd.railMaterial === "Cedar" || dd.railMaterial === "Cedar tone" || dd.railMaterial === "Pressure treated")
+        ? dd.railMaterial
+        : woodType;
+      const picketMaterial = (dd.picketMaterial === "Cedar" || dd.picketMaterial === "Cedar tone" || dd.picketMaterial === "Pressure treated")
+        ? dd.picketMaterial
+        : woodType;
+      const trimMaterial = (dd.trimMaterial === "Cedar" || dd.trimMaterial === "Cedar tone" || dd.trimMaterial === "Pressure treated")
+        ? dd.trimMaterial
+        : woodType;
+      const twoByTwoMaterial = (dd.twoByTwoMaterial === "Cedar" || dd.twoByTwoMaterial === "Cedar tone" || dd.twoByTwoMaterial === "Pressure treated")
+        ? dd.twoByTwoMaterial
+        : woodType;
+      const splitRailMaterial = (dd.splitRailMaterial === "Cedar tone" || dd.splitRailMaterial === "Pressure treated")
+        ? dd.splitRailMaterial
+        : "Pressure treated";
+
       const postType = (dd.postType === "Cedar" || dd.postType === "Cedar tone" || dd.postType === "Pressure treated")
         ? dd.postType
         : "Pressure treated";
@@ -3315,6 +3386,10 @@ function EstimatesPageInner() {
         ...prev,
         ...dd,
         woodType,
+        railMaterial,
+        picketMaterial,
+        trimMaterial,
+        twoByTwoMaterial,
         horizontalCedarBoardMaterial,
         shadowboxBoardMaterial,
         postType,
@@ -3323,6 +3398,7 @@ function EstimatesPageInner() {
         arbor,
         splitRailRails,
         splitRailWireMesh,
+        splitRailMaterial,
         fourRailPoplarWireMesh,
         splitRailCornerPosts,
         splitRailEndPosts,
@@ -5320,6 +5396,41 @@ function EstimatesPageInner() {
 
                   {selectedFenceType !== "aluminum" ? (
                     <>
+                      {selectedFenceType === "wood" ? (
+                        <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                          <div className="text-[11px] text-[var(--muted)] mb-2">Wood material set</div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <div className="text-[11px] text-[var(--muted)] mb-1">Material set</div>
+                              <Select
+                                value={materialsDetails.woodType}
+                                onChange={(e) => {
+                                  const next = e.target.value as "Pressure treated" | "Cedar" | "Cedar tone";
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    woodType: next,
+                                    postType: next,
+                                    railMaterial: next,
+                                    picketMaterial: next,
+                                    trimMaterial: next,
+                                    twoByTwoMaterial: next,
+                                    pictureFrameTrimMaterial: next,
+                                    shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
+                                  }));
+                                }}
+                              >
+                                <option value="Pressure treated">Pressure treated</option>
+                                <option value="Cedar">Cedar</option>
+                                <option value="Cedar tone">Cedar tone</option>
+                              </Select>
+                            </div>
+                            <div className="text-[11px] text-[var(--muted)] flex items-end">
+                              Sets posts/rails/pickets/trim/2x2/boards. You can override below.
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
                       {selectedStyleKind === "wood_horizontal" || (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
                         <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Wood materials</div>
@@ -5357,6 +5468,55 @@ function EstimatesPageInner() {
                         </div>
                       )}
 
+                      {selectedFenceType === "wood" ? (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
+                            <Select
+                              value={materialsDetails.railMaterial}
+                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, railMaterial: e.target.value as any }))}
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Pickets</div>
+                            <Select
+                              value={materialsDetails.picketMaterial}
+                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, picketMaterial: e.target.value as any }))}
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Trim</div>
+                            <Select
+                              value={materialsDetails.trimMaterial}
+                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, trimMaterial: e.target.value as any, pictureFrameTrimMaterial: e.target.value as any }))}
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">2x2 / Verticals</div>
+                            <Select
+                              value={materialsDetails.twoByTwoMaterial}
+                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, twoByTwoMaterial: e.target.value as any }))}
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
+                          </div>
+                        </div>
+                      ) : null}
+
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Post size</div>
@@ -5389,6 +5549,33 @@ function EstimatesPageInner() {
                           </Select>
                         </div>
                       </div>
+
+                      {selectedFenceType === "wood" && selectedStyleKind === "wood_shadowbox" ? (
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Shadowbox 1x4 boards</div>
+                          <Select
+                            value={materialsDetails.shadowboxBoardMaterial}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, shadowboxBoardMaterial: e.target.value as any }))}
+                          >
+                            <option value="Pressure Treated">Pressure Treated</option>
+                            <option value="Cedar">Cedar</option>
+                            <option value="Cedar tone">Cedar tone</option>
+                          </Select>
+                        </div>
+                      ) : null}
+
+                      {selectedFenceType === "wood" && selectedStyleKind === "wood_split_rail" ? (
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Split rail material</div>
+                          <Select
+                            value={materialsDetails.splitRailMaterial}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, splitRailMaterial: e.target.value as any }))}
+                          >
+                            <option value="Pressure treated">Pressure treated</option>
+                            <option value="Cedar tone">Cedar tone</option>
+                          </Select>
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
 
