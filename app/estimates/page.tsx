@@ -827,6 +827,9 @@ function EstimatesPageInner() {
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
     "3\" Deck Screws": 29.97,
+    "Delivery": 150,
+    "Disposal": 150,
+    "Equipment Fees": 400,
     "Mansfield aluminum panel 6ft (4')": 99.99,
     "Mansfield line post (4')": 34.99,
     "Mansfield corner post (4')": 34.99,
@@ -1904,8 +1907,6 @@ function EstimatesPageInner() {
           : []),
         ...walkGateItems,
         ...doubleGateItems,
-        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
-        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
