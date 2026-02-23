@@ -1929,7 +1929,7 @@ function EstimatesPageInner() {
 
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
-        const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+        const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
         const boardName =
           materialsDetails.horizontalCedarBoardMaterial === "Pressure Treated"
             ? "5/4x6x12 Pressure Treated Boards"
