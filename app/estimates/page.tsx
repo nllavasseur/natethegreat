@@ -3297,6 +3297,9 @@ function EstimatesPageInner() {
     } else if (styleName === "mary jane") {
       overrides = {
         woodType: "Cedar",
+        railMaterial: "Cedar",
+        picketMaterial: "Cedar",
+        trimMaterial: "Cedar",
         postSize: 10,
         postType: "Pressure treated",
         pictureFrameTrimPieces: 3,
