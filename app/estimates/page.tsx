@@ -928,24 +928,25 @@ function EstimatesPageInner() {
       // 16' 2x4 rule
       const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
 
-      // Pickets: (length in inches/8)*2
-      const shadowboxBoards = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / 8) * 2) : 0);
+      // Pickets: standard picket math
+      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const boardName = materialsDetails.shadowboxBoardMaterial === "Cedar"
-        ? "1x4 Cedar Boards"
-        : "1x4 Pressure Treated Boards";
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
+      const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
+
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        { name: "4x4 x 8' Post", qty: posts, unit: "ea" },
+        { name: postName, qty: posts, unit: "ea" },
         ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
-        ...(shadowboxBoards > 0 ? [{ name: boardName, qty: shadowboxBoards, unit: "ea" }] : []),
+        ...(pickets > 0 ? [{ name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
+        ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
@@ -2423,7 +2424,7 @@ function EstimatesPageInner() {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
-        postSize: 8,
+        postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         vinylPanelHeightFt: 6,
