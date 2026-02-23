@@ -2029,7 +2029,9 @@ function EstimatesPageInner() {
         const boards = Math.ceil(boardsBase + posts * 0.5 + cornerCount);
 
         // Keep these proportional to the reference sheet (274 LF):
-        const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
+        const screwCount = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
+        const useStainlessScrews = materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar";
+        const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
         const gateFramingS4S = walkGates * 5 + doubleGates * 10;
@@ -2037,13 +2039,13 @@ function EstimatesPageInner() {
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
           { name: boardName, qty: boards, unit: "ea" },
-          { name: "3\" screws 60 ct stainless steel", qty: stainlessScrews, unit: "ea" },
+          ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
+          ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
           ...(gateFramingS4S > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" }] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
-          { name: "3\" Deck Screws", qty: fixedOrZero(1), unit: "box" },
           { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
           { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
           { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
