@@ -2463,6 +2463,18 @@ function EstimatesPageInner() {
         topCaps: true
       }));
     }
+    if (String(style.name || "").trim().toLowerCase() === "shadowbox") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        shadowboxBoardMaterial: "Pressure Treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: false
+      }));
+    }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
       setMaterialsDetails((prev) => ({
         ...prev,
