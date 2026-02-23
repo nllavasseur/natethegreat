@@ -1934,10 +1934,10 @@ function EstimatesPageInner() {
           materialsDetails.horizontalCedarBoardMaterial === "Pressure Treated"
             ? "5/4x6x12 Pressure Treated Boards"
             : materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar"
-              ? "5/4x6x12 Cedar Boards"
+              ? "5/4x6x12 Cedar S4S Rails"
               : materialsDetails.horizontalCedarBoardMaterial === "CedarTone"
-                ? "1x6x12' CedarTone Boards"
-                : "1x6x12' Red Cedar Boards";
+                ? "1x6x12 CedarTone Boards"
+                : "1x6x12 Cedar Boards";
 
         const segmentLengths = segments
           .filter((s) => !s.removed)
