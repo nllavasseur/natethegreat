@@ -172,6 +172,96 @@ const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string
   Black: { label: "Black", bg: "rgba(10,10,12,.92)", fg: "rgba(255,255,255,.92)", border: "rgba(255,255,255,.18)" }
 };
 
+type MaterialsDetails = {
+  woodType: "Pressure treated" | "Cedar" | "Cedar tone";
+  railMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
+  shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
+  postSize: 8 | 10 | 12 | 14;
+  postType: "Pressure treated" | "Cedar" | "Cedar tone";
+  postCaps: boolean;
+  topCaps: boolean;
+  arbor: boolean;
+  splitRailRails: 2 | 3;
+  splitRailWireMesh: boolean;
+  splitRailMaterial: "Pressure treated" | "Cedar tone";
+  fourRailPoplarWireMesh: boolean;
+  splitRailCornerPosts: number;
+  splitRailEndPosts: number;
+  pictureFrameTrimPieces: 2 | 3 | 5;
+  pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  takeoffPreset: "standard" | "horizontal_cedar";
+  horizontalCedarVerticals: boolean;
+  horizontalCedarCornerAdjust: number;
+  aluminumPanelHeight: number;
+  aluminumGateAuto: boolean;
+  aluminumCornerPosts: number;
+  aluminumGatePosts: number;
+  aluminumEndPosts: number;
+  aluminumBlankPosts: number;
+  mansfieldWalkGateOptions: string[];
+  mansfieldDoubleGateOptions: string[];
+  mansfieldBlankGatePost: boolean;
+  atlanticWalkGateOptions: string[];
+  atlanticDoubleGateOptions: string[];
+  pacificWalkGateOptions: string[];
+  pacificDoubleGateOptions: string[];
+  toledoWalkGateOptions: string[];
+  toledoDoubleGateOptions: string[];
+  vinylColor: string;
+  vinylPanelWidthFt: number;
+  vinylPanelHeightFt: number;
+  railEndBracketPacks: number;
+};
+
+const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
+  woodType: "Pressure treated",
+  railMaterial: "Pressure treated",
+  picketMaterial: "Pressure treated",
+  trimMaterial: "Pressure treated",
+  twoByTwoMaterial: "Pressure treated",
+  horizontalCedarBoardMaterial: "5/4 cedar",
+  shadowboxBoardMaterial: "Pressure Treated",
+  postSize: 8,
+  postType: "Pressure treated",
+  postCaps: false,
+  topCaps: false,
+  arbor: false,
+  splitRailRails: 3,
+  splitRailWireMesh: false,
+  splitRailMaterial: "Pressure treated",
+  fourRailPoplarWireMesh: false,
+  splitRailCornerPosts: 0,
+  splitRailEndPosts: 0,
+  pictureFrameTrimPieces: 3,
+  pictureFrameTrimMaterial: "Pressure treated",
+  takeoffPreset: "standard",
+  horizontalCedarVerticals: false,
+  horizontalCedarCornerAdjust: 0,
+  aluminumPanelHeight: 48,
+  aluminumGateAuto: true,
+  aluminumCornerPosts: 0,
+  aluminumGatePosts: 0,
+  aluminumEndPosts: 0,
+  aluminumBlankPosts: 0,
+  mansfieldWalkGateOptions: [] as string[],
+  mansfieldDoubleGateOptions: [] as string[],
+  mansfieldBlankGatePost: false,
+  atlanticWalkGateOptions: [] as string[],
+  atlanticDoubleGateOptions: [] as string[],
+  pacificWalkGateOptions: [] as string[],
+  pacificDoubleGateOptions: [] as string[],
+  toledoWalkGateOptions: [] as string[],
+  toledoDoubleGateOptions: [] as string[],
+  vinylColor: "White",
+  vinylPanelWidthFt: 6,
+  vinylPanelHeightFt: 6,
+  railEndBracketPacks: 0
+};
+
 export default function EstimatesPage() {
   return <EstimatesPageInner />;
 }
@@ -482,93 +572,7 @@ function EstimatesPageInner() {
   const [vinylStyleTab, setVinylStyleTab] = useState<"privacy" | "semi-privacy" | "pool">("privacy");
   const [selectedStyle, setSelectedStyle] = useState<{ name: string; thumb: string } | null>(null);
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
-  const [materialsDetails, setMaterialsDetails] = useState<{
-    woodType: "Pressure treated" | "Cedar" | "Cedar tone";
-    railMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-    picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-    trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-    twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-    horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
-    shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
-    postSize: 8 | 10 | 12 | 14;
-    postType: "Pressure treated" | "Cedar" | "Cedar tone";
-    postCaps: boolean;
-    topCaps: boolean;
-    arbor: boolean;
-    splitRailRails: 2 | 3;
-    splitRailWireMesh: boolean;
-    splitRailMaterial: "Pressure treated" | "Cedar tone";
-    fourRailPoplarWireMesh: boolean;
-    splitRailCornerPosts: number;
-    splitRailEndPosts: number;
-    pictureFrameTrimPieces: 2 | 3 | 5;
-    pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-    takeoffPreset: "standard" | "horizontal_cedar";
-    horizontalCedarVerticals: boolean;
-    horizontalCedarCornerAdjust: number;
-    aluminumPanelHeight: number;
-    aluminumGateAuto: boolean;
-    aluminumCornerPosts: number;
-    aluminumGatePosts: number;
-    aluminumEndPosts: number;
-    aluminumBlankPosts: number;
-    mansfieldWalkGateOptions: string[];
-    mansfieldDoubleGateOptions: string[];
-    mansfieldBlankGatePost: boolean;
-    atlanticWalkGateOptions: string[];
-    atlanticDoubleGateOptions: string[];
-    pacificWalkGateOptions: string[];
-    pacificDoubleGateOptions: string[];
-    toledoWalkGateOptions: string[];
-    toledoDoubleGateOptions: string[];
-    vinylColor: string;
-    vinylPanelWidthFt: number;
-    vinylPanelHeightFt: number;
-    railEndBracketPacks: number;
-  }>({
-    woodType: "Pressure treated",
-    railMaterial: "Pressure treated",
-    picketMaterial: "Pressure treated",
-    trimMaterial: "Pressure treated",
-    twoByTwoMaterial: "Pressure treated",
-    horizontalCedarBoardMaterial: "5/4 cedar",
-    shadowboxBoardMaterial: "Pressure Treated",
-    postSize: 8,
-    postType: "Pressure treated",
-    postCaps: false,
-    topCaps: false,
-    arbor: false,
-    splitRailRails: 3,
-    splitRailWireMesh: false,
-    splitRailMaterial: "Pressure treated",
-    fourRailPoplarWireMesh: false,
-    splitRailCornerPosts: 0,
-    splitRailEndPosts: 0,
-    pictureFrameTrimPieces: 3,
-    pictureFrameTrimMaterial: "Pressure treated",
-    takeoffPreset: "standard",
-    horizontalCedarVerticals: false,
-    horizontalCedarCornerAdjust: 0,
-    aluminumPanelHeight: 48,
-    aluminumGateAuto: true,
-    aluminumCornerPosts: 0,
-    aluminumGatePosts: 0,
-    aluminumEndPosts: 0,
-    aluminumBlankPosts: 0,
-    mansfieldWalkGateOptions: [],
-    mansfieldDoubleGateOptions: [],
-    mansfieldBlankGatePost: false,
-    atlanticWalkGateOptions: [],
-    atlanticDoubleGateOptions: [],
-    pacificWalkGateOptions: [],
-    pacificDoubleGateOptions: [],
-    toledoWalkGateOptions: [],
-    toledoDoubleGateOptions: [],
-    vinylColor: "White",
-    vinylPanelWidthFt: 6,
-    vinylPanelHeightFt: 6,
-    railEndBracketPacks: 0,
-  });
+  const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
 
@@ -3115,9 +3119,18 @@ function EstimatesPageInner() {
 
   function setMaterialStyle(style: { name: string; thumb: string }) {
     setSelectedStyle(style);
-    if (String(style.name || "").trim().toLowerCase() === "horizontal") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+
+    const styleName = String(style.name || "").trim().toLowerCase();
+
+    const normalized = styleName
+      .replaceAll("/", ":")
+      .replaceAll("-", " ")
+      .replace(/\s+/g, " ");
+
+    let overrides: Partial<typeof DEFAULT_MATERIALS_DETAILS> = {};
+
+    if (styleName === "horizontal") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3125,11 +3138,9 @@ function EstimatesPageInner() {
         horizontalCedarVerticals: true,
         horizontalCedarCornerAdjust: 0,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase().includes("picture framed")) {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "picture framed flat top") {
+      overrides = {
         woodType: "Pressure treated",
         picketMaterial: "Pressure treated",
         railMaterial: "Pressure treated",
@@ -3141,11 +3152,9 @@ function EstimatesPageInner() {
         pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "2 trim picutre framed") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "2 trim picutre framed") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3154,11 +3163,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "4' picture framed") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "4' picture framed") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
@@ -3167,29 +3174,18 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (
-      String(style.name || "")
-        .trim()
-        .toLowerCase()
-        .replaceAll("/", ":")
-        .replaceAll("-", " ")
-        .replaceAll("  ", " ") === "5:4 2 rail mesh"
-    ) {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (normalized === "5:4 2 rail mesh") {
+      overrides = {
         woodType: "Cedar",
         postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "a & m") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "a & m") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3198,11 +3194,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "all cedar niko") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "all cedar niko") {
+      overrides = {
         woodType: "Cedar",
         postSize: 10,
         postType: "Cedar",
@@ -3211,11 +3205,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "niko") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "niko") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3224,11 +3216,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "all cedar picture framed") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "all cedar picture framed") {
+      overrides = {
         woodType: "Cedar",
         postSize: 10,
         postType: "Cedar",
@@ -3237,11 +3227,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "casto") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "casto") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3250,11 +3238,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "mary jane") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "mary jane") {
+      overrides = {
         woodType: "Cedar",
         postSize: 10,
         postType: "Pressure treated",
@@ -3263,11 +3249,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "picture framed caps") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "picture framed caps") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3276,11 +3260,9 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "picture framed lattice panel") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "picture framed lattice panel") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3289,22 +3271,18 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "scalloped") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "scalloped") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         vinylPanelHeightFt: 6,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "shadowbox top cap") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "shadowbox top cap") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
@@ -3312,54 +3290,44 @@ function EstimatesPageInner() {
         vinylPanelHeightFt: 6,
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "board on board") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "board on board") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "four rail poplar") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "four rail poplar") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         fourRailPoplarWireMesh: false,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "hog wire") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "hog wire") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "shadowbox") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "shadowbox") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "1x4 shadowbox") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "1x4 shadowbox") {
+      overrides = {
         woodType: "Pressure treated",
         shadowboxBoardMaterial: "Pressure Treated",
         postSize: 10,
@@ -3367,21 +3335,17 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName === "4 foot wire mesh") {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         topCaps: false
-      }));
-    }
-    if (String(style.name || "").trim().toLowerCase().includes("split rail")) {
-      setMaterialsDetails((prev) => ({
-        ...prev,
+      };
+    } else if (styleName.includes("split rail")) {
+      overrides = {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
@@ -3389,8 +3353,10 @@ function EstimatesPageInner() {
         splitRailRails: 3,
         splitRailWireMesh: false,
         topCaps: false
-      }));
+      };
     }
+
+    setMaterialsDetails(() => ({ ...DEFAULT_MATERIALS_DETAILS, ...overrides }));
     setStylePickerIdx(false);
   }
 
@@ -4307,6 +4273,7 @@ function EstimatesPageInner() {
                           const next = e.target.value as "wood" | "vinyl" | "aluminum" | "chainlink";
                           setSelectedFenceType(next);
                           setSelectedStyle(null);
+                          setMaterialsDetails({ ...DEFAULT_MATERIALS_DETAILS });
                           setVinylStyleTab("privacy");
                         }}>
                           <option value="wood">Wood</option>
