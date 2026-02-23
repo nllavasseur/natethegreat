@@ -3202,7 +3202,7 @@ function EstimatesPageInner() {
         pictureFrameTrimPieces: 3,
         pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
-        topCaps: false
+        topCaps: true
       };
     } else if (styleName === "2 trim picutre framed") {
       overrides = {
