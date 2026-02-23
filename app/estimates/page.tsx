@@ -1723,7 +1723,12 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName =
+        materialsDetails.postType === "Cedar tone"
+          ? "4x4 x 10' CedarTone Post"
+          : materialsDetails.postType === "Cedar"
+            ? "4x4 x 10' Cedar S4S Post"
+            : "4x4 x 10' Pressure Treated Post";
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
@@ -1769,10 +1774,19 @@ function EstimatesPageInner() {
       const twoByTwo8 = panels * 3;
       const oneBySix8 = panels * 14;
 
+      // Fasteners (screws): 6 per board, 350 per box
+      const screwPieces = twoByTwo8 + oneBySix8;
+      const screwBoxes = screwPieces > 0 ? Math.ceil((screwPieces * 6) / 350) : 0;
+
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName =
+        materialsDetails.postType === "Cedar tone"
+          ? "4x4 x 10' CedarTone Post"
+          : materialsDetails.postType === "Cedar"
+            ? "4x4 x 10' Cedar S4S Post"
+            : "4x4 x 10' Pressure Treated Post";
 
       const twoByTwoName = woodBoard2x2x8Name(materialsDetails.twoByTwoMaterial);
       const oneBySixName = woodBoard1x6x8Name(materialsDetails.railMaterial);
@@ -1782,6 +1796,7 @@ function EstimatesPageInner() {
         ...(twoByTwo8 > 0 ? [{ name: twoByTwoName, qty: twoByTwo8, unit: "ea" }] : []),
         ...(oneBySix8 > 0 ? [{ name: oneBySixName, qty: oneBySix8, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
