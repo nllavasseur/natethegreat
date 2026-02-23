@@ -486,6 +486,7 @@ function EstimatesPageInner() {
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
     if (n === "casto") return "wood_picture_framed";
     if (n === "mary jane") return "wood_picture_framed";
+    if (n === "picture framed caps") return "wood_picture_framed";
     if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
     if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
@@ -2262,6 +2263,19 @@ function EstimatesPageInner() {
         postType: "Pressure treated",
         pictureFrameTrimPieces: 3,
         pictureFrameTrimMaterial: "Cedar",
+        takeoffPreset: "standard",
+        postCaps: true,
+        topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "picture framed caps") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 3,
+        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
