@@ -2058,7 +2058,8 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
       // Screws: 6 per rail, 350 per box
-      const screwBoxes = rails > 0 ? Math.ceil((rails * 6) / 350) : 0;
+      // (computed later for picture framed styles once rail counts are known)
+      let screwBoxes = 0;
 
       const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
@@ -2110,6 +2111,11 @@ function EstimatesPageInner() {
             : 0)
         : 0;
 
+      // Screws: 6 per rail, 350 per box
+      // For picture framed styles we use the actual picture-framed rail counts.
+      const railsForScrews = isPictureFramed ? (pictureFramed2x4x8 + pictureFramed2x4x16) : rails;
+      screwBoxes = railsForScrews > 0 ? Math.ceil((railsForScrews * 6) / 350) : 0;
+
       const postName = isAllCedarNiko
         ? "4x4 x 10' Cedar S4S Post"
         : isAllCedarPictureFramed
@@ -2152,8 +2158,8 @@ function EstimatesPageInner() {
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        { name: nailsNameFinal, qty: nailsBoxesFinal, unit: "box" },
-        { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
+        ...(nailsBoxesFinal > 0 ? [{ name: nailsNameFinal, qty: nailsBoxesFinal, unit: "box" }] : []),
+        ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(railEndBracketsQty > 0
           ? [{ name: "Rail end bracket packs", qty: railEndBracketsQty, unit: "ea" }]
           : []),
