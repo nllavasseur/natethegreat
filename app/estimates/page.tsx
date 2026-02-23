@@ -5025,7 +5025,7 @@ function EstimatesPageInner() {
                             OK
                           </PrimaryButton>
                         </div>
-                        <div className="absolute inset-0 grid place-items-center p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 88px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+                        <div className="absolute inset-0 grid place-items-center p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={stylePreview.thumb}
