@@ -1325,6 +1325,7 @@ function EstimatesPageInner() {
 
         // Staples: 10 per post
         const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
+        const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1354,7 +1355,7 @@ function EstimatesPageInner() {
           ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
           ...(stainlessScrews > 0 ? [{ name: "Stainless screws", qty: stainlessScrews, unit: "ea" }] : []),
-          ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+          ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
           ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1403,6 +1404,7 @@ function EstimatesPageInner() {
 
       // Staples: 10 per post
       const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
+      const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1419,7 +1421,7 @@ function EstimatesPageInner() {
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
-        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1538,6 +1540,7 @@ function EstimatesPageInner() {
 
       // Staples: 25 per panel
       const staples = panels > 0 ? Math.ceil(panels * 25) : 0;
+      const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1553,7 +1556,7 @@ function EstimatesPageInner() {
         ...(cattlePanels > 0 ? [{ name: "16' Cattle Panel", qty: cattlePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(screwBoxes > 0 ? [{ name: screwName, qty: screwBoxes, unit: "box" }] : []),
-        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1849,6 +1852,7 @@ function EstimatesPageInner() {
       // Optional wire mesh
       const meshRolls = materialsDetails.fourRailPoplarWireMesh && lf > 0 ? Math.ceil(lf / 50) : 0;
       const staples = materialsDetails.fourRailPoplarWireMesh && posts > 0 ? Math.ceil(posts * 10) : 0;
+      const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1861,7 +1865,7 @@ function EstimatesPageInner() {
         ...(verticalAdders > 0 ? [{ name: "1x6x16 Poplar Verticals", qty: verticalAdders, unit: "ea" }] : []),
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1905,6 +1909,7 @@ function EstimatesPageInner() {
       // Optional wire mesh (same as wood wire mesh: rolls + staples).
       const meshRolls = materialsDetails.splitRailWireMesh && lf > 0 ? Math.ceil(lf / 50) : 0;
       const staples = materialsDetails.splitRailWireMesh && posts > 0 ? Math.ceil(posts * 10) : 0;
+      const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -1934,7 +1939,7 @@ function EstimatesPageInner() {
         ...(splitRailPostsSummary.gateDerived > 0 ? [{ name: splitRailGatePostName, qty: splitRailPostsSummary.gateDerived, unit: "ea" }] : []),
         { name: splitRailName, qty: rails, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
-        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(gateFramingS4S > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" }] : []),
         ...(cedarPickets > 0 ? [{ name: "Cedar pickets", qty: cedarPickets, unit: "ea" }] : []),
