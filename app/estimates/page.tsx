@@ -1373,13 +1373,11 @@ function EstimatesPageInner() {
 
       const cornerCount = Math.max(0, segmentLengths.length - 1);
 
-      // Boards: (segmentLength/12) * (3 or 4)
-      const boardMultiplier = materialsDetails.topCaps ? 4 : 3;
+      // Boards: (segmentLength/12) * 4 + 1/3 board per post + 1 per corner
       const boardsBase = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * boardMultiplier), 0)
-        : (lf > 0 ? Math.ceil((lf / 12) * boardMultiplier) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 4), 0)
+        : (lf > 0 ? Math.ceil((lf / 12) * 4) : 0);
 
-      // Verticals: +0.333333333333333 per post +1 per corner
       const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
       const boards = boardsBase + verticalBoards + cornerCount;
 
