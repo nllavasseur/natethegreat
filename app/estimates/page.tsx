@@ -462,6 +462,8 @@ function EstimatesPageInner() {
     mansfieldBlankGatePost: boolean;
     atlanticWalkGateOptions: string[];
     atlanticDoubleGateOptions: string[];
+    pacificWalkGateOptions: string[];
+    pacificDoubleGateOptions: string[];
     toledoWalkGateOptions: string[];
     toledoDoubleGateOptions: string[];
     vinylColor: string;
@@ -503,12 +505,14 @@ function EstimatesPageInner() {
     mansfieldBlankGatePost: false,
     atlanticWalkGateOptions: [],
     atlanticDoubleGateOptions: [],
+    pacificWalkGateOptions: [],
+    pacificDoubleGateOptions: [],
     toledoWalkGateOptions: [],
     toledoDoubleGateOptions: [],
     vinylColor: "White",
     vinylPanelWidthFt: 6,
     vinylPanelHeightFt: 6,
-    railEndBracketPacks: 0
+    railEndBracketPacks: 0,
   });
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -839,6 +843,33 @@ function EstimatesPageInner() {
         ...p,
         mansfieldWalkGateOptions: nextWalk,
         mansfieldDoubleGateOptions: nextDouble
+      };
+    });
+  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "aluminum") return;
+    if (String(selectedStyle?.name || "") !== "Pacific") return;
+
+    const walkGates = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => Boolean((s as any).gate))
+        .length
+    );
+    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+
+    setMaterialsDetails((p) => {
+      const nextWalk = Array.from({ length: walkGates }, (_, i) => p.pacificWalkGateOptions?.[i] || "walk_48_45");
+      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.pacificDoubleGateOptions?.[i] || "double_48_45");
+      const walkSame = (p.pacificWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.pacificWalkGateOptions?.[i]);
+      const doubleSame = (p.pacificDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.pacificDoubleGateOptions?.[i]);
+      if (walkSame && doubleSame) return p;
+      return {
+        ...p,
+        pacificWalkGateOptions: nextWalk,
+        pacificDoubleGateOptions: nextDouble
       };
     });
   }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
@@ -2007,6 +2038,18 @@ function EstimatesPageInner() {
           ];
         }
 
+        if (style === "Pacific") {
+          const opts = materialsDetails.pacificWalkGateOptions || [];
+          const qty48 = opts.filter((v) => v === "walk_48_45").length;
+          const qty60 = opts.filter((v) => v === "walk_60_45").length;
+          const name48 = `Pacific walk gate 48\" x ${heightLabel}`;
+          const name60 = `Pacific walk gate 60\" x ${heightLabel}`;
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+          ];
+        }
+
         return [];
       })();
 
@@ -2038,6 +2081,18 @@ function EstimatesPageInner() {
           const qty60 = opts.filter((v) => v === "double_60_4_arched" || v === "double_60_5_arched").length;
           const name60 = `Toledo double gate 60\" x ${heightLabel}`;
           return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [];
+        }
+
+        if (style === "Pacific") {
+          const opts = materialsDetails.pacificDoubleGateOptions || [];
+          const qty48 = opts.filter((v) => v === "double_48_45").length;
+          const qty60 = opts.filter((v) => v === "double_60_45").length;
+          const name48 = `Pacific double gate 48\" x ${heightLabel}`;
+          const name60 = `Pacific double gate 60\" x ${heightLabel}`;
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+          ];
         }
 
         return [];
@@ -3289,6 +3344,12 @@ function EstimatesPageInner() {
       const atlanticDoubleGateOptions = Array.isArray(dd.atlanticDoubleGateOptions)
         ? dd.atlanticDoubleGateOptions.map((x: any) => String(x))
         : [];
+      const pacificWalkGateOptions = Array.isArray(dd.pacificWalkGateOptions)
+        ? dd.pacificWalkGateOptions.map((x: any) => String(x))
+        : [];
+      const pacificDoubleGateOptions = Array.isArray(dd.pacificDoubleGateOptions)
+        ? dd.pacificDoubleGateOptions.map((x: any) => String(x))
+        : [];
       const toledoWalkGateOptions = Array.isArray(dd.toledoWalkGateOptions)
         ? dd.toledoWalkGateOptions.map((x: any) => String(x))
         : [];
@@ -3330,6 +3391,8 @@ function EstimatesPageInner() {
         mansfieldDoubleGateOptions,
         atlanticWalkGateOptions,
         atlanticDoubleGateOptions,
+        pacificWalkGateOptions,
+        pacificDoubleGateOptions,
         toledoWalkGateOptions,
         toledoDoubleGateOptions,
         vinylColor,
@@ -4839,6 +4902,59 @@ function EstimatesPageInner() {
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
                                       <option value="double_60_5_arched">60" wide x 5' high (arched) — $940.00</option>
                                     ) : null}
+                                  </Select>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        {selectedStyle?.name === "Pacific" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
+                            <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
+
+                            {(materialsDetails.pacificWalkGateOptions || []).map((v, i) => (
+                              <div key={`pac-walk-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center mb-2">
+                                <div className="text-[12px] font-extrabold">Walk gate {i + 1}</div>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        pacificWalkGateOptions: (p.pacificWalkGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 54}
+                                  >
+                                    <option value="walk_48_45">48" wide x 4.5' high — $429.99</option>
+                                    <option value="walk_60_45">60" wide x 4.5' high — $459.99</option>
+                                  </Select>
+                                </div>
+                              </div>
+                            ))}
+
+                            {(materialsDetails.pacificDoubleGateOptions || []).map((v, i) => (
+                              <div key={`pac-double-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center">
+                                <div className="text-[12px] font-extrabold">Double gate {i + 1}</div>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        pacificDoubleGateOptions: (p.pacificDoubleGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 54}
+                                  >
+                                    <option value="double_48_45">48" wide x 4.5' high — $859.99</option>
+                                    <option value="double_60_45">60" wide x 4.5' high — $899.99</option>
                                   </Select>
                                 </div>
                               </div>
