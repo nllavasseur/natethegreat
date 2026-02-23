@@ -170,6 +170,30 @@ function EstimatesPageInner() {
   const [stumpGrindingPrice, setStumpGrindingPrice] = useState<number>(0);
   const [doubleGateCount, setDoubleGateCount] = useState<number>(0);
 
+  function scanLengthsFromPhoto() {
+    setOcrBusy(true);
+    setOcrError(null);
+    setOcrEmpty(false);
+    setTimeout(() => {
+      setOcrBusy(false);
+      setOcrError("OCR scanning is not configured.");
+    }, 50);
+  }
+
+  function applyTracedSegments() {
+    const next = tracedSegments.map((s, i) => {
+      const current = ocrResults.find((r) => r.label === s.label);
+      const length = Number(current?.value) || 0;
+      const id =
+        typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+          ? (crypto as any).randomUUID()
+          : `${Date.now()}-${i}-${s.label}`;
+      return { id, label: s.label, length, removed: false };
+    });
+    setSegments(next);
+    setMeasureOpen(false);
+  }
+
   const materialStyles: Array<{ type: "wood" | "vinyl" | "aluminum" | "chainlink"; name: string; thumb: string; group?: "privacy" | "semi-privacy" | "pool" }> = [
     {
       type: "wood",
@@ -436,6 +460,7 @@ function EstimatesPageInner() {
     mansfieldWalkGateOptions: string[];
     mansfieldDoubleGateOptions: string[];
     mansfieldBlankGatePost: boolean;
+    atlanticWalkGateOptions: string[];
     atlanticDoubleGateOptions: string[];
     toledoWalkGateOptions: string[];
     toledoDoubleGateOptions: string[];
@@ -476,6 +501,7 @@ function EstimatesPageInner() {
     mansfieldWalkGateOptions: [],
     mansfieldDoubleGateOptions: [],
     mansfieldBlankGatePost: false,
+    atlanticWalkGateOptions: [],
     atlanticDoubleGateOptions: [],
     toledoWalkGateOptions: [],
     toledoDoubleGateOptions: [],
@@ -821,17 +847,28 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Atlantic") return;
 
+    const walkGates = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => Boolean((s as any).gate))
+        .length
+    );
     const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+
     setMaterialsDetails((p) => {
+      const nextWalk = Array.from({ length: walkGates }, (_, i) => p.atlanticWalkGateOptions?.[i] || "walk_48_4");
       const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.atlanticDoubleGateOptions?.[i] || "double_60_4_arched");
-      const same = (p.atlanticDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.atlanticDoubleGateOptions?.[i]);
-      if (same) return p;
+      const walkSame = (p.atlanticWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.atlanticWalkGateOptions?.[i]);
+      const doubleSame = (p.atlanticDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.atlanticDoubleGateOptions?.[i]);
+      if (walkSame && doubleSame) return p;
       return {
         ...p,
+        atlanticWalkGateOptions: nextWalk,
         atlanticDoubleGateOptions: nextDouble
       };
     });
-  }, [doubleGateCount, selectedFenceType, selectedStyle?.name]);
+  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1899,7 +1936,9 @@ function EstimatesPageInner() {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
       const style = String(selectedStyle?.name || "Aluminum");
-      const h = Math.max(1, Math.floor(Number(materialsDetails.aluminumPanelHeight) || 48));
+      const hRaw = Math.max(1, Math.floor(Number(materialsDetails.aluminumPanelHeight) || 48));
+      const allowedHeights = aluminumAllowedPanelHeights;
+      const h = allowedHeights.includes(hRaw) ? hRaw : Math.max(1, Math.floor(Number(allowedHeights[0]) || hRaw));
 
       const w = 6;
       const segmentLengths = segments
@@ -1957,8 +1996,15 @@ function EstimatesPageInner() {
         }
 
         if (style === "Atlantic") {
-          // Atlantic walk gate options not currently configured in UI; keep empty.
-          return [];
+          const opts = materialsDetails.atlanticWalkGateOptions || [];
+          const qty48 = opts.filter((v) => v === "walk_48_4" || v === "walk_48_5" || v === "walk_48_45").length;
+          const qty60 = opts.filter((v) => v === "walk_60_4" || v === "walk_60_5" || v === "walk_60_45").length;
+          const name48 = `Atlantic walk gate 48\" x ${heightLabel}`;
+          const name60 = `Atlantic walk gate 60\" x ${heightLabel}`;
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+          ];
         }
 
         return [];
@@ -2121,6 +2167,89 @@ function EstimatesPageInner() {
       window.localStorage.setItem(unsavedSnapshotKey, JSON.stringify(payload));
     } catch {
       // ignore
+    }
+  }
+
+  function buildDraftData(id: string) {
+    return {
+      id,
+      customerName,
+      projectAddress,
+      phoneNumber,
+      email,
+      projectPhotoDataUrl,
+      selectedFenceType,
+      selectedStyle,
+      materialsDetails,
+      extraPosts,
+      materialUnitPrices,
+      laborDays,
+      laborManualDays,
+      laborManualCost,
+      gradingPrice,
+      treeRemovalPrice,
+      toughDigEnabled,
+      gradeEnabled,
+      stumpGrindingPrice,
+      doubleGateCount,
+      referenceLength,
+      notes,
+      preInstallPhotos,
+      segments,
+      items,
+      updatedAt: Date.now()
+    };
+  }
+
+  async function save() {
+    const id = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const store = readDraftStore();
+      const payload = buildDraftData(id);
+      store[id] = payload;
+      writeDraftStore(store);
+      setDraftId(id);
+
+      try {
+        await upsertDraft({ id, data: payload });
+      } catch {
+        // ignore
+      }
+
+      clearUnsavedSnapshot();
+    } catch {
+      setSaveError("Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveAsNew() {
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    setSavingAsNew(true);
+    setSaveError(null);
+    try {
+      const store = readDraftStore();
+      const payload = buildDraftData(id);
+      store[id] = payload;
+      writeDraftStore(store);
+      setDraftId(id);
+
+      try {
+        await upsertDraft({ id, data: payload });
+      } catch {
+        // ignore
+      }
+
+      clearUnsavedSnapshot();
+      setSaveAsNewJustSaved(true);
+      setTimeout(() => setSaveAsNewJustSaved(false), 900);
+    } catch {
+      setSaveError("Failed to save.");
+    } finally {
+      setSavingAsNew(false);
     }
   }
 
@@ -3022,507 +3151,11 @@ function EstimatesPageInner() {
     setPickOcrForLabel(null);
     setReferenceLength(0);
     setSegments([]);
-    setSelectedFenceType("wood");
-    setSelectedStyle(null);
-    setStylePickerIdx(false);
-    setStylePreview(null);
-    setMaterialsDetailsOpen(false);
-    const dd: typeof materialsDetails = {
-      woodType: "Pressure treated",
-      railMaterial: "Pressure treated",
-      picketMaterial: "Pressure treated",
-      trimMaterial: "Pressure treated",
-      twoByTwoMaterial: "Pressure treated",
-      horizontalCedarBoardMaterial: "5/4 cedar",
-      shadowboxBoardMaterial: "Pressure Treated",
-      postSize: 8,
-      postType: "Pressure treated",
-      postCaps: false,
-      topCaps: false,
-      arbor: false,
-      splitRailRails: 3,
-      splitRailWireMesh: false,
-      splitRailMaterial: "Pressure treated",
-      fourRailPoplarWireMesh: false,
-      splitRailCornerPosts: 0,
-      splitRailEndPosts: 0,
-      pictureFrameTrimPieces: 3,
-      pictureFrameTrimMaterial: "Pressure treated",
-      takeoffPreset: "standard",
-      horizontalCedarVerticals: false,
-      horizontalCedarCornerAdjust: 0,
-      aluminumPanelHeight: 48,
-      aluminumGateAuto: true,
-      aluminumCornerPosts: 0,
-      aluminumGatePosts: 0,
-      aluminumEndPosts: 0,
-      aluminumBlankPosts: 0,
-      mansfieldWalkGateOptions: [],
-      mansfieldDoubleGateOptions: [],
-      mansfieldBlankGatePost: false,
-      atlanticDoubleGateOptions: [],
-      toledoWalkGateOptions: [],
-      toledoDoubleGateOptions: [],
-      vinylColor: "White",
-      vinylPanelWidthFt: 6,
-      vinylPanelHeightFt: 6,
-      railEndBracketPacks: 0
-    };
-
-    setMaterialsDetails(dd);
-    setExtraPosts(0);
-    setNotes("");
-    setPreInstallPhotos([]);
-    setNotePhotoIdx(null);
-    setLaborDays(0);
-    setLaborManualDays("");
-    setLaborManualCost("");
-    setGradingPrice(0);
-    setTreeRemovalPrice(0);
-    setToughDigEnabled(false);
-    setGradeEnabled(false);
-    setStumpGrindingPrice(0);
-    setDoubleGateCount(0);
-    setItems([]);
   }
 
-  async function scanLengthsFromPhoto() {
-    if (!projectPhotoUrl) return;
-    if (tracedSegments.length === 0) return;
-    if (ocrBusy) return;
+// ...
 
-    setOcrBusy(true);
-    setOcrError(null);
-    setOcrEmpty(false);
-    let worker: any = null;
-    try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = projectPhotoUrl!;
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Image load failed"));
-      });
-
-      const { createWorker } = await import("tesseract.js");
-      worker = await createWorker();
-      await worker.loadLanguage("eng");
-      await worker.initialize("eng");
-      await worker.setParameters({
-        tessedit_char_whitelist: "0123456789.",
-        preserve_interword_spaces: "1",
-        tessedit_pageseg_mode: "7"
-      });
-
-      const cropNorm = 0.22;
-
-      const next: Array<{ label: string; value: number | null; raw: string }> = [];
-
-      for (const s of tracedSegments) {
-        const center = ocrCenters[s.label];
-        const mx = center ? center.x : (s.a.x + s.b.x) / 2;
-        const my = center ? center.y : (s.a.y + s.b.y) / 2;
-
-        const x0 = Math.max(0, mx - cropNorm / 2);
-        const y0 = Math.max(0, my - cropNorm / 2);
-        const x1 = Math.min(1, mx + cropNorm / 2);
-        const y1 = Math.min(1, my + cropNorm / 2);
-
-        const sx = Math.round(x0 * img.naturalWidth);
-        const sy = Math.round(y0 * img.naturalHeight);
-        const sw = Math.max(1, Math.round((x1 - x0) * img.naturalWidth));
-        const sh = Math.max(1, Math.round((y1 - y0) * img.naturalHeight));
-
-        const upscale = 2;
-        const canvas = document.createElement("canvas");
-        canvas.width = sw * upscale;
-        canvas.height = sh * upscale;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          next.push({ label: s.label, value: null, raw: "" });
-          continue;
-        }
-
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw * upscale, sh * upscale);
-
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = imgData.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const r = d[i] ?? 0;
-          const g = d[i + 1] ?? 0;
-          const b = d[i + 2] ?? 0;
-          const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-          const v = gray > 185 ? 255 : 0;
-          d[i] = v;
-          d[i + 1] = v;
-          d[i + 2] = v;
-          d[i + 3] = 255;
-        }
-        ctx.putImageData(imgData, 0, 0);
-        const dataUrl = canvas.toDataURL("image/png");
-
-        const res = await worker.recognize(dataUrl);
-        const raw = (res.data.text ?? "").trim();
-        const match = raw.replace(/\s+/g, "").match(/\d+(?:\.\d+)?/);
-        const value = match ? Number(match[0]) : null;
-        next.push({ label: s.label, value: Number.isFinite(value as any) ? (value as number) : null, raw });
-      }
-
-      setOcrResults(next);
-      setOcrEmpty(next.every((r) => !r.raw && (r.value === null || r.value === 0)));
-    } catch (e) {
-      setOcrError(e instanceof Error ? e.message : "OCR failed");
-    } finally {
-      try {
-        await worker?.terminate?.();
-      } catch {
-        // ignore
-      }
-      setOcrBusy(false);
-    }
-  }
-
-  function applyTracedSegments() {
-    const byLabel = new Map(ocrResults.map((r) => [r.label, r.value] as const));
-    const nextSegs = tracedSegments.map((s) => {
-      const v = byLabel.get(s.label);
-      return {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        label: s.label,
-        length: Number.isFinite(v as any) ? (v as number) : 0,
-        removed: false,
-        gate: false
-      };
-    });
-    setSegments(nextSegs);
-    setMeasureOpen(false);
-  }
-
-  function save() {
-    if (saving || savingAsNew) return;
-    setSaving(true);
-    setSaveError(null);
-    const now = Date.now();
-    const id = draftId ?? `${now}-${Math.random().toString(16).slice(2)}`;
-    const title = customerName ? customerName : projectAddress ? projectAddress : "Draft estimate";
-
-    const hasCustomerInfo =
-      String(customerName || "").trim() !== "" ||
-      String(projectAddress || "").trim() !== "" ||
-      String(phoneNumber || "").trim() !== "" ||
-      String(email || "").trim() !== "";
-
-    const hasEstimateContent =
-      (Number(laborDays) || 0) > 0 ||
-      (Array.isArray(segments) && segments.some((s) => (Number((s as any)?.length) || 0) > 0)) ||
-      (Array.isArray(items) && items.some((i) => (Number((i as any)?.lineTotal) || 0) > 0 || (Number((i as any)?.qty) || 0) > 0)) ||
-      Boolean(selectedStyle) ||
-      String(notes || "").trim() !== "";
-
-    const store = readDraftStore();
-    const prevStatus = store[id]?.status;
-    const isNewDraft = !store[id];
-    const status = isNewDraft ? (hasCustomerInfo && hasEstimateContent ? "pending" : prevStatus ?? "estimate") : prevStatus;
-    const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
-    const baseDraft = {
-      id,
-      createdAt: store[id]?.createdAt ?? now,
-      updatedAt: now,
-      title,
-      status,
-      customerName,
-      projectAddress,
-      phoneNumber,
-      email,
-      projectPhotoDataUrl: sanitized.projectPhotoDataUrl,
-      selectedFenceType,
-      selectedStyle,
-      materialsDetails,
-      extraPosts,
-      materialUnitPrices,
-      laborDays,
-      laborManualDays,
-      laborManualCost,
-      gradingPrice,
-      treeRemovalPrice,
-      toughDigEnabled,
-      gradeEnabled,
-      stumpGrindingPrice,
-      doubleGateCount,
-      referenceLength,
-      notes,
-      preInstallPhotos: sanitized.preInstallPhotos,
-      segments,
-      items,
-      contract: buildContractPayload(id)
-    };
-
-    if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
-      setSaveError(
-        sanitized.droppedProject
-          ? "Photos were too large for device storage and were omitted before saving."
-          : "Some photos were too large for device storage and were omitted before saving."
-      );
-    }
-
-    const finishOk = () => {
-      clearUnsavedSnapshot();
-      setDraftId(id);
-    };
-
-    const finishFail = (e: unknown) => {
-      const msg = e instanceof Error ? e.message : "Save failed";
-      setSaveError(isQuotaError(e)
-        ? "Save failed: storage is full (photo too large)."
-        : `Save failed: ${msg}`
-      );
-    };
-
-    (async () => {
-      try {
-        store[id] = baseDraft;
-        writeDraftStore(store);
-        try {
-          void upsertDraft({ id, data: store[id] });
-        } catch {
-        }
-        if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
-          setSaveError(
-            sanitized.droppedProject
-              ? "Saved, but the project photo was omitted to fit device storage."
-              : `Saved, but ${sanitized.droppedPreInstallCount} pre-install photo(s) were omitted to fit device storage.`
-          );
-        }
-        finishOk();
-        return;
-      } catch (e) {
-        if (!isQuotaError(e)) {
-          finishFail(e);
-          return;
-        }
-      }
-
-      try {
-        const attempts: Array<[number, number]> = [
-          [1024, 0.7],
-          [768, 0.62],
-          [640, 0.6]
-        ];
-        for (const [maxSide, quality] of attempts) {
-          const recompressed = projectPhotoDataUrl
-            ? (await recompressDataUrl(projectPhotoDataUrl, maxSide, quality))
-            : null;
-          if (!recompressed) continue;
-          setProjectPhotoDataUrl(recompressed);
-          setProjectPhotoUrl(recompressed);
-          store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
-          writeDraftStore(store);
-          try {
-            void upsertDraft({ id, data: store[id] });
-          } catch {
-          }
-          setSaveError("Saved, but project photo was compressed to fit storage.");
-          finishOk();
-          return;
-        }
-      } catch {
-        // ignore
-      }
-
-      try {
-        const photos = Array.isArray((baseDraft as any).preInstallPhotos) ? ((baseDraft as any).preInstallPhotos as any[]) : [];
-        for (let keep = photos.length; keep >= 0; keep -= 1) {
-          try {
-            store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: photos.slice(0, keep) };
-            writeDraftStore(store);
-            try {
-              void upsertDraft({ id, data: store[id] });
-            } catch {
-            }
-            setSaveError(
-              keep === photos.length
-                ? "Saved, but project photo was omitted to fit device storage."
-                : keep > 0
-                  ? "Saved, but some photos were omitted to fit device storage."
-                  : "Saved, but photos were omitted to fit device storage."
-            );
-            finishOk();
-            return;
-          } catch (e) {
-            if (!isQuotaError(e)) throw e;
-          }
-        }
-      } catch (e) {
-        finishFail(e);
-      }
-    })().finally(() => {
-      setTimeout(() => {
-        setSaving(false);
-      }, 250);
-    });
-  }
-
-  function saveAsNew() {
-    if (saving || savingAsNew) return;
-    setSavingAsNew(true);
-    setSaveAsNewJustSaved(false);
-    setSaveError(null);
-    const now = Date.now();
-    const id = `${now}-${Math.random().toString(16).slice(2)}`;
-    const title = customerName ? customerName : projectAddress ? projectAddress : "Draft estimate";
-
-    const hasCustomerInfo =
-      String(customerName || "").trim() !== "" ||
-      String(projectAddress || "").trim() !== "" ||
-      String(phoneNumber || "").trim() !== "" ||
-      String(email || "").trim() !== "";
-
-    const hasEstimateContent =
-      (Number(laborDays) || 0) > 0 ||
-      (Array.isArray(segments) && segments.some((s) => (Number((s as any)?.length) || 0) > 0)) ||
-      (Array.isArray(items) && items.some((i) => (Number((i as any)?.lineTotal) || 0) > 0 || (Number((i as any)?.qty) || 0) > 0)) ||
-      Boolean(selectedStyle) ||
-      String(notes || "").trim() !== "";
-
-    const finishOk = () => {
-      clearUnsavedSnapshot();
-      setDraftId(id);
-      setSaveAsNewJustSaved(true);
-      setTimeout(() => {
-        setSaveAsNewJustSaved(false);
-      }, 1200);
-    };
-
-    const finishFail = (e: unknown) => {
-      const msg = e instanceof Error ? e.message : "Save failed";
-      setSaveError(isQuotaError(e)
-        ? "Save failed: storage is full (photo too large)."
-        : `Save failed: ${msg}`
-      );
-    };
-
-    const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
-    const baseDraft = {
-      id,
-      createdAt: now,
-      updatedAt: now,
-      title,
-      status: hasCustomerInfo && hasEstimateContent ? "pending" : "estimate",
-      customerName,
-      projectAddress,
-      phoneNumber,
-      email,
-      projectPhotoDataUrl: sanitized.projectPhotoDataUrl,
-      selectedFenceType,
-      selectedStyle,
-      materialsDetails,
-      extraPosts,
-      materialUnitPrices,
-      laborDays,
-      laborManualDays,
-      laborManualCost,
-      gradingPrice,
-      treeRemovalPrice,
-      toughDigEnabled,
-      gradeEnabled,
-      stumpGrindingPrice,
-      doubleGateCount,
-      referenceLength,
-      notes,
-      preInstallPhotos: sanitized.preInstallPhotos,
-      segments,
-      items,
-      contract: buildContractPayload(id)
-    };
-
-    (async () => {
-      try {
-        const store = readDraftStore();
-        store[id] = baseDraft;
-        writeDraftStore(store);
-        try {
-          void upsertDraft({ id, data: store[id] });
-        } catch {
-          // ignore
-        }
-        if (sanitized.droppedProject || sanitized.droppedPreInstallCount > 0) {
-          setSaveError(
-            sanitized.droppedProject
-              ? "Saved, but the project photo was omitted to fit device storage."
-              : `Saved, but ${sanitized.droppedPreInstallCount} pre-install photo(s) were omitted to fit device storage.`
-          );
-        }
-        finishOk();
-        return;
-      } catch (e) {
-        if (!isQuotaError(e)) {
-          finishFail(e);
-          return;
-        }
-      }
-
-      try {
-        const attempts: Array<[number, number]> = [
-          [1024, 0.7],
-          [768, 0.62],
-          [640, 0.6]
-        ];
-        for (const [maxSide, quality] of attempts) {
-          const recompressed = projectPhotoDataUrl
-            ? (await recompressDataUrl(projectPhotoDataUrl, maxSide, quality))
-            : null;
-          if (!recompressed) continue;
-          setProjectPhotoDataUrl(recompressed);
-          setProjectPhotoUrl(recompressed);
-          const store = readDraftStore();
-          store[id] = { ...baseDraft, projectPhotoDataUrl: recompressed };
-          writeDraftStore(store);
-          try {
-            void upsertDraft({ id, data: store[id] });
-          } catch {
-          }
-          setSaveError("Saved, but project photo was compressed to fit storage.");
-          finishOk();
-          return;
-        }
-      } catch {
-        // ignore
-      }
-
-      try {
-        const store = readDraftStore();
-        const photos = Array.isArray((baseDraft as any).preInstallPhotos) ? ((baseDraft as any).preInstallPhotos as any[]) : [];
-        for (let keep = photos.length; keep >= 0; keep -= 1) {
-          try {
-            store[id] = { ...baseDraft, projectPhotoDataUrl: null, preInstallPhotos: photos.slice(0, keep) };
-            writeDraftStore(store);
-            try {
-              void upsertDraft({ id, data: store[id] });
-            } catch {
-            }
-            setSaveError(
-              keep === photos.length
-                ? "Saved, but project photo was omitted to fit device storage."
-                : keep > 0
-                  ? "Saved, but some photos were omitted to fit device storage."
-                  : "Saved, but photos were omitted to fit device storage."
-            );
-            finishOk();
-            return;
-          } catch (e) {
-            if (!isQuotaError(e)) throw e;
-          }
-        }
-      } catch (e) {
-        finishFail(e);
-      }
-    })().finally(() => {
-      setSavingAsNew(false);
-    });
-  }
-
-  async function loadDraft(id: string) {
+  async function loadDraft(id: string, opts?: { source?: "snapshot" | "draft" }) {
     const store = readDraftStore();
     let d = store[id] as any;
     if (!d) {
@@ -3650,6 +3283,9 @@ function EstimatesPageInner() {
       const mansfieldDoubleGateOptions = Array.isArray(dd.mansfieldDoubleGateOptions)
         ? dd.mansfieldDoubleGateOptions.map((x: any) => String(x))
         : [];
+      const atlanticWalkGateOptions = Array.isArray(dd.atlanticWalkGateOptions)
+        ? dd.atlanticWalkGateOptions.map((x: any) => String(x))
+        : [];
       const atlanticDoubleGateOptions = Array.isArray(dd.atlanticDoubleGateOptions)
         ? dd.atlanticDoubleGateOptions.map((x: any) => String(x))
         : [];
@@ -3692,6 +3328,7 @@ function EstimatesPageInner() {
         railEndBracketPacks,
         mansfieldWalkGateOptions,
         mansfieldDoubleGateOptions,
+        atlanticWalkGateOptions,
         atlanticDoubleGateOptions,
         toledoWalkGateOptions,
         toledoDoubleGateOptions,
@@ -5209,10 +4846,39 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Atlantic" && (Number(doubleGateCount) || 0) > 0 ? (
+                        {selectedStyle?.name === "Atlantic" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
+
+                            {(materialsDetails.atlanticWalkGateOptions || []).length > 0 ? (
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.04)] px-3 py-2 text-[11px] text-[var(--muted)] mb-2">
+                                Atlantic walk gate pricing currently configured for 4' height only.
+                              </div>
+                            ) : null}
+
+                            {(materialsDetails.atlanticWalkGateOptions || []).map((v, i) => (
+                              <div key={`atl-walk-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center mb-2">
+                                <div className="text-[12px] font-extrabold">Walk gate {i + 1}</div>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        atlanticWalkGateOptions: (p.atlanticWalkGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
+                                  >
+                                    <option value="walk_48_4">48" wide x 4' high — $429.99</option>
+                                    <option value="walk_60_4">60" wide x 4' high — $459.99</option>
+                                  </Select>
+                                </div>
+                              </div>
+                            ))}
 
                             {(materialsDetails.atlanticDoubleGateOptions || []).map((v, i) => (
                               <div key={`atl-double-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center">
