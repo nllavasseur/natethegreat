@@ -494,6 +494,7 @@ function EstimatesPageInner() {
     if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
     if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
     if (n === "four rail poplar" || n.includes("four rail poplar")) return "wood_four_rail_poplar";
+    if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
     return n;
   }, [selectedStyle?.name]);
 
@@ -952,6 +953,65 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(screwCount > 0 ? [{ name: "Screws", qty: screwCount, unit: "ea" }] : []),
         ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
+    if (selectedStyleKind === "wood_scalloped") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 7.5' centers.
+      const postsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
+        : (lf > 0 ? Math.max(2, Math.ceil(lf / 7.5) + 1) : 0);
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+        : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
+
+      const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
+      const railsPerPanel = heightFt <= 4 ? 2 : 3;
+      const rails2x4x8 = panels * railsPerPanel;
+
+      // Pickets stay the same as standard privacy: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
+      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0;
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      // Nails: pickets*6 nails, 2000 per box
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
+
+      // Screws: 6 per rail, 350 per box
+      const screwBoxes = rails2x4x8 > 0 ? Math.ceil((rails2x4x8 * 6) / 350) : 0;
+
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: postName, qty: posts, unit: "ea" },
+        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
+        { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
+        ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -2293,6 +2353,17 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "scalloped") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 8,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        vinylPanelHeightFt: 6,
+        topCaps: false
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "board on board") {
