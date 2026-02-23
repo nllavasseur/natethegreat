@@ -490,8 +490,9 @@ function EstimatesPageInner() {
     if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
     if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
-    if (n.includes("shadowbox")) return "wood_shadowbox";
     if (n === "shadowbox top cap" || n.includes("shadowbox top cap")) return "wood_shadowbox_top_cap";
+    if (n === "1x4 shadowbox" || n.includes("1x4 shadowbox")) return "wood_shadowbox";
+    if (n.includes("shadowbox")) return "wood_shadowbox";
     if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
     if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
     if (n === "four rail poplar" || n.includes("four rail poplar")) return "wood_four_rail_poplar";
@@ -2475,6 +2476,18 @@ function EstimatesPageInner() {
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "shadowbox") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        shadowboxBoardMaterial: "Pressure Treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "1x4 shadowbox") {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
