@@ -808,7 +808,80 @@ function EstimatesPageInner() {
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
-    "3\" Deck Screws": 29.97
+    "3\" Deck Screws": 29.97,
+    "Mansfield aluminum panel 6ft (4')": 99.99,
+    "Mansfield line post (4')": 34.99,
+    "Mansfield corner post (4')": 34.99,
+    "Mansfield end post (4')": 34.99,
+    "Mansfield gate post (4')": 65.99,
+    "Mansfield blank post (4')": 34.99,
+    "Mansfield blank gate post add-on (4')": 65.99,
+    "Mansfield walk gate 48\" x 4'": 399.99,
+    "Mansfield walk gate 60\" x 4'": 445.0,
+    "Mansfield double gate 48\" x 4'": 795.0,
+    "Mansfield double gate 60\" x 4'": 859.9,
+    "Mansfield aluminum panel 6ft (5')": 119.99,
+    "Mansfield line post (5')": 39.99,
+    "Mansfield corner post (5')": 39.99,
+    "Mansfield end post (5')": 39.99,
+    "Mansfield gate post (5')": 75.0,
+    "Mansfield blank post (5')": 39.99,
+    "Mansfield blank gate post add-on (5')": 74.99,
+    "Mansfield walk gate 48\" x 5'": 429.99,
+    "Mansfield walk gate 60\" x 5'": 459.99,
+    "Mansfield double gate 48\" x 5'": 859.99,
+    "Mansfield double gate 60\" x 5'": 899.99,
+    "Atlantic aluminum panel 6ft (4')": 124.99,
+    "Atlantic line post (4')": 34.99,
+    "Atlantic corner post (4')": 34.99,
+    "Atlantic end post (4')": 34.99,
+    "Atlantic gate post (4')": 65.99,
+    "Atlantic blank post (4')": 34.99,
+    "Atlantic blank gate post add-on (4')": 65.99,
+    "Atlantic walk gate 48\" x 4'": 429.99,
+    "Atlantic walk gate 60\" x 4'": 459.99,
+    "Atlantic double gate 48\" x 4'": 859.99,
+    "Atlantic double gate 60\" x 4'": 909.5,
+    "Pacific aluminum panel 6ft (4.5')": 119.99,
+    "Pacific line post (4.5')": 39.99,
+    "Pacific corner post (4.5')": 39.99,
+    "Pacific end post (4.5')": 39.99,
+    "Pacific gate post (4.5')": 75.0,
+    "Pacific blank post (4.5')": 39.99,
+    "Pacific blank gate post add-on (4.5')": 49.99,
+    "Pacific walk gate 48\" x 4.5'": 429.99,
+    "Pacific walk gate 60\" x 4.5'": 459.99,
+    "Pacific double gate 48\" x 4.5'": 859.99,
+    "Pacific double gate 60\" x 4.5'": 899.99,
+    "Toledo aluminum panel 6ft (4')": 105.99,
+    "Toledo line post (4')": 34.99,
+    "Toledo corner post (4')": 34.99,
+    "Toledo end post (4')": 34.99,
+    "Toledo gate post (4')": 65.99,
+    "Toledo blank post (4')": 34.99,
+    "Toledo blank gate post add-on (4')": 65.99,
+    "Toledo walk gate 48\" x 4'": 399.99,
+    "Toledo walk gate 60\" x 4'": 445.0,
+    "Toledo double gate 48\" x 4'": 785.0,
+    "Toledo double gate 60\" x 4'": 859.9,
+    "Toledo aluminum panel 6ft (5')": 124.99,
+    "Toledo line post (5')": 39.99,
+    "Toledo corner post (5')": 39.99,
+    "Toledo end post (5')": 39.99,
+    "Toledo gate post (5')": 75.0,
+    "Toledo blank post (5')": 39.99,
+    "Toledo blank gate post add-on (5')": 75.0,
+    "Toledo walk gate 48\" x 5'": 429.99,
+    "Toledo walk gate 60\" x 5'": 459.99,
+    "Toledo double gate 48\" x 5'": 859.99,
+    "Toledo double gate 60\" x 5'": 899.99,
+    "Terrier aluminum panel 6ft (4')": 169.99,
+    "Terrier line post (4')": 34.99,
+    "Terrier corner post (4')": 34.99,
+    "Terrier end post (4')": 34.99,
+    "Terrier gate post (4')": 65.99,
+    "Terrier blank post (4')": 34.99,
+    "Terrier blank gate post add-on (4')": 65.99
   });
 
   const generatedMaterials = useMemo(() => {
@@ -1715,16 +1788,97 @@ function EstimatesPageInner() {
         : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
       const line = Math.max(0, aluminumPostsSummary.total - (corner + gate + end + blank));
 
+      const heightLabel = h === 54 ? "4.5'" : `${Math.round(h / 12)}'`;
+      const panelName = `${style} aluminum panel 6ft (${heightLabel})`;
+      const linePostName = `${style} line post (${heightLabel})`;
+      const cornerPostName = `${style} corner post (${heightLabel})`;
+      const endPostName = `${style} end post (${heightLabel})`;
+      const gatePostName = `${style} gate post (${heightLabel})`;
+      const blankPostName = `${style} blank post (${heightLabel})`;
+      const blankGatePostName = `${style} blank gate post add-on (${heightLabel})`;
+
+      const walkGateItems = (() => {
+        if (!selectedStyle) return [] as Array<{ name: string; qty: number; unit: string }>;
+        const walkCount = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
+        if (walkCount <= 0) return [];
+
+        if (style === "Mansfield") {
+          const opts = materialsDetails.mansfieldWalkGateOptions || [];
+          const qty48 = opts.filter((v) => v === "walk_48_4" || v === "walk_48_5" || v === "walk_48_45").length;
+          const qty60 = opts.filter((v) => v === "walk_60_4" || v === "walk_60_5" || v === "walk_60_45").length;
+          const name48 = `Mansfield walk gate 48\" x ${heightLabel}`;
+          const name60 = `Mansfield walk gate 60\" x ${heightLabel}`;
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+          ];
+        }
+
+        if (style === "Toledo") {
+          const opts = materialsDetails.toledoWalkGateOptions || [];
+          const qty48 = opts.filter((v) => v === "walk_48_5_arched" || v === "walk_48_4").length;
+          const qty60 = opts.filter((v) => v === "walk_60_5_arched" || v === "walk_60_4").length;
+          const name48 = `Toledo walk gate 48\" x ${heightLabel}`;
+          const name60 = `Toledo walk gate 60\" x ${heightLabel}`;
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+          ];
+        }
+
+        if (style === "Atlantic") {
+          // Atlantic walk gate options not currently configured in UI; keep empty.
+          return [];
+        }
+
+        return [];
+      })();
+
+      const doubleGateItems = (() => {
+        const doubleCount = Math.max(0, Number(doubleGateCount) || 0);
+        if (doubleCount <= 0) return [] as Array<{ name: string; qty: number; unit: string }>;
+
+        if (style === "Mansfield") {
+          const opts = materialsDetails.mansfieldDoubleGateOptions || [];
+          const qty48 = opts.filter((v) => v === "double_48_4" || v === "double_48_5" || v === "double_48_45").length;
+          const qty60 = opts.filter((v) => v === "double_60_4" || v === "double_60_5" || v === "double_60_45").length;
+          const name48 = `Mansfield double gate 48\" x ${heightLabel}`;
+          const name60 = `Mansfield double gate 60\" x ${heightLabel}`;
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+          ];
+        }
+
+        if (style === "Atlantic") {
+          const opts = materialsDetails.atlanticDoubleGateOptions || [];
+          const qty60 = opts.filter((v) => v === "double_60_4_arched").length;
+          const name60 = `Atlantic double gate 60\" x ${heightLabel}`;
+          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [];
+        }
+
+        if (style === "Toledo") {
+          const opts = materialsDetails.toledoDoubleGateOptions || [];
+          const qty60 = opts.filter((v) => v === "double_60_4_arched" || v === "double_60_5_arched").length;
+          const name60 = `Toledo double gate 60\" x ${heightLabel}`;
+          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [];
+        }
+
+        return [];
+      })();
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        ...(panels > 0 ? [{ name: `${style} aluminum panel ${h}\" x ${w}'`, qty: panels, unit: "ea" }] : []),
-        ...(line > 0 ? [{ name: "Aluminum line post", qty: line, unit: "ea" }] : []),
-        ...(corner > 0 ? [{ name: "Aluminum corner post", qty: corner, unit: "ea" }] : []),
-        ...(end > 0 ? [{ name: "Aluminum end post", qty: end, unit: "ea" }] : []),
-        ...(blank > 0 ? [{ name: "Aluminum blank post", qty: blank, unit: "ea" }] : []),
-        ...(gate > 0 ? [{ name: "Aluminum gate post", qty: gate, unit: "ea" }] : []),
+        ...(panels > 0 ? [{ name: panelName, qty: panels, unit: "ea" }] : []),
+        ...(line > 0 ? [{ name: linePostName, qty: line, unit: "ea" }] : []),
+        ...(corner > 0 ? [{ name: cornerPostName, qty: corner, unit: "ea" }] : []),
+        ...(end > 0 ? [{ name: endPostName, qty: end, unit: "ea" }] : []),
+        ...(blank > 0 ? [{ name: blankPostName, qty: blank, unit: "ea" }] : []),
+        ...(gate > 0 ? [{ name: gatePostName, qty: gate, unit: "ea" }] : []),
         ...(selectedStyle?.name === "Mansfield" && materialsDetails.mansfieldBlankGatePost
-          ? [{ name: "Mansfield blank gate post", qty: 1, unit: "ea" }]
+          ? [{ name: blankGatePostName, qty: 1, unit: "ea" }]
           : []),
+        ...walkGateItems,
+        ...doubleGateItems,
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
