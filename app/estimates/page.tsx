@@ -5113,47 +5113,51 @@ function EstimatesPageInner() {
                             ) : null}
 
                             {(materialsDetails.mansfieldWalkGateOptions || []).map((v, i) => (
-                              <div key={`walk-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center mb-2">
+                              <div key={`walk-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center mb-2">
                                 <div className="text-[12px] font-extrabold">Walk gate {i + 1}</div>
-                                <Select
-                                  value={v}
-                                  onChange={(e) =>
-                                    setMaterialsDetails((p) => ({
-                                      ...p,
-                                      mansfieldWalkGateOptions: (p.mansfieldWalkGateOptions || []).map((cur, idx) =>
-                                        idx === i ? String(e.target.value) : cur
-                                      )
-                                    }))
-                                  }
-                                  disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
-                                >
-                                  <option value="walk_48_4">48" wide x 4' high — $399.99</option>
-                                  <option value="walk_60_4">60" wide x 4' high — $445.00</option>
-                                </Select>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        mansfieldWalkGateOptions: (p.mansfieldWalkGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
+                                  >
+                                    <option value="walk_48_4">48" wide x 4' high — $399.99</option>
+                                    <option value="walk_60_4">60" wide x 4' high — $445.00</option>
+                                  </Select>
+                                </div>
                               </div>
                             ))}
 
                             {(materialsDetails.mansfieldDoubleGateOptions || []).map((v, i) => (
-                              <div key={`double-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center">
+                              <div key={`double-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center">
                                 <div className="text-[12px] font-extrabold">Double gate {i + 1}</div>
-                                <Select
-                                  value={v}
-                                  onChange={(e) =>
-                                    setMaterialsDetails((p) => ({
-                                      ...p,
-                                      mansfieldDoubleGateOptions: (p.mansfieldDoubleGateOptions || []).map((cur, idx) =>
-                                        idx === i ? String(e.target.value) : cur
-                                      )
-                                    }))
-                                  }
-                                  disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
-                                >
-                                  <option value="double_48_4">48" wide x 4' high — $795.00</option>
-                                  <option value="double_60_4">60" wide x 4' high — $859.90</option>
-                                  {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
-                                    <option value="double_60_5_arched">60" wide x 5' high (arched) — $940.00</option>
-                                  ) : null}
-                                </Select>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        mansfieldDoubleGateOptions: (p.mansfieldDoubleGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
+                                  >
+                                    <option value="double_48_4">48" wide x 4' high — $795.00</option>
+                                    <option value="double_60_4">60" wide x 4' high — $859.90</option>
+                                    {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
+                                      <option value="double_60_5_arched">60" wide x 5' high (arched) — $940.00</option>
+                                    ) : null}
+                                  </Select>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -5165,22 +5169,24 @@ function EstimatesPageInner() {
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
 
                             {(materialsDetails.atlanticDoubleGateOptions || []).map((v, i) => (
-                              <div key={`atl-double-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center">
+                              <div key={`atl-double-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center">
                                 <div className="text-[12px] font-extrabold">Double gate {i + 1}</div>
-                                <Select
-                                  value={v}
-                                  onChange={(e) =>
-                                    setMaterialsDetails((p) => ({
-                                      ...p,
-                                      atlanticDoubleGateOptions: (p.atlanticDoubleGateOptions || []).map((cur, idx) =>
-                                        idx === i ? String(e.target.value) : cur
-                                      )
-                                    }))
-                                  }
-                                  disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
-                                >
-                                  <option value="double_60_4_arched">60" wide x 4' high (arched) — $487.50</option>
-                                </Select>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        atlanticDoubleGateOptions: (p.atlanticDoubleGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
+                                  >
+                                    <option value="double_60_4_arched">60" wide x 4' high (arched) — $487.50</option>
+                                  </Select>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -5192,45 +5198,49 @@ function EstimatesPageInner() {
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
 
                             {(materialsDetails.toledoWalkGateOptions || []).map((v, i) => (
-                              <div key={`tol-walk-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center mb-2">
+                              <div key={`tol-walk-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center mb-2">
                                 <div className="text-[12px] font-extrabold">Walk gate {i + 1}</div>
-                                <Select
-                                  value={v}
-                                  onChange={(e) =>
-                                    setMaterialsDetails((p) => ({
-                                      ...p,
-                                      toledoWalkGateOptions: (p.toledoWalkGateOptions || []).map((cur, idx) =>
-                                        idx === i ? String(e.target.value) : cur
-                                      )
-                                    }))
-                                  }
-                                  disabled={Number(materialsDetails.aluminumPanelHeight) !== 60}
-                                >
-                                  <option value="walk_48_5_arched">48\" wide x 5' high (arched) — $475.00</option>
-                                </Select>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        toledoWalkGateOptions: (p.toledoWalkGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 60}
+                                  >
+                                    <option value="walk_48_5_arched">48\" wide x 5' high (arched) — $475.00</option>
+                                  </Select>
+                                </div>
                               </div>
                             ))}
 
                             {(materialsDetails.toledoDoubleGateOptions || []).map((v, i) => (
-                              <div key={`tol-double-${i}`} className="grid grid-cols-[1fr_1fr] gap-2 items-center">
+                              <div key={`tol-double-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center">
                                 <div className="text-[12px] font-extrabold">Double gate {i + 1}</div>
-                                <Select
-                                  value={v}
-                                  onChange={(e) =>
-                                    setMaterialsDetails((p) => ({
-                                      ...p,
-                                      toledoDoubleGateOptions: (p.toledoDoubleGateOptions || []).map((cur, idx) =>
-                                        idx === i ? String(e.target.value) : cur
-                                      )
-                                    }))
-                                  }
-                                  disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
-                                >
-                                  <option value="double_60_4_arched">60\" wide x 4' high (arched) — $499.00</option>
-                                  {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
-                                    <option value="double_60_5_arched">60\" wide x 5' high (arched) — $940.00</option>
-                                  ) : null}
-                                </Select>
+                                <div className="min-w-0">
+                                  <Select
+                                    value={v}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        toledoDoubleGateOptions: (p.toledoDoubleGateOptions || []).map((cur, idx) =>
+                                          idx === i ? String(e.target.value) : cur
+                                        )
+                                      }))
+                                    }
+                                    disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
+                                  >
+                                    <option value="double_60_4_arched">60\" wide x 4' high (arched) — $499.00</option>
+                                    {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
+                                      <option value="double_60_5_arched">60\" wide x 5' high (arched) — $525.00</option>
+                                    ) : null}
+                                  </Select>
+                                </div>
                               </div>
                             ))}
                           </div>
