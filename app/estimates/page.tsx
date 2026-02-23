@@ -1529,8 +1529,12 @@ function EstimatesPageInner() {
       // Cattle panel: 0.5 of a 16' panel per fence panel => ceil(panels/2)
       const cattlePanels = panels > 0 ? Math.ceil(panels / 2) : 0;
 
-      // Screws: 8 per board (boards = all rail boards)
-      const screwCount = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil((rails2x4x8 + rails2x4x16) * 8) : 0;
+      // Screws: 8 per board (boards = all rail boards), sold by 350/box
+      const screwsPerBox = 350;
+      const screwBoxes = (rails2x4x8 + rails2x4x16) > 0
+        ? Math.ceil(((rails2x4x8 + rails2x4x16) * 8) / screwsPerBox)
+        : 0;
+      const screwName = "Cattle panel screws (350ct box)";
 
       // Staples: 25 per panel
       const staples = panels > 0 ? Math.ceil(panels * 25) : 0;
@@ -1548,7 +1552,7 @@ function EstimatesPageInner() {
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(cattlePanels > 0 ? [{ name: "16' Cattle Panel", qty: cattlePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(screwCount > 0 ? [{ name: "Screws", qty: screwCount, unit: "ea" }] : []),
+        ...(screwBoxes > 0 ? [{ name: screwName, qty: screwBoxes, unit: "box" }] : []),
         ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
