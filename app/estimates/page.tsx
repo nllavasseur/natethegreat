@@ -1480,7 +1480,7 @@ function EstimatesPageInner() {
       const pictureFramed2x4x16 = isPictureFramed
         ? (isFourFootPictureFramed
             ? 0
-            : (!(materialsDetails.postCaps || materialsDetails.topCaps)
+            : ((materialsDetails.topCaps && !materialsDetails.postCaps)
                 ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
                 : 0))
         : 0;
