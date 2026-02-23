@@ -4905,115 +4905,118 @@ function EstimatesPageInner() {
                   ))}
                 </div>
 
-                {stylePreview ? (
-                  <div className="fixed inset-0 z-[70]" data-no-swipe="true">
-                    <div
-                      className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
-                      onClick={() => setStylePreview(null)}
-                    />
-                    <div className="absolute inset-0">
-                      {(() => {
-                        const idx = visibleStyleOptions.findIndex((s) => s.name === stylePreview.name);
-                        const hasPrev = idx > 0;
-                        const hasNext = idx >= 0 && idx < visibleStyleOptions.length - 1;
-                        const goPrev = () => {
-                          if (!hasPrev) return;
-                          const prev = visibleStyleOptions[idx - 1];
-                          setStylePreview({ name: prev.name, thumb: prev.thumb });
-                        };
-                        const goNext = () => {
-                          if (!hasNext) return;
-                          const next = visibleStyleOptions[idx + 1];
-                          setStylePreview({ name: next.name, thumb: next.thumb });
-                        };
-                        return (
-                          <>
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                goPrev();
-                              }}
-                              disabled={!hasPrev}
-                              className={
-                                "absolute left-3 top-1/2 -translate-y-1/2 z-[80] rounded-full border px-3 py-2 text-[18px] font-black backdrop-blur-ios " +
-                                (hasPrev
-                                  ? "border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)]"
-                                  : "border-[rgba(255,255,255,.10)] bg-[rgba(20,30,24,.35)] opacity-50")
-                              }
-                              aria-label="Previous style"
-                            >
-                              ‹
-                            </button>
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                goNext();
-                              }}
-                              disabled={!hasNext}
-                              className={
-                                "absolute right-3 top-1/2 -translate-y-1/2 z-[80] rounded-full border px-3 py-2 text-[18px] font-black backdrop-blur-ios " +
-                                (hasNext
-                                  ? "border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)]"
-                                  : "border-[rgba(255,255,255,.10)] bg-[rgba(20,30,24,.35)] opacity-50")
-                              }
-                              aria-label="Next style"
-                            >
-                              ›
-                            </button>
-                          </>
-                        );
-                      })()}
+                {portalReady && stylePreview
+                  ? createPortal(
+                    <div className="fixed inset-0 z-[70]" data-no-swipe="true">
+                      <div
+                        className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
+                        onClick={() => setStylePreview(null)}
+                      />
+                      <div className="absolute inset-0">
+                        {(() => {
+                          const idx = visibleStyleOptions.findIndex((s) => s.name === stylePreview.name);
+                          const hasPrev = idx > 0;
+                          const hasNext = idx >= 0 && idx < visibleStyleOptions.length - 1;
+                          const goPrev = () => {
+                            if (!hasPrev) return;
+                            const prev = visibleStyleOptions[idx - 1];
+                            setStylePreview({ name: prev.name, thumb: prev.thumb });
+                          };
+                          const goNext = () => {
+                            if (!hasNext) return;
+                            const next = visibleStyleOptions[idx + 1];
+                            setStylePreview({ name: next.name, thumb: next.thumb });
+                          };
+                          return (
+                            <>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  goPrev();
+                                }}
+                                disabled={!hasPrev}
+                                className={
+                                  "absolute left-3 top-1/2 -translate-y-1/2 z-[80] rounded-full border px-3 py-2 text-[18px] font-black backdrop-blur-ios " +
+                                  (hasPrev
+                                    ? "border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)]"
+                                    : "border-[rgba(255,255,255,.10)] bg-[rgba(20,30,24,.35)] opacity-50")
+                                }
+                                aria-label="Previous style"
+                              >
+                                ‹
+                              </button>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  goNext();
+                                }}
+                                disabled={!hasNext}
+                                className={
+                                  "absolute right-3 top-1/2 -translate-y-1/2 z-[80] rounded-full border px-3 py-2 text-[18px] font-black backdrop-blur-ios " +
+                                  (hasNext
+                                    ? "border-[rgba(255,255,255,.18)] bg-[rgba(20,30,24,.72)]"
+                                    : "border-[rgba(255,255,255,.10)] bg-[rgba(20,30,24,.35)] opacity-50")
+                                }
+                                aria-label="Next style"
+                              >
+                                ›
+                              </button>
+                            </>
+                          );
+                        })()}
 
-                      <div className="absolute left-0 right-0 top-0 z-[85] flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
-                        <SecondaryButton
-                          data-no-swipe="true"
-                          onClick={() => setStylePreview(null)}
-                        >
-                          Back
-                        </SecondaryButton>
-                        <div className="text-sm font-extrabold truncate">{stylePreview.name}</div>
-                        <PrimaryButton
-                          data-no-swipe="true"
-                          onClick={() => {
-                            setMaterialStyle(stylePreview);
-                            setStylePreview(null);
-                          }}
-                        >
-                          OK
-                        </PrimaryButton>
+                        <div className="absolute left-0 right-0 top-0 z-[85] flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
+                          <SecondaryButton
+                            data-no-swipe="true"
+                            onClick={() => setStylePreview(null)}
+                          >
+                            Back
+                          </SecondaryButton>
+                          <div className="text-sm font-extrabold truncate">{stylePreview.name}</div>
+                          <PrimaryButton
+                            data-no-swipe="true"
+                            onClick={() => {
+                              setMaterialStyle(stylePreview);
+                              setStylePreview(null);
+                            }}
+                          >
+                            OK
+                          </PrimaryButton>
+                        </div>
+                        <div className="absolute inset-0 grid place-items-center p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 88px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={stylePreview.thumb}
+                            alt=""
+                            className="max-h-[78dvh] w-full max-w-[980px] rounded-2xl object-contain border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]"
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              if (img.dataset.fallbackDone === "1") return;
+                              img.dataset.fallbackDone = "1";
+                              img.src =
+                                "data:image/svg+xml;charset=utf-8," +
+                                encodeURIComponent(
+                                  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 60'>
+                                    <rect width='80' height='60' rx='12' fill='rgba(255,255,255,.08)'/>
+                                    <rect x='10' y='10' width='60' height='40' rx='10' fill='rgba(0,0,0,.18)'/>
+                                    <path d='M18 40l10-10 10 10 10-12 14 18H18z' fill='rgba(255,255,255,.22)'/>
+                                    <circle cx='28' cy='24' r='5' fill='rgba(255,255,255,.22)'/>
+                                  </svg>`
+                                );
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="absolute inset-0 grid place-items-center p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 88px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={stylePreview.thumb}
-                          alt=""
-                          className="max-h-[78dvh] w-full max-w-[980px] rounded-2xl object-contain border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]"
-                          onError={(e) => {
-                            const img = e.currentTarget;
-                            if (img.dataset.fallbackDone === "1") return;
-                            img.dataset.fallbackDone = "1";
-                            img.src =
-                              "data:image/svg+xml;charset=utf-8," +
-                              encodeURIComponent(
-                                `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 60'>
-                                  <rect width='80' height='60' rx='12' fill='rgba(255,255,255,.08)'/>
-                                  <rect x='10' y='10' width='60' height='40' rx='10' fill='rgba(0,0,0,.18)'/>
-                                  <path d='M18 40l10-10 10 10 10-12 14 18H18z' fill='rgba(255,255,255,.22)'/>
-                                  <circle cx='28' cy='24' r='5' fill='rgba(255,255,255,.22)'/>
-                                </svg>`
-                              );
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
+                    </div>,
+                    document.body
+                  )
+                  : null}
               </GlassCard>
             </div>
           </div>,
