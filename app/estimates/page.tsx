@@ -3199,6 +3199,7 @@ function EstimatesPageInner() {
         picketMaterial: "Cedar",
         trimMaterial: "Cedar",
         twoByTwoMaterial: "Cedar",
+        horizontalCedarBoardMaterial: "5/4 cedar",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar",
