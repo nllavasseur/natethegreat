@@ -1475,7 +1475,7 @@ function EstimatesPageInner() {
                 ? panels * (materialsDetails.postCaps ? 6 : 5)
             : (isFourFootPictureFramed
                 ? panels * 2
-                : panels * ((materialsDetails.postCaps || materialsDetails.topCaps) ? 4 : 3))))
+                : panels * (materialsDetails.postCaps ? 4 : 3))))
         : 0;
       const pictureFramed2x4x16 = isPictureFramed
         ? (isFourFootPictureFramed
