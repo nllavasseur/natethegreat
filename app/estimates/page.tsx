@@ -1671,6 +1671,16 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 7) * 2), 0)
         : (lf > 0 ? Math.ceil(((lf * 12) / 7) * 2) : 0);
 
+      const nailsMaterial = materialsDetails.shadowboxBoardMaterial === "Cedar" ? "Cedar" : "Pressure treated";
+      const nailsPerBox = woodNailsBoxQty(nailsMaterial);
+      const nailsName = woodNailsItemName(nailsMaterial);
+      const nailsBoxes = shadowboxBoards > 0 ? Math.ceil((shadowboxBoards * 6) / nailsPerBox) : 0;
+
+      const screwsPerBox = 350;
+      const screwBoxes = (rails2x4x8 + rails2x4x16) > 0
+        ? Math.ceil(((rails2x4x8 + rails2x4x16) * 5) / screwsPerBox)
+        : 0;
+
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
@@ -1690,6 +1700,8 @@ function EstimatesPageInner() {
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(shadowboxBoards > 0 ? [{ name: boardName, qty: shadowboxBoards, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
+        ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
