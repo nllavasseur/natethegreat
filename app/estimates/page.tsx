@@ -668,9 +668,14 @@ function EstimatesPageInner() {
   }, [doubleGateCount, extraPosts, materialsDetails.splitRailCornerPosts, materialsDetails.splitRailEndPosts, segments, selectedFenceType, selectedStyle?.name]);
 
   const selectedStyleKind = useMemo(() => {
-    const n = String(selectedStyle?.name || "")
+    const nRaw = String(selectedStyle?.name || "")
       .trim()
       .toLowerCase();
+
+    const n = nRaw
+      .replaceAll("/", ":")
+      .replaceAll("-", " ")
+      .replace(/\s+/g, " ");
 
     if (n === "standard privacy" || n === "standard") return "wood_standard";
     if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
@@ -2105,7 +2110,10 @@ function EstimatesPageInner() {
 
       const normalizedPictureFramedStyle = String(selectedStyle?.name || "")
         .trim()
-        .toLowerCase();
+        .toLowerCase()
+        .replaceAll("/", ":")
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ");
       const isAM = normalizedPictureFramedStyle === "a & m";
       const isAllCedarNiko = normalizedPictureFramedStyle === "all cedar niko";
       const isNiko = normalizedPictureFramedStyle === "niko" || isAllCedarNiko;
@@ -3306,7 +3314,7 @@ function EstimatesPageInner() {
         postCaps: true,
         topCaps: false
       };
-    } else if (styleName === "mary jane") {
+    } else if (normalized === "mary jane") {
       overrides = {
         woodType: "Cedar",
         railMaterial: "Cedar",
