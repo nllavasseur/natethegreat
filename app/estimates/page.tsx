@@ -3702,7 +3702,20 @@ function EstimatesPageInner() {
       }));
     }
     if (d.materialUnitPrices && typeof d.materialUnitPrices === "object") {
-      setMaterialUnitPrices((prev) => ({ ...prev, ...d.materialUnitPrices }));
+      setMaterialUnitPrices((prev) => {
+        const incoming = d.materialUnitPrices as Record<string, any>;
+        const patch: Record<string, number> = {};
+        for (const [k, v] of Object.entries(incoming)) {
+          const n = Number(v);
+          if (!Number.isFinite(n)) continue;
+          // Prevent older drafts from wiping newer default prices.
+          // If the incoming value is 0, only apply it when the previous value is also 0/empty.
+          if (n === 0 && Number(prev[k] ?? 0) !== 0) continue;
+          patch[k] = n;
+        }
+        if (!Object.keys(patch).length) return prev;
+        return { ...prev, ...patch };
+      });
     }
     setLaborDays(Number(d.laborDays ?? 0));
     setLaborManualDays(String((d as any).laborManualDays ?? ""));
