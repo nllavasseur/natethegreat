@@ -2365,7 +2365,7 @@ function EstimatesPageInner() {
         pictureFrameTrimPieces: 3,
         pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
-        postCaps: false,
+        postCaps: true,
         topCaps: false
       }));
     }
