@@ -2582,6 +2582,13 @@ function EstimatesPageInner() {
         price: Number(i.lineTotal) || 0
       }));
 
+    const contractId = String(overrideDraftId || draftId || "");
+    const submittedOn = new Date().toISOString();
+    const styleTitle = selectedStyle?.name ? String(selectedStyle.name) : "";
+    const totalLfValue = Number(totalLf) || 0;
+    const walkGatesValue = Math.max(0, Number(walkGateCount) || 0);
+    const doubleGatesValue = Math.max(0, Number(doubleGateCount) || 0);
+
     return {
       company: {
         name: "Vasseur Fencing",
@@ -2590,6 +2597,22 @@ function EstimatesPageInner() {
         addressLines: ["1415 Snowmass Rd.", "Columbus, OH 43235"],
         email: "nathan@vasseurfencing.com",
         phone: "(231) 260-0635",
+        logoUrl: "/IMG_3454.JPG",
+        contractText:
+          "By signing below, the homeowner agrees to the scope of work and pricing described in this estimate."
+      },
+      estimate: {
+        id: contractId,
+        submittedOn,
+        customer: { name: customerName, phone: phoneNumber, email },
+        projectAddress,
+        styleTitle,
+        totalLf: totalLfValue,
+        walkGateCount: walkGatesValue,
+        doubleGateCount: doubleGatesValue,
+        depositTotal: Number(materialsDepositTotal) || 0,
+        notes,
+        disclaimer: "",
         contractText:
           "By signing below, the homeowner agrees to the scope of work and pricing described in this estimate."
       },
