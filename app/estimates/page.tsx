@@ -1330,15 +1330,27 @@ function EstimatesPageInner() {
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
         const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
-      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
-      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
-      const picketName = woodPicketName(materialsDetails.picketMaterial);
+
+        const fiveQuarterRailName =
+          materialsDetails.railMaterial === "Cedar tone"
+            ? "5/4x6x12 CedarTone Rails"
+            : materialsDetails.railMaterial === "Cedar"
+              ? "5/4x6x12 Cedar S4S Rails"
+              : "5/4x6x12 Pressure Treated Boards";
+
+        const fiveQuarterVerticalName =
+          materialsDetails.railMaterial === "Cedar"
+            ? "5/4x6x12 Cedar S4S Verticals"
+            : fiveQuarterRailName;
+
+        const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+        const picketName = woodPicketName(materialsDetails.picketMaterial);
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
-          ...(rails5_4 > 0 ? [{ name: "5/4x6x12 Cedar S4S Rails", qty: rails5_4, unit: "ea" }] : []),
-          ...(verticalBoards + cornerCount > 0 ? [{ name: "5/4x6x12 Cedar S4S Verticals", qty: verticalBoards + cornerCount, unit: "ea" }] : []),
-          ...(cedarS4SRails2x4x8 > 0 ? [{ name: "2x4 8' Cedar S4S Rails", qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
+          ...(rails5_4 > 0 ? [{ name: fiveQuarterRailName, qty: rails5_4, unit: "ea" }] : []),
+          ...(verticalBoards + cornerCount > 0 ? [{ name: fiveQuarterVerticalName, qty: verticalBoards + cornerCount, unit: "ea" }] : []),
+          ...(cedarS4SRails2x4x8 > 0 ? [{ name: rail8Name, qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
           ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
           ...(stainlessScrews > 0 ? [{ name: "Stainless screws", qty: stainlessScrews, unit: "ea" }] : []),
