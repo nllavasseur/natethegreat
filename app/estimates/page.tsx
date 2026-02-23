@@ -109,6 +109,15 @@ function woodBoard2x2x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar
   return "2x2x8";
 }
 
+function woodNailsBoxQty(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  return picketMaterial === "Cedar" ? 1000 : 2000;
+}
+
+function woodNailsItemName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  const qty = woodNailsBoxQty(picketMaterial);
+  return `2\" Nails ${qty}ct Hot-Dipped Galvanized Ring Shank Nails`;
+}
+
 const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = {
   White: { label: "White", bg: "rgba(255,255,255,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(255,255,255,.55)" },
   Tan: { label: "Tan", bg: "rgba(226,206,166,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(226,206,166,.6)" },
@@ -1268,7 +1277,9 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
+      const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+      const nailsName = materialsDetails.picketMaterial === "Cedar" ? "1 1/2\" Nails 1000ct Hot-Dipped Galvanized Ring Shank Nails" : "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
       const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
@@ -1282,7 +1293,7 @@ function EstimatesPageInner() {
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(pickets > 0 ? [{ name: picketName, qty: pickets, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1392,8 +1403,9 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      // Nails: pickets*6 nails, 2000 per box
-      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
+      const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+      const nailsName = materialsDetails.picketMaterial === "Cedar" ? "1 1/2\" Nails 1000ct Hot-Dipped Galvanized Ring Shank Nails" : "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails2x4x8 > 0 ? Math.ceil((rails2x4x8 * 6) / 350) : 0;
@@ -1407,7 +1419,7 @@ function EstimatesPageInner() {
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
         { name: picketName, qty: pickets, unit: "ea" },
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -1515,7 +1527,9 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
+      const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+      const nailsName = materialsDetails.picketMaterial === "Cedar" ? "1 1/2\" Nails 1000ct Hot-Dipped Galvanized Ring Shank Nails" : "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
       const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
@@ -1526,7 +1540,7 @@ function EstimatesPageInner() {
         ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
         ...(pickets > 0 ? [{ name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1836,8 +1850,9 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      // Nails: pickets*6 nails, 2000 per box
-      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
+      const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+      const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails > 0 ? Math.ceil((rails * 6) / 350) : 0;
@@ -1917,7 +1932,7 @@ function EstimatesPageInner() {
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
+        { name: nailsName, qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
         ...(railEndBracketsQty > 0
           ? [{ name: "Rail end bracket packs", qty: railEndBracketsQty, unit: "ea" }]
