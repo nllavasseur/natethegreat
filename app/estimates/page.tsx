@@ -3176,11 +3176,15 @@ function EstimatesPageInner() {
 
     let overrides: Partial<typeof DEFAULT_MATERIALS_DETAILS> = {};
 
-    if (styleName === "horizontal") {
+    if (styleName === "horizontal" || styleName === "horizontal cedar") {
       overrides = {
-        woodType: "Pressure treated",
+        woodType: "Cedar",
+        railMaterial: "Cedar",
+        picketMaterial: "Cedar",
+        trimMaterial: "Cedar",
+        twoByTwoMaterial: "Cedar",
         postSize: 10,
-        postType: "Pressure treated",
+        postType: "Cedar",
         takeoffPreset: "horizontal_cedar",
         horizontalCedarVerticals: true,
         horizontalCedarCornerAdjust: 0,
