@@ -1893,8 +1893,6 @@ function EstimatesPageInner() {
         ...(cedarPickets > 0 ? [{ name: "Cedar pickets", qty: cedarPickets, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
-        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
-        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
