@@ -2086,6 +2086,13 @@ function EstimatesPageInner() {
       const isPictureFramedLatticePanel = normalizedPictureFramedStyle === "picture framed lattice panel";
       const latticePanels = isPictureFramed && (isAM || isPictureFramedLatticePanel) ? Math.ceil(panels / 3) : 0;
 
+      const nailsNameFinal = isAllCedarNiko
+        ? "2\" Nails 1000ct Stainless Steel Ring Shank Nails"
+        : nailsName;
+      const nailsBoxesFinal = isAllCedarNiko
+        ? (pickets > 0 ? Math.ceil((pickets * 6) / 1000) : 0)
+        : nailsBoxes;
+
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const pictureFramed2x4x8 = isPictureFramed
@@ -2139,7 +2146,7 @@ function EstimatesPageInner() {
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        { name: nailsName, qty: nailsBoxes, unit: "box" },
+        { name: nailsNameFinal, qty: nailsBoxesFinal, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
         ...(railEndBracketsQty > 0
           ? [{ name: "Rail end bracket packs", qty: railEndBracketsQty, unit: "ea" }]
