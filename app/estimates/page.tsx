@@ -24,6 +24,36 @@ function normalizeUnitPriceKey(name: string) {
   return String(name || "").trim();
 }
 
+function parseCsvLine(line: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let i = 0;
+  let inQuotes = false;
+  while (i < line.length) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        cur += '"';
+        i += 2;
+        continue;
+      }
+      inQuotes = !inQuotes;
+      i += 1;
+      continue;
+    }
+    if (!inQuotes && ch === ",") {
+      out.push(cur);
+      cur = "";
+      i += 1;
+      continue;
+    }
+    cur += ch;
+    i += 1;
+  }
+  out.push(cur);
+  return out;
+}
+
 function woodMaterialLabel(m: "Pressure treated" | "Cedar" | "Cedar tone") {
   return m === "Cedar tone" ? "CedarTone" : (m === "Cedar" ? "Cedar" : "Pressure Treated");
 }
@@ -904,6 +934,41 @@ function EstimatesPageInner() {
     "Terrier blank post (4')": 34.99,
     "Terrier blank gate post add-on (4')": 65.99
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+
+    fetch("/wood_unit_prices.csv")
+      .then((r) => (r.ok ? r.text() : ""))
+      .then((raw) => {
+        if (!raw || cancelled) return;
+        const lines = raw
+          .split(/\r?\n/)
+          .map((l) => String(l || "").trim())
+          .filter((l) => Boolean(l));
+        const headerIdx = lines.findIndex((l) => l.toLowerCase() === "item_name,unit_price");
+        const start = headerIdx >= 0 ? headerIdx + 1 : 0;
+        const patch: Record<string, number> = {};
+        for (const line of lines.slice(start)) {
+          const [itemRaw, priceRaw] = parseCsvLine(line);
+          const name = normalizeUnitPriceKey(itemRaw);
+          const price = Number(String(priceRaw || "").trim());
+          if (!name) continue;
+          if (!Number.isFinite(price)) continue;
+          patch[name] = price;
+        }
+        if (Object.keys(patch).length <= 0) return;
+        setMaterialUnitPrices((prev) => ({ ...prev, ...patch }));
+      })
+      .catch(() => {
+        // ignore
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const generatedMaterials = useMemo(() => {
     if (!selectedStyle) return [] as QuoteItem[];
