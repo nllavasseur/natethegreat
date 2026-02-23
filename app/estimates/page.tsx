@@ -1462,9 +1462,8 @@ function EstimatesPageInner() {
         ? "6' Cedar Dog Ear Pickets"
         : "6' Pressure Treated Dog Ear Pickets";
 
-      const isNikoPressureTreated = isAllCedarNiko;
-      const pictureFramedRailsAreCedar = isAllCedarPictureFramed || isMaryJane;
-      const pictureFramedPicketsAreCedar = isAllCedarPictureFramed || isMaryJane;
+      const pictureFramedRailsAreCedar = isAllCedarNiko || isAllCedarPictureFramed || isMaryJane;
+      const pictureFramedPicketsAreCedar = isAllCedarNiko || isAllCedarPictureFramed || isMaryJane;
 
       const pictureFramed2x4x8 = isPictureFramed
         ? (isAllCedarNiko
@@ -1482,7 +1481,7 @@ function EstimatesPageInner() {
         : 0;
 
       const postName = isAllCedarNiko
-        ? "4x4 x 10' Post"
+        ? "4x4 x 10' Cedar S4S Post"
         : isAllCedarPictureFramed
           ? "4x4 x 10' Cedar S4S Post"
           : isCasto
@@ -1499,7 +1498,7 @@ function EstimatesPageInner() {
               unit: "ea"
             },
             ...(isAllCedarNiko
-              ? [{ name: isNikoPressureTreated ? "2x2 8' Pressure Treated" : "2x2 8' Cedar S4S", qty: panels * 8, unit: "ea" }]
+              ? [{ name: "2x2 8' Cedar S4S", qty: panels * 8, unit: "ea" }]
               : []),
             ...(isCasto
               ? [{ name: "2x2 8' Pressure Treated", qty: panels * 7, unit: "ea" }]
@@ -2334,11 +2333,11 @@ function EstimatesPageInner() {
     if (String(style.name || "").trim().toLowerCase() === "all cedar niko") {
       setMaterialsDetails((prev) => ({
         ...prev,
-        woodType: "Pressure treated",
+        woodType: "Cedar",
         postSize: 10,
-        postType: "Pressure treated",
+        postType: "Cedar",
         pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Pressure treated",
+        pictureFrameTrimMaterial: "Cedar",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
