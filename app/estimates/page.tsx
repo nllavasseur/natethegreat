@@ -2459,7 +2459,8 @@ function EstimatesPageInner() {
         postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
-        topCaps: false
+        postCaps: false,
+        topCaps: true
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
