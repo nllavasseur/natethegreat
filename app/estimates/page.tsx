@@ -2327,8 +2327,8 @@ function EstimatesPageInner() {
         pictureFrameTrimPieces: 5,
         pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
-        postCaps: false,
-        topCaps: true
+        postCaps: true,
+        topCaps: false
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "all cedar niko") {
