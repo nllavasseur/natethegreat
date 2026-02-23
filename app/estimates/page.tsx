@@ -1362,10 +1362,12 @@ function EstimatesPageInner() {
         const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
-        // Boards: (segmentLength/12)*13 per segment + 1/2 board per post + 1 board per corner
+        const horizontalCedarMultiplier = (materialsDetails.topCaps && !materialsDetails.horizontalCedarVerticals) ? 14 : 13;
+
+        // Boards: (segmentLength/12)*multiplier per segment + 1/2 board per post + 1 board per corner
         const boardsBase = segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 13), 0)
-          : (lf > 0 ? Math.ceil((lf / 12) * 13) : 0);
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * horizontalCedarMultiplier), 0)
+          : (lf > 0 ? Math.ceil((lf / 12) * horizontalCedarMultiplier) : 0);
         const boards = Math.ceil(boardsBase + posts * 0.5 + cornerCount);
 
         // Keep these proportional to the reference sheet (274 LF):
