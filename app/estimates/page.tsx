@@ -792,12 +792,10 @@ function EstimatesPageInner() {
 
         const cornerCount = Math.max(0, segmentLengths.length - 1);
 
-        // 5/4 rails: (segmentLength/15) * 3
-        const rails5_4Base = segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
-          : (lf > 0 ? Math.ceil((lf / 15) * 3) : 0);
-        const gateExtraRails5_4 = (walkGates + doubleGates) * 2;
-        const rails5_4 = rails5_4Base + gateExtraRails5_4;
+        // 5/4 rails: (segmentLength/12) * 3
+        const rails5_4 = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 3), 0)
+          : (lf > 0 ? Math.ceil((lf / 12) * 3) : 0);
 
         // Verticals: +1/3 board per post + 1 per corner
         const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
@@ -821,8 +819,8 @@ function EstimatesPageInner() {
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
-          ...(rails5_4 > 0 ? [{ name: "5/4 x6 x16 Cedar Rails", qty: rails5_4, unit: "ea" }] : []),
-          ...(verticalBoards + cornerCount > 0 ? [{ name: "5/4 x6 x16 Cedar Verticals", qty: verticalBoards + cornerCount, unit: "ea" }] : []),
+          ...(rails5_4 > 0 ? [{ name: "5/4x6x12 Cedar S4S Rails", qty: rails5_4, unit: "ea" }] : []),
+          ...(verticalBoards + cornerCount > 0 ? [{ name: "5/4x6x12 Cedar S4S Verticals", qty: verticalBoards + cornerCount, unit: "ea" }] : []),
           ...(cedarS4SRails2x4x8 > 0 ? [{ name: "2x4 8' Cedar S4S Rails", qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
           ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
