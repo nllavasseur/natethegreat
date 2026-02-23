@@ -1522,6 +1522,8 @@ function EstimatesPageInner() {
           ? "1x4 x 8' CedarTone Trim"
           : "1x4 x 8' Trim";
 
+      const isCedarTonePictureFramed = materialsDetails.pictureFrameTrimMaterial === "Cedar tone";
+
       const normalizedPictureFramedStyle = String(selectedStyle?.name || "")
         .trim()
         .toLowerCase();
@@ -1534,12 +1536,14 @@ function EstimatesPageInner() {
       const isPictureFramedLatticePanel = normalizedPictureFramedStyle === "picture framed lattice panel";
       const latticePanels = isPictureFramed && (isAM || isPictureFramedLatticePanel) ? Math.ceil(panels / 3) : 0;
 
-      const picketName = (isAllCedarNiko || isAllCedarPictureFramed || isMaryJane)
-        ? "6' Cedar Dog Ear Pickets"
-        : "6' Pressure Treated Dog Ear Pickets";
+      const picketName = isCedarTonePictureFramed
+        ? "6' CedarTone Dog Ear Pickets"
+        : ((isAllCedarNiko || isAllCedarPictureFramed || isMaryJane)
+          ? "6' Cedar Dog Ear Pickets"
+          : "6' Pressure Treated Dog Ear Pickets");
 
-      const pictureFramedRailsAreCedar = isAllCedarNiko || isAllCedarPictureFramed || isMaryJane;
-      const pictureFramedPicketsAreCedar = isAllCedarNiko || isAllCedarPictureFramed || isMaryJane;
+      const pictureFramedRailsAreCedar = !isCedarTonePictureFramed && (isAllCedarNiko || isAllCedarPictureFramed || isMaryJane);
+      const pictureFramedPicketsAreCedar = !isCedarTonePictureFramed && (isAllCedarNiko || isAllCedarPictureFramed || isMaryJane);
 
       const pictureFramed2x4x8 = isPictureFramed
         ? (isNiko
@@ -1562,6 +1566,8 @@ function EstimatesPageInner() {
           ? "4x4 x 10' Cedar S4S Post"
           : isCasto
             ? "6x6 x 10' Pressure Treated Post"
+        : isCedarTonePictureFramed
+          ? "4x4 x 10' CedarTone Post"
         : (materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post");
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
@@ -1569,7 +1575,7 @@ function EstimatesPageInner() {
         ...(isPictureFramed
           ? [
             {
-              name: (pictureFramedRailsAreCedar ? "2x4 8' Cedar S4S Rails" : "2x4 8' Pressure Treated Rails"),
+              name: (isCedarTonePictureFramed ? "2x4 8' CedarTone Rails" : (pictureFramedRailsAreCedar ? "2x4 8' Cedar S4S Rails" : "2x4 8' Pressure Treated Rails")),
               qty: pictureFramed2x4x8,
               unit: "ea"
             },
@@ -1580,18 +1586,18 @@ function EstimatesPageInner() {
               ? [{ name: "2x2 8' Pressure Treated", qty: panels * 7, unit: "ea" }]
               : []),
             ...(pictureFramed2x4x16 > 0
-              ? [{ name: (pictureFramedRailsAreCedar ? "2x4 16' Cedar S4S Rails" : "2x4 16' Pressure Treated Rails"), qty: pictureFramed2x4x16, unit: "ea" }]
-              : [])
+              ? [{ name: (isCedarTonePictureFramed ? "2x4 16' CedarTone Rails" : (pictureFramedRailsAreCedar ? "2x4 16' Cedar S4S Rails" : "2x4 16' Pressure Treated Rails")), qty: pictureFramed2x4x16, unit: "ea" }]
+              : []),
           ]
           : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
-        { name: (pictureFramedPicketsAreCedar ? "6' Cedar Dog Ear Pickets" : "6' Pressure Treated Dog Ear Pickets"), qty: pickets, unit: "ea" },
+        { name: picketName, qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: "4x8 Lattice Panel", qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
         ...(railEndBracketsQty > 0
-          ? [{ name: "Rail end bracket", qty: railEndBracketsQty, unit: "ea" }]
+          ? [{ name: "Rail end bracket packs", qty: railEndBracketsQty, unit: "ea" }]
           : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -1603,11 +1609,13 @@ function EstimatesPageInner() {
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
       ];
 
-      return rows.map((r) => {
-        const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
-        const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-        return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
-      });
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
     }
 
     if (selectedFenceType === "vinyl") {
@@ -2478,7 +2486,7 @@ function EstimatesPageInner() {
         postSize: 10,
         postType: "Pressure treated",
         pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Pressure treated",
+        pictureFrameTrimMaterial: "Cedar tone",
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
