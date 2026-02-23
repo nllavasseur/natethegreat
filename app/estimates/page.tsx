@@ -3131,6 +3131,10 @@ function EstimatesPageInner() {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
+        picketMaterial: "Pressure treated",
+        railMaterial: "Pressure treated",
+        trimMaterial: "Pressure treated",
+        twoByTwoMaterial: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
         pictureFrameTrimPieces: 3,
