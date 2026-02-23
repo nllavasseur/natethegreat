@@ -1478,11 +1478,9 @@ function EstimatesPageInner() {
                 : panels * (materialsDetails.postCaps ? 4 : 3))))
         : 0;
       const pictureFramed2x4x16 = isPictureFramed
-        ? (isFourFootPictureFramed
-            ? 0
-            : ((materialsDetails.topCaps && !materialsDetails.postCaps)
-                ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
-                : 0))
+        ? ((materialsDetails.topCaps && !materialsDetails.postCaps)
+            ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
+            : 0)
         : 0;
 
       const postName = isAllCedarNiko
@@ -2295,13 +2293,13 @@ function EstimatesPageInner() {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
-        postSize: 10,
+        postSize: 8,
         postType: "Pressure treated",
         pictureFrameTrimPieces: 2,
         pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
-        topCaps: false
+        topCaps: true
       }));
     }
     if (
