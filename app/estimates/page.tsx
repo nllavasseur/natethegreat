@@ -2120,7 +2120,13 @@ function EstimatesPageInner() {
           ? "4x4 x 10' CedarTone Post"
           : (isNiko
             ? woodPostItemName(10, materialsDetails.postType)
-            : woodPostItemName(materialsDetails.postSize, materialsDetails.postType));
+            : (isMaryJane
+              ? (materialsDetails.postType === "Cedar tone"
+                ? "4x4 x 10' CedarTone Post"
+                : materialsDetails.postType === "Cedar"
+                  ? "4x4 x 10' Cedar S4S Post"
+                  : "4x4 x 10' Pressure Treated Post")
+              : woodPostItemName(materialsDetails.postSize, materialsDetails.postType)));
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
