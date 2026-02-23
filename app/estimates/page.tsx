@@ -1341,7 +1341,8 @@ function EstimatesPageInner() {
       const isAllCedarPictureFramed = normalizedPictureFramedStyle === "all cedar picture framed";
       const isCasto = normalizedPictureFramedStyle === "casto";
       const isMaryJane = normalizedPictureFramedStyle === "mary jane";
-      const latticePanels = isPictureFramed && isAM ? Math.ceil(panels / 3) : 0;
+      const isPictureFramedLatticePanel = normalizedPictureFramedStyle === "picture framed lattice panel";
+      const latticePanels = isPictureFramed && (isAM || isPictureFramedLatticePanel) ? Math.ceil(panels / 3) : 0;
 
       const picketName = (isAllCedarNiko || isAllCedarPictureFramed || isMaryJane)
         ? "6' Cedar Dog Ear Pickets"
@@ -2279,6 +2280,19 @@ function EstimatesPageInner() {
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "picture framed lattice panel") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 3,
+        pictureFrameTrimMaterial: "Pressure treated",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: true
       }));
     }
     if (String(style.name || "").trim().toLowerCase() === "board on board") {
