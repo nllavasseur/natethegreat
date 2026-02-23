@@ -3198,6 +3198,10 @@ function EstimatesPageInner() {
     } else if (styleName === "all cedar niko") {
       overrides = {
         woodType: "Cedar",
+        railMaterial: "Cedar",
+        picketMaterial: "Cedar",
+        trimMaterial: "Cedar",
+        twoByTwoMaterial: "Cedar",
         postSize: 10,
         postType: "Cedar",
         pictureFrameTrimPieces: 3,
