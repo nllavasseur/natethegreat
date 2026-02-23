@@ -20,6 +20,20 @@ function emptyItem(section: SectionKey): QuoteItem {
   return { section, name: "", qty: section === "additional" ? 0 : 1, unit: "ea", unitPrice: 0, lineTotal: 0 };
 }
 
+function normalizeUnitPriceKey(name: string) {
+  return String(name || "").trim();
+}
+
+const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = {
+  White: { label: "White", bg: "rgba(255,255,255,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(255,255,255,.55)" },
+  Tan: { label: "Tan", bg: "rgba(226,206,166,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(226,206,166,.6)" },
+  Khaki: { label: "Khaki", bg: "rgba(210,196,156,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(210,196,156,.6)" },
+  Clay: { label: "Clay", bg: "rgba(170,120,86,.92)", fg: "rgba(255,255,255,.92)", border: "rgba(170,120,86,.6)" },
+  "Cedar tone": { label: "Cedar tone", bg: "rgba(145,92,48,.92)", fg: "rgba(255,255,255,.92)", border: "rgba(145,92,48,.6)" },
+  Gray: { label: "Gray", bg: "rgba(152,160,168,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(152,160,168,.6)" },
+  Black: { label: "Black", bg: "rgba(10,10,12,.92)", fg: "rgba(255,255,255,.92)", border: "rgba(255,255,255,.18)" }
+};
+
 export default function EstimatesPage() {
   return <EstimatesPageInner />;
 }
@@ -43,6 +57,14 @@ function EstimatesPageInner() {
   const [photoViewerY, setPhotoViewerY] = useState(0);
   const [measureOpen, setMeasureOpen] = useState(false);
   const [tracePoints, setTracePoints] = useState<Array<{ x: number; y: number }>>([]);
+  const tracedSegments = useMemo(() => {
+    if (tracePoints.length < 2) return [] as Array<{ label: string; a: { x: number; y: number }; b: { x: number; y: number } }>;
+    return tracePoints.slice(0, -1).map((p, i) => ({
+      label: `S${i + 1}`,
+      a: p,
+      b: tracePoints[i + 1]
+    }));
+  }, [tracePoints]);
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [ocrResults, setOcrResults] = useState<Array<{ label: string; value: number | null; raw: string }>>([]);
@@ -309,6 +331,7 @@ function EstimatesPageInner() {
     arbor: boolean;
     splitRailRails: 2 | 3;
     splitRailWireMesh: boolean;
+    fourRailPoplarWireMesh: boolean;
     splitRailCornerPosts: number;
     splitRailEndPosts: number;
     pictureFrameTrimPieces: 2 | 3 | 5;
@@ -343,6 +366,7 @@ function EstimatesPageInner() {
     arbor: false,
     splitRailRails: 3,
     splitRailWireMesh: false,
+    fourRailPoplarWireMesh: false,
     splitRailCornerPosts: 0,
     splitRailEndPosts: 0,
     pictureFrameTrimPieces: 3,
@@ -370,6 +394,21 @@ function EstimatesPageInner() {
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
 
+  const [items, setItems] = useState<QuoteItem[]>([]);
+
+  const [saving, setSaving] = useState(false);
+  const [savingAsNew, setSavingAsNew] = useState(false);
+  const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [materialUnitPriceDrafts, setMaterialUnitPriceDrafts] = useState<Record<string, string>>({});
+  const touchedMaterialUnitPricesRef = useRef<Set<string>>(new Set());
+  const materialUnitPricesActive = useMemo(() => {
+    return Object.keys(materialUnitPriceDrafts).length > 0;
+  }, [materialUnitPriceDrafts]);
+
+  const [itemNumberDrafts, setItemNumberDrafts] = useState<Record<string, string>>({});
+
   const materialsDetailsActive = useMemo(() => {
     return (
       (materialsDetails.mansfieldWalkGateOptions || []).some((v) => Boolean(v)) ||
@@ -384,6 +423,7 @@ function EstimatesPageInner() {
       String(materialsDetails.shadowboxBoardMaterial || "Pressure Treated") !== "Pressure Treated" ||
       (Number(materialsDetails.splitRailRails) || 3) !== 3 ||
       Boolean(materialsDetails.splitRailWireMesh) ||
+      Boolean(materialsDetails.fourRailPoplarWireMesh) ||
       (Number(materialsDetails.splitRailCornerPosts) || 0) !== 0 ||
       (Number(materialsDetails.splitRailEndPosts) || 0) !== 0 ||
       String(materialsDetails.vinylColor || "White") !== "White" ||
@@ -450,6 +490,7 @@ function EstimatesPageInner() {
     if (n.includes("shadowbox")) return "wood_shadowbox";
     if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
     if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
+    if (n === "four rail poplar" || n.includes("four rail poplar")) return "wood_four_rail_poplar";
     return n;
   }, [selectedStyle?.name]);
 
@@ -574,6 +615,22 @@ function EstimatesPageInner() {
     return { total, line, gateDerived };
   }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, segments, selectedFenceType]);
 
+  const walkGateCount = useMemo(() => {
+    return Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => Boolean((s as any).gate))
+        .length
+    );
+  }, [segments]);
+
+  const totalLf = useMemo(() => {
+    return segments
+      .filter((s) => !s.removed)
+      .reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+  }, [segments]);
+
   const horizontalCedarDetailsActive = useMemo(() => {
     if (selectedStyleKind !== "wood_horizontal") return false;
     return (
@@ -674,6 +731,7 @@ function EstimatesPageInner() {
     if (next === cur) return;
     setMaterialsDetails((p) => ({ ...p, aluminumPanelHeight: next }));
   }, [aluminumAllowedPanelHeights, materialsDetails.aluminumPanelHeight, selectedFenceType]);
+
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "4x4 x 10' Post": 16.88,
@@ -682,150 +740,13 @@ function EstimatesPageInner() {
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
-    "5/4x6x12 Cedar Boards": 29.79,
-    "1x6x12' Red Cedar Boards": 27.43,
-    "5/4x6x12 Pressure Treated Boards": 10.59,
-    "1x6x12' CedarTone Boards": 0,
-    "2\" Screws 125 ct stainless steel": 20.99,
-    "3\" screws 60 ct stainless steel": 20.99,
-    "Concrete 80lb Bag": 4.48,
-    "Concrete 60lb Bag": 4.27,
-    "gate hardware": 90,
-    "2x4 4' Red Cedar S4S": 10.99,
-    "2x4 8' Red Cedar S4S": 10.99,
-    "80 lb Quickcrete": 5.31,
-    "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails": 98,
-    "Gate Hinge Kit": 90,
-    "Double gate kit": 180,
-    "3\" Deck Screws": 35,
-    "Cedar S4S Gate Framing": 12,
-    "Post caps": 5,
-    "Arbor": 200,
-    "Mansfield blank gate post": 65.99,
-    "Rail end bracket": 4.5,
-    "Disposal": 100,
-    "Delivery": 100,
-    "Equipment Fees": 400
-  });
-
-  const defaultMaterialUnitPricesRef = useRef(materialUnitPrices);
-  const touchedMaterialUnitPricesRef = useRef<Set<string>>(new Set());
-
-  const cedarToneUnitPricesRef = useRef<Record<string, number>>({
-    "6' Pressure Treated Dog Ear Pickets": 3.89,
-    "2x4 16' Pressure Treated Rails": 15.89,
-    "4x4 x 8' Post": 16.49,
     "3\" Deck Screws": 29.97
   });
-
-  const materialUnitPricesActive = useMemo(() => {
-    const base = defaultMaterialUnitPricesRef.current;
-    for (const k of Object.keys(base)) {
-      if (Number(materialUnitPrices[k]) !== Number(base[k])) return true;
-    }
-    return false;
-  }, [materialUnitPrices]);
-
-  useEffect(() => {
-    const wood = materialsDetails.woodType;
-    const base = defaultMaterialUnitPricesRef.current;
-    const preset = cedarToneUnitPricesRef.current;
-    const touched = touchedMaterialUnitPricesRef.current;
-
-    setMaterialUnitPrices((prev) => {
-      const next = { ...prev };
-      const keys = Object.keys(base);
-      let changed = false;
-
-      for (const k of keys) {
-        if (touched.has(k)) continue;
-
-        const target = wood === "Cedar tone"
-          ? (typeof preset[k] === "number" ? preset[k] : base[k])
-          : base[k];
-
-        if (Number(next[k]) !== Number(target)) {
-          next[k] = target;
-          changed = true;
-        }
-      }
-
-      return changed ? next : prev;
-    });
-  }, [materialsDetails.woodType]);
-
-  const [materialUnitPriceDrafts, setMaterialUnitPriceDrafts] = useState<Record<string, string>>({});
-  const [itemNumberDrafts, setItemNumberDrafts] = useState<Record<string, string>>({});
-
-  const [saving, setSaving] = useState(false);
-  const [savingAsNew, setSavingAsNew] = useState(false);
-  const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [items, setItems] = useState<QuoteItem[]>([]);
-
-  const totalLf = useMemo(() => {
-    return segments.reduce((sum, s) => sum + (Number(s.length) || 0), 0);
-  }, [segments]);
-
-  const tracedSegments = useMemo(() => {
-    const pts = tracePoints;
-    if (pts.length < 2) return [] as Array<{ label: string; a: { x: number; y: number }; b: { x: number; y: number } }>;
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const out: Array<{ label: string; a: { x: number; y: number }; b: { x: number; y: number } }> = [];
-    for (let i = 0; i < pts.length - 1; i++) {
-      const A = letters[i] ?? "A";
-      const B = letters[i + 1] ?? "B";
-      out.push({ label: `${A}–${B}`, a: pts[i], b: pts[i + 1] });
-    }
-    return out;
-  }, [tracePoints]);
-
-  useEffect(() => {
-    setOcrResults((prev) => {
-      const map = new Map(prev.map((p) => [p.label, p] as const));
-      return tracedSegments.map((s) => map.get(s.label) ?? { label: s.label, value: null, raw: "" });
-    });
-  }, [tracedSegments]);
-
-  const removalLf = useMemo(() => {
-    return segments
-      .filter((s) => s.removed)
-      .reduce((sum, s) => sum + (Number(s.length) || 0), 0);
-  }, [segments]);
-
-  const removalRate = 6;
-  const removalTotal = useMemo(() => {
-    const lf = Number(removalLf) || 0;
-    return Math.round(lf * removalRate * 100) / 100;
-  }, [removalLf]);
-
-  const walkGateCountDerived = useMemo(() => {
-    return segments.filter((s) => Boolean((s as any).gate)).length;
-  }, [segments]);
-
-  function normalizeUnitPriceKey(name: string) {
-    if (name.startsWith("Concrete 60lb Bag")) return "Concrete 60lb Bag";
-    return name;
-  }
-
-  const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = useMemo(() => {
-    return {
-      White: { label: "White", bg: "#FFFFFF", fg: "#111827", border: "rgba(0,0,0,.22)" },
-      Tan: { label: "Tan", bg: "#D6C2A2", fg: "#111827", border: "rgba(0,0,0,.18)" },
-      Khaki: { label: "Khaki", bg: "#8C7A5B", fg: "#0B0F19", border: "rgba(0,0,0,.18)" },
-      Gray: { label: "Gray", bg: "#9CA3AF", fg: "#0B0F19", border: "rgba(0,0,0,.18)" },
-      Cedar: { label: "Cedar", bg: "#8B6B55", fg: "#0B0F19", border: "rgba(0,0,0,.18)" },
-      Coastal: { label: "Coastal", bg: "#D9DEE2", fg: "#111827", border: "rgba(0,0,0,.18)" },
-      Black: { label: "Black", bg: "#0B0F19", fg: "#FFFFFF", border: "rgba(255,255,255,.22)" },
-      "Coastal gray woodgrain": { label: "Coastal*", bg: "#D9DEE2", fg: "#111827", border: "rgba(0,0,0,.18)" },
-      "Cedar woodgrain": { label: "Cedar*", bg: "#8B6B55", fg: "#0B0F19", border: "rgba(0,0,0,.18)" }
-    };
-  }, []);
 
   const generatedMaterials = useMemo(() => {
     if (!selectedStyle) return [] as QuoteItem[];
 
-    const walkGates = Number(walkGateCountDerived) || 0;
+    const walkGates = Number(walkGateCount) || 0;
     const doubleGates = Number(doubleGateCount) || 0;
 
     const walkGatePostsAdd = segments
@@ -1066,6 +987,67 @@ function EstimatesPageInner() {
         ...(twoByTwo8 > 0 ? [{ name: "2x2x8", qty: twoByTwo8, unit: "ea" }] : []),
         ...(oneBySix8 > 0 ? [{ name: "1x6x8", qty: oneBySix8, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
+    if (selectedStyleKind === "wood_four_rail_poplar") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 7.5' centers.
+      const postsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
+        : (lf > 0 ? Math.max(2, Math.ceil(lf / 7.5) + 1) : 0);
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+        : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
+
+      const cornerCount = Math.max(0, segmentLengths.length - 1);
+
+      // Rails: (segmentLength/15)*4
+      const railsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 4), 0)
+        : (lf > 0 ? Math.ceil((lf / 15) * 4) : 0);
+
+      // Verticals: +1/3 per post +1 per corner
+      const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+      const verticalAdders = verticalBoards + cornerCount;
+
+      // Optional wire mesh
+      const meshRolls = materialsDetails.fourRailPoplarWireMesh && lf > 0 ? Math.ceil(lf / 50) : 0;
+      const staples = materialsDetails.fourRailPoplarWireMesh && posts > 0 ? Math.ceil(posts * 10) : 0;
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: postName, qty: posts, unit: "ea" },
+        ...(railsBase > 0 ? [{ name: "1x6x16 Poplar Rails", qty: railsBase, unit: "ea" }] : []),
+        ...(verticalAdders > 0 ? [{ name: "1x6x16 Poplar Verticals", qty: verticalAdders, unit: "ea" }] : []),
+        ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
@@ -1477,7 +1459,7 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, materialsDetails.vinylColor, materialsDetails.vinylPanelHeightFt, materialsDetails.vinylPanelWidthFt, segments, selectedFenceType, selectedStyle, totalLf, walkGateCountDerived
+  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.fourRailPoplarWireMesh, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, materialsDetails.vinylColor, materialsDetails.vinylPanelHeightFt, materialsDetails.vinylPanelWidthFt, segments, selectedFenceType, selectedStyle, totalLf, walkGateCount
   ]);
 
   const storageKey = "vf_estimate_drafts_v1";
@@ -1581,21 +1563,6 @@ function EstimatesPageInner() {
         addressLines: ["1415 Snowmass Rd.", "Columbus, OH 43235"],
         email: "nathan@vasseurfencing.com",
         phone: "(231) 260-0635",
-        logoUrl: ""
-      },
-      estimate: {
-        id: overrideDraftId ?? draftId ?? "",
-        submittedOn: new Date().toLocaleDateString("en-US"),
-        customer: { name: customerName, phone: phoneNumber, email },
-        projectAddress,
-        styleTitle: selectedStyle?.name ?? "",
-        totalLf: Number(totalLf) || 0,
-        walkGateCount: Number(walkGateCountDerived) || 0,
-        doubleGateCount: Number(doubleGateCount) || 0,
-        depositTotal: Number(depositTotal) || 0,
-        notes,
-        disclaimer:
-          "Estimate includes listed labor and materials only. Underground utilities, hidden obstructions, and unforeseen site conditions may require change orders.",
         contractText:
           "By signing below, the homeowner agrees to the scope of work and pricing described in this estimate."
       },
@@ -1880,66 +1847,6 @@ function EstimatesPageInner() {
   }, [draftParam]);
 
   useEffect(() => {
-    let id: string | null = null;
-    if (typeof window === "undefined") return;
-    try {
-      const q = new URLSearchParams(window.location.search);
-      id = q.get("draft");
-    } catch {
-      id = null;
-    }
-    if (id) return;
-    try {
-      const raw = window.localStorage.getItem(unsavedSnapshotKey);
-      if (!raw) return;
-      const snap = JSON.parse(raw);
-      if (!snap || typeof snap !== "object") return;
-
-      const hasAnyCurrent =
-        String(customerName || "").trim() !== "" ||
-        String(projectAddress || "").trim() !== "" ||
-        String(phoneNumber || "").trim() !== "" ||
-        String(email || "").trim() !== "" ||
-        (Array.isArray(segments) && segments.length > 0) ||
-        (Array.isArray(items) && items.length > 0);
-      if (hasAnyCurrent) return;
-
-      setCustomerName(String((snap as any).customerName ?? ""));
-      setProjectAddress(String((snap as any).projectAddress ?? ""));
-      setPhoneNumber(String((snap as any).phoneNumber ?? ""));
-      setEmail(String((snap as any).email ?? ""));
-      setSelectedFenceType((snap as any).selectedFenceType ?? "wood");
-      setSelectedStyle((snap as any).selectedStyle ?? null);
-      if ((snap as any).materialsDetails && typeof (snap as any).materialsDetails === "object") {
-        setMaterialsDetails((prev) => ({ ...prev, ...(snap as any).materialsDetails }));
-      }
-      setExtraPosts(Number((snap as any).extraPosts ?? 0) || 0);
-      if ((snap as any).materialUnitPrices && typeof (snap as any).materialUnitPrices === "object") {
-        setMaterialUnitPrices((prev) => ({ ...prev, ...(snap as any).materialUnitPrices }));
-      }
-      setLaborDays(Number((snap as any).laborDays ?? 0));
-      setLaborManualDays(String((snap as any).laborManualDays ?? ""));
-      setLaborManualCost(String((snap as any).laborManualCost ?? ""));
-      setGradingPrice(Number((snap as any).gradingPrice ?? 0));
-      setTreeRemovalPrice(Number((snap as any).treeRemovalPrice ?? 0));
-      setToughDigEnabled(Boolean((snap as any).toughDigEnabled));
-      setGradeEnabled(Boolean((snap as any).gradeEnabled));
-      setStumpGrindingPrice(Number((snap as any).stumpGrindingPrice ?? 0));
-      setDoubleGateCount(Number((snap as any).doubleGateCount ?? 0));
-      setReferenceLength(Number((snap as any).referenceLength ?? 0));
-      setNotes(String((snap as any).notes ?? ""));
-      setPreInstallPhotos(normalizePreInstallPhotos((snap as any).preInstallPhotos));
-      setSegments(Array.isArray((snap as any).segments) ? (snap as any).segments : []);
-      setItems(Array.isArray((snap as any).items) ? (snap as any).items : []);
-      setProjectPhoto(null);
-      setProjectPhotoDataUrl(typeof (snap as any).projectPhotoDataUrl === "string" ? (snap as any).projectPhotoDataUrl : null);
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     setPortalReady(true);
   }, []);
 
@@ -2001,6 +1908,10 @@ function EstimatesPageInner() {
     const v = Number(takeoffMaterialsAndExpensesTotal) || 0;
     return Math.round(v * 100) / 100;
   }, [takeoffMaterialsAndExpensesTotal]);
+
+  const removalTotal = useMemo(() => {
+    return 0;
+  }, []);
 
   const laborBaseTotal = useMemo(() => {
     const base = items
@@ -2282,6 +2193,17 @@ function EstimatesPageInner() {
         topCaps: false
       }));
     }
+    if (String(style.name || "").trim().toLowerCase() === "four rail poplar") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 8,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        fourRailPoplarWireMesh: false,
+        topCaps: false
+      }));
+    }
     if (String(style.name || "").trim().toLowerCase() === "4 foot wire mesh") {
       setMaterialsDetails((prev) => ({
         ...prev,
@@ -2405,6 +2327,7 @@ function EstimatesPageInner() {
       arbor: false,
       splitRailRails: 3,
       splitRailWireMesh: false,
+      fourRailPoplarWireMesh: false,
       splitRailCornerPosts: 0,
       splitRailEndPosts: 0,
       pictureFrameTrimPieces: 3,
@@ -2964,6 +2887,7 @@ function EstimatesPageInner() {
         ? dd.splitRailRails
         : 3;
       const splitRailWireMesh = typeof dd.splitRailWireMesh === "boolean" ? dd.splitRailWireMesh : false;
+      const fourRailPoplarWireMesh = typeof dd.fourRailPoplarWireMesh === "boolean" ? dd.fourRailPoplarWireMesh : false;
       const splitRailCornerPosts = Number.isFinite(Number(dd.splitRailCornerPosts))
         ? Math.max(0, Math.floor(Number(dd.splitRailCornerPosts)))
         : 0;
@@ -3020,6 +2944,7 @@ function EstimatesPageInner() {
         arbor,
         splitRailRails,
         splitRailWireMesh,
+        fourRailPoplarWireMesh,
         splitRailCornerPosts,
         splitRailEndPosts,
         pictureFrameTrimPieces,
@@ -4444,7 +4369,7 @@ function EstimatesPageInner() {
                           </div>
                         </button>
 
-                        {selectedStyle?.name === "Mansfield" && (walkGateCountDerived > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Mansfield" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Applies after you mark gates. Select each gate’s size/price.</div>
@@ -4849,6 +4774,33 @@ function EstimatesPageInner() {
                         <div className="text-[11px] text-[var(--muted)] flex items-end">
                           {selectedStyle ? `${selectedStyle.name}` : "Select a style"}
                         </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedStyleKind === "wood_four_rail_poplar" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Four rail poplar</div>
+
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Wire mesh</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, fourRailPoplarWireMesh: !p.fourRailPoplarWireMesh }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.fourRailPoplarWireMesh
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.fourRailPoplarWireMesh}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.fourRailPoplarWireMesh ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
                       </div>
                     </div>
                   ) : null}
