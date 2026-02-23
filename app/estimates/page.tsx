@@ -3192,7 +3192,7 @@ function EstimatesPageInner() {
         trimMaterial: "Cedar",
         twoByTwoMaterial: "Cedar",
         postSize: 10,
-        postType: "Cedar",
+        postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar",
         horizontalCedarVerticals: true,
         horizontalCedarCornerAdjust: 0,
