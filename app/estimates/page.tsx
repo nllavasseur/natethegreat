@@ -5935,24 +5935,7 @@ function EstimatesPageInner() {
                             <option value="Pressure Treated">Pressure Treated</option>
                           </Select>
                         </div>
-                      ) : (
-                        <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Wood type</div>
-                          <Select
-                            value={materialsDetails.woodType}
-                            onChange={(e) =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                woodType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
-                              }))
-                            }
-                          >
-                            <option value="Pressure treated">Pressure treated</option>
-                            <option value="Cedar">Cedar</option>
-                            <option value="Cedar tone">Cedar tone</option>
-                          </Select>
-                        </div>
-                      )}
+                      ) : null}
 
                       {selectedFenceType === "wood" ? (
                         <div className="grid grid-cols-2 gap-3">
