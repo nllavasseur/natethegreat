@@ -1998,7 +1998,7 @@ function EstimatesPageInner() {
             : materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar"
               ? "5/4x6x12 Cedar S4S Rails"
               : materialsDetails.horizontalCedarBoardMaterial === "CedarTone"
-                ? "1x6x12 CedarTone Boards"
+                ? "5/4x6x12 CedarTone Rails"
                 : "1x6x12 Cedar Boards";
 
         const segmentLengths = segments
@@ -5920,6 +5920,7 @@ function EstimatesPageInner() {
                                     trimMaterial: next,
                                     twoByTwoMaterial: next,
                                     pictureFrameTrimMaterial: next,
+                                    horizontalCedarBoardMaterial: next === "Cedar tone" ? "CedarTone" : next === "Pressure treated" ? "Pressure Treated" : "5/4 cedar",
                                     shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
                                   }));
                                 }}
