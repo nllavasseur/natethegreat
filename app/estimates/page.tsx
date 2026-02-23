@@ -1684,6 +1684,10 @@ function EstimatesPageInner() {
         : 0;
       const trimName = woodTrimName(materialsDetails.trimMaterial);
 
+      const latticeName = materialsDetails.trimMaterial === "Cedar"
+        ? "4x8 Cedar Lattice Panel"
+        : "4x8 Pressure Treated Lattice Panel";
+
       const normalizedPictureFramedStyle = String(selectedStyle?.name || "")
         .trim()
         .toLowerCase();
@@ -1743,7 +1747,7 @@ function EstimatesPageInner() {
           : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
         { name: picketName, qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
-        ...(latticePanels > 0 ? [{ name: "4x8 Lattice Panel", qty: latticePanels, unit: "ea" }] : []),
+        ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         { name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" },
         { name: "3\" Deck Screws", qty: screwBoxes, unit: "box" },
