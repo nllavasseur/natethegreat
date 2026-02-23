@@ -184,6 +184,8 @@ type MaterialsDetails = {
   twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
   horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
   shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
+  fiveQuarterTwoRailMeshVerticals: boolean;
+  fiveQuarterTwoRailMeshCorners: boolean;
   postSize: 8 | 10 | 12 | 14;
   postType: "Pressure treated" | "Cedar" | "Cedar tone";
   postCaps: boolean;
@@ -229,6 +231,8 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   twoByTwoMaterial: "Pressure treated",
   horizontalCedarBoardMaterial: "5/4 cedar",
   shadowboxBoardMaterial: "Pressure Treated",
+  fiveQuarterTwoRailMeshVerticals: true,
+  fiveQuarterTwoRailMeshCorners: true,
   postSize: 8,
   postType: "Pressure treated",
   postCaps: false,
@@ -611,6 +615,8 @@ function EstimatesPageInner() {
       String(materialsDetails.trimMaterial || "Pressure treated") !== "Pressure treated" ||
       String(materialsDetails.twoByTwoMaterial || "Pressure treated") !== "Pressure treated" ||
       String(materialsDetails.shadowboxBoardMaterial || "Pressure Treated") !== "Pressure Treated" ||
+      Boolean(materialsDetails.fiveQuarterTwoRailMeshVerticals) !== true ||
+      Boolean(materialsDetails.fiveQuarterTwoRailMeshCorners) !== true ||
       (Number(materialsDetails.splitRailRails) || 3) !== 3 ||
       Boolean(materialsDetails.splitRailWireMesh) ||
       String(materialsDetails.splitRailMaterial || "Pressure treated") !== "Pressure treated" ||
@@ -668,18 +674,17 @@ function EstimatesPageInner() {
   }, [doubleGateCount, extraPosts, materialsDetails.splitRailCornerPosts, materialsDetails.splitRailEndPosts, segments, selectedFenceType, selectedStyle?.name]);
 
   const selectedStyleKind = useMemo(() => {
-    const nRaw = String(selectedStyle?.name || "")
-      .trim()
-      .toLowerCase();
-
+    const nRaw = String(selectedStyle?.name || "");
     const n = nRaw
+      .trim()
+      .toLowerCase()
       .replaceAll("/", ":")
       .replaceAll("-", " ")
       .replace(/\s+/g, " ");
 
     if (n === "standard privacy" || n === "standard") return "wood_standard";
     if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
-    if (n === "niko") return "wood_picture_framed";
+    if (n === "niko" || n === "all cedar niko") return "wood_picture_framed";
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
     if (n === "a & m") return "wood_picture_framed";
     if (n === "casto") return "wood_picture_framed";
@@ -1313,15 +1318,19 @@ function EstimatesPageInner() {
           ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
           : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
-        const cornerCount = Math.max(0, segmentLengths.length - 1);
+        const cornerCount = materialsDetails.fiveQuarterTwoRailMeshCorners
+          ? Math.max(0, segmentLengths.length - 1)
+          : 0;
 
-        // 5/4 rails: (segmentLength/12) * 3
+        // 5/4 rails: (segmentLength/15) * 3
         const rails5_4 = segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 3), 0)
-          : (lf > 0 ? Math.ceil((lf / 12) * 3) : 0);
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
+          : (lf > 0 ? Math.ceil((lf / 15) * 3) : 0);
 
-        // Verticals: +1/3 board per post + 1 per corner
-        const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+        // Verticals: +1/3 board per post (toggle) + 1 per corner (toggle)
+        const verticalBoards = materialsDetails.fiveQuarterTwoRailMeshVerticals && posts > 0
+          ? Math.ceil(posts * (1 / 3))
+          : 0;
 
         // Cedar S4S: 2x 2x4x8 per panel
         const cedarS4SRails2x4x8 = panels * 2;
@@ -1330,7 +1339,9 @@ function EstimatesPageInner() {
         const meshRolls = lf > 0 ? Math.ceil(lf / 50) : 0;
 
         // Screws: 6 per 5/4 board
-        const stainlessScrews = rails5_4 > 0 ? Math.ceil(rails5_4 * 6) : 0;
+        const screwCount = rails5_4 > 0 ? Math.ceil(rails5_4 * 6) : 0;
+        const useStainlessScrews = materialsDetails.railMaterial === "Cedar";
+        const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
 
         // Staples: 10 per post
         const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
@@ -1348,10 +1359,7 @@ function EstimatesPageInner() {
               ? "5/4x6x12 Cedar S4S Rails"
               : "5/4x6x12 Pressure Treated Boards";
 
-        const fiveQuarterVerticalName =
-          materialsDetails.railMaterial === "Cedar"
-            ? "5/4x6x12 Cedar S4S Verticals"
-            : fiveQuarterRailName;
+        const fiveQuarterVerticalName = fiveQuarterRailName;
 
         const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
         const picketName = woodPicketName(materialsDetails.picketMaterial);
@@ -1363,7 +1371,8 @@ function EstimatesPageInner() {
           ...(cedarS4SRails2x4x8 > 0 ? [{ name: rail8Name, qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
           ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-          ...(stainlessScrews > 0 ? [{ name: "Stainless screws", qty: stainlessScrews, unit: "ea" }] : []),
+          ...(useStainlessScrews && screwCount > 0 ? [{ name: "Stainless screws", qty: screwCount, unit: "ea" }] : []),
+          ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
           ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -1375,7 +1384,18 @@ function EstimatesPageInner() {
           { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
         ];
 
-        return rows
+        const combinedRows = rows.reduce((acc, r) => {
+          const key = `${r.name}__${r.unit}`;
+          const prev = acc.get(key);
+          if (prev) {
+            prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
+          } else {
+            acc.set(key, { ...r });
+          }
+          return acc;
+        }, new Map<string, { name: string; qty: number; unit: string }>());
+
+        return Array.from(combinedRows.values())
           .filter((r) => (Number(r.qty) || 0) > 0)
           .map((r) => {
             const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
@@ -2079,14 +2099,14 @@ function EstimatesPageInner() {
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
-        : 0;
+        : (totalLf > 0 ? Math.max(2, Math.ceil(totalLf / 7.5) + 1) : 0);
       const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
       // Rails = ceil(segment/15 * 3) per segment
       // Picture framed flat top uses per-panel rail logic (2x4x8) and optional 2x4x16.
       const rails = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
-        : 0;
+        : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0);
 
       // Pickets
       // Standard: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
@@ -2452,14 +2472,26 @@ function EstimatesPageInner() {
     const concrete80Bags = posts * 2;
     const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
+    const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+    const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
+    const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
+
+    const trimName = woodTrimName(materialsDetails.trimMaterial);
+    const trimBoards = 0;
+
     const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
+    const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+    const railName = woodRail2x4Name(16, materialsDetails.railMaterial);
+    const picketName = woodPicketName(materialsDetails.picketMaterial);
+
     const rows: Array<{ name: string; qty: number; unit: string }> = [
-      { name: "4x4 Post", qty: posts, unit: "ea" },
-      { name: "2x4 Treated", qty: rails, unit: "ea" },
-      { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
+      { name: postName, qty: posts, unit: "ea" },
+      { name: railName, qty: rails, unit: "ea" },
+      { name: picketName, qty: pickets, unit: "ea" },
       ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-      { name: "Fasteners", qty: 1, unit: "ea" },
+      ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
+      ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
       ...(railEndBracketsQty > 0
         ? [{ name: "Rail end bracket", qty: railEndBracketsQty, unit: "ea" }]
         : []),
@@ -5826,6 +5858,61 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
+                  {selectedStyleKind === "wood_wire_mesh" && String(selectedStyle?.name || "")
+                    .trim()
+                    .toLowerCase()
+                    .replaceAll("/", ":")
+                    .replaceAll("-", " ")
+                    .replace(/\s+/g, " ") === "5:4 2 rail mesh" ? (
+                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">5:4 2 rail mesh</div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, fiveQuarterTwoRailMeshVerticals: !p.fiveQuarterTwoRailMeshVerticals }))}
+                              className={
+                                "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                                (materialsDetails.fiveQuarterTwoRailMeshVerticals
+                                  ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                  : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                              }
+                              aria-pressed={materialsDetails.fiveQuarterTwoRailMeshVerticals}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-extrabold">{materialsDetails.fiveQuarterTwoRailMeshVerticals ? "On" : "Off"}</div>
+                                <div className="text-[11px] text-[var(--muted)]">Adds posts/3</div>
+                              </div>
+                            </button>
+                          </div>
+
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Corners</div>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, fiveQuarterTwoRailMeshCorners: !p.fiveQuarterTwoRailMeshCorners }))}
+                              className={
+                                "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                                (materialsDetails.fiveQuarterTwoRailMeshCorners
+                                  ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                  : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                              }
+                              aria-pressed={materialsDetails.fiveQuarterTwoRailMeshCorners}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-extrabold">{materialsDetails.fiveQuarterTwoRailMeshCorners ? "On" : "Off"}</div>
+                                <div className="text-[11px] text-[var(--muted)]">Adds corners</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
                   {selectedFenceType !== "aluminum" ? (
                     <>
                       {selectedFenceType === "wood" ? (
@@ -5896,6 +5983,43 @@ function EstimatesPageInner() {
                           </Select>
                         </div>
                       </div>
+
+                      {selectedFenceType === "wood" ? (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
+                            <Select
+                              value={materialsDetails.railMaterial}
+                              onChange={(e) =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                                }))
+                              }
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Pickets</div>
+                            <Select
+                              value={materialsDetails.picketMaterial}
+                              onChange={(e) =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  picketMaterial: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                                }))
+                              }
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
+                          </div>
+                        </div>
+                      ) : null}
 
                       {selectedFenceType === "wood" && selectedStyleKind === "wood_split_rail" ? (
                         <div>
