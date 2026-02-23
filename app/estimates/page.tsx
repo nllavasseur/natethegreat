@@ -971,7 +971,8 @@ function EstimatesPageInner() {
     );
     const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
     setMaterialsDetails((p) => {
-      const nextWalk = Array.from({ length: walkGates }, (_, i) => p.toledoWalkGateOptions?.[i] || "walk_48_5_arched");
+      const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5_arched" : "walk_48_4";
+      const nextWalk = Array.from({ length: walkGates }, (_, i) => p.toledoWalkGateOptions?.[i] || defaultWalk);
       const defaultDouble = (Number(p.aluminumPanelHeight) || 0) === 60 ? "double_60_5_arched" : "double_60_4_arched";
       const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.toledoDoubleGateOptions?.[i] || defaultDouble);
       const sameWalk = (p.toledoWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.toledoWalkGateOptions?.[i]);
@@ -5153,9 +5154,19 @@ function EstimatesPageInner() {
                                         )
                                       }))
                                     }
-                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 60}
+                                    disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
                                   >
-                                    <option value="walk_48_5_arched">48\" wide x 5' high (arched) — $475.00</option>
+                                    {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
+                                      <>
+                                        <option value="walk_48_5_arched">48\" wide x 5' high — $429.99</option>
+                                        <option value="walk_60_5_arched">60\" wide x 5' high — $459.99</option>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <option value="walk_48_4">48\" wide x 4' high — $399.99</option>
+                                        <option value="walk_60_4">60\" wide x 4' high — $445.00</option>
+                                      </>
+                                    )}
                                   </Select>
                                 </div>
                               </div>
