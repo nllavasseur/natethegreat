@@ -2305,6 +2305,10 @@ function EstimatesPageInner() {
         : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
       const line = Math.max(0, aluminumPostsSummary.total - (corner + gate + end + blank));
 
+      // Concrete: 160lb per post (2x 80lb bags per post). Priced using 60lb bag line item.
+      const concrete80Bags = Math.max(0, aluminumPostsSummary.total) * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
       const heightLabel = h === 54 ? "4.5'" : `${Math.round(h / 12)}'`;
       const panelName = `${style} aluminum panel 6ft (${heightLabel})`;
       const linePostName = `${style} line post (${heightLabel})`;
@@ -2445,6 +2449,9 @@ function EstimatesPageInner() {
           : []),
         ...walkGateItems,
         ...doubleGateItems,
+        ...(concrete60Bags > 0
+          ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: fixedOrZero(concrete60Bags), unit: "bag" }]
+          : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
