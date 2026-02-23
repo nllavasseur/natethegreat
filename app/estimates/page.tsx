@@ -943,7 +943,7 @@ function EstimatesPageInner() {
 
     setMaterialsDetails((p) => {
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.atlanticWalkGateOptions?.[i] || "walk_48_4");
-      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.atlanticDoubleGateOptions?.[i] || "double_60_4_arched");
+      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.atlanticDoubleGateOptions?.[i] || "double_60_4");
       const walkSame = (p.atlanticWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.atlanticWalkGateOptions?.[i]);
       const doubleSame = (p.atlanticDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.atlanticDoubleGateOptions?.[i]);
       if (walkSame && doubleSame) return p;
@@ -2173,9 +2173,14 @@ function EstimatesPageInner() {
 
         if (style === "Atlantic") {
           const opts = materialsDetails.atlanticDoubleGateOptions || [];
-          const qty60 = opts.filter((v) => v === "double_60_4_arched").length;
+          const qty48 = opts.filter((v) => v === "double_48_4").length;
+          const qty60 = opts.filter((v) => v === "double_60_4" || v === "double_60_4_arched").length;
+          const name48 = `Atlantic double gate 48\" x ${heightLabel}`;
           const name60 = `Atlantic double gate 60\" x ${heightLabel}`;
-          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [];
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "DOUBLE", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [])
+          ];
         }
 
         if (style === "Toledo") {
@@ -5114,7 +5119,8 @@ function EstimatesPageInner() {
                                     }
                                     disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
                                   >
-                                    <option value="double_60_4_arched">60" wide x 4' high (arched) — $487.50</option>
+                                    <option value="double_48_4">48" wide x 4' high — $859.99</option>
+                                    <option value="double_60_4">60" wide x 4' high — $909.50</option>
                                   </Select>
                                 </div>
                               </div>
