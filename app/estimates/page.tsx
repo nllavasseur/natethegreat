@@ -1362,14 +1362,11 @@ function EstimatesPageInner() {
         const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
-        // Boards: panels/2 * 13, round up (minimum 13 if any panels)
-        const boardsBase = panels > 0 ? Math.max(13, Math.ceil((panels / 2) * 13)) : 0;
-        const boardsPanelExtra = panels > 0 ? Math.ceil(panels * 0.25) : 0;
-        const boardsGateExtra = walkGates * 2 + doubleGates * 4;
-        const boardsVerticalsExtra = materialsDetails.horizontalCedarVerticals
-          ? Math.ceil(cornerCount * 1 + posts * 0.5)
-          : 0;
-        const boards = boardsBase + boardsPanelExtra + boardsGateExtra + boardsVerticalsExtra;
+        // Boards: (segmentLength/12)*13 per segment + 1/2 board per post + 1 board per corner
+        const boardsBase = segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 13), 0)
+          : (lf > 0 ? Math.ceil((lf / 12) * 13) : 0);
+        const boards = Math.ceil(boardsBase + posts * 0.5 + cornerCount);
 
         // Keep these proportional to the reference sheet (274 LF):
         const stainlessScrews = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
@@ -2258,10 +2255,12 @@ function EstimatesPageInner() {
     if (String(style.name || "").trim().toLowerCase() === "horizontal") {
       setMaterialsDetails((prev) => ({
         ...prev,
-        horizontalCedarBoardMaterial: "5/4 cedar",
+        woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "horizontal_cedar",
+        horizontalCedarVerticals: true,
+        horizontalCedarCornerAdjust: 0,
         topCaps: false
       }));
     }
