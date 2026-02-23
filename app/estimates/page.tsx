@@ -1386,8 +1386,9 @@ function EstimatesPageInner() {
       // Wire mesh: total lf / 50 rolls, round up
       const meshRolls = lf > 0 ? Math.ceil(lf / 50) : 0;
 
-      // Nails: 8 per board
-      const nails = boards > 0 ? Math.ceil(boards * 8) : 0;
+      // Nails: one box per job (priced in wood_unit_prices.csv)
+      const nailsBoxes = boards > 0 ? 1 : 0;
+      const nailsName = "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
 
       // Staples: 10 per post
       const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
@@ -1406,7 +1407,7 @@ function EstimatesPageInner() {
         { name: boardsName, qty: boards, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(nails > 0 ? [{ name: "Nails", qty: nails, unit: "ea" }] : []),
+        ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
