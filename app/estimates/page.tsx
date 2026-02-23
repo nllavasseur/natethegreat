@@ -837,7 +837,13 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Toledo") return;
 
-    const walkGates = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
+    const walkGates = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => Boolean((s as any).gate))
+        .length
+    );
     const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
     setMaterialsDetails((p) => {
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.toledoWalkGateOptions?.[i] || "walk_48_5_arched");
@@ -5219,7 +5225,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Toledo" && (Number(doubleGateCount) || 0) > 0 ? (
+                        {selectedStyle?.name === "Toledo" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
