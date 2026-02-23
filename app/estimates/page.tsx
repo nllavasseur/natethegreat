@@ -638,7 +638,7 @@ function EstimatesPageInner() {
                           : n;
 
     if (selectedFenceType !== "wood" || styleKind !== "wood_split_rail") {
-      return { total: 0, line: 0, gateDerived: 0 };
+      return { total: 0, line: 0, corner: 0, end: 0, gateDerived: 0 };
     }
 
     const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => Boolean((s as any).gate)).length);
@@ -660,7 +660,7 @@ function EstimatesPageInner() {
     const end = Math.max(0, Math.floor(Number(materialsDetails.splitRailEndPosts) || 0));
     const line = Math.max(0, total - (corner + end + gateDerived));
 
-    return { total, line, gateDerived };
+    return { total, line, corner, end, gateDerived };
   }, [doubleGateCount, extraPosts, materialsDetails.splitRailCornerPosts, materialsDetails.splitRailEndPosts, segments, selectedFenceType, selectedStyle?.name]);
 
   const selectedStyleKind = useMemo(() => {
@@ -1880,11 +1880,26 @@ function EstimatesPageInner() {
       const gateFramingS4S = walkGates * 5 + doubleGates * 10;
       const cedarPickets = walkGates * 10 + doubleGates * 20;
 
-      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
       const splitRailName = materialsDetails.splitRailMaterial === "Cedar tone" ? "Split rail (CedarTone)" : "Split rail";
 
+      const splitRailLinePostName = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? (materialsDetails.splitRailRails === 2 ? "CedarTone split rail posts (2 rail)" : "CedarTone split rail line post (3 rail)")
+        : "Split rail posts";
+      const splitRailCornerPostName = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? "CedarTone split rail corner post (3 rail)"
+        : "Split rail corner post";
+      const splitRailEndPostName = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? "CedarTone split rail end post (3 rail)"
+        : "Split rail end post";
+      const splitRailGatePostName = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? "CedarTone split rail end post (3 rail)"
+        : "Split rail end post";
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        { name: postName, qty: posts, unit: "ea" },
+        ...(splitRailPostsSummary.line > 0 ? [{ name: splitRailLinePostName, qty: splitRailPostsSummary.line, unit: "ea" }] : []),
+        ...(splitRailPostsSummary.corner > 0 ? [{ name: splitRailCornerPostName, qty: splitRailPostsSummary.corner, unit: "ea" }] : []),
+        ...(splitRailPostsSummary.end > 0 ? [{ name: splitRailEndPostName, qty: splitRailPostsSummary.end, unit: "ea" }] : []),
+        ...(splitRailPostsSummary.gateDerived > 0 ? [{ name: splitRailGatePostName, qty: splitRailPostsSummary.gateDerived, unit: "ea" }] : []),
         { name: splitRailName, qty: rails, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
