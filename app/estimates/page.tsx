@@ -909,6 +909,83 @@ function EstimatesPageInner() {
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
+    if (String(selectedStyle?.name || "") !== "Toledo") return;
+
+    const isFive = (Number(materialsDetails.aluminumPanelHeight) || 0) === 60;
+    setMaterialsDetails((p) => {
+      const nextWalk = (p.toledoWalkGateOptions || []).map((v) => {
+        const s = String(v);
+        const n = s === "walk_48_5_arched" ? "walk_48_5" : s === "walk_60_5_arched" ? "walk_60_5" : s;
+        if (isFive) {
+          if (n === "walk_48_4") return "walk_48_5";
+          if (n === "walk_60_4") return "walk_60_5";
+        } else {
+          if (n === "walk_48_5") return "walk_48_4";
+          if (n === "walk_60_5") return "walk_60_4";
+        }
+        return n;
+      });
+
+      const nextDouble = (p.toledoDoubleGateOptions || []).map((v) => {
+        const s = String(v);
+        const n = s === "double_60_4_arched" ? "double_60_4" : s === "double_60_5_arched" ? "double_60_5" : s;
+        if (isFive) {
+          if (n === "double_48_4") return "double_48_5";
+          if (n === "double_60_4") return "double_60_5";
+        } else {
+          if (n === "double_48_5") return "double_48_4";
+          if (n === "double_60_5") return "double_60_4";
+        }
+        return n;
+      });
+
+      const sameWalk = (p.toledoWalkGateOptions || []).length === nextWalk.length && nextWalk.every((v, i) => v === p.toledoWalkGateOptions?.[i]);
+      const sameDouble = (p.toledoDoubleGateOptions || []).length === nextDouble.length && nextDouble.every((v, i) => v === p.toledoDoubleGateOptions?.[i]);
+      if (sameWalk && sameDouble) return p;
+      return { ...p, toledoWalkGateOptions: nextWalk, toledoDoubleGateOptions: nextDouble };
+    });
+  }, [materialsDetails.aluminumPanelHeight, selectedFenceType, selectedStyle?.name]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "aluminum") return;
+    if (String(selectedStyle?.name || "") !== "Mansfield") return;
+
+    const isFive = (Number(materialsDetails.aluminumPanelHeight) || 0) === 60;
+    setMaterialsDetails((p) => {
+      const nextWalk = (p.mansfieldWalkGateOptions || []).map((v) => {
+        const s = String(v);
+        const n = s === "walk_48_5_arched" ? "walk_48_5" : s === "walk_60_5_arched" ? "walk_60_5" : s;
+        if (isFive) {
+          if (n === "walk_48_4") return "walk_48_5";
+          if (n === "walk_60_4") return "walk_60_5";
+        } else {
+          if (n === "walk_48_5") return "walk_48_4";
+          if (n === "walk_60_5") return "walk_60_4";
+        }
+        return n;
+      });
+
+      const nextDouble = (p.mansfieldDoubleGateOptions || []).map((v) => {
+        const s = String(v);
+        if (isFive) {
+          if (s === "double_48_4") return "double_48_5";
+          if (s === "double_60_4") return "double_60_5";
+        } else {
+          if (s === "double_48_5") return "double_48_4";
+          if (s === "double_60_5") return "double_60_4";
+        }
+        return s;
+      });
+
+      const sameWalk = (p.mansfieldWalkGateOptions || []).length === nextWalk.length && nextWalk.every((v, i) => v === p.mansfieldWalkGateOptions?.[i]);
+      const sameDouble = (p.mansfieldDoubleGateOptions || []).length === nextDouble.length && nextDouble.every((v, i) => v === p.mansfieldDoubleGateOptions?.[i]);
+      if (sameWalk && sameDouble) return p;
+      return { ...p, mansfieldWalkGateOptions: nextWalk, mansfieldDoubleGateOptions: nextDouble };
+    });
+  }, [materialsDetails.aluminumPanelHeight, selectedFenceType, selectedStyle?.name]);
+
+  useEffect(() => {
+    if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Pacific") return;
 
     const walkGates = Math.max(
@@ -2126,8 +2203,8 @@ function EstimatesPageInner() {
 
         if (style === "Mansfield") {
           const opts = materialsDetails.mansfieldWalkGateOptions || [];
-          const qty48 = opts.filter((v) => v === "walk_48_4" || v === "walk_48_5" || v === "walk_48_45").length;
-          const qty60 = opts.filter((v) => v === "walk_60_4" || v === "walk_60_5" || v === "walk_60_45").length;
+          const qty48 = opts.filter((v) => (h === 60 ? v === "walk_48_5" : v === "walk_48_4")).length;
+          const qty60 = opts.filter((v) => (h === 60 ? v === "walk_60_5" : v === "walk_60_4")).length;
           const name48 = `Mansfield walk gate 48\" x ${heightLabel}`;
           const name60 = `Mansfield walk gate 60\" x ${heightLabel}`;
           return [
@@ -2138,8 +2215,8 @@ function EstimatesPageInner() {
 
         if (style === "Toledo") {
           const opts = materialsDetails.toledoWalkGateOptions || [];
-          const qty48 = opts.filter((v) => v === "walk_48_4" || v === "walk_48_5" || v === "walk_48_5_arched").length;
-          const qty60 = opts.filter((v) => v === "walk_60_4" || v === "walk_60_5" || v === "walk_60_5_arched").length;
+          const qty48 = opts.filter((v) => (h === 60 ? v === "walk_48_5" : v === "walk_48_4")).length;
+          const qty60 = opts.filter((v) => (h === 60 ? v === "walk_60_5" : v === "walk_60_4")).length;
           const name48 = `Toledo walk gate 48\" x ${heightLabel}`;
           const name60 = `Toledo walk gate 60\" x ${heightLabel}`;
           return [
@@ -2181,8 +2258,8 @@ function EstimatesPageInner() {
 
         if (style === "Mansfield") {
           const opts = materialsDetails.mansfieldDoubleGateOptions || [];
-          const qty48 = opts.filter((v) => v === "double_48_4" || v === "double_48_5" || v === "double_48_45").length;
-          const qty60 = opts.filter((v) => v === "double_60_4" || v === "double_60_5" || v === "double_60_45").length;
+          const qty48 = opts.filter((v) => (h === 60 ? v === "double_48_5" : v === "double_48_4")).length;
+          const qty60 = opts.filter((v) => (h === 60 ? v === "double_60_5" : v === "double_60_4")).length;
           const name48 = `Mansfield double gate 48\" x ${heightLabel}`;
           const name60 = `Mansfield double gate 60\" x ${heightLabel}`;
           return [
@@ -2205,8 +2282,8 @@ function EstimatesPageInner() {
 
         if (style === "Toledo") {
           const opts = materialsDetails.toledoDoubleGateOptions || [];
-          const qty48 = opts.filter((v) => v === "double_48_4" || v === "double_48_5").length;
-          const qty60 = opts.filter((v) => v === "double_60_4" || v === "double_60_5").length;
+          const qty48 = opts.filter((v) => (h === 60 ? v === "double_48_5" : v === "double_48_4")).length;
+          const qty60 = opts.filter((v) => (h === 60 ? v === "double_60_5" : v === "double_60_4")).length;
           const name48 = `Toledo double gate 48\" x ${heightLabel}`;
           const name60 = `Toledo double gate 60\" x ${heightLabel}`;
           return [
