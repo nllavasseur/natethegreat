@@ -737,6 +737,16 @@ function EstimatesPageInner() {
     setMaterialsDetails((p) => ({ ...p, aluminumPanelHeight: next }));
   }, [aluminumAllowedPanelHeights, materialsDetails.aluminumPanelHeight, selectedFenceType]);
 
+  useEffect(() => {
+    if (selectedStyleKind !== "wood_scalloped") return;
+
+    const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
+    const desiredPostSize = heightFt >= 6 ? 10 : 8;
+    if (materialsDetails.postSize === desiredPostSize) return;
+
+    setMaterialsDetails((p) => ({ ...p, postSize: desiredPostSize }));
+  }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind]);
+
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "4x4 x 10' Post": 16.88,
@@ -2413,7 +2423,7 @@ function EstimatesPageInner() {
       setMaterialsDetails((prev) => ({
         ...prev,
         woodType: "Pressure treated",
-        postSize: 8,
+        postSize: 10,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         vinylPanelHeightFt: 6,
