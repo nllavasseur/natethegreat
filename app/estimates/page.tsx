@@ -973,8 +973,13 @@ function EstimatesPageInner() {
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5_arched" : "walk_48_4";
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.toledoWalkGateOptions?.[i] || defaultWalk);
-      const defaultDouble = (Number(p.aluminumPanelHeight) || 0) === 60 ? "double_60_5_arched" : "double_60_4_arched";
-      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.toledoDoubleGateOptions?.[i] || defaultDouble);
+      const defaultDouble = (Number(p.aluminumPanelHeight) || 0) === 60 ? "double_48_5" : "double_48_4";
+      const nextDouble = Array.from({ length: doubleGates }, (_, i) => {
+        const cur = p.toledoDoubleGateOptions?.[i] || defaultDouble;
+        if (cur === "double_60_4_arched") return "double_60_4";
+        if (cur === "double_60_5_arched") return "double_60_5";
+        return cur;
+      });
       const sameWalk = (p.toledoWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.toledoWalkGateOptions?.[i]);
       const sameDouble = (p.toledoDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.toledoDoubleGateOptions?.[i]);
       if (sameWalk && sameDouble) return p;
@@ -2189,9 +2194,14 @@ function EstimatesPageInner() {
 
         if (style === "Toledo") {
           const opts = materialsDetails.toledoDoubleGateOptions || [];
-          const qty60 = opts.filter((v) => v === "double_60_4_arched" || v === "double_60_5_arched").length;
+          const qty48 = opts.filter((v) => v === "double_48_4" || v === "double_48_5").length;
+          const qty60 = opts.filter((v) => v === "double_60_4" || v === "double_60_5").length;
+          const name48 = `Toledo double gate 48\" x ${heightLabel}`;
           const name60 = `Toledo double gate 60\" x ${heightLabel}`;
-          return qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [];
+          return [
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [])
+          ];
         }
 
         if (style === "Pacific") {
@@ -3468,7 +3478,12 @@ function EstimatesPageInner() {
         ? dd.toledoWalkGateOptions.map((x: any) => String(x))
         : [];
       const toledoDoubleGateOptions = Array.isArray(dd.toledoDoubleGateOptions)
-        ? dd.toledoDoubleGateOptions.map((x: any) => String(x))
+        ? dd.toledoDoubleGateOptions.map((x: any) => {
+          const v = String(x);
+          if (v === "double_60_4_arched") return "double_60_4";
+          if (v === "double_60_5_arched") return "double_60_5";
+          return v;
+        })
         : [];
       const vinylColor = typeof dd.vinylColor === "string" ? dd.vinylColor : "White";
       const vinylPanelWidthFt = Number.isFinite(Number(dd.vinylPanelWidthFt)) ? Number(dd.vinylPanelWidthFt) : 6;
@@ -5188,10 +5203,17 @@ function EstimatesPageInner() {
                                     }
                                     disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
                                   >
-                                    <option value="double_60_4_arched">60\" wide x 4' high (arched) — $499.00</option>
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
-                                      <option value="double_60_5_arched">60\" wide x 5' high (arched) — $525.00</option>
-                                    ) : null}
+                                      <>
+                                        <option value="double_48_5">48\" wide x 5' high — $859.99</option>
+                                        <option value="double_60_5">60\" wide x 5' high — $899.99</option>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <option value="double_48_4">48\" wide x 4' high — $785.00</option>
+                                        <option value="double_60_4">60\" wide x 4' high — $859.90</option>
+                                      </>
+                                    )}
                                   </Select>
                                 </div>
                               </div>
