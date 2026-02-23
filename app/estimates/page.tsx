@@ -4892,7 +4892,7 @@ function EstimatesPageInner() {
                       className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
                       onClick={() => setStylePreview(null)}
                     />
-                    <div className="absolute inset-0 flex flex-col">
+                    <div className="absolute inset-0">
                       {(() => {
                         const idx = visibleStyleOptions.findIndex((s) => s.name === stylePreview.name);
                         const hasPrev = idx > 0;
@@ -4951,7 +4951,7 @@ function EstimatesPageInner() {
                         );
                       })()}
 
-                      <div className="flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
+                      <div className="absolute left-0 right-0 top-0 z-[85] flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
                         <SecondaryButton
                           data-no-swipe="true"
                           onClick={() => setStylePreview(null)}
@@ -4969,7 +4969,7 @@ function EstimatesPageInner() {
                           OK
                         </PrimaryButton>
                       </div>
-                      <div className="flex-1 grid place-items-center p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+                      <div className="absolute inset-0 grid place-items-center p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 88px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={stylePreview.thumb}
