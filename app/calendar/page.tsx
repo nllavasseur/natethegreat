@@ -659,11 +659,8 @@ export default function CalendarPage() {
 
   const soldQueue = React.useMemo(() => {
     const explicitStartIso = (d: DraftEntry) => {
-      const status = (d as any).status as DraftEntry["status"];
-      if (status === "estimate") {
-        const s = String((d as any).scheduledAt || "");
-        if (s) return s.slice(0, 10);
-      }
+      const s = String((d as any).scheduledAt || "");
+      if (s) return s.slice(0, 10);
       return String((d as any).startDate || d.installDate || "");
     };
 
@@ -820,11 +817,8 @@ export default function CalendarPage() {
     const m = monthStart.getMonth();
 
     const explicitStartIso = (d: DraftEntry) => {
-      const status = (d as any).status as DraftEntry["status"];
-      if (status === "estimate") {
-        const s = String((d as any).scheduledAt || "");
-        if (s) return s.slice(0, 10);
-      }
+      const s = String((d as any).scheduledAt || "");
+      if (s) return s.slice(0, 10);
       return String((d as any).startDate || d.installDate || "");
     };
 
@@ -986,13 +980,15 @@ export default function CalendarPage() {
       const sched = String((d as any).scheduledAt || "");
       const iso = status === "sold" ? scheduledStartById.get(d.id) || "" : scheduledStartById.get(d.id) || explicit;
 
+      const hasSched = Boolean(sched) && status !== "sold" && status !== "void";
+
       const dt =
-        status === "estimate" && sched
+        hasSched
           ? new Date(sched)
           : iso
             ? new Date(iso + "T12:00:00")
             : null;
-      const spanDays = status === "estimate" ? 1 : computeSpanDays((d as any).laborDays);
+      const spanDays = hasSched || status === "estimate" ? 1 : computeSpanDays((d as any).laborDays);
       const allowSat = asBool((d as any).allowSaturday);
       const allowSun = asBool((d as any).allowSunday);
       const end = dt
@@ -1002,8 +998,8 @@ export default function CalendarPage() {
         : null;
       return {
         ...d,
-        startDate: iso,
-        installDate: iso,
+        startDate: hasSched ? sched.slice(0, 10) : iso,
+        installDate: hasSched ? sched.slice(0, 10) : iso,
         status,
         install: dt,
         end,
