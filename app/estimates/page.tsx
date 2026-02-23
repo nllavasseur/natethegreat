@@ -951,7 +951,10 @@ function EstimatesPageInner() {
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-        const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+        const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+      const picketName = woodPicketName(materialsDetails.picketMaterial);
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
@@ -1075,13 +1078,16 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / 2000) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+      const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
-        ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
-        ...(pickets > 0 ? [{ name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" }] : []),
+        ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
+        ...(pickets > 0 ? [{ name: picketName, qty: pickets, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
@@ -1197,12 +1203,14 @@ function EstimatesPageInner() {
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails2x4x8 > 0 ? Math.ceil((rails2x4x8 * 6) / 350) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
-        { name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" },
+        ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
+        { name: picketName, qty: pickets, unit: "ea" },
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails", qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
@@ -1254,14 +1262,18 @@ function EstimatesPageInner() {
 
       const boardName = materialsDetails.shadowboxBoardMaterial === "Cedar"
         ? "1x4 Cedar Boards"
-        : "1x4 Pressure Treated Boards";
+        : materialsDetails.shadowboxBoardMaterial === "Cedar tone"
+          ? "1x4 CedarTone Boards"
+          : "1x4 Pressure Treated Boards";
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
-        ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
+        ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(shadowboxBoards > 0 ? [{ name: boardName, qty: shadowboxBoards, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
@@ -1478,11 +1490,12 @@ function EstimatesPageInner() {
       const gateFramingS4S = walkGates * 5 + doubleGates * 10;
       const cedarPickets = walkGates * 10 + doubleGates * 20;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const splitRailName = materialsDetails.splitRailMaterial === "Cedar tone" ? "Split rail (CedarTone)" : "Split rail";
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        { name: "Split rail", qty: rails, unit: "ea" },
+        { name: splitRailName, qty: rails, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
