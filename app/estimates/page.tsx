@@ -672,6 +672,7 @@ function EstimatesPageInner() {
     if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
     if (n === "niko") return "wood_picture_framed";
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
+    if (n === "a & m") return "wood_picture_framed";
     if (n === "casto") return "wood_picture_framed";
     if (n === "mary jane") return "wood_picture_framed";
     if (n === "picture framed caps") return "wood_picture_framed";
