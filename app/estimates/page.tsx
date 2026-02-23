@@ -483,6 +483,7 @@ function EstimatesPageInner() {
 
     if (n === "standard privacy" || n === "standard") return "wood_standard";
     if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
+    if (n === "niko") return "wood_picture_framed";
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
     if (n === "casto") return "wood_picture_framed";
     if (n === "mary jane") return "wood_picture_framed";
@@ -1526,6 +1527,7 @@ function EstimatesPageInner() {
         .toLowerCase();
       const isAM = normalizedPictureFramedStyle === "a & m";
       const isAllCedarNiko = normalizedPictureFramedStyle === "all cedar niko";
+      const isNiko = normalizedPictureFramedStyle === "niko" || isAllCedarNiko;
       const isAllCedarPictureFramed = normalizedPictureFramedStyle === "all cedar picture framed";
       const isCasto = normalizedPictureFramedStyle === "casto";
       const isMaryJane = normalizedPictureFramedStyle === "mary jane";
@@ -1540,7 +1542,7 @@ function EstimatesPageInner() {
       const pictureFramedPicketsAreCedar = isAllCedarNiko || isAllCedarPictureFramed || isMaryJane;
 
       const pictureFramed2x4x8 = isPictureFramed
-        ? (isAllCedarNiko
+        ? (isNiko
             ? panels * (materialsDetails.postCaps ? 6 : 5)
             : (isCasto
                 ? panels * (materialsDetails.postCaps ? 6 : 5)
@@ -1571,8 +1573,8 @@ function EstimatesPageInner() {
               qty: pictureFramed2x4x8,
               unit: "ea"
             },
-            ...(isAllCedarNiko
-              ? [{ name: "2x2 8' Cedar S4S", qty: panels * 8, unit: "ea" }]
+            ...(isNiko
+              ? [{ name: (isAllCedarNiko ? "2x2 8' Cedar S4S" : "2x2 8' Pressure Treated"), qty: panels * 8, unit: "ea" }]
               : []),
             ...(isCasto
               ? [{ name: "2x2 8' Pressure Treated", qty: panels * 7, unit: "ea" }]
@@ -2412,6 +2414,19 @@ function EstimatesPageInner() {
         postType: "Cedar",
         pictureFrameTrimPieces: 3,
         pictureFrameTrimMaterial: "Cedar",
+        takeoffPreset: "standard",
+        postCaps: false,
+        topCaps: true
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "niko") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        pictureFrameTrimPieces: 3,
+        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
