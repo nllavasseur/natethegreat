@@ -5013,8 +5013,12 @@ function EstimatesPageInner() {
                                     }
                                     disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
                                   >
-                                    <option value="walk_48_4">48" wide x 4' high — $399.99</option>
-                                    <option value="walk_60_4">60" wide x 4' high — $445.00</option>
+                                    <option value="walk_48_4">
+                                      48" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "WALK", widthIn: 48, hIn: 48 }) }))}
+                                    </option>
+                                    <option value="walk_60_4">
+                                      60" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "WALK", widthIn: 60, hIn: 48 }) }))}
+                                    </option>
                                   </Select>
                                 </div>
                               </div>
@@ -5036,10 +5040,16 @@ function EstimatesPageInner() {
                                     }
                                     disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
                                   >
-                                    <option value="double_48_4">48" wide x 4' high — $795.00</option>
-                                    <option value="double_60_4">60" wide x 4' high — $859.90</option>
+                                    <option value="double_48_4">
+                                      48" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 48, hIn: 48 }) }))}
+                                    </option>
+                                    <option value="double_60_4">
+                                      60" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: 48 }) }))}
+                                    </option>
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
-                                      <option value="double_60_5_arched">60" wide x 5' high (arched) — $940.00</option>
+                                      <option value="double_60_5_arched">
+                                        60" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: 60 }) }))}
+                                      </option>
                                     ) : null}
                                   </Select>
                                 </div>
@@ -5069,8 +5079,12 @@ function EstimatesPageInner() {
                                     }
                                     disabled={Number(materialsDetails.aluminumPanelHeight) !== 54}
                                   >
-                                    <option value="walk_48_45">48" wide x 4.5' high — $429.99</option>
-                                    <option value="walk_60_45">60" wide x 4.5' high — $459.99</option>
+                                    <option value="walk_48_45">
+                                      48" wide x 4.5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "WALK", widthIn: 48, hIn: 54 }) }))}
+                                    </option>
+                                    <option value="walk_60_45">
+                                      60" wide x 4.5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "WALK", widthIn: 60, hIn: 54 }) }))}
+                                    </option>
                                   </Select>
                                 </div>
                               </div>
@@ -5092,8 +5106,12 @@ function EstimatesPageInner() {
                                     }
                                     disabled={Number(materialsDetails.aluminumPanelHeight) !== 54}
                                   >
-                                    <option value="double_48_45">48" wide x 4.5' high — $859.99</option>
-                                    <option value="double_60_45">60" wide x 4.5' high — $899.99</option>
+                                    <option value="double_48_45">
+                                      48" wide x 4.5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 48, hIn: 54 }) }))}
+                                    </option>
+                                    <option value="double_60_45">
+                                      60" wide x 4.5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 60, hIn: 54 }) }))}
+                                    </option>
                                   </Select>
                                 </div>
                               </div>
@@ -5128,8 +5146,12 @@ function EstimatesPageInner() {
                                     }
                                     disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
                                   >
-                                    <option value="walk_48_4">48" wide x 4' high — $429.99</option>
-                                    <option value="walk_60_4">60" wide x 4' high — $459.99</option>
+                                    <option value="walk_48_4">
+                                      48" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "WALK", widthIn: 48, hIn: 48 }) }))}
+                                    </option>
+                                    <option value="walk_60_4">
+                                      60" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "WALK", widthIn: 60, hIn: 48 }) }))}
+                                    </option>
                                   </Select>
                                 </div>
                               </div>
@@ -5151,8 +5173,12 @@ function EstimatesPageInner() {
                                     }
                                     disabled={Number(materialsDetails.aluminumPanelHeight) !== 48}
                                   >
-                                    <option value="double_48_4">48" wide x 4' high — $859.99</option>
-                                    <option value="double_60_4">60" wide x 4' high — $909.50</option>
+                                    <option value="double_48_4">
+                                      48" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "DOUBLE", widthIn: 48, hIn: 48 }) }))}
+                                    </option>
+                                    <option value="double_60_4">
+                                      60" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Atlantic", kind: "DOUBLE", widthIn: 60, hIn: 48 }) }))}
+                                    </option>
                                   </Select>
                                 </div>
                               </div>
@@ -5183,13 +5209,21 @@ function EstimatesPageInner() {
                                   >
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
                                       <>
-                                        <option value="walk_48_5">48\" wide x 5' high — $429.99</option>
-                                        <option value="walk_60_5">60\" wide x 5' high — $459.99</option>
+                                        <option value="walk_48_5">
+                                          48\" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "WALK", widthIn: 48, hIn: 60 }) }))}
+                                        </option>
+                                        <option value="walk_60_5">
+                                          60\" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "WALK", widthIn: 60, hIn: 60 }) }))}
+                                        </option>
                                       </>
                                     ) : (
                                       <>
-                                        <option value="walk_48_4">48\" wide x 4' high — $399.99</option>
-                                        <option value="walk_60_4">60\" wide x 4' high — $445.00</option>
+                                        <option value="walk_48_4">
+                                          48\" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "WALK", widthIn: 48, hIn: 48 }) }))}
+                                        </option>
+                                        <option value="walk_60_4">
+                                          60\" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "WALK", widthIn: 60, hIn: 48 }) }))}
+                                        </option>
                                       </>
                                     )}
                                   </Select>
@@ -5215,13 +5249,21 @@ function EstimatesPageInner() {
                                   >
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
                                       <>
-                                        <option value="double_48_5">48\" wide x 5' high — $859.99</option>
-                                        <option value="double_60_5">60\" wide x 5' high — $899.99</option>
+                                        <option value="double_48_5">
+                                          48\" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 48, hIn: 60 }) }))}
+                                        </option>
+                                        <option value="double_60_5">
+                                          60\" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 60, hIn: 60 }) }))}
+                                        </option>
                                       </>
                                     ) : (
                                       <>
-                                        <option value="double_48_4">48\" wide x 4' high — $785.00</option>
-                                        <option value="double_60_4">60\" wide x 4' high — $859.90</option>
+                                        <option value="double_48_4">
+                                          48\" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 48, hIn: 48 }) }))}
+                                        </option>
+                                        <option value="double_60_4">
+                                          60\" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Toledo", kind: "DOUBLE", widthIn: 60, hIn: 48 }) }))}
+                                        </option>
                                       </>
                                     )}
                                   </Select>
