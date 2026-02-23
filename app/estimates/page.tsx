@@ -485,6 +485,7 @@ function EstimatesPageInner() {
     if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
     if (n === "casto") return "wood_picture_framed";
+    if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
     if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
     if (n.includes("shadowbox")) return "wood_shadowbox";
@@ -884,6 +885,70 @@ function EstimatesPageInner() {
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nails > 0 ? [{ name: "Nails", qty: nails, unit: "ea" }] : []),
+        ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" }] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
+    if (selectedStyleKind === "wood_hog_wire") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 7.5' centers.
+      const postsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
+        : (lf > 0 ? Math.max(2, Math.ceil(lf / 7.5) + 1) : 0);
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+        : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
+
+      // 2x4x8 rails per panel (post caps adds 1)
+      const rails2x4x8 = panels * (materialsDetails.postCaps ? 6 : 5);
+
+      // Top cap rule: 2x4x16 adders
+      const rails2x4x16 = materialsDetails.topCaps
+        ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
+        : 0;
+
+      // Cattle panel: 0.5 of a 16' panel per fence panel => ceil(panels/2)
+      const cattlePanels = panels > 0 ? Math.ceil(panels / 2) : 0;
+
+      // Screws: 8 per board (boards = all rail boards)
+      const screwCount = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil((rails2x4x8 + rails2x4x16) * 8) : 0;
+
+      // Staples: 25 per panel
+      const staples = panels > 0 ? Math.ceil(panels * 25) : 0;
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: postName, qty: posts, unit: "ea" },
+        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
+        ...(cattlePanels > 0 ? [{ name: "16' Cattle Panel", qty: cattlePanels, unit: "ea" }] : []),
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(screwCount > 0 ? [{ name: "Screws", qty: screwCount, unit: "ea" }] : []),
         ...(staples > 0 ? [{ name: "Staples", qty: staples, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -2201,6 +2266,16 @@ function EstimatesPageInner() {
         postType: "Pressure treated",
         takeoffPreset: "standard",
         fourRailPoplarWireMesh: false,
+        topCaps: false
+      }));
+    }
+    if (String(style.name || "").trim().toLowerCase() === "hog wire") {
+      setMaterialsDetails((prev) => ({
+        ...prev,
+        woodType: "Pressure treated",
+        postSize: 8,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
         topCaps: false
       }));
     }
