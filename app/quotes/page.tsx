@@ -83,20 +83,26 @@ export default function QuotesPage() {
     try {
       const store = readDraftStore();
       const existing = store[id] ?? drafts.find((d) => d.id === id);
+      const nextStatus =
+        scheduledAt && String(scheduledAt).trim() !== ""
+          ? "estimate"
+          : (existing as any)?.status;
       if (!existing) {
         store[id] = {
           id,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-          calendarHidden: false
+          calendarHidden: false,
+          ...(nextStatus ? { status: nextStatus } : {})
         };
       } else {
         store[id] = {
           ...existing,
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
           updatedAt: Date.now(),
-          calendarHidden: false
+          calendarHidden: false,
+          ...(nextStatus ? { status: nextStatus } : {})
         };
       }
       store[id] = {
@@ -116,7 +122,8 @@ export default function QuotesPage() {
                 ...d,
                 scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
                 updatedAt: Date.now(),
-                calendarHidden: false
+                calendarHidden: false,
+                ...(nextStatus ? { status: nextStatus as any } : {})
               }
             : d
         )
