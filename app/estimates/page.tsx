@@ -3010,6 +3010,19 @@ function EstimatesPageInner() {
   }, [draftParam]);
 
   useEffect(() => {
+    if (draftParam) return;
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(unsavedSnapshotKey);
+      if (!raw) return;
+      void loadDraft("__snapshot__", { source: "snapshot" });
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftParam]);
+
+  useEffect(() => {
     setPortalReady(true);
   }, []);
 
@@ -3572,8 +3585,19 @@ function EstimatesPageInner() {
 // ...
 
   async function loadDraft(id: string, opts?: { source?: "snapshot" | "draft" }) {
+    let d: any = null;
+    const source = opts?.source ?? "draft";
     const store = readDraftStore();
-    let d = store[id] as any;
+    if (source === "snapshot") {
+      try {
+        const raw = window.localStorage.getItem(unsavedSnapshotKey);
+        d = raw ? (JSON.parse(raw) as any) : null;
+      } catch {
+        d = null;
+      }
+    } else {
+      d = store[id] as any;
+    }
     if (!d) {
       try {
         const remote = await fetchDraft({ id });
@@ -3589,7 +3613,7 @@ function EstimatesPageInner() {
       }
     }
     if (!d) return;
-    setDraftId(id);
+    setDraftId(source === "snapshot" ? null : id);
     setCustomerName(String(d.customerName ?? ""));
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
