@@ -2030,7 +2030,7 @@ function EstimatesPageInner() {
           { name: boardName, qty: boards, unit: "ea" },
           { name: "3\" screws 60 ct stainless steel", qty: stainlessScrews, unit: "ea" },
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-          ...(gateFramingS4S > 0 ? [{ name: "2x4 8' Red Cedar S4S", qty: gateFramingS4S, unit: "ea" }] : []),
+          ...(gateFramingS4S > 0 ? [{ name: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" }] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
