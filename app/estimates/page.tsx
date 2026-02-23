@@ -1659,8 +1659,8 @@ function EstimatesPageInner() {
 
       // 1x4 boards: ceil((segment inches / 7.5 inches) * 2)
       const shadowboxBoards = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 6) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / 6) * 2) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 7) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / 7) * 2) : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
