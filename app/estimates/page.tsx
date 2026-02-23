@@ -21,7 +21,9 @@ function emptyItem(section: SectionKey): QuoteItem {
 }
 
 function normalizeUnitPriceKey(name: string) {
-  return String(name || "").trim();
+  const s = String(name || "").trim();
+  if (s.startsWith("Concrete 60lb Bag")) return "Concrete 60lb Bag";
+  return s;
 }
 
 function parseCsvLine(line: string): string[] {
