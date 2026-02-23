@@ -6053,7 +6053,7 @@ function EstimatesPageInner() {
                     </div>
                   </div>
 
-                  {selectedFenceType !== "aluminum" ? (
+                  {selectedFenceType !== "aluminum" && selectedStyleKind !== "wood_wire_mesh" && selectedStyleKind !== "wood_split_rail" ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
