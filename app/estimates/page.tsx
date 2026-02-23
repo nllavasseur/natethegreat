@@ -5934,75 +5934,6 @@ function EstimatesPageInner() {
                         </div>
                       ) : null}
 
-                      {selectedStyleKind === "wood_horizontal" || (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ? (
-                        <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Wood materials</div>
-                          <Select
-                            value={materialsDetails.horizontalCedarBoardMaterial}
-                            onChange={(e) =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                horizontalCedarBoardMaterial: e.target.value as "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated"
-                              }))
-                            }
-                          >
-                            <option value="5/4 cedar">5/4 cedar</option>
-                            <option value="1x6 cedar">1x6 cedar</option>
-                            <option value="CedarTone">CedarTone</option>
-                            <option value="Pressure Treated">Pressure Treated</option>
-                          </Select>
-                        </div>
-                      ) : null}
-
-                      {selectedFenceType === "wood" ? (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
-                            <Select
-                              value={materialsDetails.railMaterial}
-                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, railMaterial: e.target.value as any }))}
-                            >
-                              <option value="Pressure treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Cedar tone">Cedar tone</option>
-                            </Select>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Pickets</div>
-                            <Select
-                              value={materialsDetails.picketMaterial}
-                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, picketMaterial: e.target.value as any }))}
-                            >
-                              <option value="Pressure treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Cedar tone">Cedar tone</option>
-                            </Select>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Trim</div>
-                            <Select
-                              value={materialsDetails.trimMaterial}
-                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, trimMaterial: e.target.value as any, pictureFrameTrimMaterial: e.target.value as any }))}
-                            >
-                              <option value="Pressure treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Cedar tone">Cedar tone</option>
-                            </Select>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">2x2 / Verticals</div>
-                            <Select
-                              value={materialsDetails.twoByTwoMaterial}
-                              onChange={(e) => setMaterialsDetails((p) => ({ ...p, twoByTwoMaterial: e.target.value as any }))}
-                            >
-                              <option value="Pressure treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Cedar tone">Cedar tone</option>
-                            </Select>
-                          </div>
-                        </div>
-                      ) : null}
-
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Post size</div>
@@ -6035,20 +5966,6 @@ function EstimatesPageInner() {
                           </Select>
                         </div>
                       </div>
-
-                      {selectedFenceType === "wood" && selectedStyleKind === "wood_shadowbox" ? (
-                        <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Shadowbox 1x4 boards</div>
-                          <Select
-                            value={materialsDetails.shadowboxBoardMaterial}
-                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, shadowboxBoardMaterial: e.target.value as any }))}
-                          >
-                            <option value="Pressure Treated">Pressure Treated</option>
-                            <option value="Cedar">Cedar</option>
-                            <option value="Cedar tone">Cedar tone</option>
-                          </Select>
-                        </div>
-                      ) : null}
 
                       {selectedFenceType === "wood" && selectedStyleKind === "wood_split_rail" ? (
                         <div>
