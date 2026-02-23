@@ -59,6 +59,24 @@ function woodTwoByTwoName(twoByTwoMaterial: "Pressure treated" | "Cedar" | "Ceda
   return "2x2 8' Pressure Treated";
 }
 
+function woodBoard1x6x12Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (boardMaterial === "Cedar") return "1x6x12 Cedar Boards";
+  if (boardMaterial === "Cedar tone") return "1x6x12 CedarTone Boards";
+  return "1x6x12 Pressure Treated Boards";
+}
+
+function woodBoard1x6x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (boardMaterial === "Cedar") return "1x6x8 Cedar";
+  if (boardMaterial === "Cedar tone") return "1x6x8 CedarTone";
+  return "1x6x8";
+}
+
+function woodBoard2x2x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+  if (boardMaterial === "Cedar") return "2x2x8 Cedar";
+  if (boardMaterial === "Cedar tone") return "2x2x8 CedarTone";
+  return "2x2x8";
+}
+
 const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = {
   White: { label: "White", bg: "rgba(255,255,255,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(255,255,255,.55)" },
   Tan: { label: "Tan", bg: "rgba(226,206,166,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(226,206,166,.6)" },
@@ -1018,11 +1036,15 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+
+      const boardsName = woodBoard1x6x12Name(materialsDetails.railMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        { name: "1x6x12 Pressure Treated Boards", qty: boards, unit: "ea" },
+        { name: boardsName, qty: boards, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nails > 0 ? [{ name: "Nails", qty: nails, unit: "ea" }] : []),
@@ -1143,12 +1165,14 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
-        ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
+        ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(cattlePanels > 0 ? [{ name: "16' Cattle Panel", qty: cattlePanels, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(screwCount > 0 ? [{ name: "Screws", qty: screwCount, unit: "ea" }] : []),
@@ -1374,10 +1398,13 @@ function EstimatesPageInner() {
 
       const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
 
+      const twoByTwoName = woodBoard2x2x8Name(materialsDetails.twoByTwoMaterial);
+      const oneBySixName = woodBoard1x6x8Name(materialsDetails.railMaterial);
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(twoByTwo8 > 0 ? [{ name: "2x2x8", qty: twoByTwo8, unit: "ea" }] : []),
-        ...(oneBySix8 > 0 ? [{ name: "1x6x8", qty: oneBySix8, unit: "ea" }] : []),
+        ...(twoByTwo8 > 0 ? [{ name: twoByTwoName, qty: twoByTwo8, unit: "ea" }] : []),
+        ...(oneBySix8 > 0 ? [{ name: oneBySixName, qty: oneBySix8, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -1652,13 +1679,7 @@ function EstimatesPageInner() {
       const trimBoards = selectedStyleKind === "wood_picture_framed"
         ? panels * (materialsDetails.pictureFrameTrimPieces || 3)
         : 0;
-      const trimName = materialsDetails.pictureFrameTrimMaterial === "Cedar"
-        ? "1x4 x 8' Cedar Trim"
-        : materialsDetails.pictureFrameTrimMaterial === "Cedar tone"
-          ? "1x4 x 8' CedarTone Trim"
-          : "1x4 x 8' Trim";
-
-      const isCedarTonePictureFramed = materialsDetails.pictureFrameTrimMaterial === "Cedar tone";
+      const trimName = woodTrimName(materialsDetails.trimMaterial);
 
       const normalizedPictureFramedStyle = String(selectedStyle?.name || "")
         .trim()
@@ -1672,14 +1693,7 @@ function EstimatesPageInner() {
       const isPictureFramedLatticePanel = normalizedPictureFramedStyle === "picture framed lattice panel";
       const latticePanels = isPictureFramed && (isAM || isPictureFramedLatticePanel) ? Math.ceil(panels / 3) : 0;
 
-      const picketName = isCedarTonePictureFramed
-        ? "6' CedarTone Dog Ear Pickets"
-        : ((isAllCedarNiko || isAllCedarPictureFramed || isMaryJane)
-          ? "6' Cedar Dog Ear Pickets"
-          : "6' Pressure Treated Dog Ear Pickets");
-
-      const pictureFramedRailsAreCedar = !isCedarTonePictureFramed && (isAllCedarNiko || isAllCedarPictureFramed || isMaryJane);
-      const pictureFramedPicketsAreCedar = !isCedarTonePictureFramed && (isAllCedarNiko || isAllCedarPictureFramed || isMaryJane);
+      const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const pictureFramed2x4x8 = isPictureFramed
         ? (isNiko
@@ -1702,27 +1716,25 @@ function EstimatesPageInner() {
           ? "4x4 x 10' Cedar S4S Post"
           : isCasto
             ? "6x6 x 10' Pressure Treated Post"
-        : isCedarTonePictureFramed
-          ? "4x4 x 10' CedarTone Post"
-        : (materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post");
+        : woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
         ...(isPictureFramed
           ? [
             {
-              name: (isCedarTonePictureFramed ? "2x4 8' CedarTone Rails" : (pictureFramedRailsAreCedar ? "2x4 8' Cedar S4S Rails" : "2x4 8' Pressure Treated Rails")),
+              name: woodRail2x4Name(8, materialsDetails.railMaterial),
               qty: pictureFramed2x4x8,
               unit: "ea"
             },
             ...(isNiko
-              ? [{ name: (isAllCedarNiko ? "2x2 8' Cedar S4S" : "2x2 8' Pressure Treated"), qty: panels * 8, unit: "ea" }]
+              ? [{ name: woodTwoByTwoName(materialsDetails.twoByTwoMaterial), qty: panels * 8, unit: "ea" }]
               : []),
             ...(isCasto
-              ? [{ name: "2x2 8' Pressure Treated", qty: panels * 7, unit: "ea" }]
+              ? [{ name: woodTwoByTwoName(materialsDetails.twoByTwoMaterial), qty: panels * 7, unit: "ea" }]
               : []),
             ...(pictureFramed2x4x16 > 0
-              ? [{ name: (isCedarTonePictureFramed ? "2x4 16' CedarTone Rails" : (pictureFramedRailsAreCedar ? "2x4 16' Cedar S4S Rails" : "2x4 16' Pressure Treated Rails")), qty: pictureFramed2x4x16, unit: "ea" }]
+              ? [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: pictureFramed2x4x16, unit: "ea" }]
               : []),
           ]
           : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
