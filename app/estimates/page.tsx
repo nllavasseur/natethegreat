@@ -1463,9 +1463,9 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
     }
 
@@ -2286,7 +2286,41 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [doubleGateCount, extraPosts, materialUnitPrices, materialsDetails.arbor, materialsDetails.fourRailPoplarWireMesh, materialsDetails.horizontalCedarCornerAdjust, materialsDetails.horizontalCedarVerticals, materialsDetails.pictureFrameTrimMaterial, materialsDetails.pictureFrameTrimPieces, materialsDetails.postCaps, materialsDetails.takeoffPreset, materialsDetails.vinylColor, materialsDetails.vinylPanelHeightFt, materialsDetails.vinylPanelWidthFt, segments, selectedFenceType, selectedStyle, totalLf, walkGateCount
+  }, [
+    doubleGateCount,
+    extraPosts,
+    materialUnitPrices,
+    materialsDetails.aluminumPanelHeight,
+    materialsDetails.aluminumBlankPosts,
+    materialsDetails.aluminumCornerPosts,
+    materialsDetails.aluminumEndPosts,
+    materialsDetails.aluminumGateAuto,
+    materialsDetails.aluminumGatePosts,
+    materialsDetails.mansfieldBlankGatePost,
+    materialsDetails.mansfieldWalkGateOptions,
+    materialsDetails.mansfieldDoubleGateOptions,
+    materialsDetails.atlanticWalkGateOptions,
+    materialsDetails.atlanticDoubleGateOptions,
+    materialsDetails.pacificWalkGateOptions,
+    materialsDetails.pacificDoubleGateOptions,
+    materialsDetails.toledoWalkGateOptions,
+    materialsDetails.toledoDoubleGateOptions,
+    materialsDetails.arbor,
+    materialsDetails.fourRailPoplarWireMesh,
+    materialsDetails.horizontalCedarCornerAdjust,
+    materialsDetails.horizontalCedarVerticals,
+    materialsDetails.pictureFrameTrimMaterial,
+    materialsDetails.pictureFrameTrimPieces,
+    materialsDetails.postCaps,
+    materialsDetails.takeoffPreset,
+    materialsDetails.vinylColor,
+    materialsDetails.vinylPanelHeightFt,
+    materialsDetails.vinylPanelWidthFt,
+    segments,
+    selectedFenceType,
+    selectedStyle,
+    totalLf,
+    walkGateCount
   ]);
 
   const storageKey = "vf_estimate_drafts_v1";
