@@ -2177,7 +2177,7 @@ function EstimatesPageInner() {
               ? [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: pictureFramed2x4x16, unit: "ea" }]
               : []),
           ]
-          : [{ name: "2x4 16' Pressure Treated Rails", qty: rails, unit: "ea" }]),
+          : [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: rails, unit: "ea" }]),
         { name: picketName, qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
