@@ -745,6 +745,18 @@ function EstimatesPageInner() {
     );
   }, [extraPosts, materialsDetails]);
 
+  const effectiveDoubleGateCount = useMemo(() => {
+    const fromSegments = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => (s as any).gateType === "double")
+        .length
+    );
+    if (fromSegments > 0) return fromSegments;
+    return Math.max(0, Number(doubleGateCount) || 0);
+  }, [doubleGateCount, segments]);
+
   const splitRailPostsSummary = useMemo(() => {
     const n = String(selectedStyle?.name || "").trim().toLowerCase();
     const styleKind = !n
@@ -766,7 +778,7 @@ function EstimatesPageInner() {
     }
 
     const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => Boolean((s as any).gate)).length);
-    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
     const lf = segments.filter((s) => !s.removed).reduce((sum, s) => sum + (Number(s.length) || 0), 0);
@@ -785,7 +797,7 @@ function EstimatesPageInner() {
     const line = Math.max(0, total - (corner + end + gateDerived));
 
     return { total, line, corner, end, gateDerived };
-  }, [doubleGateCount, extraPosts, materialsDetails.splitRailCornerPosts, materialsDetails.splitRailEndPosts, segments, selectedFenceType, selectedStyle?.name]);
+  }, [effectiveDoubleGateCount, extraPosts, materialsDetails.splitRailCornerPosts, materialsDetails.splitRailEndPosts, segments, selectedFenceType, selectedStyle?.name]);
 
   const selectedStyleKind = useMemo(() => {
     const nRaw = String(selectedStyle?.name || "");
@@ -913,7 +925,7 @@ function EstimatesPageInner() {
         .filter((s) => Boolean((s as any).gate))
         .length
     );
-    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
     const w = 6;
@@ -937,7 +949,7 @@ function EstimatesPageInner() {
     const line = Math.max(0, total - (corner + gate + end + blank));
 
     return { total, line, gateDerived };
-  }, [doubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, segments, selectedFenceType]);
+  }, [effectiveDoubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, segments, selectedFenceType]);
 
   const vinylSummary = useMemo(() => {
     if (selectedFenceType !== "vinyl") {
@@ -1018,7 +1030,7 @@ function EstimatesPageInner() {
         .filter((s) => Boolean((s as any).gate))
         .length
     );
-    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
@@ -1039,7 +1051,7 @@ function EstimatesPageInner() {
         mansfieldDoubleGateOptions: nextDouble
       };
     });
-  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1129,7 +1141,7 @@ function EstimatesPageInner() {
         .filter((s) => Boolean((s as any).gate))
         .length
     );
-    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     setMaterialsDetails((p) => {
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.pacificWalkGateOptions?.[i] || "walk_48_45");
@@ -1143,7 +1155,7 @@ function EstimatesPageInner() {
         pacificDoubleGateOptions: nextDouble
       };
     });
-  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1156,7 +1168,7 @@ function EstimatesPageInner() {
         .filter((s) => Boolean((s as any).gate))
         .length
     );
-    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     setMaterialsDetails((p) => {
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.atlanticWalkGateOptions?.[i] || "walk_48_4");
@@ -1173,7 +1185,7 @@ function EstimatesPageInner() {
         atlanticDoubleGateOptions: nextDouble
       };
     });
-  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1186,7 +1198,7 @@ function EstimatesPageInner() {
         .filter((s) => Boolean((s as any).gate))
         .length
     );
-    const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
       const nextWalk = Array.from({ length: walkGates }, (_, i) => {
@@ -1211,7 +1223,7 @@ function EstimatesPageInner() {
         toledoDoubleGateOptions: nextDouble
       };
     });
-  }, [doubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1506,7 +1518,7 @@ function EstimatesPageInner() {
     if (!selectedStyle) return [] as QuoteItem[];
 
     const walkGates = Number(walkGateCount) || 0;
-    const doubleGates = Number(doubleGateCount) || 0;
+    const doubleGates = Number(effectiveDoubleGateCount) || 0;
 
     const walkGatePostsAdd = segments
       .filter((s) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate)))
@@ -2163,7 +2175,7 @@ function EstimatesPageInner() {
         : (lf > 0 ? Math.ceil(lf / 10) : 0);
       const postsBase = panels > 0 ? panels + 1 : 0;
       const walkGates = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
-      const doubleGates = Math.max(0, Number(doubleGateCount) || 0);
+      const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
       const gatePostsDerived = (walkGates + doubleGates) * 2;
       const posts = Math.max(0, postsBase + gatePostsDerived + (Number(extraPosts) || 0));
 
@@ -2243,6 +2255,9 @@ function EstimatesPageInner() {
         normalizedWoodStyle.includes("board on board") ||
         normalizedWoodStyle.includes("board-on-board");
 
+      const isNiko = normalizedWoodStyle === "niko" || normalizedWoodStyle.includes("niko");
+      const isCasto = normalizedWoodStyle === "casto" || normalizedWoodStyle.includes("casto");
+
       const useHorizontalCedarTakeoff =
         (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
         selectedStyleKind === "wood_horizontal";
@@ -2319,8 +2334,16 @@ function EstimatesPageInner() {
       }
 
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
       const isPictureFramed = selectedStyleKind === "wood_picture_framed";
       const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
+
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 8), 0)
+        : (totalLf > 0 ? Math.ceil(totalLf / 8) : 0);
+
+      const pictureFramed2x4x8 = isPictureFramed ? panels * 2 : 0;
+      const pictureFramed2x4x16 = 0;
 
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
@@ -2350,67 +2373,23 @@ function EstimatesPageInner() {
       const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
-      // Screws: 6 per rail, 350 per box
-      // (computed later for picture framed styles once rail counts are known)
-      let screwBoxes = 0;
+      const picketName = woodPicketName(materialsDetails.picketMaterial);
 
-      const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
+      const trimNameFinal = woodTrimName(materialsDetails.trimMaterial);
+      const trimBoards = 0;
 
-      const panels = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
-        : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
-      const trimBoards = selectedStyleKind === "wood_picture_framed"
-        ? panels * (materialsDetails.pictureFrameTrimPieces || 3)
-        : 0;
-      const trimName = woodTrimName(materialsDetails.trimMaterial);
-
-      const latticeName = materialsDetails.trimMaterial === "Cedar"
-        ? "4x8 Cedar Lattice Panel"
-        : "4x8 Pressure Treated Lattice Panel";
-
-      const normalizedPictureFramedStyle = String(selectedStyle?.name || "")
-        .trim()
-        .toLowerCase()
-        .replaceAll("/", ":")
-        .replaceAll("-", " ")
-        .replace(/\s+/g, " ");
-      const isAM = normalizedPictureFramedStyle === "a & m";
-      const isAllCedarNiko = normalizedPictureFramedStyle === "all cedar niko";
-      const isNiko = normalizedPictureFramedStyle === "niko" || isAllCedarNiko;
-      const isAllCedarPictureFramed = normalizedPictureFramedStyle === "all cedar picture framed";
-      const isCasto = normalizedPictureFramedStyle === "casto";
-      const isMaryJane = normalizedPictureFramedStyle === "mary jane";
-      const isPictureFramedLatticePanel = normalizedPictureFramedStyle === "picture framed lattice panel";
-      const latticePanels = isPictureFramed && (isAM || isPictureFramedLatticePanel) ? Math.ceil(panels / 3) : 0;
-
-      const trimNameFinal = isMaryJane && materialsDetails.trimMaterial === "Cedar"
-        ? "Cedar trim"
-        : trimName;
+      const latticeName = "";
+      const latticePanels = 0;
 
       const nailsNameFinal = nailsName;
       const nailsBoxesFinal = nailsBoxes;
 
-      const picketName = woodPicketName(materialsDetails.picketMaterial);
-
-      const pictureFramed2x4x8 = isPictureFramed
-        ? (isNiko
-            ? panels * (materialsDetails.postCaps ? 6 : 5)
-            : (isCasto
-                ? panels * (materialsDetails.postCaps ? 6 : 5)
-            : (isFourFootPictureFramed
-                ? panels * 2
-                : panels * (materialsDetails.postCaps ? 4 : 3))))
-        : 0;
-      const pictureFramed2x4x16 = isPictureFramed
-        ? ((materialsDetails.topCaps && !materialsDetails.postCaps)
-            ? (segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0)
-            : 0)
-        : 0;
+      const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
       // Screws: 6 per rail, 350 per box
       // For picture framed styles we use the actual picture-framed rail counts.
       const railsForScrews = isPictureFramed ? (pictureFramed2x4x8 + pictureFramed2x4x16) : rails;
-      screwBoxes = railsForScrews > 0 ? Math.ceil((railsForScrews * 6) / 350) : 0;
+      const screwBoxes = railsForScrews > 0 ? Math.ceil((railsForScrews * 6) / 350) : 0;
 
       let postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
       if (isCasto) {
@@ -2592,7 +2571,7 @@ function EstimatesPageInner() {
       })();
 
       const doubleGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
-        const doubleCount = Math.max(0, Number(doubleGateCount) || 0);
+        const doubleCount = Math.max(0, Number(effectiveDoubleGateCount) || 0);
         if (doubleCount <= 0) return [] as Array<{ name: string; qty: number; unit: string }>;
 
         if (style === "Mansfield") {
@@ -2843,7 +2822,7 @@ function EstimatesPageInner() {
         toughDigEnabled,
         gradeEnabled,
         stumpGrindingPrice,
-        doubleGateCount,
+        doubleGateCount: effectiveDoubleGateCount,
         referenceLength,
         notes,
         preInstallPhotos,
@@ -2977,7 +2956,7 @@ function EstimatesPageInner() {
     const styleTitle = selectedStyle?.name ? String(selectedStyle.name) : "";
     const totalLfValue = Number(totalLf) || 0;
     const walkGatesValue = Math.max(0, Number(walkGateCount) || 0);
-    const doubleGatesValue = Math.max(0, Number(doubleGateCount) || 0);
+    const doubleGatesValue = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     return {
       company: {
@@ -5007,36 +4986,6 @@ function EstimatesPageInner() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-2">Gates</div>
-
-                        <div className="grid gap-2">
-                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm font-extrabold">Double gate</div>
-                              <div className="flex items-center gap-2">
-                                <PrimaryButton
-                                  data-no-swipe="true"
-                                  className="px-3 py-2 text-[12px]"
-                                  onClick={() => setDoubleGateCount((v) => Math.max(0, (Number(v) || 0) - 1))}
-                                >
-                                  -
-                                </PrimaryButton>
-                                <div className="min-w-8 text-center font-black">{doubleGateCount}</div>
-                                <PrimaryButton
-                                  data-no-swipe="true"
-                                  className="px-3 py-2 text-[12px]"
-                                  onClick={() => setDoubleGateCount((v) => (Number(v) || 0) + 1)}
-                                >
-                                  +
-                                </PrimaryButton>
-                              </div>
-                            </div>
-                            <div className="mt-1 text-[11px] text-[var(--muted)]">Adds 10 Cedar S4S Gate Framing and 1 Double gate kit</div>
-                          </div>
-                        </div>
-                      </div>
-
                       {selectedStyle ? (
                         <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                           <div className="text-[11px] font-extrabold text-[var(--muted)] mb-2">Takeoff</div>
@@ -5758,7 +5707,7 @@ function EstimatesPageInner() {
                           </div>
                         </button>
 
-                        {selectedStyle?.name === "Mansfield" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Mansfield" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Applies after you mark gates. Select each gate’s size/price.</div>
@@ -5871,7 +5820,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Pacific" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Pacific" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
@@ -5932,7 +5881,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Atlantic" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Atlantic" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
@@ -5999,7 +5948,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Toledo" && (walkGateCount > 0 || (Number(doubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Toledo" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
