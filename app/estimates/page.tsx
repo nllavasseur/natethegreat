@@ -4285,6 +4285,7 @@ function EstimatesPageInner() {
 
     setMaterialsDetails(() => ({ ...DEFAULT_MATERIALS_DETAILS, ...overrides }));
     setStylePickerIdx(false);
+    if (selectedFenceType === "vinyl") setMaterialsDetailsOpen(true);
   }
 
   const [stylePreview, setStylePreview] = useState<{ name: string; thumb: string } | null>(null);
