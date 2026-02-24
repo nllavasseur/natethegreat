@@ -1320,7 +1320,7 @@ export default function CalendarPage() {
           className="fixed inset-0 z-50 overflow-x-hidden"
           role="dialog"
           aria-modal="true"
-          style={{ touchAction: "none" }}
+          style={{ touchAction: "pan-y" }}
         >
           <div
             className="absolute inset-0 bg-black/40"
@@ -1457,7 +1457,7 @@ export default function CalendarPage() {
               <div
                 ref={queueListRef}
                 className="mt-2 grid gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
-                style={{ overflowAnchor: "none" }}
+                style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
               >
                 {soldQueue.length === 0 ? (
                   <div className="text-sm text-[var(--muted)]">No sold jobs in queue.</div>
