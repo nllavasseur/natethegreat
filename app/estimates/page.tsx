@@ -3322,9 +3322,15 @@ function EstimatesPageInner() {
         const bi = feeOrder[b.r.name];
         const aIsFee = Number.isFinite(ai);
         const bIsFee = Number.isFinite(bi);
+        const aIsShared = Boolean((a.r as any).__shared);
+        const bIsShared = Boolean((b.r as any).__shared);
+
+        const group = (isShared: boolean, isFee: boolean) => (isFee ? 2 : isShared ? 1 : 0);
+        const ag = group(aIsShared, aIsFee);
+        const bg = group(bIsShared, bIsFee);
+        if (ag !== bg) return ag - bg;
+
         if (aIsFee && bIsFee) return ai - bi;
-        if (aIsFee) return 1;
-        if (bIsFee) return -1;
         return a.idx - b.idx;
       });
       return indexed.map((x) => x.r);
