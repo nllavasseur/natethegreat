@@ -4167,7 +4167,7 @@ function EstimatesPageInner() {
               ? s.gateType
               : (legacyGate ? "walk" : "none");
             const cardId = (s?.cardId === null || typeof s?.cardId === "string") ? s.cardId : null;
-            return { ...s, cardId, gateType };
+            return { ...s, cardId, gateType, gate: gateType === "walk" };
           })
         : []
     );
@@ -4548,7 +4548,7 @@ function EstimatesPageInner() {
                       const legacy = Boolean((seg as any).gate);
                       const effective: "none" | "walk" | "double" = cur ?? (legacy ? "walk" : "none");
                       const next: "none" | "walk" | "double" = effective === "none" ? "walk" : effective === "walk" ? "double" : "none";
-                      patchSegment(seg.id, { gateType: next });
+                      patchSegment(seg.id, { gateType: next, gate: next === "walk" });
                     }}
                     aria-pressed={
                       ((seg as any).gateType && (seg as any).gateType !== "none") ||
