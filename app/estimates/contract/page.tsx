@@ -270,9 +270,9 @@ export default function EstimateContractPage() {
           </div>
         </header>
 
-        <div className="rule" />
-
         <div className="docTitleCentered">Estimate</div>
+
+        <div className="rule" />
 
         <section className="submittedBlock">
           <div className="submittedLabel">Submitted on:</div>
@@ -418,7 +418,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .noPrint{ display:block; }
 .topHeader{ display:grid; grid-template-columns: 3.2in 1fr; align-items:start; gap:6px; }
 .headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:-4px; }
-.docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:2px 0 2px; line-height:1; }
+.docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:0 0 2px; line-height:1; }
 .contact{ text-align:right; font-size:9px; line-height:1.2; }
 .contactBold{ font-weight:800; }
 .rule{ height:2px; background:#000; opacity:.6; margin:2px 0; }
