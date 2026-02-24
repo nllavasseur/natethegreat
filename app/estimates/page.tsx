@@ -52,13 +52,17 @@ function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number
     if (Number.isFinite(keyed)) return keyed;
   }
   const direct = Number(materialUnitPrices[name] ?? NaN);
-  if (Number.isFinite(direct)) return direct;
+  if (Number.isFinite(direct) && direct > 0) return direct;
   const baseName = String(name || "").replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
   if (baseName && baseName !== name) {
     const baseDirect = Number(materialUnitPrices[baseName] ?? NaN);
-    if (Number.isFinite(baseDirect)) return baseDirect;
+    if (Number.isFinite(baseDirect) && baseDirect > 0) return baseDirect;
   }
-  return Number(materialUnitPrices[normalizeUnitPriceKey(name)] ?? 0);
+  const normalized = Number(materialUnitPrices[normalizeUnitPriceKey(name)] ?? NaN);
+  if (Number.isFinite(normalized)) return normalized;
+  // If we had an explicit 0 set as a placeholder, keep it as the final fallback.
+  if (Number.isFinite(direct)) return direct;
+  return 0;
 }
 
 function aluminumHeightKeySuffix(hIn: number) {
