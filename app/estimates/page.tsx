@@ -3452,15 +3452,20 @@ function EstimatesPageInner() {
     const status = existingStatus === "sold" || existingStatus === "complete" || existingStatus === "void"
       ? (existingStatus as any)
       : (hasRealMaterials ? "pending" : "estimate");
+    const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
+    const projectDataBackup = sanitized.projectPhotoDataUrl;
+    const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
+
     return {
       id,
       customerName,
       projectAddress,
       phoneNumber,
       email,
-      projectPhotoUrl: typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl,
+      // Prefer remote URL if available; otherwise keep a small local data backup so the preview survives saves.
+      projectPhotoUrl: projectUrlSafe || projectDataBackup,
       projectPhotoPath,
-      projectPhotoDataUrl: null,
+      projectPhotoDataUrl: projectDataBackup,
       selectedFenceType,
       selectedStyle,
       materialsDetails,
@@ -5282,6 +5287,15 @@ function EstimatesPageInner() {
               onChange={(e) => {
                 const file = e.target.files?.[0] ?? null;
                 setProjectPhoto(file);
+                // Immediately create a small local preview so the image fills the preview box
+                // and can be persisted even if the remote upload is still in progress.
+                if (file) {
+                  fileToCompressedDataUrl(file, 1280, 0.72).then((data) => {
+                    if (!data) return;
+                    setProjectPhotoDataUrl(data);
+                    setProjectPhotoUrl(data);
+                  });
+                }
               }}
               className="block w-full text-sm text-[rgba(255,255,255,.85)] file:mr-3 file:rounded-xl file:border file:border-[rgba(255,255,255,.16)] file:bg-[rgba(255,255,255,.10)] file:px-3 file:py-2 file:text-sm file:font-extrabold file:text-white"
             />

@@ -22,6 +22,8 @@ type DraftEntry = {
   email?: string;
   selectedStyle?: { name: string } | null;
   notes?: string;
+  projectPhotoUrl?: string | null;
+  projectPhotoPath?: string | null;
   projectPhotoDataUrl?: string | null;
   preInstallPhotos?: unknown;
   segments?: Array<{ length: number; removed: boolean }>;
@@ -96,18 +98,24 @@ export default function QuoteDetailPage() {
   const totals = React.useMemo(() => computeTotals(items, 0, 0, 0), [items]);
 
   const preInstall = React.useMemo(() => normalizePreInstallPhotos((draft as any)?.preInstallPhotos), [draft]);
-  const hasProjectPhoto = typeof (draft as any)?.projectPhotoDataUrl === "string" && Boolean((draft as any)?.projectPhotoDataUrl);
+  const projectPhotoSrc = (() => {
+    const url = (draft as any)?.projectPhotoUrl;
+    if (typeof url === "string" && url) return url;
+    const data = (draft as any)?.projectPhotoDataUrl;
+    if (typeof data === "string" && data) return data;
+    return "";
+  })();
+  const hasProjectPhoto = Boolean(projectPhotoSrc);
   const viewerItems = React.useMemo(() => {
     const out: Array<{ src: string; note?: string; label: string }> = [];
-    const project = (draft as any)?.projectPhotoDataUrl;
-    if (typeof project === "string" && project) {
-      out.push({ src: project, label: "Project photo" });
+    if (projectPhotoSrc) {
+      out.push({ src: projectPhotoSrc, label: "Project photo" });
     }
     for (const p of preInstall) {
       out.push({ src: p.src, note: p.note, label: "Pre-install" });
     }
     return out;
-  }, [draft, preInstall]);
+  }, [projectPhotoSrc, preInstall]);
 
   const curViewer = typeof viewerIdx === "number" && viewerIdx >= 0 && viewerIdx < viewerItems.length
     ? viewerItems[viewerIdx]
@@ -364,10 +372,10 @@ export default function QuoteDetailPage() {
         <div className="grid gap-2">
           <div className="flex items-center justify-between gap-3 text-sm">
             <div className="text-[var(--muted)]">Contract</div>
-            <SecondaryButton onClick={viewContract} disabled={!draft.contract}>Open</SecondaryButton>
+            <SecondaryButton onClick={viewContract}>Open</SecondaryButton>
           </div>
 
-          {typeof (draft as any).projectPhotoDataUrl === "string" && (draft as any).projectPhotoDataUrl ? (
+          {hasProjectPhoto ? (
             <div className="mt-2">
               <div className="text-[11px] text-[var(--muted)] mb-2">Project photo</div>
               <button
@@ -378,7 +386,7 @@ export default function QuoteDetailPage() {
               >
                 <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
                   <NextImage
-                    src={(draft as any).projectPhotoDataUrl}
+                    src={projectPhotoSrc}
                     alt=""
                     fill
                     sizes="(max-width: 980px) 92vw, 980px"
