@@ -277,6 +277,17 @@ export default function QuotesPage() {
     try {
       const store = readDraftStore();
       if (!store[id]) return;
+      const prevStatus = (store as any)[id]?.status;
+      const shouldAppendToQueue = status === "sold" && prevStatus !== "sold";
+      let nextQueueRank: number | undefined = undefined;
+      if (shouldAppendToQueue) {
+        const soldRanks = Object.values(store)
+          .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
+          .map((d) => Number((d as any).queueRank))
+          .filter((n) => Number.isFinite(n) && n > 0);
+        const maxRank = soldRanks.length ? Math.max(...soldRanks) : 0;
+        nextQueueRank = maxRank + 1;
+      }
       store[id] = {
         ...store[id],
         status,
@@ -284,6 +295,12 @@ export default function QuotesPage() {
         startDate: status === "void" ? undefined : store[id].startDate,
         installDate: status === "void" ? undefined : store[id].installDate
       };
+      if (shouldAppendToQueue && typeof nextQueueRank === "number") {
+        (store as any)[id] = {
+          ...(store as any)[id],
+          queueRank: nextQueueRank
+        };
+      }
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
       try {
         void upsertDraft({ id, data: store[id] });

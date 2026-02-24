@@ -235,7 +235,10 @@ export default function CalendarPage() {
         Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
       );
 
-    let nextRank = 1;
+    const existingRanks = sold
+      .map((d) => Number((d as any).queueRank))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    let nextRank = (existingRanks.length ? Math.max(...existingRanks) : 0) + 1;
     let changed = false;
     sold.forEach((d) => {
       if (typeof (d as any).queueRank !== "number") {
