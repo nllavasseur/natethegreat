@@ -2996,6 +2996,13 @@ function EstimatesPageInner() {
           ];
         }
 
+        if (style === "Terrier") {
+          const name48 = `Terrier walk gate 48\" x ${heightLabel}`;
+          return walkCount > 0
+            ? [{ name: name48, qty: walkCount, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Terrier", kind: "WALK", widthIn: 48, hIn: 48 }) }]
+            : [];
+        }
+
         return [];
       })();
 
@@ -3057,6 +3064,13 @@ function EstimatesPageInner() {
             ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 48, hIn: h }) }] : []),
             ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [])
           ];
+        }
+
+        if (style === "Terrier") {
+          const name48 = `Terrier double gate 48\" x ${heightLabel}`;
+          return doubleCount > 0
+            ? [{ name: name48, qty: doubleCount, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Terrier", kind: "DOUBLE", widthIn: 48, hIn: 48 }) }]
+            : [];
         }
 
         return [];
