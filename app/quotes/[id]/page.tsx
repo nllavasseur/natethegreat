@@ -154,9 +154,14 @@ export default function QuoteDetailPage() {
   const canNavigate = String(draft?.projectAddress || "").trim().length > 0;
 
   function viewContract() {
-    if (!draft?.contract) return;
     try {
-      window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify(draft.contract));
+      if (draft?.contract) {
+        try {
+          window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify(draft.contract));
+        } catch {
+          // ignore
+        }
+      }
     } catch {
       // ignore
     }

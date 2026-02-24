@@ -4,6 +4,8 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { money } from "@/lib/money";
 import { fetchDraft } from "@/lib/draftsStore";
+import { computeMaterialsAndExpensesTotal } from "@/lib/totals";
+import type { QuoteItem } from "@/lib/types";
 
 function readDraftStore(): Record<string, any> {
   if (typeof window === "undefined") return {};
@@ -13,6 +15,88 @@ function readDraftStore(): Record<string, any> {
   } catch {
     return {};
   }
+}
+
+function buildContractFromDraft(draftId: string, draft: any): ContractData {
+  const items: QuoteItem[] = Array.isArray(draft?.items) ? (draft.items as QuoteItem[]) : [];
+
+  const materialsRows = items
+    .filter((i) => i.section === "materials" && (Number(i.qty) || 0) > 0)
+    .map((i) => ({
+      name: String(i.name || ""),
+      qty: Number(i.qty) || 0,
+      unit: String(i.unit || ""),
+      unitPrice: Number(i.unitPrice) || 0,
+      price: Number(i.lineTotal) || 0
+    }));
+
+  const laborRows = items
+    .filter((i) => i.section === "labor" && (Number(i.qty) || 0) > 0)
+    .map((i) => ({
+      name: String(i.name || ""),
+      qty: Number(i.qty) || 0,
+      unit: String(i.unit || ""),
+      unitPrice: Number(i.unitPrice) || 0,
+      price: Number(i.lineTotal) || 0
+    }));
+
+  const additionalRows = items
+    .filter((i) => i.section === "additional" && (Number(i.qty) || 0) > 0)
+    .map((i) => ({
+      name: String(i.name || ""),
+      qty: Number(i.qty) || 0,
+      unit: String(i.unit || ""),
+      unitPrice: Number(i.unitPrice) || 0,
+      price: Number(i.lineTotal) || 0
+    }));
+
+  const additionalSubtotal = additionalRows.reduce((a, b) => a + (Number(b.price) || 0), 0);
+  const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
+  const depositTotal = Math.round((materialsAndExpensesTotal + additionalSubtotal) * 100) / 100;
+  const grandTotal = Math.round((depositTotal + laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0)) * 100) / 100;
+
+  const customerName = String(draft?.customerName || "");
+  const phoneNumber = String(draft?.phoneNumber || "");
+  const email = String(draft?.email || "");
+  const projectAddress = String(draft?.projectAddress || "");
+  const styleTitle = String(draft?.selectedStyle?.name || "");
+  const notes = String(draft?.notes || "");
+
+  return {
+    company: {
+      name: "Vasseur Fencing",
+      tagline: "Fencing Contractor",
+      salespersonName: "Nathan LaVasseur",
+      addressLines: ["1415 Snowmass Rd.", "Columbus, OH 43235"],
+      email: "nathan@vasseurfencing.com",
+      phone: "(231) 260-0635",
+      logoUrl: "/IMG_3454.JPG"
+    },
+    estimate: {
+      id: String(draftId || ""),
+      submittedOn: new Date().toISOString(),
+      customer: { name: customerName, phone: phoneNumber, email },
+      projectAddress,
+      styleTitle,
+      depositTotal,
+      notes,
+      disclaimer: "",
+      contractText: "By signing below, the homeowner agrees to the scope of work and pricing described in this estimate."
+    },
+    sections: {
+      materials: materialsRows,
+      labor: laborRows,
+      additional: additionalRows
+    },
+    totals: {
+      materialsSubtotal: depositTotal,
+      laborSubtotal: laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0),
+      additionalSubtotal,
+      discount: 0,
+      tax: 0,
+      total: grandTotal
+    }
+  };
 }
 
 type ContractRow = { name: string; qty: number; unit: string; unitPrice: number; price: number };
@@ -109,8 +193,12 @@ export default function EstimateContractPage() {
         })();
         if (draftId) {
           const remote = await fetchDraft({ id: draftId });
-          if (!cancelled && remote.ok && remote.draft && (remote.draft as any).contract) {
-            setData((remote.draft as any).contract as ContractData);
+          if (!cancelled && remote.ok && remote.draft) {
+            if ((remote.draft as any).contract) {
+              setData((remote.draft as any).contract as ContractData);
+              return;
+            }
+            setData(buildContractFromDraft(draftId, remote.draft));
             return;
           }
 
@@ -118,8 +206,12 @@ export default function EstimateContractPage() {
           try {
             const store = readDraftStore();
             const local = store?.[draftId];
-            if (!cancelled && local && (local as any).contract) {
-              setData((local as any).contract as ContractData);
+            if (!cancelled && local) {
+              if ((local as any).contract) {
+                setData((local as any).contract as ContractData);
+                return;
+              }
+              setData(buildContractFromDraft(draftId, local));
               return;
             }
           } catch {
