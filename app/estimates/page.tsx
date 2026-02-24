@@ -855,10 +855,11 @@ function EstimatesPageInner() {
 
     if (n === "standard privacy" || n === "standard") return "wood_standard";
     if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
-    if (n === "niko" || n === "all cedar niko") return "wood_picture_framed";
+    if (n === "niko" || n === "all cedar niko") return "wood_niko";
+    if (n === "casto") return "wood_casto";
+    if (n === "a & m") return "wood_am";
+    if (n === "picture framed lattice panel") return "wood_picture_framed_lattice";
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
-    if (n === "a & m") return "wood_picture_framed";
-    if (n === "casto") return "wood_picture_framed";
     if (n === "mary jane") return "wood_picture_framed";
     if (n === "picture framed caps") return "wood_picture_framed";
     if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
@@ -1459,10 +1460,11 @@ function EstimatesPageInner() {
 
       if (n === "standard privacy" || n === "standard") return "wood_standard";
       if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
-      if (n === "niko" || n === "all cedar niko") return "wood_picture_framed";
+      if (n === "niko" || n === "all cedar niko") return "wood_niko";
+      if (n === "casto") return "wood_casto";
+      if (n === "a & m") return "wood_am";
+      if (n === "picture framed lattice panel") return "wood_picture_framed_lattice";
       if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
-      if (n === "a & m") return "wood_picture_framed";
-      if (n === "casto") return "wood_picture_framed";
       if (n === "mary jane") return "wood_picture_framed";
       if (n === "picture framed caps") return "wood_picture_framed";
       if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
@@ -1932,9 +1934,13 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
-      // Rails: 3x 2x4x8 per panel + 2x4x16 at ceil(segmentLength/15)
-      const rails2x4x8 = panels * 3;
-      const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
+      // Rails: sum(ceil(segment/7.5) * 3)
+      const rails2x4x8 = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * 3), 0)
+        : (lf > 0 ? Math.ceil((lf / 7.5) * 3) : 0);
+      const rails2x4x16 = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
+        : (lf > 0 ? Math.ceil(lf / 15) : 0);
 
       // 1x4 boards: ceil((segment inches / 7.5 inches) * 2)
       const shadowboxBoards = segmentLengths.length
@@ -2253,6 +2259,10 @@ function EstimatesPageInner() {
     if (
       selectedStyleKind === "wood_standard" ||
       selectedStyleKind === "wood_picture_framed" ||
+      selectedStyleKind === "wood_am" ||
+      selectedStyleKind === "wood_niko" ||
+      selectedStyleKind === "wood_casto" ||
+      selectedStyleKind === "wood_picture_framed_lattice" ||
       selectedStyleKind === "wood_horizontal" ||
       selectedStyleKind === "wood_board_on_board"
     ) {
@@ -2267,8 +2277,8 @@ function EstimatesPageInner() {
         normalizedWoodStyle.includes("board on board") ||
         normalizedWoodStyle.includes("board-on-board");
 
-      const isNiko = normalizedWoodStyle === "niko" || normalizedWoodStyle.includes("niko");
-      const isCasto = normalizedWoodStyle === "casto" || normalizedWoodStyle.includes("casto");
+      const isNikoStyleName = normalizedWoodStyle === "niko" || normalizedWoodStyle.includes("niko");
+      const isCastoStyleName = normalizedWoodStyle === "casto" || normalizedWoodStyle.includes("casto");
 
       const useHorizontalCedarTakeoff =
         (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
@@ -2347,7 +2357,18 @@ function EstimatesPageInner() {
 
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
-      const isPictureFramed = selectedStyleKind === "wood_picture_framed";
+      const isPictureFramedFamily =
+        selectedStyleKind === "wood_picture_framed" ||
+        selectedStyleKind === "wood_am" ||
+        selectedStyleKind === "wood_niko" ||
+        selectedStyleKind === "wood_casto" ||
+        selectedStyleKind === "wood_picture_framed_lattice";
+      const isNiko = selectedStyleKind === "wood_niko";
+      const isCasto = selectedStyleKind === "wood_casto";
+      const isAm = selectedStyleKind === "wood_am";
+      const isPictureFramedLattice = selectedStyleKind === "wood_picture_framed_lattice";
+
+      const isPictureFramed = isPictureFramedFamily;
       const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
 
       const panels = segmentLengths.length
@@ -2360,9 +2381,16 @@ function EstimatesPageInner() {
         : (totalLf > 0 ? Math.max(2, Math.ceil(totalLf / 7.5) + 1) : 0);
       const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
-      // Rails = 3 rails per section at 7.5' centers for picture framed.
-      // For non-picture-framed styles we keep the existing 15' rail heuristic.
-      const pictureFramedRailsPerSection = materialsDetails.postCaps ? 4 : 3;
+      // Rails for picture-framed family styles (7.5' centers) are style-specific.
+      // Assumption from you: styles will have either topCaps OR postCaps on.
+      const pictureFramedRailsPerSection = isNiko
+        ? (materialsDetails.postCaps ? 5 : 4)
+        : (isAm
+            ? (materialsDetails.postCaps ? 4 : 3)
+            : (isPictureFramedLattice
+                ? (materialsDetails.postCaps ? 5 : 4)
+                : (materialsDetails.postCaps ? 4 : 3)));
+
       const rails = isPictureFramed
         ? (segmentLengths.length
             ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * pictureFramedRailsPerSection), 0)
@@ -2372,7 +2400,11 @@ function EstimatesPageInner() {
             : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0));
 
       const pictureFramed2x4x8 = isPictureFramed ? rails : 0;
-      const pictureFramed2x4x16 = 0;
+      const pictureFramed2x4x16 = (isNiko && Boolean(materialsDetails.topCaps))
+        ? (segmentLengths.length
+            ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
+            : (totalLf > 0 ? Math.ceil(totalLf / 15) : 0))
+        : 0;
 
       // Pickets
       // Standard: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
