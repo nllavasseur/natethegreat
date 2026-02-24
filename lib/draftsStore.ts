@@ -2,6 +2,8 @@ import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
 export const DEFAULT_WORKSPACE_ID = "b0fbbfe6-9ee1-4e1b-bb9a-cb51ef240df7";
 
+export const DRAFT_PHOTOS_BUCKET = "draft-photos";
+
 type DraftRow = {
   workspace_id: string;
   draft_id: string;
@@ -90,5 +92,48 @@ export async function fetchDraft(params: { id: string; workspaceId?: string }) {
     return { ok: true as const, draft: { ...d, id } };
   } catch (e) {
     return { ok: false as const, reason: "error" as const, error: e, draft: null as any };
+  }
+}
+
+export async function uploadDraftPhoto(params: {
+  draftId: string;
+  file: File | Blob;
+  filename?: string;
+  kind: "project" | "preinstall";
+  workspaceId?: string;
+}) {
+  if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, url: "", path: "" };
+  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+
+  try {
+    const ts = Date.now();
+    const ext = (() => {
+      const raw = String(params.filename || "");
+      const m = raw.toLowerCase().match(/\.([a-z0-9]+)$/);
+      return m ? m[1] : "jpg";
+    })();
+
+    const filenameBase = params.filename
+      ? String(params.filename).replace(/[^a-zA-Z0-9._-]/g, "_")
+      : `${params.kind}-${ts}.${ext}`;
+
+    const path = `${workspaceId}/${params.draftId}/${params.kind}/${ts}-${filenameBase}`;
+
+    const { error } = await supabase
+      .storage
+      .from(DRAFT_PHOTOS_BUCKET)
+      .upload(path, params.file, {
+        upsert: true,
+        contentType: (params.file as any)?.type || undefined
+      });
+    if (error) throw error;
+
+    const pub = supabase.storage.from(DRAFT_PHOTOS_BUCKET).getPublicUrl(path);
+    const url = String(pub?.data?.publicUrl || "");
+    if (!url) throw new Error("No publicUrl returned.");
+
+    return { ok: true as const, url, path };
+  } catch (e) {
+    return { ok: false as const, reason: "error" as const, error: e, url: "", path: "" };
   }
 }

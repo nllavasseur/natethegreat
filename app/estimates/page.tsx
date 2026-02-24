@@ -7,7 +7,7 @@ import NextImage from "next/image";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { fetchDraft, upsertDraft } from "@/lib/draftsStore";
+import { fetchDraft, upsertDraft, uploadDraftPhoto } from "@/lib/draftsStore";
 import type { QuoteItem, SectionKey } from "@/lib/types";
 
 const sectionOptions: { key: SectionKey; label: string }[] = [
@@ -341,6 +341,7 @@ function EstimatesPageInner() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [projectPhoto, setProjectPhoto] = useState<File | null>(null);
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
+  const [projectPhotoPath, setProjectPhotoPath] = useState<string | null>(null);
   const [projectPhotoDataUrl, setProjectPhotoDataUrl] = useState<string | null>(null);
   const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
   const [photoViewerScale, setPhotoViewerScale] = useState(1);
@@ -375,7 +376,7 @@ function EstimatesPageInner() {
     }>
   >([]);
   const [notes, setNotes] = useState("");
-  const [preInstallPhotos, setPreInstallPhotos] = useState<Array<{ src: string; note: string; createdAt: number }>>([]);
+  const [preInstallPhotos, setPreInstallPhotos] = useState<Array<{ src: string; srcPath?: string; note: string; createdAt: number }>>([]);
   const preInstallPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [notePhotoIdx, setNotePhotoIdx] = useState<number | null>(null);
   const [laborDays, setLaborDays] = useState<number>(0);
@@ -3308,6 +3309,11 @@ function EstimatesPageInner() {
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
 
+  function stripDataUrlsFromPreInstall(input: Array<{ src: string; srcPath?: string; note: string; createdAt: number }>) {
+    if (!Array.isArray(input)) return [] as Array<{ src: string; srcPath?: string; note: string; createdAt: number }>;
+    return input.filter((p) => p && typeof (p as any).src === "string" && !String((p as any).src || "").startsWith("data:"));
+  }
+
   function readDraftStore(): Record<string, any> {
     if (typeof window === "undefined") return {};
     try {
@@ -3346,6 +3352,8 @@ function EstimatesPageInner() {
         projectAddress,
         phoneNumber,
         email,
+        projectPhotoUrl: typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl,
+        projectPhotoPath,
         projectPhotoDataUrl: null,
         selectedFenceType,
         selectedStyle,
@@ -3364,7 +3372,7 @@ function EstimatesPageInner() {
         doubleGateCount: effectiveDoubleGateCount,
         referenceLength,
         notes,
-        preInstallPhotos: [],
+        preInstallPhotos: stripDataUrlsFromPreInstall(preInstallPhotos),
         segments,
         items
       };
@@ -3402,7 +3410,8 @@ function EstimatesPageInner() {
     projectAddress,
     phoneNumber,
     email,
-    projectPhotoDataUrl,
+    projectPhotoUrl,
+    projectPhotoPath,
     selectedFenceType,
     selectedStyle,
     materialsDetails,
@@ -3448,6 +3457,8 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
+      projectPhotoUrl,
+      projectPhotoPath,
       projectPhotoDataUrl,
       selectedFenceType,
       selectedStyle,
@@ -3490,12 +3501,13 @@ function EstimatesPageInner() {
         const lite = {
           ...payload,
           projectPhotoDataUrl: null,
-          preInstallPhotos: []
+          projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
+          preInstallPhotos: stripDataUrlsFromPreInstall(payload.preInstallPhotos || [])
         };
         store[id] = lite;
         try {
           writeDraftStore(store);
-          setSaveError("Saved without photos (storage full on this device).");
+          setSaveError("Saved without local photo cache (storage full on this device). ");
         } catch {
           throw e;
         }
@@ -3839,20 +3851,21 @@ function EstimatesPageInner() {
   }
 
   function normalizePreInstallPhotos(input: unknown) {
-    if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
+    if (!Array.isArray(input)) return [] as Array<{ src: string; srcPath?: string; note: string; createdAt: number }>;
 
-    const out: Array<{ src: string; note: string; createdAt: number }> = [];
+    const out: Array<{ src: string; srcPath?: string; note: string; createdAt: number }> = [];
     for (const v of input) {
       if (typeof v === "string") {
         if (!v.startsWith("data:")) continue;
-        out.push({ src: v, note: "", createdAt: Date.now() });
+        out.push({ src: v, srcPath: undefined, note: "", createdAt: Date.now() });
         continue;
       }
       if (v && typeof v === "object") {
         const src = typeof (v as any).src === "string" ? (v as any).src : "";
-        if (!src.startsWith("data:")) continue;
+        if (!src) continue;
         out.push({
           src,
+          srcPath: typeof (v as any).srcPath === "string" ? (v as any).srcPath : undefined,
           note: typeof (v as any).note === "string" ? (v as any).note : "",
           createdAt: Number((v as any).createdAt) || Date.now()
         });
@@ -3865,10 +3878,23 @@ function EstimatesPageInner() {
     let cancelled = false;
 
     if (projectPhoto) {
-      fileToCompressedDataUrl(projectPhoto, 1280, 0.72).then((result) => {
+      const idForPhoto = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      if (!draftId) setDraftId(idForPhoto);
+
+      uploadDraftPhoto({ draftId: idForPhoto, file: projectPhoto, filename: (projectPhoto as any)?.name, kind: "project" }).then((res) => {
         if (cancelled) return;
-        setProjectPhotoDataUrl(result);
-        setProjectPhotoUrl(result);
+        if (res.ok) {
+          setProjectPhotoDataUrl(null);
+          setProjectPhotoPath(res.path);
+          setProjectPhotoUrl(res.url);
+          return;
+        }
+        fileToCompressedDataUrl(projectPhoto, 1280, 0.72).then((result) => {
+          if (cancelled) return;
+          setProjectPhotoDataUrl(result);
+          setProjectPhotoPath(null);
+          setProjectPhotoUrl(result);
+        });
       });
       return () => {
         cancelled = true;
@@ -3884,7 +3910,7 @@ function EstimatesPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [projectPhoto, projectPhotoDataUrl]);
+  }, [draftId, projectPhoto, projectPhotoDataUrl]);
 
   useEffect(() => {
     const read = () => {
@@ -4547,7 +4573,11 @@ function EstimatesPageInner() {
     setPhoneNumber(String(d.phoneNumber ?? ""));
     setEmail(String(d.email ?? ""));
     setProjectPhoto(null);
-    setProjectPhotoDataUrl(typeof (d as any).projectPhotoDataUrl === "string" ? (d as any).projectPhotoDataUrl : null);
+    setProjectPhotoPath(typeof (d as any).projectPhotoPath === "string" ? (d as any).projectPhotoPath : null);
+    const loadedUrl = typeof (d as any).projectPhotoUrl === "string" ? (d as any).projectPhotoUrl : null;
+    const loadedData = typeof (d as any).projectPhotoDataUrl === "string" ? (d as any).projectPhotoDataUrl : null;
+    setProjectPhotoDataUrl(loadedData && loadedData.startsWith("data:") ? loadedData : null);
+    setProjectPhotoUrl(loadedUrl || (loadedData && loadedData.startsWith("data:") ? loadedData : null));
     // Restore combo cards (if present). Falls back to legacy single-card fields.
     const incomingCardsRaw = (d as any).comboCards;
     const incomingActiveIdRaw = (d as any).activeComboCardId;
@@ -5087,8 +5117,9 @@ function EstimatesPageInner() {
                   setProjectPhoto(null);
                   setProjectPhotoDataUrl(null);
                   setProjectPhotoUrl(null);
+                  setProjectPhotoPath(null);
                 }}
-                disabled={!projectPhoto && !projectPhotoDataUrl}
+                disabled={!projectPhoto && !projectPhotoUrl && !projectPhotoDataUrl}
               >
                 Clear
               </SecondaryButton>
@@ -5978,14 +6009,29 @@ function EstimatesPageInner() {
             if (files.length === 0) return;
             const startIdx = preInstallPhotos.length;
 
+            const draftIdForPhoto = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            if (!draftId) setDraftId(draftIdForPhoto);
+
             Promise.all(
-              files.map(
-                (file) => fileToCompressedDataUrl(file, 1280, 0.72)
-              )
-            ).then((results) => {
-              const urls = results.filter((r): r is string => typeof r === "string" && r.startsWith("data:"));
-              if (urls.length === 0) return;
-              const added = urls.map((src) => ({ src, note: "", createdAt: Date.now() }));
+              files.map(async (file) => {
+                const uploaded = await uploadDraftPhoto({
+                  draftId: draftIdForPhoto,
+                  file,
+                  filename: (file as any)?.name,
+                  kind: "preinstall"
+                });
+                if (uploaded.ok) {
+                  return { src: uploaded.url, srcPath: uploaded.path, note: "", createdAt: Date.now() };
+                }
+                const data = await fileToCompressedDataUrl(file, 1280, 0.72);
+                if (typeof data === "string" && data.startsWith("data:")) {
+                  return { src: data, srcPath: undefined, note: "", createdAt: Date.now() };
+                }
+                return null;
+              })
+            ).then((addedRaw) => {
+              const added = addedRaw.filter((x): x is { src: string; srcPath?: string; note: string; createdAt: number } => Boolean(x && x.src));
+              if (added.length === 0) return;
               setPreInstallPhotos((prev) => [...prev, ...added]);
               setNotePhotoIdx((cur) => (cur == null ? startIdx : cur));
             });
