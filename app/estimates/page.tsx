@@ -1232,6 +1232,7 @@ function EstimatesPageInner() {
     "4x4 x 10' Post": 16.88,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
     "2x4 16' Pressure Treated Rails": 13.78,
+    "Concrete 60lb Bag": 0,
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
@@ -2155,8 +2156,8 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 10), 0)
         : (lf > 0 ? Math.ceil(lf / 10) : 0);
       const postsBase = panels > 0 ? panels + 1 : 0;
-      const walkGates = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
-      const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+      const walkGates = Number(walkGateCount) || 0;
+      const doubleGates = Number(doubleGateCount) || 0;
       const gatePostsDerived = (walkGates + doubleGates) * 2;
       const posts = Math.max(0, postsBase + gatePostsDerived + (Number(extraPosts) || 0));
 
