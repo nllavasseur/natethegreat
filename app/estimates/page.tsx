@@ -129,6 +129,11 @@ function woodPostItemName(postSize: number, postType: "Pressure treated" | "Ceda
   return `4x4 x ${s}' Post`;
 }
 
+function woodPostItemNameByDim(params: { postDim: "4x4" | "6x6"; postSize: number; postType: "Pressure treated" | "Cedar" | "Cedar tone" }) {
+  const { postDim, postSize, postType } = params;
+  return postDim === "6x6" ? woodPost6x6ItemName(postSize, postType) : woodPostItemName(postSize, postType);
+}
+
 function woodPost6x6ItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone") {
   const s = postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
   if (postType === "Cedar") return `6x6 x ${s}' Cedar S4S Post`;
@@ -204,10 +209,11 @@ type MaterialsDetails = {
   picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
   trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
   twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-  horizontalCedarBoardMaterial: "5/4 cedar" | "1x6 cedar" | "CedarTone" | "Pressure Treated";
+  horizontalCedarBoardMaterial: "Pressure Treated" | "5/4 cedar" | "1x6 cedar" | "CedarTone";
   shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
   fiveQuarterTwoRailMeshVerticals: boolean;
   fiveQuarterTwoRailMeshCorners: boolean;
+  postDim: "4x4" | "6x6";
   postSize: 8 | 10 | 12 | 14;
   postType: "Pressure treated" | "Cedar" | "Cedar tone";
   postCaps: boolean;
@@ -251,10 +257,11 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   picketMaterial: "Pressure treated",
   trimMaterial: "Pressure treated",
   twoByTwoMaterial: "Pressure treated",
-  horizontalCedarBoardMaterial: "5/4 cedar",
+  horizontalCedarBoardMaterial: "Pressure Treated",
   shadowboxBoardMaterial: "Pressure Treated",
   fiveQuarterTwoRailMeshVerticals: true,
   fiveQuarterTwoRailMeshCorners: true,
+  postDim: "4x4",
   postSize: 8,
   postType: "Pressure treated",
   postCaps: false,
@@ -1588,7 +1595,7 @@ function EstimatesPageInner() {
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-        const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+        const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
         const fiveQuarterRailName =
           materialsDetails.railMaterial === "Cedar tone"
@@ -1676,7 +1683,7 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
 
@@ -1742,7 +1749,7 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
-      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
       const picketName = woodPicketName(materialsDetails.picketMaterial);
@@ -1812,7 +1819,7 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
 
@@ -1875,7 +1882,7 @@ function EstimatesPageInner() {
       // Screws: 6 per rail, 350 per box
       const screwBoxes = rails2x4x8 > 0 ? Math.ceil((rails2x4x8 * 6) / 350) : 0;
 
-      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
@@ -1948,7 +1955,7 @@ function EstimatesPageInner() {
           ? "1x4 CedarTone Boards"
           : "1x4 Pressure Treated Boards";
 
-      const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
 
@@ -2136,7 +2143,7 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName = materialsDetails.postSize === 10 ? "4x4 x 10' Post" : "4x4 x 8' Post";
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
@@ -2264,7 +2271,7 @@ function EstimatesPageInner() {
 
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
-        const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+        const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
         const boardName =
           materialsDetails.horizontalCedarBoardMaterial === "Pressure Treated"
             ? "5/4x6x12 Pressure Treated Boards"
@@ -2391,10 +2398,7 @@ function EstimatesPageInner() {
       const railsForScrews = isPictureFramed ? (pictureFramed2x4x8 + pictureFramed2x4x16) : rails;
       const screwBoxes = railsForScrews > 0 ? Math.ceil((railsForScrews * 6) / 350) : 0;
 
-      let postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
-      if (isCasto) {
-        postName = woodPost6x6ItemName(10, materialsDetails.postType);
-      }
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
@@ -2676,7 +2680,7 @@ function EstimatesPageInner() {
 
     const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
-    const postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+    const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
     const railName = woodRail2x4Name(16, materialsDetails.railMaterial);
     const picketName = woodPicketName(materialsDetails.picketMaterial);
 
@@ -6463,6 +6467,21 @@ function EstimatesPageInner() {
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Post</div>
+                          <Select
+                            value={materialsDetails.postDim}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                postDim: e.target.value as "4x4" | "6x6"
+                              }))
+                            }
+                          >
+                            <option value="4x4">4x4</option>
+                            <option value="6x6">6x6</option>
+                          </Select>
+                        </div>
+                        <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Post size</div>
                           <Select
                             value={String(materialsDetails.postSize)}
@@ -6476,8 +6495,8 @@ function EstimatesPageInner() {
                             <option value="14">14</option>
                           </Select>
                         </div>
-                        <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Posts</div>
+                        <div className="col-span-2">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Post material</div>
                           <Select
                             value={materialsDetails.postType}
                             onChange={(e) =>
