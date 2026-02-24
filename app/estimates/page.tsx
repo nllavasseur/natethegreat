@@ -370,6 +370,7 @@ function EstimatesPageInner() {
       label: string;
       length: number;
       removed: boolean;
+      removal?: boolean;
       gate?: boolean;
       cardId?: string | null;
       gateType?: "none" | "walk" | "double";
@@ -407,7 +408,7 @@ function EstimatesPageInner() {
         typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
           ? (crypto as any).randomUUID()
           : `${Date.now()}-${i}-${s.label}`;
-      return { id, label: s.label, length, removed: false, cardId: null, gateType: "none" as const };
+      return { id, label: s.label, length, removed: false, removal: false, cardId: null, gateType: "none" as const };
     });
     setSegments(next);
     setMeasureOpen(false);
@@ -3665,7 +3666,7 @@ function EstimatesPageInner() {
     const nextLabel = opts[Math.min(segments.length, opts.length - 1)] ?? "A–B";
     setSegments((prev) => [
       ...prev,
-      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, label: nextLabel, length: 0, removed: false, cardId: null, gateType: "none" }
+      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, label: nextLabel, length: 0, removed: false, removal: false, cardId: null, gateType: "none" }
     ]);
   }
 
@@ -3675,6 +3676,7 @@ function EstimatesPageInner() {
       label: string;
       length: number;
       removed: boolean;
+      removal?: boolean;
       gate?: boolean;
       cardId?: string | null;
       gateType?: "none" | "walk" | "double";
@@ -5285,12 +5287,12 @@ function EstimatesPageInner() {
                   <SecondaryButton
                     type="button"
                     data-no-swipe="true"
-                    onClick={() => patchSegment(seg.id, { removed: !seg.removed })}
-                    aria-pressed={seg.removed}
-                    aria-label="Removal"
-                    title="Removal"
+                    onClick={() => patchSegment(seg.id, { removal: !Boolean((seg as any).removal) })}
+                    aria-pressed={Boolean((seg as any).removal)}
+                    aria-label="Fence removal"
+                    title="Fence removal"
                     style={
-                      seg.removed
+                      Boolean((seg as any).removal)
                         ? {
                             backgroundColor: "rgba(255,214,10,.30)",
                             borderColor: "rgba(255,214,10,.55)",
@@ -5303,6 +5305,28 @@ function EstimatesPageInner() {
                     }
                   >
                     🗑
+                  </SecondaryButton>
+                  <SecondaryButton
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => patchSegment(seg.id, { removed: !seg.removed })}
+                    aria-pressed={seg.removed}
+                    aria-label="Skip segment"
+                    title="Skip segment"
+                    style={
+                      seg.removed
+                        ? {
+                            backgroundColor: "rgba(255,80,80,.22)",
+                            borderColor: "rgba(255,80,80,.42)",
+                            color: "rgba(255,240,240,.98)"
+                          }
+                        : undefined
+                    }
+                    className={
+                      "w-full min-w-0 px-2 py-2 text-[14px] leading-none transition-none active:bg-[rgba(255,80,80,.22)] active:border-[rgba(255,80,80,.42)]"
+                    }
+                  >
+                    ⛔
                   </SecondaryButton>
                 </div>
 
