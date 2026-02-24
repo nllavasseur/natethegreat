@@ -120,7 +120,18 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
   });
   remote.forEach((d) => {
     if (!d || !d.id) return;
-    byId.set(String(d.id), { ...d });
+    const id = String(d.id);
+    const prev = byId.get(id);
+    if (!prev) {
+      byId.set(id, { ...d });
+      return;
+    }
+
+    const prevTs = Number((prev as any).updatedAt ?? (prev as any).createdAt ?? 0) || 0;
+    const nextTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
+
+    // Prefer whichever copy is newer; fall back to local if equal.
+    if (nextTs > prevTs) byId.set(id, { ...prev, ...d });
   });
   return Array.from(byId.values());
 }
@@ -1275,68 +1286,6 @@ export default function CalendarPage() {
               ) : (
                 <div className="mt-3 text-sm text-[var(--muted)]">No jobs scheduled.</div>
               )}
-
-              <div className="absolute bottom-0 left-0 right-0 -mx-4 border-t border-[rgba(255,255,255,.12)] bg-[rgba(20,30,24,.92)] px-4 pb-3 pt-3 backdrop-blur-ios">
-                <div className="grid grid-cols-2 gap-2">
-                  {(() => {
-                    const j = dayJobs[0] as any;
-                    const phone = j ? String(j.customerPhone || j.phone || j.phoneNumber || "") : "";
-                    const address = j ? String(j.projectAddress || j.address || "") : "";
-                    const canCall = Boolean(phone);
-                    const canNav = Boolean(address);
-                    const openNav = () => {
-                      if (!address) return;
-                      const q = encodeURIComponent(address);
-                      window.open(`https://maps.apple.com/?q=${q}`, "_blank", "noopener,noreferrer");
-                    };
-                    const openCall = () => {
-                      if (!phone) return;
-                      const p = phone.replace(/[^0-9+]/g, "");
-                      window.location.assign(`tel:${p}`);
-                    };
-                    return (
-                      <>
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          disabled={!canCall}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openCall();
-                          }}
-                          className={
-                            "rounded-2xl border px-4 py-3 text-[13px] font-black " +
-                            (canCall
-                              ? "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.20)]"
-                              : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
-                          }
-                        >
-                          Call
-                        </button>
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          disabled={!canNav}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            openNav();
-                          }}
-                          className={
-                            "rounded-2xl border px-4 py-3 text-[13px] font-black " +
-                            (canNav
-                              ? "border-[rgba(64,156,255,.55)] bg-[rgba(64,156,255,.18)] hover:bg-[rgba(64,156,255,.24)]"
-                              : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
-                          }
-                        >
-                          Navigate
-                        </button>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
           </div>
         </div>
       ) : null}
