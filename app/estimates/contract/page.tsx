@@ -222,8 +222,6 @@ export default function EstimateContractPage() {
             <img className="headerImage" src="/IMG_3454.JPG" alt="Vasseur Fencing" />
           </div>
 
-          <div className="docTitle">Estimate</div>
-
           <div className="contact">
             {company.salespersonName ? <div className="contactLine contactBold">{company.salespersonName}</div> : null}
             {(company.addressLines ?? []).map((l, i) => (
@@ -235,6 +233,8 @@ export default function EstimateContractPage() {
         </header>
 
         <div className="rule" />
+
+        <div className="docTitleCentered">Estimate</div>
 
         <section className="submittedBlock">
           <div className="submittedLabel">Submitted on:</div>
@@ -378,9 +378,9 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .controls{ padding:10px; display:flex; justify-content:center; }
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; font-weight:600; }
 .noPrint{ display:block; }
-.topHeader{ display:grid; grid-template-columns: 3.2in 1fr 2.0in; align-items:start; gap:6px; }
+.topHeader{ display:grid; grid-template-columns: 3.2in 1fr; align-items:start; gap:6px; }
 .headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:-4px; }
-.docTitle{ text-align:center; font-size:30px; font-weight:900; margin-top:-4px; line-height:1; }
+.docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:2px 0 2px; line-height:1; }
 .contact{ text-align:right; font-size:9px; line-height:1.2; }
 .contactBold{ font-weight:800; }
 .rule{ height:2px; background:#000; opacity:.6; margin:2px 0; }
