@@ -4866,7 +4866,9 @@ function EstimatesPageInner() {
               ? s.gateType
               : (legacyGate ? "walk" : "none");
             const cardId = (s?.cardId === null || typeof s?.cardId === "string") ? s.cardId : null;
-            return { ...s, cardId, gateType, gate: gateType === "walk" };
+            const legacyRemoved = Boolean(s?.removed);
+            const removal = Boolean((s as any).removal) || legacyRemoved;
+            return { ...s, removed: false, removal, cardId, gateType, gate: gateType === "walk" };
           })
         : []
     );
