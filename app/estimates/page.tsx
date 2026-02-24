@@ -1578,7 +1578,10 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_wire_mesh") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
-      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+      const segmentLengths = segments
+        .filter((s) => !s.removed)
+        .map((s) => Number(s.length) || 0)
+        .filter((n) => n > 0);
 
       const normalizedWireMeshStyle = String(selectedStyle?.name || "")
         .trim()
@@ -1754,7 +1757,10 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_shadowbox_top_cap") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
-      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+      const segmentLengths = segments
+        .filter((s) => !s.removed)
+        .map((s) => Number(s.length) || 0)
+        .filter((n) => n > 0);
 
       // 7.5' centers.
       const postsBase = segmentLengths.length
@@ -2460,7 +2466,7 @@ function EstimatesPageInner() {
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const trimNameFinal = woodTrimName(materialsDetails.trimMaterial);
-      const trimBoards = 0;
+      const trimBoards = isPictureFramed ? Math.max(0, Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0)) * panels : 0;
 
       const latticeName = "";
       const latticePanels = 0;
@@ -2773,6 +2779,7 @@ function EstimatesPageInner() {
     // Placeholder rule set for now (iterate with you): driven by total LF.
     // We’ll replace these rules with your exact Standard Privacy rules.
     const lf = totalLf;
+    const panels = lf > 0 ? Math.ceil(lf / 7.5) : 0;
     const postSpacingFt = 8;
     const postsBase = lf > 0 ? Math.max(2, Math.ceil(lf / postSpacingFt) + 1) : 0;
     const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
@@ -2788,7 +2795,9 @@ function EstimatesPageInner() {
     const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
     const trimName = woodTrimName(materialsDetails.trimMaterial);
-    const trimBoards = 0;
+    const trimBoards = selectedStyleKind === "wood_picture_framed" || selectedStyleKind === "wood_am" || selectedStyleKind === "wood_niko" || selectedStyleKind === "wood_casto" || selectedStyleKind === "wood_picture_framed_4ft" || selectedStyleKind === "wood_picture_framed_lattice"
+      ? Math.max(0, Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0)) * panels
+      : 0;
 
     const railEndBracketsQty = Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3;
 
