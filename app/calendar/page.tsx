@@ -1317,7 +1317,7 @@ export default function CalendarPage() {
 
       {portalReady && queueOpen ? createPortal(
         <div
-          className="fixed inset-0 z-50 overflow-x-hidden"
+          className="fixed inset-0 z-[70] overflow-x-hidden"
           role="dialog"
           aria-modal="true"
           style={{ touchAction: "pan-y" }}
@@ -1441,6 +1441,7 @@ export default function CalendarPage() {
 
           <div
             className="absolute inset-0 p-2 flex"
+            style={{ paddingTop: "calc(var(--vf-header-h, 0px) + 8px)" }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
