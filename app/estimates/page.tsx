@@ -4025,13 +4025,19 @@ function EstimatesPageInner() {
 
   const removalTotal = useMemo(() => {
     const lf = segments
-      .filter((s: any) => !s.removed)
       .filter((s: any) => Boolean((s as any).removal))
       .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
     const rate = Number(removalRate) || 0;
     const v = lf > 0 && rate > 0 ? lf * rate : 0;
     return Math.round(v * 100) / 100;
   }, [removalRate, segments]);
+
+  const removalLf = useMemo(() => {
+    const lf = segments
+      .filter((s: any) => Boolean((s as any).removal))
+      .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
+    return Math.round(lf * 100) / 100;
+  }, [segments]);
 
   const laborBaseTotal = useMemo(() => {
     const base = items
@@ -5828,6 +5834,7 @@ function EstimatesPageInner() {
                               <div className="rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.12)] text-right font-black">
                                 {money(removalTotal)}
                               </div>
+                              <div className="mt-1 text-[11px] text-[var(--muted)]">Removal LF {removalLf.toFixed(0)}</div>
                             </div>
                             <div className="md:col-span-3 text-[11px] text-[var(--muted)]">
                               Tap 🗑 on segments to include them in removal labor.
