@@ -263,6 +263,11 @@ type MaterialsDetails = {
   vinylColor: string;
   vinylPanelWidthFt: number;
   vinylPanelHeightFt: number;
+  vinylCornerPosts: boolean;
+  vinylEndPosts: boolean;
+  vinylBlankPosts: boolean;
+  vinylThreeWayPosts: boolean;
+  vinylPostStiffeners: boolean;
   railEndBracketPacks: number;
 };
 
@@ -311,6 +316,11 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   vinylColor: "White",
   vinylPanelWidthFt: 6,
   vinylPanelHeightFt: 6,
+  vinylCornerPosts: false,
+  vinylEndPosts: false,
+  vinylBlankPosts: false,
+  vinylThreeWayPosts: false,
+  vinylPostStiffeners: false,
   railEndBracketPacks: 0
 };
 
@@ -4223,6 +4233,11 @@ function EstimatesPageInner() {
       const vinylColor = typeof dd.vinylColor === "string" ? dd.vinylColor : "White";
       const vinylPanelWidthFt = Number.isFinite(Number(dd.vinylPanelWidthFt)) ? Number(dd.vinylPanelWidthFt) : 6;
       const vinylPanelHeightFt = Number.isFinite(Number(dd.vinylPanelHeightFt)) ? Number(dd.vinylPanelHeightFt) : 6;
+      const vinylCornerPosts = typeof dd.vinylCornerPosts === "boolean" ? dd.vinylCornerPosts : false;
+      const vinylEndPosts = typeof dd.vinylEndPosts === "boolean" ? dd.vinylEndPosts : false;
+      const vinylBlankPosts = typeof dd.vinylBlankPosts === "boolean" ? dd.vinylBlankPosts : false;
+      const vinylThreeWayPosts = typeof dd.vinylThreeWayPosts === "boolean" ? dd.vinylThreeWayPosts : false;
+      const vinylPostStiffeners = typeof dd.vinylPostStiffeners === "boolean" ? dd.vinylPostStiffeners : false;
       const mansfieldBlankGatePost = typeof dd.mansfieldBlankGatePost === "boolean" ? dd.mansfieldBlankGatePost : false;
 
       setMaterialsDetails((prev) => ({
@@ -4262,6 +4277,11 @@ function EstimatesPageInner() {
         vinylColor,
         vinylPanelWidthFt,
         vinylPanelHeightFt,
+        vinylCornerPosts,
+        vinylEndPosts,
+        vinylBlankPosts,
+        vinylThreeWayPosts,
+        vinylPostStiffeners,
         mansfieldBlankGatePost
       }));
     }
@@ -6440,6 +6460,106 @@ function EstimatesPageInner() {
                       <div className="mt-2 text-[11px] text-[var(--muted)]">
                         {selectedStyle ? `${selectedStyle.name}` : "Select a style"}
                       </div>
+
+
+
+
+
+
+
+                      <div className="mt-3 grid gap-2">
+                        <div className="text-[11px] text-[var(--muted)]">Post toggles</div>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylCornerPosts: !p.vinylCornerPosts }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (materialsDetails.vinylCornerPosts
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.vinylCornerPosts}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>Corner posts</div>
+                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylCornerPosts ? "On" : "Off"}</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylEndPosts: !p.vinylEndPosts }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (materialsDetails.vinylEndPosts
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.vinylEndPosts}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>End posts</div>
+                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylEndPosts ? "On" : "Off"}</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylBlankPosts: !p.vinylBlankPosts }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (materialsDetails.vinylBlankPosts
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.vinylBlankPosts}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>Blank posts</div>
+                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylBlankPosts ? "On" : "Off"}</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylThreeWayPosts: !p.vinylThreeWayPosts }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (materialsDetails.vinylThreeWayPosts
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.vinylThreeWayPosts}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>3-way posts</div>
+                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylThreeWayPosts ? "On" : "Off"}</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylPostStiffeners: !p.vinylPostStiffeners }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (materialsDetails.vinylPostStiffeners
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.vinylPostStiffeners}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>Post stiffeners</div>
+                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylPostStiffeners ? "On" : "Off"}</div>
+                          </div>
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 
@@ -6574,7 +6694,7 @@ function EstimatesPageInner() {
                       </div>
                     ) : null}
 
-                  {selectedFenceType !== "aluminum" ? (
+                  {selectedFenceType === "wood" ? (
                     <>
                       {selectedFenceType === "wood" ? (
                         <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
@@ -6780,7 +6900,7 @@ function EstimatesPageInner() {
                     </div>
                   </div>
 
-                  {selectedFenceType !== "aluminum" && selectedStyleKind !== "wood_wire_mesh" && selectedStyleKind !== "wood_split_rail" ? (
+                  {selectedFenceType === "wood" && selectedStyleKind !== "wood_wire_mesh" && selectedStyleKind !== "wood_split_rail" ? (
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
@@ -6838,7 +6958,7 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedFenceType !== "aluminum" ? (
+                  {selectedFenceType === "wood" ? (
                     <div className="mt-3">
                       <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
                       <button
