@@ -2881,7 +2881,24 @@ function EstimatesPageInner() {
     ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
     ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
 
-    return Array.from(merged.values());
+    ensureQty("Disposal", "ea", 1);
+    ensureQty("Delivery", "ea", 1);
+    ensureQty("Equipment Fees", "ea", 1);
+
+    const out = Array.from(merged.values());
+    const feeOrder: Record<string, number> = { Disposal: 0, Delivery: 1, "Equipment Fees": 2 };
+    const indexed = out.map((r, idx) => ({ r, idx }));
+    indexed.sort((a, b) => {
+      const ai = feeOrder[a.r.name];
+      const bi = feeOrder[b.r.name];
+      const aIsFee = Number.isFinite(ai);
+      const bIsFee = Number.isFinite(bi);
+      if (aIsFee && bIsFee) return ai - bi;
+      if (aIsFee) return 1;
+      if (bIsFee) return -1;
+      return a.idx - b.idx;
+    });
+    return indexed.map((x) => x.r);
   }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
 
   const storageKey = "vf_estimate_drafts_v1";
