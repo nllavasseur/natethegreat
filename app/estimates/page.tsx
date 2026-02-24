@@ -5323,28 +5323,6 @@ function EstimatesPageInner() {
                   >
                     🗑
                   </SecondaryButton>
-                  <SecondaryButton
-                    type="button"
-                    data-no-swipe="true"
-                    onClick={() => patchSegment(seg.id, { removed: !seg.removed })}
-                    aria-pressed={seg.removed}
-                    aria-label="Skip segment"
-                    title="Skip segment"
-                    style={
-                      seg.removed
-                        ? {
-                            backgroundColor: "rgba(255,80,80,.22)",
-                            borderColor: "rgba(255,80,80,.42)",
-                            color: "rgba(255,240,240,.98)"
-                          }
-                        : undefined
-                    }
-                    className={
-                      "w-full min-w-0 px-2 py-2 text-[14px] leading-none transition-none active:bg-[rgba(255,80,80,.22)] active:border-[rgba(255,80,80,.42)]"
-                    }
-                  >
-                    ⛔
-                  </SecondaryButton>
                 </div>
 
                 <div className="col-span-2">
