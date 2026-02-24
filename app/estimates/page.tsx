@@ -7298,7 +7298,13 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyleKind === "wood_picture_framed" ? (
+                  {(
+                    selectedStyleKind === "wood_picture_framed" ||
+                    selectedStyleKind === "wood_niko" ||
+                    selectedStyleKind === "wood_casto" ||
+                    selectedStyleKind === "wood_picture_framed_4ft" ||
+                    selectedStyleKind === "wood_picture_framed_lattice"
+                  ) ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Picture frame trim</div>
                       <div>
