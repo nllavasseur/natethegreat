@@ -1471,6 +1471,15 @@ export default function CalendarPage() {
                   const endIso = (() => {
                     const end = (j as any).end;
                     if (end instanceof Date && Number.isFinite(end.getTime())) return end.toISOString().slice(0, 10);
+                    if (startIso && labor > 0) {
+                      try {
+                        const start = new Date(startIso + "T12:00:00");
+                        const seq = workdaySequenceForJob(start, labor, allowSat, allowSun);
+                        const last = seq[seq.length - 1];
+                        if (last instanceof Date && Number.isFinite(last.getTime())) return last.toISOString().slice(0, 10);
+                      } catch {
+                      }
+                    }
                     return "";
                   })();
                   const canComplete = (() => {
