@@ -22,6 +22,7 @@ type DraftEntry = {
   status?: "estimate" | "pending" | "sold" | "complete" | "void";
   calendarHidden?: boolean;
   queueRank?: number;
+  scheduledAt?: string;
   jobTasks?: JobTasks;
 };
 
@@ -70,6 +71,25 @@ const TASKS: Array<{ key: keyof JobTasks; label: string }> = [
   { key: "scheduleDelivery", label: "Schedule delivery" },
   { key: "call811", label: "Call 811" }
 ];
+
+function dueLevelForTask(args: { taskKey: keyof JobTasks; scheduledAt?: string; tasks: JobTasks }) {
+  const { taskKey, scheduledAt, tasks } = args;
+  if (Boolean((tasks as any)[taskKey])) return "none" as const;
+  const iso = String(scheduledAt || "");
+  if (!iso) return "none" as const;
+  const ms = new Date(iso).getTime();
+  if (!Number.isFinite(ms)) return "none" as const;
+  const now = Date.now();
+  const dt = ms - now;
+  if (dt < 0) return "none" as const;
+
+  const hours36 = 36 * 60 * 60 * 1000;
+  const days7 = 7 * 24 * 60 * 60 * 1000;
+
+  if (taskKey === "call811") return dt <= hours36 ? ("urgent" as const) : ("none" as const);
+  if (taskKey === "orderMaterials" || taskKey === "scheduleDelivery") return dt <= days7 ? ("warn" as const) : ("none" as const);
+  return "none" as const;
+}
 
 function jobTitle(d: DraftEntry) {
   return String(d.title || d.customerName || d.projectAddress || "Job");
@@ -196,6 +216,9 @@ export default function TasksPage() {
                     const done = Boolean((tasks as any)[t.key]);
                     const keyStr = `${job.id}:${String(t.key)}`;
                     const isConfirm = confirmKey === keyStr;
+                    const dueLevel = dueLevelForTask({ taskKey: t.key, scheduledAt: (job as any).scheduledAt, tasks });
+                    const urgent = dueLevel === "urgent";
+                    const warn = dueLevel === "warn";
                     return (
                       <button
                         key={keyStr}
@@ -219,7 +242,11 @@ export default function TasksPage() {
                             ? "bg-[rgba(31,200,120,.16)] border-[rgba(31,200,120,.35)] text-white opacity-80"
                             : isConfirm
                               ? "bg-[rgba(255,80,80,.22)] border-[rgba(255,80,80,.45)] text-white"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                              : urgent
+                                ? "bg-[rgba(255,80,80,.18)] border-[rgba(255,80,80,.55)] text-white animate-pulse"
+                                : warn
+                                  ? "bg-[rgba(255,214,10,.12)] border-[rgba(255,214,10,.45)] text-white"
+                                  : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
                         }
                         aria-disabled={done}
                       >

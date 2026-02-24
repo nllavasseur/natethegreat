@@ -31,6 +31,12 @@ type DraftEntry = {
   laborDays?: number;
   calendarHidden?: boolean;
   preInstallPhotos?: unknown;
+  jobTasks?: {
+    collectDeposit?: boolean;
+    orderMaterials?: boolean;
+    scheduleDelivery?: boolean;
+    call811?: boolean;
+  };
 };
 
 function normalizePreInstallPhotos(input: unknown) {
@@ -226,6 +232,30 @@ export default function QuotesPage() {
     }
     return out;
   }
+
+  const tasksNeedAttention = useMemo(() => {
+    const now = Date.now();
+    const hours36 = 36 * 60 * 60 * 1000;
+    const days7 = 7 * 24 * 60 * 60 * 1000;
+
+    return drafts
+      .filter((d) => (d.status ?? "estimate") === "sold")
+      .filter((d) => !d.calendarHidden)
+      .some((d) => {
+        const iso = String((d as any).scheduledAt || "");
+        if (!iso) return false;
+        const ms = new Date(iso).getTime();
+        if (!Number.isFinite(ms)) return false;
+
+        const dt = ms - now;
+        if (dt < 0) return false;
+
+        const tasks = (d as any).jobTasks || {};
+        if (dt <= hours36 && !tasks.call811) return true;
+        if (dt <= days7 && (!tasks.orderMaterials || !tasks.scheduleDelivery)) return true;
+        return false;
+      });
+  }, [drafts]);
 
   function notifyDraftsChanged() {
     try {
@@ -925,7 +955,20 @@ export default function QuotesPage() {
                     </Link>
 
                     <Link href="/tasks" className="shrink-0">
-                      <PrimaryButton>Tasks</PrimaryButton>
+                      <div className="relative">
+                        <PrimaryButton
+                          className={
+                            tasksNeedAttention
+                              ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.22)]"
+                              : undefined
+                          }
+                        >
+                          Tasks
+                        </PrimaryButton>
+                        {tasksNeedAttention ? (
+                          <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[rgba(255,80,80,.90)] animate-pulse" />
+                        ) : null}
+                      </div>
                     </Link>
 
                     <button
