@@ -927,6 +927,8 @@ function EstimatesPageInner() {
 
   const [items, setItems] = useState<QuoteItem[]>([]);
 
+  const [takeoffMaterialsStable, setTakeoffMaterialsStable] = useState<QuoteItem[]>([]);
+
   const [saving, setSaving] = useState(false);
   const [savingAsNew, setSavingAsNew] = useState(false);
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
@@ -3290,6 +3292,19 @@ function EstimatesPageInner() {
     }
   }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
 
+  useEffect(() => {
+    if ((generatedMaterials?.length || 0) > 0) {
+      setTakeoffMaterialsStable(generatedMaterials);
+      return;
+    }
+
+    // If we're truly not configured for a takeoff, clear.
+    // Otherwise keep the last non-empty list to avoid momentary UI wipes on mobile while editing.
+    if (takeoffDiagnostics && (!takeoffDiagnostics.hasStyledCards || !takeoffDiagnostics.hasEligibleSegments)) {
+      setTakeoffMaterialsStable([]);
+    }
+  }, [generatedMaterials, takeoffDiagnostics]);
+
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
 
@@ -3956,13 +3971,13 @@ function EstimatesPageInner() {
   }, [items]);
 
   const takeoffMaterialsTotal = useMemo(() => {
-    const v = generatedMaterials.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
+    const v = takeoffMaterialsStable.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
-  }, [generatedMaterials]);
+  }, [takeoffMaterialsStable]);
 
   const takeoffMaterialsAndExpensesTotal = useMemo(() => {
-    return computeMaterialsAndExpensesTotal(generatedMaterials);
-  }, [generatedMaterials]);
+    return computeMaterialsAndExpensesTotal(takeoffMaterialsStable);
+  }, [takeoffMaterialsStable]);
 
   const additionalServicesSubtotal = useMemo(() => {
     const v = items
@@ -4432,9 +4447,9 @@ function EstimatesPageInner() {
         treeRemovalItem,
         stumpGrindingItem
       ].filter((it) => it.lineTotal !== 0);
-      return [...generatedMaterials, laborItem, ...laborExtras, ...manual];
+      return [...takeoffMaterialsStable, laborItem, ...laborExtras, ...manual];
     });
-  }, [generatedMaterials, laborItem, toughDigItem, gradeSurchargeItem, gradingItem, treeRemovalItem, stumpGrindingItem]);
+  }, [laborItem, takeoffMaterialsStable, toughDigItem, gradeSurchargeItem, gradingItem, treeRemovalItem, stumpGrindingItem]);
 
   function addItem(section: SectionKey) {
     setItems((prev) => [...prev, emptyItem(section)]);
