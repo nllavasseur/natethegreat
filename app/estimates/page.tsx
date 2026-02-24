@@ -3988,6 +3988,17 @@ function EstimatesPageInner() {
         const rt = String(q.get("returnTo") || "").trim();
         setReturnTo(rt ? rt : null);
         setDebugTotals(q.get("debugTotals") === "1");
+
+        // If we navigated here from another screen (e.g. Quote -> Edit),
+        // make sure no full-screen overlay state is stuck open and blocking taps.
+        if (rt) {
+          setStylePickerIdx(false);
+          setMaterialsDetailsOpen(false);
+          setMeasureOpen(false);
+          setStylePreview(null);
+          setPhotoViewerSrc(null);
+          setNotePhotoIdx(null);
+        }
       } catch {
         setDraftParam(null);
         setReturnTo(null);
