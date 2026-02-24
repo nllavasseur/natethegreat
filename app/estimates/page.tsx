@@ -49,7 +49,7 @@ function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number
   const { materialUnitPrices, name, priceKey } = params;
   if (priceKey) {
     const keyed = Number(materialUnitPrices[priceKey] ?? NaN);
-    if (Number.isFinite(keyed)) return keyed;
+    if (Number.isFinite(keyed) && keyed > 0) return keyed;
   }
   const direct = Number(materialUnitPrices[name] ?? NaN);
   if (Number.isFinite(direct) && direct > 0) return direct;
