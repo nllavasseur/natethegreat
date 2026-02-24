@@ -691,6 +691,26 @@ function EstimatesPageInner() {
 
   const baseComboCardId = comboCards[0]?.id;
 
+  const activeCardSegments = useMemo(() => {
+    const baseId = baseComboCardId || null;
+    const activeId = String(activeComboCardId || "");
+    if (!activeId) return [] as typeof segments;
+    return segments.filter((s) => {
+      if (s.removed) return false;
+      const cid = (s as any).cardId ?? null;
+      const resolved = cid === null ? baseId : cid;
+      return resolved === activeId;
+    });
+  }, [activeComboCardId, baseComboCardId, segments]);
+
+  const activeCardWalkGates = useMemo(() => {
+    return Math.max(0, activeCardSegments.filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length);
+  }, [activeCardSegments]);
+
+  const activeCardDoubleGates = useMemo(() => {
+    return Math.max(0, activeCardSegments.filter((s: any) => (s as any).gateType === "double").length);
+  }, [activeCardSegments]);
+
   function resolveSegmentCardId(seg: { cardId?: string | null }) {
     const cid = seg.cardId ?? null;
     return cid === null ? (baseComboCardId || null) : cid;
@@ -939,13 +959,12 @@ function EstimatesPageInner() {
       };
     }
 
-    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
-    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+    const walkGates = Math.max(0, Number(activeCardWalkGates) || 0);
+    const doubleGates = Math.max(0, Number(activeCardDoubleGates) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
     const w = 6;
-    const segmentLengths = segments
-      .filter((s) => !s.removed)
+    const segmentLengths = activeCardSegments
       .map((s) => Number(s.length) || 0)
       .filter((n) => n > 0);
     const panels = segmentLengths.length
@@ -964,7 +983,7 @@ function EstimatesPageInner() {
     const line = Math.max(0, total - (corner + gate + end + blank));
 
     return { total, line, gateDerived };
-  }, [effectiveDoubleGateCount, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, segments, selectedFenceType]);
+  }, [activeCardDoubleGates, activeCardSegments, activeCardWalkGates, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, selectedFenceType]);
 
   const vinylSummary = useMemo(() => {
     if (selectedFenceType !== "vinyl") {
@@ -1032,8 +1051,8 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Mansfield") return;
 
-    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
-    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+    const walkGates = Math.max(0, Number(activeCardWalkGates) || 0);
+    const doubleGates = Math.max(0, Number(activeCardDoubleGates) || 0);
 
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
@@ -1054,7 +1073,7 @@ function EstimatesPageInner() {
         mansfieldDoubleGateOptions: nextDouble
       };
     });
-  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [activeCardDoubleGates, activeCardWalkGates, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
@@ -1137,8 +1156,8 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Pacific") return;
 
-    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
-    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+    const walkGates = Math.max(0, Number(activeCardWalkGates) || 0);
+    const doubleGates = Math.max(0, Number(activeCardDoubleGates) || 0);
 
     setMaterialsDetails((p) => {
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.pacificWalkGateOptions?.[i] || "walk_48_45");
@@ -1152,14 +1171,14 @@ function EstimatesPageInner() {
         pacificDoubleGateOptions: nextDouble
       };
     });
-  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [activeCardDoubleGates, activeCardWalkGates, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Atlantic") return;
 
-    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
-    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+    const walkGates = Math.max(0, Number(activeCardWalkGates) || 0);
+    const doubleGates = Math.max(0, Number(activeCardDoubleGates) || 0);
 
     setMaterialsDetails((p) => {
       const nextWalk = Array.from({ length: walkGates }, (_, i) => p.atlanticWalkGateOptions?.[i] || "walk_48_4");
@@ -1176,14 +1195,14 @@ function EstimatesPageInner() {
         atlanticDoubleGateOptions: nextDouble
       };
     });
-  }, [effectiveDoubleGateCount, segments, selectedFenceType, selectedStyle?.name]);
+  }, [activeCardDoubleGates, activeCardWalkGates, selectedFenceType, selectedStyle?.name]);
 
   useEffect(() => {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Toledo") return;
 
-    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
-    const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+    const walkGates = Math.max(0, Number(activeCardWalkGates) || 0);
+    const doubleGates = Math.max(0, Number(activeCardDoubleGates) || 0);
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
       const nextWalk = Array.from({ length: walkGates }, (_, i) => {
@@ -5727,7 +5746,7 @@ function EstimatesPageInner() {
                           </div>
                         </button>
 
-                        {selectedStyle?.name === "Mansfield" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Mansfield" && (activeCardWalkGates > 0 || activeCardDoubleGates > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Applies after you mark gates. Select each gate’s size/price.</div>
@@ -5840,7 +5859,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Pacific" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Pacific" && (activeCardWalkGates > 0 || activeCardDoubleGates > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
@@ -5901,7 +5920,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Atlantic" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Atlantic" && (activeCardWalkGates > 0 || activeCardDoubleGates > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
@@ -5968,7 +5987,7 @@ function EstimatesPageInner() {
                           </div>
                         ) : null}
 
-                        {selectedStyle?.name === "Toledo" && (walkGateCount > 0 || (Number(effectiveDoubleGateCount) || 0) > 0) ? (
+                        {selectedStyle?.name === "Toledo" && (activeCardWalkGates > 0 || activeCardDoubleGates > 0) ? (
                           <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Gate options</div>
                             <div className="text-[10px] text-[var(--muted)] mb-2">Select each gate’s size/price.</div>
