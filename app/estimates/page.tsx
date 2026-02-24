@@ -2385,13 +2385,11 @@ function EstimatesPageInner() {
         const cornerAdjust = Number(materialsDetails.horizontalCedarCornerAdjust) || 0;
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
-        const horizontalCedarMultiplier = (materialsDetails.topCaps && !materialsDetails.horizontalCedarVerticals) ? 14 : 13;
-
-        // Boards: (segmentLength/12)*multiplier per segment + 1/2 board per post + 1 board per corner
-        const boardsBase = segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * horizontalCedarMultiplier), 0)
-          : (lf > 0 ? Math.ceil((lf / 12) * horizontalCedarMultiplier) : 0);
-        const boards = Math.ceil(boardsBase + posts * 0.5 + cornerCount);
+        const baseBoards = panels > 0 ? (panels / 2) * 13 : 0;
+        const verticalBoards = posts > 0 ? posts * 0.5 : 0;
+        const spineBoards = panels > 0 ? panels * 0.25 : 0;
+        const cornerBoards = cornerCount;
+        const boards = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards);
 
         // Keep these proportional to the reference sheet (274 LF):
         const screwCount = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
