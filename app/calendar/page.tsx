@@ -1502,7 +1502,7 @@ export default function CalendarPage() {
                   const canComplete = (() => {
                     if (!endIso) return false;
                     try {
-                      const end = new Date(endIso + "T12:00:00");
+                      const end = new Date(endIso + "T00:00:00");
                       return today0.getTime() >= end.getTime();
                     } catch {
                       return false;
