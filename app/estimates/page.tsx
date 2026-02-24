@@ -692,6 +692,102 @@ function EstimatesPageInner() {
       thumb: "/vinyl_colors.jpeg"
     },
     {
+      type: "vinyl",
+      name: "Provincetown",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Plymouth",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Ellington",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Chelsea",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Hampshire",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Monterey",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Richmond",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Abbington",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Classic",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Stratford",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Barrington",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Hartford",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Cross Buck",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "2 Rail Horse",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "3 Rail Horse",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "4 Rail Horse",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
       type: "aluminum",
       name: "Mansfield",
       thumb: "/style-thumbs/aluminum/mansfield.jpg"
@@ -1067,6 +1163,35 @@ function EstimatesPageInner() {
     } as const;
   }, []);
 
+  const vinylPicketMatrix = useMemo(() => {
+    const sixEight = [6, 8];
+    const heights345 = [3, 4, 5];
+    return {
+      Provincetown: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Plymouth: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Ellington: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Chelsea: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Hampshire: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Monterey: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: [3, 4] },
+      Richmond: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Abbington: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Classic: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: [3, 4] },
+      Stratford: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Barrington: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 },
+      Hartford: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights345 }
+    } as const;
+  }, []);
+
+  const vinylHorseMatrix = useMemo(() => {
+    // Brochure section for horse fencing does not list panel width/height; these defaults keep it selectable.
+    return {
+      "Cross Buck": { colors: ["White", "Tan", "Khaki"], widths: [8], heights: [4] },
+      "2 Rail Horse": { colors: ["White", "Tan", "Khaki"], widths: [8], heights: [4] },
+      "3 Rail Horse": { colors: ["White", "Tan", "Khaki"], widths: [8], heights: [4] },
+      "4 Rail Horse": { colors: ["White", "Tan", "Khaki"], widths: [8], heights: [4] }
+    } as const;
+  }, []);
+
   const vinylAllowed = useMemo(() => {
     if (selectedFenceType !== "vinyl" || !selectedStyle?.name) {
       return {
@@ -1077,7 +1202,7 @@ function EstimatesPageInner() {
     }
 
     const matrix = vinylStyleTab === "pool"
-      ? vinylPoolMatrix
+      ? ({ ...vinylPoolMatrix, ...vinylPicketMatrix, ...vinylHorseMatrix } as const)
       : (vinylStyleTab === "semi-privacy" ? vinylSemiPrivacyMatrix : vinylPrivacyMatrix);
     const entry = (matrix as any)[selectedStyle.name];
     if (!entry) {
@@ -1093,7 +1218,7 @@ function EstimatesPageInner() {
     const widths = typeof entry.getWidths === "function" ? entry.getWidths(curColor) : (entry.widths || [6]);
     const heights = typeof entry.getHeights === "function" ? entry.getHeights(curColor) : (entry.heights || [6]);
     return { colors, widths, heights };
-  }, [materialsDetails.vinylColor, selectedFenceType, selectedStyle?.name, vinylPoolMatrix, vinylPrivacyMatrix, vinylSemiPrivacyMatrix, vinylStyleTab]);
+  }, [materialsDetails.vinylColor, selectedFenceType, selectedStyle?.name, vinylHorseMatrix, vinylPicketMatrix, vinylPoolMatrix, vinylPrivacyMatrix, vinylSemiPrivacyMatrix, vinylStyleTab]);
 
   useEffect(() => {
     if (selectedFenceType !== "vinyl") return;
