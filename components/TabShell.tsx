@@ -212,27 +212,15 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                       type="button"
                       onPointerDown={(e) => {
                         try {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        } catch {
-                          // ignore
-                        }
-                        let pushErr = "";
-                        try {
-                          router.push(t.href);
-                        } catch (err) {
-                          pushErr = err instanceof Error ? err.message : String(err || "");
-                        }
-                        try {
-                          window.location.assign(t.href);
+                          window.location.href = t.href;
                         } catch (err) {
                           const msg = err instanceof Error ? err.message : String(err || "");
-                          setTabTapDebug((prev) => `${prev || ""} navErr=${msg || pushErr}`.slice(0, 220));
+                          setTabTapDebug((prev) => `${prev || ""} navErr=${msg}`.slice(0, 220));
                         }
                       }}
                       onClick={() => {
                         try {
-                          router.push(t.href);
+                          window.location.href = t.href;
                         } catch {
                           try {
                             window.location.href = t.href;
