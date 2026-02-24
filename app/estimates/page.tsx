@@ -935,6 +935,43 @@ function EstimatesPageInner() {
   const [takeoffError, setTakeoffError] = useState<string | null>(null);
   const takeoffErrorRef = useRef<string | null>(null);
 
+  const takeoffDiagnostics = useMemo(() => {
+    try {
+      const baseId = baseComboCardId || null;
+      const eligibleSegments = segments.filter((s) => !s.removed && (Number(s.length) || 0) > 0);
+      const cardsWithStyle = comboCards.filter((c) => Boolean(c.selectedStyle));
+      const perCard = comboCards.map((c) => {
+        const assigned = eligibleSegments.filter((s) => {
+          const cid = (s as any).cardId ?? null;
+          const resolved = cid === null ? baseId : cid;
+          return resolved === c.id;
+        }).length;
+        return {
+          id: c.id,
+          hasStyle: Boolean(c.selectedStyle),
+          fenceType: c.fenceType,
+          assignedSegments: assigned
+        };
+      });
+
+      const hasEligibleSegments = eligibleSegments.length > 0;
+      const hasStyledCards = cardsWithStyle.length > 0;
+      const hasAnyAssignedToStyled = perCard.some((p) => p.hasStyle && p.assignedSegments > 0);
+
+      return {
+        baseId,
+        activeId: String(activeComboCardId || ""),
+        eligibleSegments: eligibleSegments.length,
+        hasEligibleSegments,
+        hasStyledCards,
+        hasAnyAssignedToStyled,
+        perCard
+      };
+    } catch {
+      return null;
+    }
+  }, [activeComboCardId, baseComboCardId, comboCards, segments]);
+
   const [materialUnitPriceDrafts, setMaterialUnitPriceDrafts] = useState<Record<string, string>>({});
   const touchedMaterialUnitPricesRef = useRef<Set<string>>(new Set());
   const materialUnitPricesActive = useMemo(() => {
@@ -7802,6 +7839,16 @@ function EstimatesPageInner() {
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
+              {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.16)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.98)] shadow-glass">
+                  {(() => {
+                    if (!takeoffDiagnostics.hasStyledCards) return "No takeoff yet: pick a style.";
+                    if (!takeoffDiagnostics.hasEligibleSegments) return "No takeoff yet: enter at least one segment length.";
+                    if (!takeoffDiagnostics.hasAnyAssignedToStyled) return "No takeoff: your measured segments are not assigned to a styled card. Assign segments to Card 1 (or pick a style on the card they’re assigned to).";
+                    return "No takeoff yet.";
+                  })()}
+                </div>
+              ) : null}
               {takeoffError ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
                   {takeoffError}
