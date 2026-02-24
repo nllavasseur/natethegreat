@@ -137,6 +137,20 @@ export default function EstimateContractPage() {
     requestAnimationFrame(() => window.print());
   }, [setPrintScale]);
 
+  const handleEmail = React.useCallback(() => {
+    try {
+      if (!data) return;
+      const to = String(data.estimate?.customer?.email || "").trim();
+      if (!to) return;
+      const subject = `Vasseur Fencing estimate ${String(data.estimate?.id || "").trim() || ""}`.trim();
+      const body = `Hi ${String(data.estimate?.customer?.name || "").trim() || ""},\n\nAttached is your estimate.\n\nThanks,\nVasseur Fencing`;
+      const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = url;
+    } catch {
+      // ignore
+    }
+  }, [data]);
+
   if (!data) {
     return (
       <div style={{ padding: 16 }}>
@@ -179,6 +193,7 @@ export default function EstimateContractPage() {
             <div className="stickyBackInner">
               <div className="stickyBar">
                 <button onClick={() => window.history.back()} className="backBtnHalf">Back</button>
+                <button onClick={handleEmail} className="backBtnHalf" disabled={!estimate.customer.email}>Email</button>
                 <button onClick={handlePrint} className="backBtnHalf">Print / Save PDF</button>
               </div>
             </div>
@@ -399,7 +414,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 
 .stickyBack{ position:fixed; left:0; right:0; bottom:0; z-index:50; padding:0 16px calc(env(safe-area-inset-bottom) + 16px); }
 .stickyBackInner{ max-width:980px; margin:0 auto; padding-top:12px; }
-.stickyBar{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.stickyBar{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 .backBtnHalf{
   width:100%;
   height:64px;
