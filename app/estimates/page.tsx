@@ -1015,6 +1015,10 @@ function EstimatesPageInner() {
       return {
         total: 0,
         line: 0,
+        corner: 0,
+        end: 0,
+        gate: 0,
+        blank: 0,
         gateDerived: 0
       };
     }
@@ -1042,7 +1046,7 @@ function EstimatesPageInner() {
     const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
     const line = Math.max(0, total - (corner + gate + end + blank));
 
-    return { total, line, gateDerived };
+    return { total, line, corner, end, gate, blank, gateDerived };
   }, [activeCardDoubleGates, activeCardSegments, activeCardWalkGates, extraPosts, materialsDetails.aluminumBlankPosts, materialsDetails.aluminumCornerPosts, materialsDetails.aluminumEndPosts, materialsDetails.aluminumGateAuto, materialsDetails.aluminumGatePosts, selectedFenceType]);
 
   const vinylSummary = useMemo(() => {
@@ -1539,7 +1543,7 @@ function EstimatesPageInner() {
 
     const aluminumPostsSummary = (() => {
       if (selectedFenceType !== "aluminum") {
-        return { total: 0, line: 0, gateDerived: 0 };
+        return { total: 0, line: 0, corner: 0, end: 0, gate: 0, blank: 0, gateDerived: 0 };
       }
 
       const segmentLengths = segments
@@ -1562,7 +1566,7 @@ function EstimatesPageInner() {
 
       const total = Math.max(0, postsBase + corner + end + gate + blank + (Number(extraPosts) || 0));
       const line = Math.max(0, total - (corner + gate + end + blank));
-      return { total, line, gateDerived };
+      return { total, line, corner, end, gate, blank, gateDerived };
     })();
 
     const vinylSummary = (() => {
@@ -2618,13 +2622,11 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / w), 0)
         : (lf > 0 ? Math.ceil(lf / w) : 0);
 
-      const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
-      const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
-      const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
-      const gate = materialsDetails.aluminumGateAuto
-        ? aluminumPostsSummary.gateDerived
-        : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
-      const line = Math.max(0, aluminumPostsSummary.total - (corner + gate + end + blank));
+      const corner = aluminumPostsSummary.corner;
+      const end = aluminumPostsSummary.end;
+      const blank = aluminumPostsSummary.blank;
+      const gate = aluminumPostsSummary.gate;
+      const line = aluminumPostsSummary.line;
 
       // Concrete: 160lb per post (2x 80lb bags per post). Priced using 60lb bag line item.
       const concrete80Bags = Math.max(0, aluminumPostsSummary.total) * 2;
