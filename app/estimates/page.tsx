@@ -591,7 +591,7 @@ function EstimatesPageInner() {
     },
     {
       type: "vinyl",
-      name: "Agusta",
+      name: "Augusta",
       group: "privacy",
       thumb: "/augusta.jpg"
     },
@@ -612,6 +612,84 @@ function EstimatesPageInner() {
       name: "Scottsdale",
       group: "privacy",
       thumb: "/scottsdale.jpg"
+    },
+    {
+      type: "vinyl",
+      name: "Neptune",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Williamsport",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Atlantis",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Crestview",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Hanover",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Captiva",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Sarasota",
+      group: "pool",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Davenport",
+      group: "semi-privacy",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Glendale",
+      group: "semi-privacy",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Alden",
+      group: "semi-privacy",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Everglade",
+      group: "semi-privacy",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Huntington",
+      group: "semi-privacy",
+      thumb: "/vinyl_colors.jpeg"
+    },
+    {
+      type: "vinyl",
+      name: "Meridian",
+      group: "semi-privacy",
+      thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "aluminum",
@@ -953,10 +1031,39 @@ function EstimatesPageInner() {
       Calgary: { colors: ["White"], widths: sixEight, heights: heights678 },
       Gideon: { colors: ["White"], widths: sixEight, heights: heights678 },
       Ashton: { colors: ["White", "Tan", "Khaki"], widths: fourSixEight, heights: heights5678 },
+      Augusta: { colors: ["White", "Tan", "Gray", "Khaki"], widths: sixEight, heights: heights678 },
+      // Backwards compatibility for older drafts saved with a misspelling.
       Agusta: { colors: ["White", "Tan", "Gray", "Khaki"], widths: sixEight, heights: heights678 },
       Bradford: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights5678 },
       Mason: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights5678 },
       Scottsdale: { colors: ["White"], widths: sixEight, heights: heights5678 }
+    } as const;
+  }, []);
+
+  const vinylPoolMatrix = useMemo(() => {
+    const sixEight = [6, 8];
+    const heights45 = [4, 5];
+    return {
+      Neptune: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 },
+      Williamsport: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 },
+      Atlantis: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 },
+      Crestview: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 },
+      Hanover: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 },
+      Captiva: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 },
+      Sarasota: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights45 }
+    } as const;
+  }, []);
+
+  const vinylSemiPrivacyMatrix = useMemo(() => {
+    const sixEight = [6, 8];
+    const heights56 = [5, 6];
+    return {
+      Davenport: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights56 },
+      Glendale: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights56 },
+      Alden: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights56 },
+      Everglade: { colors: ["White", "Tan", "Khaki"], widths: [8], heights: [6] },
+      Huntington: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights56 },
+      Meridian: { colors: ["White", "Tan", "Khaki"], widths: sixEight, heights: heights56 }
     } as const;
   }, []);
 
@@ -969,7 +1076,10 @@ function EstimatesPageInner() {
       };
     }
 
-    const entry = (vinylPrivacyMatrix as any)[selectedStyle.name];
+    const matrix = vinylStyleTab === "pool"
+      ? vinylPoolMatrix
+      : (vinylStyleTab === "semi-privacy" ? vinylSemiPrivacyMatrix : vinylPrivacyMatrix);
+    const entry = (matrix as any)[selectedStyle.name];
     if (!entry) {
       return {
         colors: ["White"],
@@ -983,7 +1093,7 @@ function EstimatesPageInner() {
     const widths = typeof entry.getWidths === "function" ? entry.getWidths(curColor) : (entry.widths || [6]);
     const heights = typeof entry.getHeights === "function" ? entry.getHeights(curColor) : (entry.heights || [6]);
     return { colors, widths, heights };
-  }, [materialsDetails.vinylColor, selectedFenceType, selectedStyle?.name, vinylPrivacyMatrix]);
+  }, [materialsDetails.vinylColor, selectedFenceType, selectedStyle?.name, vinylPoolMatrix, vinylPrivacyMatrix, vinylSemiPrivacyMatrix, vinylStyleTab]);
 
   useEffect(() => {
     if (selectedFenceType !== "vinyl") return;
