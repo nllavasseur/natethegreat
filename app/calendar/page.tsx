@@ -1174,6 +1174,20 @@ export default function CalendarPage() {
                 <div className="mt-3 grid gap-2">
                   {dayJobs.map((j) => {
                     const pos = soldQueue.findIndex((q) => q.id === j.id);
+                    const phone = String((j as any).customerPhone || (j as any).phone || (j as any).phoneNumber || "");
+                    const address = String((j as any).projectAddress || (j as any).address || "");
+                    const canCall = Boolean(phone);
+                    const canNav = Boolean(address);
+                    const openNav = () => {
+                      if (!address) return;
+                      const q = encodeURIComponent(address);
+                      window.open(`https://maps.apple.com/?q=${q}`, "_blank", "noopener,noreferrer");
+                    };
+                    const openCall = () => {
+                      if (!phone) return;
+                      const p = phone.replace(/[^0-9+]/g, "");
+                      window.location.assign(`tel:${p}`);
+                    };
                     return (
                       <div
                         key={j.id}
@@ -1198,19 +1212,62 @@ export default function CalendarPage() {
                             />
                           </div>
                         </div>
-                      <div className="text-[11px] text-[var(--muted)] mt-1">
-                        {(j as any).status === "estimate" && String((j as any).scheduledAt || "")
-                          ? `Scheduled ${formatTimeLocal(String((j as any).scheduledAt))}`
-                          : (j as any).installDate
-                            ? `Start ${(j as any).installDate}`
-                            : ""}
-                        {(j as any).status === "estimate" ? "" : (j as any).end ? ` · End ${(j as any).end.toISOString().slice(0, 10)}` : ""}
-                      </div>
-                      <div className="text-[11px] text-[var(--muted)] mt-1">
-                        {(j.selectedStyle?.name || "").trim()}
-                        {totalLfFromDraft(j) ? ` · ${Math.round(totalLfFromDraft(j))} LF` : ""}
-                        {j.projectAddress ? ` · ${j.projectAddress}` : ""}
-                      </div>
+
+                        <div className="text-[11px] text-[var(--muted)] mt-1">
+                          {(j as any).status === "estimate" && String((j as any).scheduledAt || "")
+                            ? `Scheduled ${formatTimeLocal(String((j as any).scheduledAt))}`
+                            : (j as any).installDate
+                              ? `Start ${(j as any).installDate}`
+                              : ""}
+                          {(j as any).status === "estimate" ? "" : (j as any).end ? ` · End ${(j as any).end.toISOString().slice(0, 10)}` : ""}
+                        </div>
+
+                        <div className="text-[11px] text-[var(--muted)] mt-1">
+                          {(j.selectedStyle?.name || "").trim()}
+                          {totalLfFromDraft(j) ? ` · ${Math.round(totalLfFromDraft(j))} LF` : ""}
+                          {j.projectAddress ? ` · ${j.projectAddress}` : ""}
+                        </div>
+
+                        {(canCall || canNav) ? (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              disabled={!canCall}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openCall();
+                              }}
+                              className={
+                                "rounded-xl border px-3 py-2 text-[12px] font-black " +
+                                (canCall
+                                  ? "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] hover:bg-[rgba(31,200,120,.18)]"
+                                  : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
+                              }
+                            >
+                              Call
+                            </button>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              disabled={!canNav}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openNav();
+                              }}
+                              className={
+                                "rounded-xl border px-3 py-2 text-[12px] font-black " +
+                                (canNav
+                                  ? "border-[rgba(80,160,255,.45)] bg-[rgba(80,160,255,.12)] hover:bg-[rgba(80,160,255,.18)]"
+                                  : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
+                              }
+                            >
+                              Navigate
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}
