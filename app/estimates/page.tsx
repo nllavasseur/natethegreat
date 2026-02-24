@@ -2754,6 +2754,32 @@ function EstimatesPageInner() {
       return acc;
     }, new Map<string, QuoteItem>());
 
+    // Gate accessories should reflect the estimate-level gate count, not multiply per card/run.
+    const totalWalkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length);
+    const totalDoubleGates = Math.max(0, segments.filter((s) => !s.removed).filter((s: any) => (s as any).gateType === "double").length);
+
+    const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
+      const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
+      if (qty <= 0) {
+        merged.delete(k);
+        return;
+      }
+      const prev = merged.get(k);
+      if (prev) {
+        prev.qty = qty;
+        prev.name = name;
+        prev.unit = unit;
+        prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
+      } else {
+        const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
+        merged.set(k, { section: "materials", name, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 });
+      }
+    };
+
+    ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
+    ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
+    ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
+
     return Array.from(merged.values());
   }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
 
