@@ -2362,10 +2362,11 @@ function EstimatesPageInner() {
 
       // Rails = 3 rails per section at 7.5' centers for picture framed.
       // For non-picture-framed styles we keep the existing 15' rail heuristic.
+      const pictureFramedRailsPerSection = materialsDetails.postCaps ? 4 : 3;
       const rails = isPictureFramed
         ? (segmentLengths.length
-            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * 3), 0)
-            : (totalLf > 0 ? Math.ceil((totalLf / 7.5) * 3) : 0))
+            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * pictureFramedRailsPerSection), 0)
+            : (totalLf > 0 ? Math.ceil((totalLf / 7.5) * pictureFramedRailsPerSection) : 0))
         : (segmentLengths.length
             ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
             : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0));
