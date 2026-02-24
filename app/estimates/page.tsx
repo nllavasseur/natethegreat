@@ -3977,6 +3977,42 @@ function EstimatesPageInner() {
     };
   }, [draftId, projectPhoto, projectPhotoDataUrl]);
 
+  const lastPersistedProjectPhotoRef = useRef<string>("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!draftId) return;
+    if (restoringRef.current) return;
+
+    const key = `${draftId}::${String(projectPhotoUrl || "")}::${String(projectPhotoPath || "")}::${String(projectPhotoDataUrl || "")}`;
+    if (lastPersistedProjectPhotoRef.current === key) return;
+    lastPersistedProjectPhotoRef.current = key;
+
+    try {
+      const store = readDraftStore();
+      const prev = (store as any)[draftId] ?? {};
+      const next = {
+        ...prev,
+        projectPhotoUrl: typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl,
+        projectPhotoPath,
+        projectPhotoDataUrl: typeof projectPhotoDataUrl === "string" && projectPhotoDataUrl.startsWith("data:") ? projectPhotoDataUrl : null,
+        updatedAt: Date.now()
+      };
+      (store as any)[draftId] = next;
+      try {
+        writeDraftStore(store);
+      } catch {
+        // ignore
+      }
+      try {
+        void upsertDraft({ id: draftId, data: next });
+      } catch {
+        // ignore
+      }
+    } catch {
+      // ignore
+    }
+  }, [draftId, projectPhotoUrl, projectPhotoPath, projectPhotoDataUrl]);
+
   useEffect(() => {
     const read = () => {
       if (typeof window === "undefined") return;
