@@ -21,13 +21,28 @@ function emptyItem(section: SectionKey): QuoteItem {
 }
 
 function normalizeUnitPriceKey(name: string) {
-  const s = String(name || "").trim();
-  if (s.startsWith("Concrete 60lb Bag")) return "Concrete 60lb Bag";
-  if (s === "Cedar trim") return "1x4 x 8' Cedar Trim";
-  if (s === "4x4x10' Pressure Treated Post") return "4x4 x 10' Pressure Treated Post";
-  if (s === "4x4x10' CedarTone Post") return "4x4 x 10' CedarTone Post";
-  if (s === "4x4x10' Cedar S4S Post") return "4x4 x 10' Cedar S4S Post";
-  return s;
+  const v = String(name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+  return v;
+}
+
+function canonicalMaterialsMergeKey(name: string) {
+  let v = String(name || "").trim().toLowerCase();
+
+  // Drop parenthetical notes that should not create separate line items.
+  v = v.replace(/\([^)]*\)/g, "");
+
+  // Normalize common synonyms / phrasing.
+  v = v.replace(/pressure\s*treated/g, "");
+  v = v.replace(/\bposts\b/g, "post");
+
+  // Normalize punctuation/spacing.
+  v = v.replace(/[^a-z0-9x' ]+/g, " ");
+  v = v.replace(/\s+/g, " ").trim();
+
+  return v;
 }
 
 function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number>; name: string; priceKey?: string }) {
@@ -1596,7 +1611,7 @@ function EstimatesPageInner() {
         ];
 
         const combinedRows = rows.reduce((acc, r) => {
-          const key = `${r.name}__${r.unit}`;
+          const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
           const prev = acc.get(key);
           if (prev) {
             prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
@@ -2760,7 +2775,7 @@ function EstimatesPageInner() {
     }
 
     const merged = allRows.reduce((acc, r) => {
-      const key = `${r.name}__${r.unit}`;
+      const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
       const prev = acc.get(key);
       if (prev) {
         prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
