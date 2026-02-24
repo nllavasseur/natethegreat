@@ -3458,9 +3458,9 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
-      projectPhotoUrl,
+      projectPhotoUrl: typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl,
       projectPhotoPath,
-      projectPhotoDataUrl,
+      projectPhotoDataUrl: null,
       selectedFenceType,
       selectedStyle,
       materialsDetails,
@@ -3479,7 +3479,7 @@ function EstimatesPageInner() {
       doubleGateCount,
       referenceLength,
       notes,
-      preInstallPhotos,
+      preInstallPhotos: stripDataUrlsFromPreInstall(preInstallPhotos),
       segments,
       items,
       status,
@@ -3767,6 +3767,72 @@ function EstimatesPageInner() {
     });
   }
 
+  function fileToCompressedBlob(file: File, maxSide = 1280, quality = 0.72): Promise<Blob | null> {
+    if (typeof window === "undefined") return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      let objectUrl: string | null = null;
+      try {
+        objectUrl = window.URL.createObjectURL(file);
+      } catch {
+        objectUrl = null;
+      }
+
+      if (!objectUrl) {
+        resolve(null);
+        return;
+      }
+
+      const img = new window.Image();
+      img.onload = () => {
+        try {
+          const w = Number(img.naturalWidth || img.width || 0);
+          const h = Number(img.naturalHeight || img.height || 0);
+          if (!w || !h) {
+            resolve(null);
+            return;
+          }
+
+          const scale = Math.min(1, maxSide / Math.max(w, h));
+          const outW = Math.max(1, Math.round(w * scale));
+          const outH = Math.max(1, Math.round(h * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = outW;
+          canvas.height = outH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, outW, outH);
+          canvas.toBlob(
+            (blob) => resolve(blob ?? null),
+            "image/jpeg",
+            quality
+          );
+        } catch {
+          resolve(null);
+        } finally {
+          try {
+            if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+          } catch {
+            // ignore
+          }
+        }
+      };
+      img.onerror = () => {
+        try {
+          if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+        } catch {
+          // ignore
+        }
+        resolve(null);
+      };
+      img.src = objectUrl;
+    });
+  }
+
   function recompressDataUrl(dataUrl: string, maxSide = 1280, quality = 0.72): Promise<string | null> {
     if (typeof window === "undefined") return Promise.resolve(null);
     if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) return Promise.resolve(null);
@@ -3891,11 +3957,16 @@ function EstimatesPageInner() {
           setProjectPhotoUrl(res.url);
           return;
         }
-        fileToCompressedDataUrl(projectPhoto, 1280, 0.72).then((result) => {
+        fileToCompressedBlob(projectPhoto, 1280, 0.72).then((blob) => {
           if (cancelled) return;
-          setProjectPhotoDataUrl(result);
-          setProjectPhotoPath(null);
-          setProjectPhotoUrl(result);
+          if (!blob) return;
+          uploadDraftPhoto({ draftId: idForPhoto, file: blob, filename: (projectPhoto as any)?.name, kind: "project" }).then((res2) => {
+            if (cancelled) return;
+            if (!res2.ok) return;
+            setProjectPhotoDataUrl(null);
+            setProjectPhotoPath(res2.path);
+            setProjectPhotoUrl(res2.url);
+          });
         });
       });
       return () => {
@@ -6045,7 +6116,7 @@ function EstimatesPageInner() {
             if (!draftId) setDraftId(draftIdForPhoto);
 
             Promise.all(
-              files.map(async (file) => {
+              files.map(async (file): Promise<{ src: string; srcPath?: string; note: string; createdAt: number } | null> => {
                 const uploaded = await uploadDraftPhoto({
                   draftId: draftIdForPhoto,
                   file,
@@ -6055,14 +6126,19 @@ function EstimatesPageInner() {
                 if (uploaded.ok) {
                   return { src: uploaded.url, srcPath: uploaded.path, note: "", createdAt: Date.now() };
                 }
-                const data = await fileToCompressedDataUrl(file, 1280, 0.72);
-                if (typeof data === "string" && data.startsWith("data:")) {
-                  return { src: data, srcPath: undefined, note: "", createdAt: Date.now() };
-                }
-                return null;
+                const blob = await fileToCompressedBlob(file, 1280, 0.72);
+                if (!blob) return null;
+                const uploaded2 = await uploadDraftPhoto({
+                  draftId: draftIdForPhoto,
+                  file: blob,
+                  filename: (file as any)?.name,
+                  kind: "preinstall"
+                });
+                if (!uploaded2.ok) return null;
+                return { src: uploaded2.url, srcPath: uploaded2.path, note: "", createdAt: Date.now() };
               })
             ).then((addedRaw) => {
-              const added = addedRaw.filter((x): x is { src: string; srcPath?: string; note: string; createdAt: number } => Boolean(x && x.src));
+              const added = addedRaw.filter((x): x is NonNullable<typeof x> => Boolean(x && x.src));
               if (added.length === 0) return;
               setPreInstallPhotos((prev) => [...prev, ...added]);
               setNotePhotoIdx((cur) => (cur == null ? startIdx : cur));
