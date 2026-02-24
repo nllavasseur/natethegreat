@@ -3429,8 +3429,11 @@ function EstimatesPageInner() {
         console.error(e);
       } catch {
       }
+      const errAny = e as any;
+      const name = typeof errAny?.name === "string" ? errAny.name : (e instanceof Error ? e.name : "");
       const msg = e instanceof Error ? e.message : String(e);
-      setSaveError(msg ? `Failed to save: ${msg}` : "Failed to save.");
+      const details = String(msg || "").trim() || String(name || "").trim();
+      setSaveError(details ? `Failed to save: ${details}` : "Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -3459,8 +3462,11 @@ function EstimatesPageInner() {
         console.error(e);
       } catch {
       }
+      const errAny = e as any;
+      const name = typeof errAny?.name === "string" ? errAny.name : (e instanceof Error ? e.name : "");
       const msg = e instanceof Error ? e.message : String(e);
-      setSaveError(msg ? `Failed to save: ${msg}` : "Failed to save.");
+      const details = String(msg || "").trim() || String(name || "").trim();
+      setSaveError(details ? `Failed to save: ${details}` : "Failed to save.");
     } finally {
       setSavingAsNew(false);
     }
