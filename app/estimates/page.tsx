@@ -263,11 +263,11 @@ type MaterialsDetails = {
   vinylColor: string;
   vinylPanelWidthFt: number;
   vinylPanelHeightFt: number;
-  vinylCornerPosts: boolean;
-  vinylEndPosts: boolean;
-  vinylBlankPosts: boolean;
-  vinylThreeWayPosts: boolean;
-  vinylPostStiffeners: boolean;
+  vinylCornerPosts: number;
+  vinylEndPosts: number;
+  vinylBlankPosts: number;
+  vinylThreeWayPosts: number;
+  vinylPostStiffeners: number;
   railEndBracketPacks: number;
 };
 
@@ -316,11 +316,11 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   vinylColor: "White",
   vinylPanelWidthFt: 6,
   vinylPanelHeightFt: 6,
-  vinylCornerPosts: false,
-  vinylEndPosts: false,
-  vinylBlankPosts: false,
-  vinylThreeWayPosts: false,
-  vinylPostStiffeners: false,
+  vinylCornerPosts: 0,
+  vinylEndPosts: 0,
+  vinylBlankPosts: 0,
+  vinylThreeWayPosts: 0,
+  vinylPostStiffeners: 0,
   railEndBracketPacks: 0
 };
 
@@ -792,6 +792,11 @@ function EstimatesPageInner() {
       String(materialsDetails.vinylColor || "White") !== "White" ||
       (Number(materialsDetails.vinylPanelWidthFt) || 6) !== 6 ||
       (Number(materialsDetails.vinylPanelHeightFt) || 6) !== 6 ||
+      (Number(materialsDetails.vinylCornerPosts) || 0) !== 0 ||
+      (Number(materialsDetails.vinylEndPosts) || 0) !== 0 ||
+      (Number(materialsDetails.vinylBlankPosts) || 0) !== 0 ||
+      (Number(materialsDetails.vinylThreeWayPosts) || 0) !== 0 ||
+      (Number(materialsDetails.vinylPostStiffeners) || 0) !== 0 ||
       (Number(materialsDetails.railEndBracketPacks) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
@@ -2529,9 +2534,28 @@ function EstimatesPageInner() {
       const postsBase = panels > 0 ? panels + 1 : 0;
       const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
+      const corner = Math.max(0, Math.floor(Number(materialsDetails.vinylCornerPosts) || 0));
+      const end = Math.max(0, Math.floor(Number(materialsDetails.vinylEndPosts) || 0));
+      const blank = Math.max(0, Math.floor(Number(materialsDetails.vinylBlankPosts) || 0));
+      const threeWay = Math.max(0, Math.floor(Number(materialsDetails.vinylThreeWayPosts) || 0));
+      const stiffeners = Math.max(0, Math.floor(Number(materialsDetails.vinylPostStiffeners) || 0));
+      const gatePosts = Math.max(0, Math.floor(Number(gatePostsAdd) || 0));
+      const line = Math.max(0, posts - (corner + end + blank + threeWay + gatePosts));
+
+      const walkGateQty = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
+      const doubleGateQty = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isDoubleGateSegment(s)).length);
+
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: `Vinyl ${selectedStyle.name} panel ${panelH}' x ${panelW}' (${color})`, qty: panels, unit: "ea" },
-        { name: "Vinyl posts", qty: posts, unit: "ea" }
+        ...(line > 0 ? [{ name: "Vinyl line post", qty: line, unit: "ea" }] : []),
+        ...(corner > 0 ? [{ name: "Vinyl corner post", qty: corner, unit: "ea" }] : []),
+        ...(end > 0 ? [{ name: "Vinyl end post", qty: end, unit: "ea" }] : []),
+        ...(blank > 0 ? [{ name: "Vinyl blank post", qty: blank, unit: "ea" }] : []),
+        ...(threeWay > 0 ? [{ name: "Vinyl 3-way post", qty: threeWay, unit: "ea" }] : []),
+        ...(gatePosts > 0 ? [{ name: "Vinyl gate post", qty: gatePosts, unit: "ea" }] : []),
+        ...(stiffeners > 0 ? [{ name: "Vinyl post stiffener", qty: stiffeners, unit: "ea" }] : []),
+        ...(walkGateQty > 0 ? [{ name: "Vinyl walk gate", qty: walkGateQty, unit: "ea" }] : []),
+        ...(doubleGateQty > 0 ? [{ name: "Vinyl double gate", qty: doubleGateQty, unit: "ea" }] : [])
       ];
 
       return rows
@@ -4233,11 +4257,21 @@ function EstimatesPageInner() {
       const vinylColor = typeof dd.vinylColor === "string" ? dd.vinylColor : "White";
       const vinylPanelWidthFt = Number.isFinite(Number(dd.vinylPanelWidthFt)) ? Number(dd.vinylPanelWidthFt) : 6;
       const vinylPanelHeightFt = Number.isFinite(Number(dd.vinylPanelHeightFt)) ? Number(dd.vinylPanelHeightFt) : 6;
-      const vinylCornerPosts = typeof dd.vinylCornerPosts === "boolean" ? dd.vinylCornerPosts : false;
-      const vinylEndPosts = typeof dd.vinylEndPosts === "boolean" ? dd.vinylEndPosts : false;
-      const vinylBlankPosts = typeof dd.vinylBlankPosts === "boolean" ? dd.vinylBlankPosts : false;
-      const vinylThreeWayPosts = typeof dd.vinylThreeWayPosts === "boolean" ? dd.vinylThreeWayPosts : false;
-      const vinylPostStiffeners = typeof dd.vinylPostStiffeners === "boolean" ? dd.vinylPostStiffeners : false;
+      const vinylCornerPosts = Number.isFinite(Number(dd.vinylCornerPosts))
+        ? Math.max(0, Math.floor(Number(dd.vinylCornerPosts)))
+        : (typeof dd.vinylCornerPosts === "boolean" ? (dd.vinylCornerPosts ? 1 : 0) : 0);
+      const vinylEndPosts = Number.isFinite(Number(dd.vinylEndPosts))
+        ? Math.max(0, Math.floor(Number(dd.vinylEndPosts)))
+        : (typeof dd.vinylEndPosts === "boolean" ? (dd.vinylEndPosts ? 1 : 0) : 0);
+      const vinylBlankPosts = Number.isFinite(Number(dd.vinylBlankPosts))
+        ? Math.max(0, Math.floor(Number(dd.vinylBlankPosts)))
+        : (typeof dd.vinylBlankPosts === "boolean" ? (dd.vinylBlankPosts ? 1 : 0) : 0);
+      const vinylThreeWayPosts = Number.isFinite(Number(dd.vinylThreeWayPosts))
+        ? Math.max(0, Math.floor(Number(dd.vinylThreeWayPosts)))
+        : (typeof dd.vinylThreeWayPosts === "boolean" ? (dd.vinylThreeWayPosts ? 1 : 0) : 0);
+      const vinylPostStiffeners = Number.isFinite(Number(dd.vinylPostStiffeners))
+        ? Math.max(0, Math.floor(Number(dd.vinylPostStiffeners)))
+        : (typeof dd.vinylPostStiffeners === "boolean" ? (dd.vinylPostStiffeners ? 1 : 0) : 0);
       const mansfieldBlankGatePost = typeof dd.mansfieldBlankGatePost === "boolean" ? dd.mansfieldBlankGatePost : false;
 
       setMaterialsDetails((prev) => ({
@@ -6468,97 +6502,134 @@ function EstimatesPageInner() {
 
 
                       <div className="mt-3 grid gap-2">
-                        <div className="text-[11px] text-[var(--muted)]">Post toggles</div>
+                        <div className="text-[11px] text-[var(--muted)]">Post selectors</div>
 
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylCornerPosts: !p.vinylCornerPosts }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
-                            (materialsDetails.vinylCornerPosts
-                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.vinylCornerPosts}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>Corner posts</div>
-                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylCornerPosts ? "On" : "Off"}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Corner posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylCornerPosts: Math.max(0, Math.floor(Number(p.vinylCornerPosts) || 0) - 1) }))}
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Math.floor(Number(materialsDetails.vinylCornerPosts) || 0))}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylCornerPosts: Math.max(0, Math.floor(Number(p.vinylCornerPosts) || 0) + 1) }))}
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
                           </div>
-                        </button>
 
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylEndPosts: !p.vinylEndPosts }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
-                            (materialsDetails.vinylEndPosts
-                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.vinylEndPosts}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>End posts</div>
-                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylEndPosts ? "On" : "Off"}</div>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">End posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylEndPosts: Math.max(0, Math.floor(Number(p.vinylEndPosts) || 0) - 1) }))}
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Math.floor(Number(materialsDetails.vinylEndPosts) || 0))}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylEndPosts: Math.max(0, Math.floor(Number(p.vinylEndPosts) || 0) + 1) }))}
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
                           </div>
-                        </button>
 
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylBlankPosts: !p.vinylBlankPosts }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
-                            (materialsDetails.vinylBlankPosts
-                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.vinylBlankPosts}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>Blank posts</div>
-                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylBlankPosts ? "On" : "Off"}</div>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Blank posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylBlankPosts: Math.max(0, Math.floor(Number(p.vinylBlankPosts) || 0) - 1) }))}
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Math.floor(Number(materialsDetails.vinylBlankPosts) || 0))}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylBlankPosts: Math.max(0, Math.floor(Number(p.vinylBlankPosts) || 0) + 1) }))}
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
                           </div>
-                        </button>
 
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylThreeWayPosts: !p.vinylThreeWayPosts }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
-                            (materialsDetails.vinylThreeWayPosts
-                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.vinylThreeWayPosts}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>3-way posts</div>
-                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylThreeWayPosts ? "On" : "Off"}</div>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">3-way posts</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylThreeWayPosts: Math.max(0, Math.floor(Number(p.vinylThreeWayPosts) || 0) - 1) }))}
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {Math.max(0, Math.floor(Number(materialsDetails.vinylThreeWayPosts) || 0))}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setMaterialsDetails((p) => ({ ...p, vinylThreeWayPosts: Math.max(0, Math.floor(Number(p.vinylThreeWayPosts) || 0) + 1) }))}
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
                           </div>
-                        </button>
+                        </div>
 
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, vinylPostStiffeners: !p.vinylPostStiffeners }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
-                            (materialsDetails.vinylPostStiffeners
-                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.vinylPostStiffeners}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>Post stiffeners</div>
-                            <div className="text-[11px] text-[var(--muted)]">{materialsDetails.vinylPostStiffeners ? "On" : "Off"}</div>
+                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Post stiffeners</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, vinylPostStiffeners: Math.max(0, Math.floor(Number(p.vinylPostStiffeners) || 0) - 1) }))}
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                              {Math.max(0, Math.floor(Number(materialsDetails.vinylPostStiffeners) || 0))}
+                            </div>
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, vinylPostStiffeners: Math.max(0, Math.floor(Number(p.vinylPostStiffeners) || 0) + 1) }))}
+                            >
+                              +
+                            </PrimaryButton>
                           </div>
-                        </button>
+                        </div>
                       </div>
                     </div>
                   ) : null}
