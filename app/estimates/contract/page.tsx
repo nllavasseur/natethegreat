@@ -174,24 +174,56 @@ export default function EstimateContractPage() {
       const subject = `Vasseur Fencing estimate ${String(data.estimate?.id || "").trim() || ""}`.trim();
       const body = `Hi ${String(data.estimate?.customer?.name || "").trim() || ""},\n\nAttached is your estimate.\n\nThanks,\nVasseur Fencing`;
       const gmailUrl = `googlegmail:///co?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-      // Gmail-only: no fallback, to avoid iOS opening Mailto with the wrong sender.
-      // Note: the sender/from address cannot be controlled here; Gmail uses the user's active/default account.
-      window.location.href = gmailUrl;
-    } catch {
-      // ignore
-    }
-  }, [data]);
-
-  const handleMail = React.useCallback(() => {
-    try {
-      if (!data) return;
-      const to = String(data.estimate?.customer?.email || "").trim();
-      if (!to) return;
-      const subject = `Vasseur Fencing estimate ${String(data.estimate?.id || "").trim() || ""}`.trim();
-      const body = `Hi ${String(data.estimate?.customer?.name || "").trim() || ""},\n\nAttached is your estimate.\n\nThanks,\nVasseur Fencing`;
       const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoUrl;
+
+      // Prefer Gmail app if installed; fall back to mailto.
+      // Note: the sender/from address cannot be controlled here; Gmail uses the user's active/default account.
+      let didBackground = false;
+      const markBackground = () => {
+        didBackground = true;
+      };
+      const onVis = () => {
+        if (document.visibilityState === "hidden") markBackground();
+      };
+
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("pagehide", markBackground);
+      window.addEventListener("blur", markBackground);
+
+      window.location.href = gmailUrl;
+
+      const t = window.setTimeout(() => {
+        try {
+          document.removeEventListener("visibilitychange", onVis);
+          window.removeEventListener("pagehide", markBackground);
+          window.removeEventListener("blur", markBackground);
+        } catch {
+          // ignore
+        }
+
+        if (didBackground) return;
+
+        // Do NOT auto-fallback: it can switch the sender account.
+        // Only offer Mail as an explicit user choice.
+        try {
+          const ok = window.confirm("Gmail didn't open. Use Mail instead?");
+          if (!ok) return;
+          window.location.href = mailtoUrl;
+        } catch {
+          // ignore
+        }
+      }, 700);
+
+      window.setTimeout(() => {
+        try {
+          window.clearTimeout(t);
+          document.removeEventListener("visibilitychange", onVis);
+          window.removeEventListener("pagehide", markBackground);
+          window.removeEventListener("blur", markBackground);
+        } catch {
+          // ignore
+        }
+      }, 4000);
     } catch {
       // ignore
     }
@@ -239,8 +271,7 @@ export default function EstimateContractPage() {
             <div className="stickyBackInner">
               <div className="stickyBar">
                 <button onClick={() => window.history.back()} className="backBtnHalf">Back</button>
-                <button onClick={handleEmail} className="backBtnHalf" disabled={!estimate.customer.email}>Gmail</button>
-                <button onClick={handleMail} className="backBtnHalf" disabled={!estimate.customer.email}>Mail</button>
+                <button onClick={handleEmail} className="backBtnHalf" disabled={!estimate.customer.email}>Email</button>
                 <button onClick={handlePrint} className="backBtnHalf">Print / Save PDF</button>
               </div>
             </div>
@@ -461,7 +492,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 
 .stickyBack{ position:fixed; left:0; right:0; bottom:0; z-index:50; padding:0 16px calc(env(safe-area-inset-bottom) + 16px); }
 .stickyBackInner{ max-width:980px; margin:0 auto; padding-top:12px; }
-.stickyBar{ display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; }
+.stickyBar{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 .backBtnHalf{
   width:100%;
   height:64px;
