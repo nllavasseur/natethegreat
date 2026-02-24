@@ -3315,6 +3315,28 @@ function EstimatesPageInner() {
     return input.filter((p) => p && typeof (p as any).src === "string" && !String((p as any).src || "").startsWith("data:"));
   }
 
+  function mergePreInstallForStorage(input: Array<{ src: string; srcPath?: string; note: string; createdAt: number }>, sanitizedData: Array<{ src: string; note: string; createdAt: number }>) {
+    const remote = Array.isArray(input)
+      ? input
+          .filter((p) => p && typeof (p as any).src === "string" && !String((p as any).src || "").startsWith("data:"))
+          .map((p) => ({
+            src: String((p as any).src || ""),
+            srcPath: typeof (p as any).srcPath === "string" ? (p as any).srcPath : undefined,
+            note: String((p as any).note || ""),
+            createdAt: Number((p as any).createdAt) || Date.now()
+          }))
+          .filter((p) => Boolean(p.src))
+      : [];
+
+    const local = Array.isArray(sanitizedData)
+      ? sanitizedData
+          .map((p) => ({ src: String((p as any).src || ""), note: String((p as any).note || ""), createdAt: Number((p as any).createdAt) || Date.now() }))
+          .filter((p) => Boolean(p.src))
+      : [];
+
+    return [...remote, ...local];
+  }
+
   function readDraftStore(): Record<string, any> {
     if (typeof window === "undefined") return {};
     try {
@@ -3455,6 +3477,7 @@ function EstimatesPageInner() {
     const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
     const projectDataBackup = sanitized.projectPhotoDataUrl;
     const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
+    const preInstallForStorage = mergePreInstallForStorage(preInstallPhotos, sanitized.preInstallPhotos);
 
     return {
       id,
@@ -3484,7 +3507,7 @@ function EstimatesPageInner() {
       doubleGateCount,
       referenceLength,
       notes,
-      preInstallPhotos: stripDataUrlsFromPreInstall(preInstallPhotos),
+      preInstallPhotos: preInstallForStorage,
       segments,
       items,
       status,
@@ -3508,7 +3531,7 @@ function EstimatesPageInner() {
           ...payload,
           projectPhotoDataUrl: null,
           projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
-          preInstallPhotos: stripDataUrlsFromPreInstall(payload.preInstallPhotos || [])
+          preInstallPhotos: Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : []
         };
         store[id] = lite;
         try {
@@ -6213,13 +6236,30 @@ function EstimatesPageInner() {
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []);
             if (files.length === 0) return;
+
             const startIdx = preInstallPhotos.length;
+            const baseTs = Date.now();
+            const placeholders: Array<{ src: string; srcPath?: string; note: string; createdAt: number }> = files.map((_, i) => ({
+              src: "",
+              srcPath: undefined,
+              note: "",
+              createdAt: baseTs + i
+            }));
+
+            setPreInstallPhotos((prev) => [...prev, ...placeholders]);
+            setNotePhotoIdx((cur) => (cur == null ? startIdx : cur));
 
             const draftIdForPhoto = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
             if (!draftId) setDraftId(draftIdForPhoto);
 
-            Promise.all(
-              files.map(async (file): Promise<{ src: string; srcPath?: string; note: string; createdAt: number } | null> => {
+            files.forEach((file, i) => {
+              const createdAt = baseTs + i;
+              fileToCompressedDataUrl(file, 1280, 0.72).then((data) => {
+                if (!data) return;
+                setPreInstallPhotos((prev) => prev.map((p) => (p.createdAt === createdAt ? { ...p, src: data } : p)));
+              });
+
+              (async () => {
                 const uploaded = await uploadDraftPhoto({
                   draftId: draftIdForPhoto,
                   file,
@@ -6227,24 +6267,22 @@ function EstimatesPageInner() {
                   kind: "preinstall"
                 });
                 if (uploaded.ok) {
-                  return { src: uploaded.url, srcPath: uploaded.path, note: "", createdAt: Date.now() };
+                  setPreInstallPhotos((prev) => prev.map((p) => (p.createdAt === createdAt ? { ...p, src: uploaded.url, srcPath: uploaded.path } : p)));
+                  return;
                 }
                 const blob = await fileToCompressedBlob(file, 1280, 0.72);
-                if (!blob) return null;
+                if (!blob) return;
                 const uploaded2 = await uploadDraftPhoto({
                   draftId: draftIdForPhoto,
                   file: blob,
                   filename: (file as any)?.name,
                   kind: "preinstall"
                 });
-                if (!uploaded2.ok) return null;
-                return { src: uploaded2.url, srcPath: uploaded2.path, note: "", createdAt: Date.now() };
-              })
-            ).then((addedRaw) => {
-              const added = addedRaw.filter((x): x is NonNullable<typeof x> => Boolean(x && x.src));
-              if (added.length === 0) return;
-              setPreInstallPhotos((prev) => [...prev, ...added]);
-              setNotePhotoIdx((cur) => (cur == null ? startIdx : cur));
+                if (!uploaded2.ok) return;
+                setPreInstallPhotos((prev) => prev.map((p) => (p.createdAt === createdAt ? { ...p, src: uploaded2.url, srcPath: uploaded2.path } : p)));
+              })().catch(() => {
+                // ignore
+              });
             });
 
             e.target.value = "";
