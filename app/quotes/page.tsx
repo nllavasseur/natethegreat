@@ -281,7 +281,17 @@ export default function QuotesPage() {
       const shouldAppendToQueue = status === "sold" && prevStatus !== "sold";
       let nextQueueRank: number | undefined = undefined;
       if (shouldAppendToQueue) {
-        const soldRanks = Object.values(store)
+        const byId = new Map<string, any>();
+        Object.values(store).forEach((d: any) => {
+          if (!d || !d.id) return;
+          byId.set(String(d.id), d);
+        });
+        (drafts || []).forEach((d: any) => {
+          if (!d || !d.id) return;
+          if (!byId.has(String(d.id))) byId.set(String(d.id), d);
+        });
+
+        const soldRanks = Array.from(byId.values())
           .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
           .map((d) => Number((d as any).queueRank))
           .filter((n) => Number.isFinite(n) && n > 0);
