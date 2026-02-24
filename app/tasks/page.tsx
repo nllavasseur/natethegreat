@@ -292,7 +292,6 @@ export default function TasksPage() {
                             e.preventDefault();
                           }}
                           onTouchStart={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
                             const mode = done ? "undo" : (urgent || warn ? "snooze" : null);
@@ -312,7 +311,6 @@ export default function TasksPage() {
                             holdTimerRef.current = null;
                           }}
                           onPointerDown={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
                             const mode = done ? "undo" : (urgent || warn ? "snooze" : null);
@@ -356,7 +354,7 @@ export default function TasksPage() {
                                     ? "bg-[rgba(255,214,10,.12)] border-[rgba(255,214,10,.45)] text-white"
                                     : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
                           }
-                          style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}
+                          style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "pan-y" }}
                           aria-disabled={false}
                         >
                           <div className="flex items-center justify-between gap-3">
