@@ -932,6 +932,9 @@ function EstimatesPageInner() {
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const [takeoffError, setTakeoffError] = useState<string | null>(null);
+  const takeoffErrorRef = useRef<string | null>(null);
+
   const [materialUnitPriceDrafts, setMaterialUnitPriceDrafts] = useState<Record<string, string>>({});
   const touchedMaterialUnitPricesRef = useRef<Set<string>>(new Set());
   const materialUnitPricesActive = useMemo(() => {
@@ -3100,6 +3103,10 @@ function EstimatesPageInner() {
 
   const generatedMaterials = useMemo(() => {
     try {
+      if (takeoffErrorRef.current) {
+        takeoffErrorRef.current = null;
+        setTimeout(() => setTakeoffError(null), 0);
+      }
       const baseId = baseComboCardId;
       if (!baseId) return [] as QuoteItem[];
 
@@ -3234,6 +3241,14 @@ function EstimatesPageInner() {
         console.error(e);
       } catch {
       }
+      const errAny = e as any;
+      const name = typeof errAny?.name === "string" ? errAny.name : (e instanceof Error ? e.name : "");
+      const msg = e instanceof Error ? e.message : String(e);
+      const details = String(msg || "").trim() || String(name || "").trim() || "Unknown error";
+      if (takeoffErrorRef.current !== details) {
+        takeoffErrorRef.current = details;
+        setTimeout(() => setTakeoffError(`Takeoff error: ${details}`), 0);
+      }
       return [] as QuoteItem[];
     }
   }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
@@ -3279,7 +3294,7 @@ function EstimatesPageInner() {
         projectAddress,
         phoneNumber,
         email,
-        projectPhotoDataUrl,
+        projectPhotoDataUrl: null,
         selectedFenceType,
         selectedStyle,
         materialsDetails,
@@ -3297,7 +3312,7 @@ function EstimatesPageInner() {
         doubleGateCount: effectiveDoubleGateCount,
         referenceLength,
         notes,
-        preInstallPhotos,
+        preInstallPhotos: [],
         segments,
         items
       };
@@ -3416,7 +3431,23 @@ function EstimatesPageInner() {
       const store = readDraftStore();
       const payload = buildDraftData(id);
       store[id] = payload;
-      writeDraftStore(store);
+
+      try {
+        writeDraftStore(store);
+      } catch (e) {
+        const lite = {
+          ...payload,
+          projectPhotoDataUrl: null,
+          preInstallPhotos: []
+        };
+        store[id] = lite;
+        try {
+          writeDraftStore(store);
+          setSaveError("Saved without photos (storage full on this device).");
+        } catch {
+          throw e;
+        }
+      }
       setDraftId(id);
 
       try {
@@ -7771,6 +7802,11 @@ function EstimatesPageInner() {
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
+              {takeoffError ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+                  {takeoffError}
+                </div>
+              ) : null}
               {saveError ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
                   {saveError}
