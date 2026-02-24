@@ -1464,17 +1464,26 @@ export default function CalendarPage() {
                   const allowSun = asBool((j as any).allowSunday);
                   const style = String(j.selectedStyle?.name || "");
                   const lf = totalLfFromDraft(j);
-                  const labor = computeSpanDays((j as any).laborDays);
+                  const labor = computeSpanDays((j as any).laborDays) || 0;
                   const hold = String((j as any).holdDate || "").slice(0, 10);
-                  const startIso = String((j as any).installDate || "");
+                  const startIso = String((j as any).installDate || (j as any).startDate || "");
                   const dotColor = colorForJobId(j.id);
                   const endIso = (() => {
-                    const end = (j as any).end;
-                    if (end instanceof Date && Number.isFinite(end.getTime())) return end.toISOString().slice(0, 10);
-                    if (startIso && labor > 0) {
+                    const endRaw = (j as any).end ?? (j as any).endDate;
+                    if (endRaw instanceof Date && Number.isFinite(endRaw.getTime())) return endRaw.toISOString().slice(0, 10);
+                    if (typeof endRaw === "string" && endRaw) {
+                      try {
+                        const d = new Date(endRaw);
+                        if (d instanceof Date && Number.isFinite(d.getTime())) return d.toISOString().slice(0, 10);
+                      } catch {
+                      }
+                    }
+
+                    const effLabor = startIso ? Math.max(1, labor || 0) : 0;
+                    if (startIso && effLabor > 0) {
                       try {
                         const start = new Date(startIso + "T12:00:00");
-                        const seq = workdaySequenceForJob(start, labor, allowSat, allowSun);
+                        const seq = workdaySequenceForJob(start, effLabor, allowSat, allowSun);
                         const last = seq[seq.length - 1];
                         if (last instanceof Date && Number.isFinite(last.getTime())) return last.toISOString().slice(0, 10);
                       } catch {
