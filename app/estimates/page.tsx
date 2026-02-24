@@ -4616,26 +4616,6 @@ function EstimatesPageInner() {
                   </SecondaryButton>
                 </div>
               </div>
-
-              {comboCards.length > 1 ? (
-                <div className="mt-2">
-                  <div className="text-[11px] text-[var(--muted)] mb-1">Card</div>
-                  <Select
-                    value={String((seg as any).cardId ?? "")}
-                    onChange={(e) => {
-                      const v = String(e.target.value || "");
-                      patchSegment(seg.id, { cardId: v === "" ? null : v });
-                    }}
-                  >
-                    <option value="">Card 1 (default)</option>
-                    {comboCards.slice(1).map((c, i) => (
-                      <option key={c.id} value={c.id}>
-                        {`Card ${i + 2}`}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              ) : null}
             </div>
           ))}
 
