@@ -858,6 +858,7 @@ function EstimatesPageInner() {
     if (n === "niko" || n === "all cedar niko") return "wood_niko";
     if (n === "casto") return "wood_casto";
     if (n === "a & m") return "wood_am";
+    if (n === "4' picture framed") return "wood_picture_framed_4ft";
     if (n === "picture framed lattice panel") return "wood_picture_framed_lattice";
     if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
     if (n === "mary jane") return "wood_picture_framed";
@@ -875,6 +876,17 @@ function EstimatesPageInner() {
     if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
     return n;
   }, [selectedStyle?.name]);
+
+  const castoTopCapsLocked = selectedStyleKind === "wood_casto" && materialsDetails.postDim !== "4x4";
+
+  useEffect(() => {
+    if (!castoTopCapsLocked) return;
+    if (!materialsDetails.topCaps) return;
+    setMaterialsDetails((p) => ({
+      ...p,
+      topCaps: false
+    }));
+  }, [castoTopCapsLocked, materialsDetails.topCaps]);
 
   const vinylPrivacyMatrix = useMemo(() => {
     const fourSixEight = [4, 6, 8];
@@ -1463,6 +1475,7 @@ function EstimatesPageInner() {
       if (n === "niko" || n === "all cedar niko") return "wood_niko";
       if (n === "casto") return "wood_casto";
       if (n === "a & m") return "wood_am";
+      if (n === "4' picture framed") return "wood_picture_framed_4ft";
       if (n === "picture framed lattice panel") return "wood_picture_framed_lattice";
       if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
       if (n === "mary jane") return "wood_picture_framed";
@@ -2262,6 +2275,7 @@ function EstimatesPageInner() {
       selectedStyleKind === "wood_am" ||
       selectedStyleKind === "wood_niko" ||
       selectedStyleKind === "wood_casto" ||
+      selectedStyleKind === "wood_picture_framed_4ft" ||
       selectedStyleKind === "wood_picture_framed_lattice" ||
       selectedStyleKind === "wood_horizontal" ||
       selectedStyleKind === "wood_board_on_board"
@@ -2362,10 +2376,12 @@ function EstimatesPageInner() {
         selectedStyleKind === "wood_am" ||
         selectedStyleKind === "wood_niko" ||
         selectedStyleKind === "wood_casto" ||
+        selectedStyleKind === "wood_picture_framed_4ft" ||
         selectedStyleKind === "wood_picture_framed_lattice";
       const isNiko = selectedStyleKind === "wood_niko";
       const isCasto = selectedStyleKind === "wood_casto";
       const isAm = selectedStyleKind === "wood_am";
+      const isFourFootPictureFramedKind = selectedStyleKind === "wood_picture_framed_4ft";
       const isPictureFramedLattice = selectedStyleKind === "wood_picture_framed_lattice";
 
       const isPictureFramed = isPictureFramedFamily;
@@ -2383,13 +2399,15 @@ function EstimatesPageInner() {
 
       // Rails for picture-framed family styles (7.5' centers) are style-specific.
       // Assumption from you: styles will have either topCaps OR postCaps on.
-      const pictureFramedRailsPerSection = isNiko
-        ? (materialsDetails.postCaps ? 5 : 4)
-        : (isAm
-            ? (materialsDetails.postCaps ? 4 : 3)
-            : (isPictureFramedLattice
-                ? (materialsDetails.postCaps ? 5 : 4)
-                : (materialsDetails.postCaps ? 4 : 3)));
+      const pictureFramedRailsPerSection = (isFourFootPictureFramedKind
+        ? (materialsDetails.postCaps ? 3 : 2)
+        : (isNiko
+            ? (materialsDetails.postCaps ? 5 : 4)
+            : (isAm
+                ? (materialsDetails.postCaps ? 4 : 3)
+                : (isPictureFramedLattice
+                    ? (materialsDetails.postCaps ? 5 : 4)
+                    : (materialsDetails.postCaps ? 4 : 3)))));
 
       const rails = isPictureFramed
         ? (segmentLengths.length
@@ -2400,11 +2418,12 @@ function EstimatesPageInner() {
             : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0));
 
       const pictureFramed2x4x8 = isPictureFramed ? rails : 0;
-      const pictureFramed2x4x16 = (isNiko && Boolean(materialsDetails.topCaps))
-        ? (segmentLengths.length
-            ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
-            : (totalLf > 0 ? Math.ceil(totalLf / 15) : 0))
-        : 0;
+      const pictureFramed2x4x16 =
+        (isFourFootPictureFramedKind || (isNiko && Boolean(materialsDetails.topCaps)) || (isCasto && Boolean(materialsDetails.topCaps) && materialsDetails.postDim === "4x4"))
+          ? (segmentLengths.length
+              ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
+              : (totalLf > 0 ? Math.ceil(totalLf / 15) : 0))
+          : 0;
 
       // Pickets
       // Standard: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
@@ -6565,12 +6584,14 @@ function EstimatesPageInner() {
                           <div className="text-[11px] text-[var(--muted)] mb-1">Post</div>
                           <Select
                             value={materialsDetails.postDim}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const next = e.target.value as "4x4" | "6x6";
                               setMaterialsDetails((p) => ({
                                 ...p,
-                                postDim: e.target.value as "4x4" | "6x6"
-                              }))
-                            }
+                                postDim: next,
+                                topCaps: selectedStyleKind === "wood_casto" && next !== "4x4" ? false : p.topCaps
+                              }));
+                            }}
                           >
                             <option value="4x4">4x4</option>
                             <option value="6x6">6x6</option>
@@ -6758,19 +6779,22 @@ function EstimatesPageInner() {
                         <button
                           type="button"
                           data-no-swipe="true"
-                          onClick={() =>
+                          onClick={() => {
+                            if (castoTopCapsLocked) return;
                             setMaterialsDetails((p) => ({
                               ...p,
                               topCaps: !p.topCaps,
                               postCaps: !p.topCaps ? false : p.postCaps
-                            }))
-                          }
+                            }));
+                          }}
                           className={
                             "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (castoTopCapsLocked ? "opacity-50 cursor-not-allowed " : "") +
                             (materialsDetails.topCaps
                               ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
                               : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
                           }
+                          aria-disabled={castoTopCapsLocked}
                         >
                           <div className="flex items-center justify-between">
                             <div className="font-extrabold">{materialsDetails.topCaps ? "On" : "Off"}</div>
