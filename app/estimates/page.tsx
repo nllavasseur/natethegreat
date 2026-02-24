@@ -912,7 +912,7 @@ function EstimatesPageInner() {
       return { border: "rgba(255,214,10,.55)", bg: "rgba(255,214,10,.10)" };
     }
     if (idx === 1) {
-      return { border: "rgba(60,140,255,.48)", bg: "rgba(60,140,255,.14)" };
+      return { border: "rgba(60,140,255,.70)", bg: "rgba(60,140,255,.14)" };
     }
     if (idx === 2) {
       return { border: "rgba(170,90,255,.42)", bg: "rgba(170,90,255,.12)" };
@@ -5450,7 +5450,7 @@ function EstimatesPageInner() {
                   return base + "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.10)]";
                 }
                 if (idx === 1) {
-                  return base + "border-[rgba(60,140,255,.48)] bg-[rgba(60,140,255,.14)]";
+                  return base + "border-[rgba(60,140,255,.70)] bg-[rgba(60,140,255,.14)]";
                 }
                 if (idx === 2) {
                   return base + "border-[rgba(170,90,255,.42)] bg-[rgba(170,90,255,.12)]";
@@ -5533,7 +5533,7 @@ function EstimatesPageInner() {
                       if (effective === "double") {
                         return {
                           backgroundColor: "rgba(60,140,255,.24)",
-                          borderColor: "rgba(60,140,255,.48)",
+                          borderColor: "rgba(60,140,255,.70)",
                           color: "rgba(235,245,255,.98)"
                         };
                       }
@@ -5815,7 +5815,7 @@ function EstimatesPageInner() {
                                       }
                                       className={
                                         (c.shared
-                                          ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.48)] !text-[rgba(235,245,255,.98)] "
+                                          ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
                                           : "") + "px-3 py-2 text-[12px]"
                                       }
                                       title="Shared"
@@ -5848,7 +5848,7 @@ function EstimatesPageInner() {
                                         idx === 0
                                           ? "bg-[rgba(255,214,10,.30)] border-[rgba(255,214,10,.55)] text-[rgba(255,244,200,.98)]"
                                           : idx === 1
-                                            ? "bg-[rgba(60,140,255,.24)] border-[rgba(60,140,255,.48)] text-[rgba(235,245,255,.98)]"
+                                            ? "bg-[rgba(60,140,255,.24)] border-[rgba(60,140,255,.70)] text-[rgba(235,245,255,.98)]"
                                             : idx === 2
                                               ? "bg-[rgba(170,90,255,.22)] border-[rgba(170,90,255,.42)] text-[rgba(245,235,255,.98)]"
                                               : idx === 3
