@@ -907,6 +907,25 @@ function EstimatesPageInner() {
     return cid === null ? (baseComboCardId || null) : cid;
   }
 
+  function comboCardAccent(idx: number) {
+    if (idx === 0) {
+      return { border: "rgba(255,214,10,.55)", bg: "rgba(255,214,10,.10)" };
+    }
+    if (idx === 1) {
+      return { border: "rgba(80,140,255,.42)", bg: "rgba(80,140,255,.12)" };
+    }
+    if (idx === 2) {
+      return { border: "rgba(170,90,255,.42)", bg: "rgba(170,90,255,.12)" };
+    }
+    if (idx === 3) {
+      return { border: "rgba(255,90,180,.40)", bg: "rgba(255,90,180,.10)" };
+    }
+    if (idx >= 4) {
+      return { border: "rgba(40,210,180,.40)", bg: "rgba(40,210,180,.10)" };
+    }
+    return null;
+  }
+
   function deleteComboCard(cardId: string) {
     const baseId = baseComboCardId;
     if (!baseId) return;
@@ -3178,15 +3197,20 @@ function EstimatesPageInner() {
         let currentRun: typeof segments = [];
         const flush = () => {
           if (!currentRun.length) return;
+          const generated = generateMaterialsForContext({
+            selectedStyle: card.selectedStyle,
+            selectedFenceType: card.fenceType,
+            vinylStyleTab: card.vinylStyleTab,
+            materialsDetails: card.materialsDetails,
+            extraPosts: usedExtraPosts ? 0 : (Number(card.extraPosts) || 0),
+            segments: currentRun
+          });
           allRows.push(
-            ...generateMaterialsForContext({
-              selectedStyle: card.selectedStyle,
-              selectedFenceType: card.fenceType,
-              vinylStyleTab: card.vinylStyleTab,
-              materialsDetails: card.materialsDetails,
-              extraPosts: usedExtraPosts ? 0 : (Number(card.extraPosts) || 0),
-              segments: currentRun
-            })
+            ...generated.map((r) => ({
+              ...r,
+              __cardId: card.id,
+              __shared: Boolean((card as any).shared)
+            }))
           );
           usedExtraPosts = true;
           currentRun = [];
@@ -3216,6 +3240,12 @@ function EstimatesPageInner() {
         const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
         const prev = acc.get(key);
         if (prev) {
+          const prevIds = Array.isArray((prev as any).__cardIds) ? ((prev as any).__cardIds as string[]) : [];
+          const nextId = typeof (r as any).__cardId === "string" ? String((r as any).__cardId) : "";
+          const nextIds = nextId ? (prevIds.includes(nextId) ? prevIds : [...prevIds, nextId]) : prevIds;
+          (prev as any).__cardIds = nextIds;
+          (prev as any).__shared = Boolean((prev as any).__shared) || Boolean((r as any).__shared);
+
           prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
           const prevPrice = Number(prev.unitPrice) || 0;
           const nextPrice = Number(r.unitPrice) || 0;
@@ -3230,7 +3260,12 @@ function EstimatesPageInner() {
           }
           prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
-          acc.set(key, { ...r });
+          const nextId = typeof (r as any).__cardId === "string" ? String((r as any).__cardId) : "";
+          acc.set(key, {
+            ...(r as any),
+            __cardIds: nextId ? [nextId] : [],
+            __shared: Boolean((r as any).__shared)
+          });
         }
         return acc;
       }, new Map<string, QuoteItem>());
@@ -5926,7 +5961,25 @@ function EstimatesPageInner() {
                           ) : (
                             <div className="grid gap-2">
                               {generatedMaterials.map((m) => (
-                                <div key={m.name} className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2">
+                                <div
+                                  key={m.name}
+                                  className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
+                                  style={(() => {
+                                    const ids = Array.isArray((m as any).__cardIds) ? ((m as any).__cardIds as string[]) : [];
+                                    const shared = Boolean((m as any).__shared);
+                                    if (shared) return undefined;
+                                    if (ids.length !== 1) return undefined;
+                                    const idx = comboCards.findIndex((c) => c.id === ids[0]);
+                                    const isSharedCard = Boolean(comboCards[idx]?.shared);
+                                    if (isSharedCard) return undefined;
+                                    const accent = comboCardAccent(idx);
+                                    if (!accent) return undefined;
+                                    return {
+                                      borderColor: accent.border,
+                                      backgroundColor: accent.bg
+                                    };
+                                  })()}
+                                >
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="text-sm font-extrabold">{m.name}</div>
                                     <div className="text-sm font-black">{money(m.lineTotal)}</div>
