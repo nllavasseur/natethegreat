@@ -290,15 +290,18 @@ export default function QuotesPage() {
       }
       store[id] = {
         ...store[id],
+        createdAt: Number((store as any)[id]?.createdAt) || Date.now(),
         status,
         calendarHidden: status === "sold" ? false : status === "void" ? true : store[id].calendarHidden,
         startDate: status === "void" ? undefined : store[id].startDate,
-        installDate: status === "void" ? undefined : store[id].installDate
+        installDate: status === "void" ? undefined : store[id].installDate,
+        updatedAt: Date.now()
       };
       if (shouldAppendToQueue && typeof nextQueueRank === "number") {
         (store as any)[id] = {
           ...(store as any)[id],
-          queueRank: nextQueueRank
+          queueRank: nextQueueRank,
+          updatedAt: Date.now()
         };
       }
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
