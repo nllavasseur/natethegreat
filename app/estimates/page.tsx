@@ -412,7 +412,7 @@ function EstimatesPageInner() {
     setMeasureOpen(false);
   }
 
-  const materialStyles: Array<{ type: "wood" | "vinyl" | "aluminum" | "chainlink"; name: string; thumb: string; group?: "privacy" | "semi-privacy" | "pool" }> = [
+  const materialStyles: Array<{ type: "wood" | "vinyl" | "aluminum" | "chainlink"; name: string; thumb: string; group?: "privacy" | "semi-privacy" | "pool" | "picket" | "horse" }> = [
     {
       type: "wood",
       name: "standard",
@@ -694,97 +694,97 @@ function EstimatesPageInner() {
     {
       type: "vinyl",
       name: "Provincetown",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Plymouth",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Ellington",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Chelsea",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Hampshire",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Monterey",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Richmond",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Abbington",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Classic",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Stratford",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Barrington",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Hartford",
-      group: "pool",
+      group: "picket",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "Cross Buck",
-      group: "pool",
+      group: "horse",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "2 Rail Horse",
-      group: "pool",
+      group: "horse",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "3 Rail Horse",
-      group: "pool",
+      group: "horse",
       thumb: "/vinyl_colors.jpeg"
     },
     {
       type: "vinyl",
       name: "4 Rail Horse",
-      group: "pool",
+      group: "horse",
       thumb: "/vinyl_colors.jpeg"
     },
     {
@@ -817,7 +817,7 @@ function EstimatesPageInner() {
   type ComboCard = {
     id: string;
     fenceType: "wood" | "vinyl" | "aluminum" | "chainlink";
-    vinylStyleTab: "privacy" | "semi-privacy" | "pool";
+    vinylStyleTab: "privacy" | "semi-privacy" | "pool" | "picket" | "horse";
     selectedStyle: { name: string; thumb: string } | null;
     materialsDetails: MaterialsDetails;
     extraPosts: number;
@@ -826,7 +826,7 @@ function EstimatesPageInner() {
 
   const [stylePickerIdx, setStylePickerIdx] = useState<boolean>(false);
   const [selectedFenceType, setSelectedFenceType] = useState<"wood" | "vinyl" | "aluminum" | "chainlink">("wood");
-  const [vinylStyleTab, setVinylStyleTab] = useState<"privacy" | "semi-privacy" | "pool">("privacy");
+  const [vinylStyleTab, setVinylStyleTab] = useState<"privacy" | "semi-privacy" | "pool" | "picket" | "horse">("privacy");
   const [selectedStyle, setSelectedStyle] = useState<{ name: string; thumb: string } | null>(null);
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
@@ -1202,8 +1202,12 @@ function EstimatesPageInner() {
     }
 
     const matrix = vinylStyleTab === "pool"
-      ? ({ ...vinylPoolMatrix, ...vinylPicketMatrix, ...vinylHorseMatrix } as const)
-      : (vinylStyleTab === "semi-privacy" ? vinylSemiPrivacyMatrix : vinylPrivacyMatrix);
+      ? vinylPoolMatrix
+      : (vinylStyleTab === "picket"
+          ? vinylPicketMatrix
+          : (vinylStyleTab === "horse"
+              ? vinylHorseMatrix
+              : (vinylStyleTab === "semi-privacy" ? vinylSemiPrivacyMatrix : vinylPrivacyMatrix)));
     const entry = (matrix as any)[selectedStyle.name];
     if (!entry) {
       return {
@@ -1712,7 +1716,7 @@ function EstimatesPageInner() {
   function generateMaterialsForContext(ctx: {
     selectedStyle: { name: string; thumb: string } | null;
     selectedFenceType: "wood" | "vinyl" | "aluminum" | "chainlink";
-    vinylStyleTab: "privacy" | "semi-privacy" | "pool";
+    vinylStyleTab: "privacy" | "semi-privacy" | "pool" | "picket" | "horse";
     materialsDetails: MaterialsDetails;
     extraPosts: number;
     segments: typeof segments;
@@ -4445,7 +4449,7 @@ function EstimatesPageInner() {
         .map((c: any, idx: number) => {
           const cid = typeof c.id === "string" && c.id ? c.id : `card-${Date.now()}-${idx}`;
           const fenceType = (c.fenceType ?? "wood") as "wood" | "vinyl" | "aluminum" | "chainlink";
-          const vinylStyleTab = (c.vinylStyleTab ?? "privacy") as "privacy" | "semi-privacy" | "pool";
+          const vinylStyleTab = (c.vinylStyleTab ?? "privacy") as "privacy" | "semi-privacy" | "pool" | "picket" | "horse";
           const selectedStyle = c.selectedStyle && typeof c.selectedStyle === "object" && typeof c.selectedStyle.name === "string" && typeof c.selectedStyle.thumb === "string"
             ? { name: c.selectedStyle.name, thumb: c.selectedStyle.thumb }
             : null;
@@ -5997,7 +6001,7 @@ function EstimatesPageInner() {
 
                 {selectedFenceType === "vinyl" ? (
                   <div className="mt-3">
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-5 gap-2">
                       <button
                         type="button"
                         data-no-swipe="true"
@@ -6036,6 +6040,32 @@ function EstimatesPageInner() {
                         }
                       >
                         Pool
+                      </button>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setVinylStyleTab("horse")}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                          (vinylStyleTab === "horse"
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        Horse
+                      </button>
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        onClick={() => setVinylStyleTab("picket")}
+                        className={
+                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                          (vinylStyleTab === "picket"
+                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                        }
+                      >
+                        Picket
                       </button>
                     </div>
                   </div>
