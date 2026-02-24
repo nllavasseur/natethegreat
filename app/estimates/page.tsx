@@ -1529,7 +1529,7 @@ function EstimatesPageInner() {
     if (!selectedStyle) return [] as QuoteItem[];
 
     const walkGates = Number(walkGateCount) || 0;
-    const doubleGates = Number(effectiveDoubleGateCount) || 0;
+    const doubleGates = Number(doubleGateCount) || 0;
 
     const walkGatePostsAdd = segments
       .filter((s) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate)))
@@ -2350,11 +2350,8 @@ function EstimatesPageInner() {
       const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
 
       const panels = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 8), 0)
-        : (totalLf > 0 ? Math.ceil(totalLf / 8) : 0);
-
-      const pictureFramed2x4x8 = isPictureFramed ? panels * 2 : 0;
-      const pictureFramed2x4x16 = 0;
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
+        : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
 
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
@@ -2362,11 +2359,18 @@ function EstimatesPageInner() {
         : (totalLf > 0 ? Math.max(2, Math.ceil(totalLf / 7.5) + 1) : 0);
       const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
-      // Rails = ceil(segment/15 * 3) per segment
-      // Picture framed flat top uses per-panel rail logic (2x4x8) and optional 2x4x16.
-      const rails = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
-        : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0);
+      // Rails = 3 rails per section at 7.5' centers for picture framed.
+      // For non-picture-framed styles we keep the existing 15' rail heuristic.
+      const rails = isPictureFramed
+        ? (segmentLengths.length
+            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * 3), 0)
+            : (totalLf > 0 ? Math.ceil((totalLf / 7.5) * 3) : 0))
+        : (segmentLengths.length
+            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
+            : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0));
+
+      const pictureFramed2x4x8 = isPictureFramed ? rails : 0;
+      const pictureFramed2x4x16 = 0;
 
       // Pickets
       // Standard: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
