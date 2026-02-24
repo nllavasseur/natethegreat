@@ -388,7 +388,6 @@ function EstimatesPageInner() {
   const [toughDigEnabled, setToughDigEnabled] = useState<boolean>(false);
   const [gradeEnabled, setGradeEnabled] = useState<boolean>(false);
   const [stumpGrindingPrice, setStumpGrindingPrice] = useState<number>(0);
-  const [removalRate, setRemovalRate] = useState<number>(0);
   const [doubleGateCount, setDoubleGateCount] = useState<number>(0);
 
   function scanLengthsFromPhoto() {
@@ -3371,7 +3370,6 @@ function EstimatesPageInner() {
         toughDigEnabled,
         gradeEnabled,
         stumpGrindingPrice,
-        removalRate,
         doubleGateCount: effectiveDoubleGateCount,
         referenceLength,
         notes,
@@ -3430,7 +3428,6 @@ function EstimatesPageInner() {
     toughDigEnabled,
     gradeEnabled,
     stumpGrindingPrice,
-    removalRate,
     effectiveDoubleGateCount,
     referenceLength,
     notes,
@@ -3479,7 +3476,6 @@ function EstimatesPageInner() {
       toughDigEnabled,
       gradeEnabled,
       stumpGrindingPrice,
-      removalRate,
       doubleGateCount,
       referenceLength,
       notes,
@@ -4027,10 +4023,9 @@ function EstimatesPageInner() {
     const lf = segments
       .filter((s: any) => Boolean((s as any).removal))
       .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
-    const rate = Number(removalRate) || 0;
-    const v = lf > 0 && rate > 0 ? lf * rate : 0;
+    const v = lf > 0 ? lf * 6 : 0;
     return Math.round(v * 100) / 100;
-  }, [removalRate, segments]);
+  }, [segments]);
 
   const removalLf = useMemo(() => {
     const lf = segments
@@ -4859,7 +4854,6 @@ function EstimatesPageInner() {
     setToughDigEnabled(typeof d.toughDigEnabled === "boolean" ? d.toughDigEnabled : Number(d.toughDigFee ?? 0) > 0);
     setGradeEnabled(typeof d.gradeEnabled === "boolean" ? d.gradeEnabled : false);
     setStumpGrindingPrice(Number(d.stumpGrindingPrice ?? 0));
-    setRemovalRate(Number((d as any).removalRate ?? 0));
     setDoubleGateCount(Number(d.doubleGateCount ?? 0));
     setReferenceLength(Number(d.referenceLength ?? 0));
     setNotes(String(d.notes ?? ""));
@@ -5796,16 +5790,8 @@ function EstimatesPageInner() {
                         <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-3">
                           <div className="grid md:grid-cols-12 gap-2 items-end">
                             <div className="md:col-span-5">
-                              <div className="text-[11px] text-[var(--muted)] mb-1">Fence removal ($/LF)</div>
-                              <Input
-                                inputMode="decimal"
-                                value={Number(removalRate) === 0 ? "" : String(removalRate)}
-                                onChange={(e) => {
-                                  const raw = String(e.target.value ?? "").trim();
-                                  setRemovalRate(raw === "" ? 0 : Number(raw));
-                                }}
-                                placeholder=""
-                              />
+                              <div className="text-[11px] text-[var(--muted)] mb-1">Fence removal ($6/LF)</div>
+                              <div className="text-[11px] text-[var(--muted)]">Tap 🗑 on segments to include them.</div>
                             </div>
                             <div className="md:col-span-4">
                               <div className="text-[11px] text-[var(--muted)] mb-1">Removal total</div>
@@ -5814,9 +5800,7 @@ function EstimatesPageInner() {
                               </div>
                               <div className="mt-1 text-[11px] text-[var(--muted)]">Removal LF {removalLf.toFixed(0)}</div>
                             </div>
-                            <div className="md:col-span-3 text-[11px] text-[var(--muted)]">
-                              Tap 🗑 on segments to include them in removal labor.
-                            </div>
+                            <div className="md:col-span-3" />
                           </div>
                         </div>
 
