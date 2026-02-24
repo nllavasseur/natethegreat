@@ -1683,7 +1683,9 @@ function EstimatesPageInner() {
     "Terrier end post (4')": 34.99,
     "Terrier gate post (4')": 65.99,
     "Terrier blank post (4')": 34.99,
-    "Terrier blank gate post add-on (4')": 65.99
+    "Terrier blank gate post add-on (4')": 65.99,
+    "Terrier walk gate 48\" x 4'": 386.99,
+    "Terrier double gate 48\" x 4'": 809.99
   });
 
   useEffect(() => {
