@@ -2762,6 +2762,17 @@ function EstimatesPageInner() {
       const prev = acc.get(key);
       if (prev) {
         prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
+        const prevPrice = Number(prev.unitPrice) || 0;
+        const nextPrice = Number(r.unitPrice) || 0;
+        if (prevPrice <= 0 && nextPrice > 0) {
+          prev.unitPrice = nextPrice;
+          prev.name = r.name;
+        } else if (nextPrice > prevPrice) {
+          // If we canonical-merge two equivalent names, keep the higher non-zero price.
+          // Also switch display name so price edits map to the priced name.
+          prev.unitPrice = nextPrice;
+          prev.name = r.name;
+        }
         prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
       } else {
         acc.set(key, { ...r });
