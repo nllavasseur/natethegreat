@@ -6851,6 +6851,31 @@ function EstimatesPageInner() {
                         {selectedStyle ? `${selectedStyle.name}` : "Select a style"}
                       </div>
 
+                      <div className="mt-3 rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
+                        <div className="grid gap-2">
+                          {[
+                            { name: "1.5\" x 5.5\" U-mount", code: "AXBR!UMOUNT!1.5X5.5" },
+                            { name: "1.5\" x 5.5\" Post Hole Cover", code: "AXCP!CVR!1.5X5.5" },
+                            { name: "5\" x 5\" x 54\" Concrete Mount", code: "AXPT!CMOUNT!5X54" },
+                            { name: "4\" x 4\" x 36\" Concrete Mount", code: "AXPT!CMOUNT!4X36" },
+                            { name: "2\" x 3.5\" Post Hole Cover", code: "AXCP!CVR!1.75X3.5" },
+                            { name: "Hinged Screw Cap", code: "AXCP!SCREWCAP" },
+                            { name: "Self Tapping Screw", code: "AMFA!SCREWTAP-1.0ss" },
+                            { name: "2\" x 3.5\" U-mount", code: "AXBR!UMOUNT!2X3.5" },
+                            { name: "2\" x 6\" U-mount", code: "AXBR!UMOUNT!2X6" },
+                            { name: "1.5\" x 5.5\" External U-mount", code: "AXBR!UMOUNTEXT!1.5X5.5" }
+                          ].map((it) => (
+                            <div key={it.code} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
+                              <div className="text-[12px] font-extrabold truncate">{it.name}</div>
+                              <div className="text-[11px] font-black text-[rgba(255,255,255,.92)] rounded-lg border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-1">
+                                {it.code}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
 
 
 
