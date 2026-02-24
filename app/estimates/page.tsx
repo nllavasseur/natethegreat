@@ -4979,9 +4979,44 @@ function EstimatesPageInner() {
       if (!draftParam) {
         writeUnsavedSnapshot();
       }
-      const payload = buildContractPayload();
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      router.push("/estimates/contract");
+      const id = String(draftParam || draftId || "").trim() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      if (!draftId) setDraftId(id);
+
+      const payload = buildContractPayload(id);
+
+      // Best-effort local preview cache (can fail on iOS when storage is full).
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch {
+        // ignore
+      }
+
+      // Persist contract onto the draft so the contract page can fetch it remotely.
+      try {
+        const store = readDraftStore();
+        const prev = (store as any)[id] ?? {};
+        (store as any)[id] = {
+          ...prev,
+          ...buildDraftData(id),
+          contract: payload,
+          updatedAt: Date.now()
+        };
+        writeDraftStore(store);
+        try {
+          void upsertDraft({ id, data: (store as any)[id] });
+        } catch {
+          // ignore
+        }
+      } catch {
+        // ignore
+      }
+
+      // Navigate with draft id so contract page can fetch even if localStorage is unavailable.
+      try {
+        window.location.href = `/estimates/contract?draft=${encodeURIComponent(id)}`;
+      } catch {
+        router.push(`/estimates/contract?draft=${encodeURIComponent(id)}`);
+      }
     } catch {
       // ignore
     }
