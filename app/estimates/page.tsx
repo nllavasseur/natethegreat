@@ -4093,9 +4093,15 @@ function EstimatesPageInner() {
     return [...takeoffMaterialsStable, ...additionalServicesAsMaterials];
   }, [additionalServicesAsMaterials, takeoffMaterialsStable]);
 
+  const takeoffMaterialsAndExpensesBaseTotal = useMemo(() => {
+    return computeMaterialsAndExpensesTotal(takeoffMaterialsStable);
+  }, [takeoffMaterialsStable]);
+
   const takeoffMaterialsAndExpensesTotal = useMemo(() => {
-    return computeMaterialsAndExpensesTotal(takeoffMaterialsWithAdditional);
-  }, [takeoffMaterialsWithAdditional]);
+    // Additional services should increase materials/deposit by exactly their line totals (no markup).
+    const v = (Number(takeoffMaterialsAndExpensesBaseTotal) || 0) + (Number(additionalServicesSubtotal) || 0);
+    return Math.round(v * 100) / 100;
+  }, [additionalServicesSubtotal, takeoffMaterialsAndExpensesBaseTotal]);
 
   const materialsDepositTotal = useMemo(() => {
     const v = Number(takeoffMaterialsAndExpensesTotal) || 0;
