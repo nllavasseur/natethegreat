@@ -202,12 +202,7 @@ export default function EstimateContractPage() {
         }
 
         if (didBackground) return;
-
-        // Do NOT auto-fallback: it can switch the sender account.
-        // Only offer Mail as an explicit user choice.
         try {
-          const ok = window.confirm("Gmail didn't open. Use Mail instead?");
-          if (!ok) return;
           window.location.href = mailtoUrl;
         } catch {
           // ignore
