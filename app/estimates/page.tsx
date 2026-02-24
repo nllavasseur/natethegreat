@@ -4864,6 +4864,48 @@ function EstimatesPageInner() {
                                   ) : null}
                                 </div>
                               </div>
+
+                              {comboCards.length > 1 && segments.length ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {segments
+                                    .filter((s) => !s.removed)
+                                    .map((s) => {
+                                      const assigned = resolveSegmentCardId(s);
+                                      const onThis = assigned === c.id;
+                                      const highlightClass =
+                                        idx === 0
+                                          ? "bg-[rgba(255,214,10,.30)] border-[rgba(255,214,10,.55)] text-[rgba(255,244,200,.98)]"
+                                          : idx === 1
+                                            ? "bg-[rgba(80,140,255,.22)] border-[rgba(80,140,255,.42)] text-[rgba(235,245,255,.98)]"
+                                            : idx === 2
+                                              ? "bg-[rgba(170,90,255,.22)] border-[rgba(170,90,255,.42)] text-[rgba(245,235,255,.98)]"
+                                              : idx === 3
+                                                ? "bg-[rgba(255,90,180,.20)] border-[rgba(255,90,180,.40)] text-[rgba(255,235,245,.98)]"
+                                                : "bg-[rgba(40,210,180,.20)] border-[rgba(40,210,180,.40)] text-[rgba(235,255,252,.98)]";
+                                      return (
+                                        <button
+                                          key={s.id}
+                                          type="button"
+                                          data-no-swipe="true"
+                                          onClick={() => {
+                                            const next = onThis ? null : c.id;
+                                            patchSegment(s.id, { cardId: next });
+                                          }}
+                                          className={
+                                            "rounded-xl px-3 py-2 text-[12px] font-black border transition-none " +
+                                            (onThis
+                                              ? highlightClass
+                                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                          }
+                                          aria-pressed={onThis}
+                                          title={onThis ? "Assigned" : "Assign"}
+                                        >
+                                          {s.label}
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                           <PrimaryButton
@@ -4892,63 +4934,6 @@ function EstimatesPageInner() {
                             Combo
                           </PrimaryButton>
                         </div>
-
-                        {comboCards.length > 1 && segments.length ? (
-                          <div className="mt-3 grid gap-2">
-                            {comboCards.map((c, idx) => (
-                              <div key={c.id} className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="text-[11px] font-extrabold text-[var(--muted)]">{`Card ${idx + 1} segments`}</div>
-                                  {idx > 0 && c.shared ? (
-                                    <div className="text-[10px] font-black text-[rgba(235,245,255,.98)] px-2 py-1 rounded-lg border border-[rgba(80,140,255,.42)] bg-[rgba(80,140,255,.18)]">
-                                      Shared
-                                    </div>
-                                  ) : null}
-                                </div>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {segments
-                                    .filter((s) => !s.removed)
-                                    .map((s) => {
-                                      const assigned = resolveSegmentCardId(s);
-                                      const onThis = assigned === c.id;
-                                      const highlightClass =
-                                        idx === 0
-                                          ? "bg-[rgba(255,214,10,.30)] border-[rgba(255,214,10,.55)] text-[rgba(255,244,200,.98)]"
-                                          : idx === 1
-                                            ? "bg-[rgba(80,140,255,.22)] border-[rgba(80,140,255,.42)] text-[rgba(235,245,255,.98)]"
-                                            : idx === 2
-                                              ? "bg-[rgba(170,90,255,.22)] border-[rgba(170,90,255,.42)] text-[rgba(245,235,255,.98)]"
-                                              : idx === 3
-                                                ? "bg-[rgba(255,90,180,.20)] border-[rgba(255,90,180,.40)] text-[rgba(255,235,245,.98)]"
-                                                : "bg-[rgba(40,210,180,.20)] border-[rgba(40,210,180,.40)] text-[rgba(235,255,252,.98)]";
-                                      return (
-                                        <button
-                                          key={s.id}
-                                          type="button"
-                                          data-no-swipe="true"
-                                          onClick={() => {
-                                            // toggle assignment
-                                            const next = onThis ? null : c.id;
-                                            patchSegment(s.id, { cardId: next });
-                                          }}
-                                          className={
-                                            "rounded-xl px-3 py-2 text-[12px] font-black border transition-none " +
-                                            (onThis
-                                              ? highlightClass
-                                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                                          }
-                                          aria-pressed={onThis}
-                                          title={onThis ? "Assigned" : "Assign"}
-                                        >
-                                          {s.label}
-                                        </button>
-                                      );
-                                    })}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
 
                         <div className="mt-2 text-[11px] text-[var(--muted)]">Use Combo to add a second tile, then assign segments to each card below.</div>
                       </div>
