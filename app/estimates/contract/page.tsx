@@ -5,6 +5,16 @@ import { createPortal } from "react-dom";
 import { money } from "@/lib/money";
 import { fetchDraft } from "@/lib/draftsStore";
 
+function readDraftStore(): Record<string, any> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem("vf_estimate_drafts_v1");
+    return raw ? (JSON.parse(raw) as Record<string, any>) : {};
+  } catch {
+    return {};
+  }
+}
+
 type ContractRow = { name: string; qty: number; unit: string; unitPrice: number; price: number };
 
 type ContractData = {
@@ -102,6 +112,18 @@ export default function EstimateContractPage() {
           if (!cancelled && remote.ok && remote.draft && (remote.draft as any).contract) {
             setData((remote.draft as any).contract as ContractData);
             return;
+          }
+
+          // Fallback: local-only draft (not in Supabase) or offline.
+          try {
+            const store = readDraftStore();
+            const local = store?.[draftId];
+            if (!cancelled && local && (local as any).contract) {
+              setData((local as any).contract as ContractData);
+              return;
+            }
+          } catch {
+            // ignore
           }
         }
       } catch {

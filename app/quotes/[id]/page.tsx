@@ -154,12 +154,20 @@ export default function QuoteDetailPage() {
   const canNavigate = String(draft?.projectAddress || "").trim().length > 0;
 
   function viewContract() {
+    if (!draft?.contract) return;
     try {
-      if (!draft?.contract) return;
       window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify(draft.contract));
-      router.push("/estimates/contract");
     } catch {
       // ignore
+    }
+    try {
+      window.location.href = `/estimates/contract?draft=${encodeURIComponent(id)}`;
+    } catch {
+      try {
+        router.push(`/estimates/contract?draft=${encodeURIComponent(id)}`);
+      } catch {
+        // ignore
+      }
     }
   }
 
