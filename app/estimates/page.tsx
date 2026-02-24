@@ -4073,23 +4073,25 @@ function EstimatesPageInner() {
     return Math.round(v * 100) / 100;
   }, [items]);
 
-  const additionalServicesSummaryItem = useMemo<QuoteItem | null>(() => {
-    const v = Number(additionalServicesSubtotal) || 0;
-    if (v <= 0) return null;
-    return {
-      section: "materials",
-      name: "Additional services",
-      qty: 1,
-      unit: "ea",
-      unitPrice: v,
-      lineTotal: v
-    };
-  }, [additionalServicesSubtotal]);
+  const additionalServicesAsMaterials = useMemo(() => {
+    return items
+      .filter((i) => i.section === "additional")
+      .filter((i) => (Number(i.qty) || 0) > 0)
+      .filter((i) => (Number(i.lineTotal) || 0) !== 0)
+      .map((i) => ({
+        section: "materials" as const,
+        name: String(i.name || "").trim() || "Additional service",
+        qty: Number(i.qty) || 0,
+        unit: String(i.unit || "ea"),
+        unitPrice: Number(i.unitPrice) || 0,
+        lineTotal: Number(i.lineTotal) || 0
+      }));
+  }, [items]);
 
   const takeoffMaterialsWithAdditional = useMemo(() => {
-    if (!additionalServicesSummaryItem) return takeoffMaterialsStable;
-    return [...takeoffMaterialsStable, additionalServicesSummaryItem];
-  }, [additionalServicesSummaryItem, takeoffMaterialsStable]);
+    if (!additionalServicesAsMaterials.length) return takeoffMaterialsStable;
+    return [...takeoffMaterialsStable, ...additionalServicesAsMaterials];
+  }, [additionalServicesAsMaterials, takeoffMaterialsStable]);
 
   const takeoffMaterialsAndExpensesTotal = useMemo(() => {
     return computeMaterialsAndExpensesTotal(takeoffMaterialsWithAdditional);
