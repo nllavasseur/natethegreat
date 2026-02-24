@@ -5774,9 +5774,16 @@ function EstimatesPageInner() {
                               className={
                                 "rounded-2xl border p-2 bg-[rgba(255,255,255,.05)] " +
                                 (c.id === activeComboCardId
-                                  ? "border-[rgba(255,214,10,.55)]"
+                                  ? ""
                                   : "border-[rgba(255,255,255,.12)]")
                               }
+                              style={(() => {
+                                if (c.id !== activeComboCardId) return undefined;
+                                if (Boolean((c as any).shared)) return { borderColor: "rgba(255,214,10,.55)", backgroundColor: "rgba(255,214,10,.08)" };
+                                const accent = comboCardAccent(idx);
+                                if (!accent) return { borderColor: "rgba(255,214,10,.55)", backgroundColor: "rgba(255,214,10,.08)" };
+                                return { borderColor: accent.border, backgroundColor: accent.bg };
+                              })()}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <button
