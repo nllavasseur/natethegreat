@@ -2789,9 +2789,23 @@ function EstimatesPageInner() {
       return acc;
     }, new Map<string, QuoteItem>());
 
-    // Gate accessories should reflect the estimate-level gate count, not multiply per card/run.
-    const totalWalkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length);
-    const totalDoubleGates = Math.max(0, segments.filter((s) => !s.removed).filter((s: any) => (s as any).gateType === "double").length);
+    // Gate accessories (hinges/kits/framing) are wood-only and should reflect estimate-level wood gate count,
+    // not multiply per card/run.
+    const baseIdResolved = baseComboCardId || null;
+    const woodGateSegments = segments
+      .filter((s) => !s.removed)
+      .filter((s) => {
+        const cid = (s as any).cardId ?? null;
+        const resolved = cid === null ? baseIdResolved : cid;
+        const card = comboCards.find((c) => c.id === resolved);
+        return card?.fenceType === "wood";
+      });
+
+    const totalWalkGates = Math.max(
+      0,
+      woodGateSegments.filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length
+    );
+    const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
     const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
       const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
