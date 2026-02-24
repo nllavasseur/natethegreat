@@ -144,8 +144,19 @@ export default function EstimateContractPage() {
       if (!to) return;
       const subject = `Vasseur Fencing estimate ${String(data.estimate?.id || "").trim() || ""}`.trim();
       const body = `Hi ${String(data.estimate?.customer?.name || "").trim() || ""},\n\nAttached is your estimate.\n\nThanks,\nVasseur Fencing`;
-      const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = url;
+      const gmailUrl = `googlegmail:///co?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+      // Prefer Gmail app if installed; fall back to mailto.
+      // Note: the sender/from address cannot be controlled here; Gmail uses the user's active/default account.
+      window.location.href = gmailUrl;
+      window.setTimeout(() => {
+        try {
+          window.location.href = mailtoUrl;
+        } catch {
+          // ignore
+        }
+      }, 500);
     } catch {
       // ignore
     }
