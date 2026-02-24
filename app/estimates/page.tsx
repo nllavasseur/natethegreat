@@ -53,6 +53,11 @@ function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number
   }
   const direct = Number(materialUnitPrices[name] ?? NaN);
   if (Number.isFinite(direct)) return direct;
+  const baseName = String(name || "").replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  if (baseName && baseName !== name) {
+    const baseDirect = Number(materialUnitPrices[baseName] ?? NaN);
+    if (Number.isFinite(baseDirect)) return baseDirect;
+  }
   return Number(materialUnitPrices[normalizeUnitPriceKey(name)] ?? 0);
 }
 
@@ -766,6 +771,9 @@ function EstimatesPageInner() {
     return Math.max(0, Number(doubleGateCount) || 0);
   }, [doubleGateCount, segments]);
 
+  const isWalkGateSegment = (s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate));
+  const isDoubleGateSegment = (s: any) => (s as any).gateType === "double";
+
   const splitRailPostsSummary = useMemo(() => {
     const n = String(selectedStyle?.name || "").trim().toLowerCase();
     const styleKind = !n
@@ -786,7 +794,7 @@ function EstimatesPageInner() {
       return { total: 0, line: 0, corner: 0, end: 0, gateDerived: 0 };
     }
 
-    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => Boolean((s as any).gate)).length);
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
@@ -927,13 +935,7 @@ function EstimatesPageInner() {
       };
     }
 
-    const walkGates = Math.max(
-      0,
-      segments
-        .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
-        .length
-    );
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
     const gateDerived = (walkGates + doubleGates) * 2;
 
@@ -975,13 +977,7 @@ function EstimatesPageInner() {
     const panels = lf > 0 ? Math.ceil(lf / panelW) : 0;
     const postsBase = panels > 0 ? panels + 1 : 0;
 
-    const walkGates = Math.max(
-      0,
-      segments
-        .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
-        .length
-    );
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const gatePostsAdd = walkGates * 2;
     const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
     return { panels, posts };
@@ -1032,13 +1028,7 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Mansfield") return;
 
-    const walkGates = Math.max(
-      0,
-      segments
-        .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
-        .length
-    );
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     setMaterialsDetails((p) => {
@@ -1143,13 +1133,7 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Pacific") return;
 
-    const walkGates = Math.max(
-      0,
-      segments
-        .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
-        .length
-    );
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     setMaterialsDetails((p) => {
@@ -1170,13 +1154,7 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Atlantic") return;
 
-    const walkGates = Math.max(
-      0,
-      segments
-        .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
-        .length
-    );
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
 
     setMaterialsDetails((p) => {
@@ -1200,13 +1178,7 @@ function EstimatesPageInner() {
     if (selectedFenceType !== "aluminum") return;
     if (String(selectedStyle?.name || "") !== "Toledo") return;
 
-    const walkGates = Math.max(
-      0,
-      segments
-        .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
-        .length
-    );
+    const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
     const doubleGates = Math.max(0, Number(effectiveDoubleGateCount) || 0);
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
@@ -2522,7 +2494,7 @@ function EstimatesPageInner() {
 
       const walkGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
         if (!selectedStyle) return [] as Array<{ name: string; qty: number; unit: string }>;
-        const walkCount = Math.max(0, segments.filter((s) => Boolean((s as any).gate)).length);
+        const walkCount = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
         if (walkCount <= 0) return [];
 
         if (style === "Mansfield") {
