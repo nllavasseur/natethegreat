@@ -117,6 +117,46 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const headerRef = React.useRef<HTMLDivElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
 
+  const [tabTapDebug, setTabTapDebug] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!pathname?.startsWith("/estimates")) return;
+    if (!String(window.location.search || "").includes("draft=")) return;
+
+    let enabled = true;
+    const off = window.setTimeout(() => {
+      enabled = false;
+      setTabTapDebug(null);
+    }, 12000);
+
+    const onDown = (e: PointerEvent) => {
+      if (!enabled) return;
+      try {
+        const y = (e as any).clientY as number;
+        const headerH = headerRef.current?.getBoundingClientRect().bottom ?? 0;
+        if (y > headerH + 8) return;
+
+        const x = (e as any).clientX as number;
+        const el = document.elementFromPoint(x, y) as HTMLElement | null;
+        const tag = el?.tagName ? el.tagName.toLowerCase() : "";
+        const cls = el?.className ? String(el.className) : "";
+        const pe = el ? window.getComputedStyle(el).pointerEvents : "";
+        const zi = el ? window.getComputedStyle(el).zIndex : "";
+        setTabTapDebug(`${tag}${cls ? `.${cls}` : ""} pe=${pe} z=${zi}`.slice(0, 220));
+        window.setTimeout(() => setTabTapDebug(null), 2500);
+      } catch {
+        // ignore
+      }
+    };
+
+    document.addEventListener("pointerdown", onDown, { passive: true });
+    return () => {
+      window.clearTimeout(off);
+      document.removeEventListener("pointerdown", onDown as any);
+    };
+  }, [pathname]);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     if (hideChrome) {
@@ -199,6 +239,11 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                   );
                 })}
               </div>
+              {tabTapDebug ? (
+                <div className="mt-2 rounded-2xl border border-[rgba(255,214,10,.45)] bg-[rgba(255,214,10,.16)] px-3 py-2 text-[11px] font-black text-[rgba(255,244,200,.98)]">
+                  {tabTapDebug}
+                </div>
+              ) : null}
             </div>
           </nav>
         </div>
