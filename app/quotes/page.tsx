@@ -37,6 +37,12 @@ type DraftEntry = {
     scheduleDelivery?: boolean;
     call811?: boolean;
   };
+  jobTaskSnooze?: {
+    collectDeposit?: number;
+    orderMaterials?: number;
+    scheduleDelivery?: number;
+    call811?: number;
+  };
 };
 
 function normalizePreInstallPhotos(input: unknown) {
@@ -251,8 +257,15 @@ export default function QuotesPage() {
         if (dt < 0) return false;
 
         const tasks = (d as any).jobTasks || {};
-        if (dt <= hours36 && !tasks.call811) return true;
-        if (dt <= days7 && (!tasks.orderMaterials || !tasks.scheduleDelivery)) return true;
+        const snooze = (d as any).jobTaskSnooze || {};
+        const snoozed = (k: "call811" | "orderMaterials" | "scheduleDelivery") => {
+          const until = Number((snooze as any)[k]) || 0;
+          return until > 0 && now < until;
+        };
+
+        if (dt <= hours36 && !tasks.call811 && !snoozed("call811")) return true;
+        if (dt <= days7 && !tasks.orderMaterials && !snoozed("orderMaterials")) return true;
+        if (dt <= days7 && !tasks.scheduleDelivery && !snoozed("scheduleDelivery")) return true;
         return false;
       });
   }, [drafts]);
