@@ -288,6 +288,29 @@ export default function TasksPage() {
                           type="button"
                           data-no-swipe="true"
                           data-keep-open="true"
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                          }}
+                          onTouchStart={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                            const mode = done ? "undo" : (urgent || warn ? "snooze" : null);
+                            if (!mode) return;
+                            holdTimerRef.current = window.setTimeout(() => {
+                              setHoldKey(keyStr);
+                              setHoldMode(mode);
+                              setConfirmKey(null);
+                            }, 3000);
+                          }}
+                          onTouchEnd={() => {
+                            if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                            holdTimerRef.current = null;
+                          }}
+                          onTouchCancel={() => {
+                            if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                            holdTimerRef.current = null;
+                          }}
                           onPointerDown={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -322,7 +345,7 @@ export default function TasksPage() {
                             setJobTask(job.id, t.key, true);
                           }}
                           className={
-                            "w-full rounded-xl border px-3 py-2 text-left transition-none font-extrabold " +
+                            "w-full rounded-xl border px-3 py-2 text-left transition-none font-extrabold select-none " +
                             (done
                               ? "bg-[rgba(31,200,120,.16)] border-[rgba(31,200,120,.35)] text-white opacity-80"
                               : isConfirm
@@ -333,6 +356,7 @@ export default function TasksPage() {
                                     ? "bg-[rgba(255,214,10,.12)] border-[rgba(255,214,10,.45)] text-white"
                                     : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
                           }
+                          style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "manipulation" }}
                           aria-disabled={false}
                         >
                           <div className="flex items-center justify-between gap-3">
