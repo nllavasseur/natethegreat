@@ -315,7 +315,17 @@ function EstimatesPageInner() {
   const [ocrCenters, setOcrCenters] = useState<Record<string, { x: number; y: number }>>({});
   const [pickOcrForLabel, setPickOcrForLabel] = useState<string | null>(null);
   const [referenceLength, setReferenceLength] = useState(0);
-  const [segments, setSegments] = useState<Array<{ id: string; label: string; length: number; removed: boolean; gate?: boolean }>>([]);
+  const [segments, setSegments] = useState<
+    Array<{
+      id: string;
+      label: string;
+      length: number;
+      removed: boolean;
+      gate?: boolean;
+      cardId?: string | null;
+      gateType?: "none" | "walk" | "double";
+    }>
+  >([]);
   const [notes, setNotes] = useState("");
   const [preInstallPhotos, setPreInstallPhotos] = useState<Array<{ src: string; note: string; createdAt: number }>>([]);
   const preInstallPhotoInputRef = useRef<HTMLInputElement | null>(null);
@@ -348,7 +358,7 @@ function EstimatesPageInner() {
         typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
           ? (crypto as any).randomUUID()
           : `${Date.now()}-${i}-${s.label}`;
-      return { id, label: s.label, length, removed: false };
+      return { id, label: s.label, length, removed: false, cardId: null, gateType: "none" as const };
     });
     setSegments(next);
     setMeasureOpen(false);
@@ -582,6 +592,16 @@ function EstimatesPageInner() {
     }
   ];
 
+  type ComboCard = {
+    id: string;
+    fenceType: "wood" | "vinyl" | "aluminum" | "chainlink";
+    vinylStyleTab: "privacy" | "semi-privacy" | "pool";
+    selectedStyle: { name: string; thumb: string } | null;
+    materialsDetails: MaterialsDetails;
+    extraPosts: number;
+    shared?: boolean;
+  };
+
   const [stylePickerIdx, setStylePickerIdx] = useState<boolean>(false);
   const [selectedFenceType, setSelectedFenceType] = useState<"wood" | "vinyl" | "aluminum" | "chainlink">("wood");
   const [vinylStyleTab, setVinylStyleTab] = useState<"privacy" | "semi-privacy" | "pool">("privacy");
@@ -590,6 +610,78 @@ function EstimatesPageInner() {
   const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
+
+  const initialComboCardId =
+    typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+      ? (crypto as any).randomUUID()
+      : `card-${Date.now()}`;
+  const [comboCards, setComboCards] = useState<ComboCard[]>([
+    {
+      id: initialComboCardId,
+      fenceType: "wood",
+      vinylStyleTab: "privacy",
+      selectedStyle: null,
+      materialsDetails: DEFAULT_MATERIALS_DETAILS,
+      extraPosts: 0,
+      shared: false
+    }
+  ]);
+  const [activeComboCardId, setActiveComboCardId] = useState<string>(initialComboCardId);
+
+  useEffect(() => {
+    setComboCards((prev) =>
+      prev.map((c) =>
+        c.id === activeComboCardId
+          ? {
+              ...c,
+              fenceType: selectedFenceType,
+              vinylStyleTab,
+              selectedStyle,
+              materialsDetails,
+              extraPosts
+            }
+          : c
+      )
+    );
+  }, [activeComboCardId, extraPosts, materialsDetails, selectedFenceType, selectedStyle, vinylStyleTab]);
+
+  useEffect(() => {
+    const card = comboCards.find((c) => c.id === activeComboCardId);
+    if (!card) return;
+    if (card.fenceType !== selectedFenceType) setSelectedFenceType(card.fenceType);
+    if (card.vinylStyleTab !== vinylStyleTab) setVinylStyleTab(card.vinylStyleTab);
+    if ((card.selectedStyle?.name || "") !== (selectedStyle?.name || "")) setSelectedStyle(card.selectedStyle);
+    if (card.materialsDetails !== materialsDetails) setMaterialsDetails(card.materialsDetails);
+    if ((Number(card.extraPosts) || 0) !== (Number(extraPosts) || 0)) setExtraPosts(Number(card.extraPosts) || 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeComboCardId]);
+
+  const baseComboCardId = comboCards[0]?.id;
+
+  function resolveSegmentCardId(seg: { cardId?: string | null }) {
+    const cid = seg.cardId ?? null;
+    return cid === null ? (baseComboCardId || null) : cid;
+  }
+
+  function deleteComboCard(cardId: string) {
+    const baseId = baseComboCardId;
+    if (!baseId) return;
+    if (cardId === baseId) return;
+
+    setComboCards((prev) => prev.filter((c) => c.id !== cardId));
+    setSegments((prev) => prev.map((s) => (resolveSegmentCardId(s) === cardId ? { ...s, cardId: null } : s)));
+    setActiveComboCardId(baseId);
+  }
+
+  const sharedLf = useMemo(() => {
+    const sharedCardIds = new Set(comboCards.filter((c, idx) => idx > 0 && Boolean(c.shared)).map((c) => c.id));
+    if (!sharedCardIds.size) return 0;
+    return segments
+      .filter((s) => !s.removed)
+      .filter((s) => (Number(s.length) || 0) > 0)
+      .filter((s) => sharedCardIds.has(resolveSegmentCardId(s) || ""))
+      .reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+  }, [comboCards, segments]);
 
   const [items, setItems] = useState<QuoteItem[]>([]);
 
@@ -864,7 +956,7 @@ function EstimatesPageInner() {
       0,
       segments
         .filter((s) => !s.removed)
-        .filter((s) => Boolean((s as any).gate))
+        .filter((s) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate)))
         .length
     );
   }, [segments]);
@@ -1283,14 +1375,126 @@ function EstimatesPageInner() {
     };
   }, []);
 
-  const generatedMaterials = useMemo(() => {
+  function generateMaterialsForContext(ctx: {
+    selectedStyle: { name: string; thumb: string } | null;
+    selectedFenceType: "wood" | "vinyl" | "aluminum" | "chainlink";
+    vinylStyleTab: "privacy" | "semi-privacy" | "pool";
+    materialsDetails: MaterialsDetails;
+    extraPosts: number;
+    segments: typeof segments;
+  }) {
+    const selectedStyle = ctx.selectedStyle;
+    const selectedFenceType = ctx.selectedFenceType;
+    const vinylStyleTab = ctx.vinylStyleTab;
+    const materialsDetails = ctx.materialsDetails;
+    const extraPosts = ctx.extraPosts;
+    const segments = ctx.segments;
+
+    const totalLf = segments
+      .filter((s) => !s.removed)
+      .reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+
+    const walkGateCount = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate)))
+        .length
+    );
+    const doubleGateCount = Math.max(
+      0,
+      segments
+        .filter((s) => !s.removed)
+        .filter((s) => (s as any).gateType === "double")
+        .length
+    );
+
+    const selectedStyleKind = (() => {
+      const nRaw = String(selectedStyle?.name || "");
+      const n = nRaw
+        .trim()
+        .toLowerCase()
+        .replaceAll("/", ":")
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ");
+
+      if (n === "standard privacy" || n === "standard") return "wood_standard";
+      if (n === "horizontal cedar" || n === "horizontal") return "wood_horizontal";
+      if (n === "niko" || n === "all cedar niko") return "wood_picture_framed";
+      if (n === "picture framed" || n.startsWith("picture framed") || n.includes("picture framed")) return "wood_picture_framed";
+      if (n === "a & m") return "wood_picture_framed";
+      if (n === "casto") return "wood_picture_framed";
+      if (n === "mary jane") return "wood_picture_framed";
+      if (n === "picture framed caps") return "wood_picture_framed";
+      if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
+      if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
+      if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
+      if (n === "shadowbox top cap" || n.includes("shadowbox top cap")) return "wood_shadowbox_top_cap";
+      if (n === "1x4 shadowbox" || n.includes("1x4 shadowbox")) return "wood_shadowbox";
+      if (n === "shadowbox") return "wood_shadowbox_pickets";
+      if (n.includes("shadowbox")) return "wood_shadowbox_pickets";
+      if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
+      if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
+      if (n === "four rail poplar" || n.includes("four rail poplar")) return "wood_four_rail_poplar";
+      if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
+      return n;
+    })();
+
+    const aluminumPostsSummary = (() => {
+      if (selectedFenceType !== "aluminum") {
+        return { total: 0, line: 0, gateDerived: 0 };
+      }
+
+      const segmentLengths = segments
+        .filter((s) => !s.removed)
+        .map((s) => Number(s.length) || 0)
+        .filter((n) => n > 0);
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 6), 0)
+        : (totalLf > 0 ? Math.ceil(totalLf / 6) : 0);
+      const postsBase = panels > 0 ? panels + 1 : 0;
+
+      const walkGates = walkGateCount;
+      const doubleGates = doubleGateCount;
+      const gateDerived = (walkGates + doubleGates) * 2;
+
+      const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
+      const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
+      const gate = Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0)) + gateDerived;
+      const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
+
+      const total = Math.max(0, postsBase + corner + end + gate + blank + (Number(extraPosts) || 0));
+      const line = Math.max(0, total - (corner + gate + end + blank));
+      return { total, line, gateDerived };
+    })();
+
+    const vinylSummary = (() => {
+      if (selectedFenceType !== "vinyl") {
+        return { panels: 0, posts: 0 };
+      }
+
+      const segmentLengths = segments
+        .filter((s) => !s.removed)
+        .map((s) => Number(s.length) || 0)
+        .filter((n) => n > 0);
+      const lf = totalLf;
+      const panelWidth = Number(materialsDetails.vinylPanelWidthFt) || 6;
+      const panels = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / panelWidth), 0)
+        : (lf > 0 ? Math.ceil(lf / panelWidth) : 0);
+      const postsBase = panels > 0 ? panels + 1 : 0;
+      const gatePostsAdd = walkGateCount * 2;
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+      return { panels, posts };
+    })();
+
     if (!selectedStyle) return [] as QuoteItem[];
 
     const walkGates = Number(walkGateCount) || 0;
     const doubleGates = Number(doubleGateCount) || 0;
 
     const walkGatePostsAdd = segments
-      .filter((s) => Boolean((s as any).gate))
+      .filter((s) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate)))
       .reduce((sum, s) => {
         const len = Number((s as any).length) || 0;
         return sum + (len > 0 && len < 8 ? 2 : 1);
@@ -2504,17 +2708,71 @@ function EstimatesPageInner() {
       const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
       return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
     });
-  }, [
-    doubleGateCount,
-    extraPosts,
-    materialUnitPrices,
-    materialsDetails,
-    segments,
-    selectedFenceType,
-    selectedStyle,
-    totalLf,
-    walkGateCount
-  ]);
+  }
+
+  const generatedMaterials = useMemo(() => {
+    const baseId = baseComboCardId;
+    if (!baseId) return [] as QuoteItem[];
+
+    const allRows: QuoteItem[] = [];
+
+    for (const card of comboCards) {
+      if (!card.selectedStyle) continue;
+
+      let usedExtraPosts = false;
+
+      // Split into contiguous runs based on original segment order.
+      let currentRun: typeof segments = [];
+      const flush = () => {
+        if (!currentRun.length) return;
+        allRows.push(
+          ...generateMaterialsForContext({
+            selectedStyle: card.selectedStyle,
+            selectedFenceType: card.fenceType,
+            vinylStyleTab: card.vinylStyleTab,
+            materialsDetails: card.materialsDetails,
+            extraPosts: usedExtraPosts ? 0 : (Number(card.extraPosts) || 0),
+            segments: currentRun
+          })
+        );
+        usedExtraPosts = true;
+        currentRun = [];
+      };
+
+      for (const s of segments) {
+        if (s.removed) {
+          flush();
+          continue;
+        }
+        const len = Number(s.length) || 0;
+        if (len <= 0) {
+          flush();
+          continue;
+        }
+        const resolved = resolveSegmentCardId(s);
+        if (resolved === card.id) {
+          currentRun.push(s);
+        } else {
+          flush();
+        }
+      }
+      flush();
+    }
+
+    const merged = allRows.reduce((acc, r) => {
+      const key = `${r.name}__${r.unit}`;
+      const prev = acc.get(key);
+      if (prev) {
+        prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
+        prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
+      } else {
+        acc.set(key, { ...r });
+      }
+      return acc;
+    }, new Map<string, QuoteItem>());
+
+    return Array.from(merged.values());
+  }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
 
   const storageKey = "vf_estimate_drafts_v1";
   const unsavedSnapshotKey = "vf_estimate_unsaved_snapshot_v1";
@@ -2546,6 +2804,10 @@ function EstimatesPageInner() {
   function writeUnsavedSnapshot() {
     if (typeof window === "undefined") return;
     try {
+      const comboPayload = {
+        comboCards,
+        activeComboCardId
+      };
       const payload = {
         customerName,
         projectAddress,
@@ -2556,6 +2818,7 @@ function EstimatesPageInner() {
         selectedStyle,
         materialsDetails,
         extraPosts,
+        ...comboPayload,
         materialUnitPrices,
         laborDays,
         laborManualDays,
@@ -2590,6 +2853,8 @@ function EstimatesPageInner() {
       selectedStyle,
       materialsDetails,
       extraPosts,
+      comboCards,
+      activeComboCardId,
       materialUnitPrices,
       laborDays,
       laborManualDays,
@@ -2720,6 +2985,8 @@ function EstimatesPageInner() {
         totalLf: totalLfValue,
         walkGateCount: walkGatesValue,
         doubleGateCount: doubleGatesValue,
+        sharedLf: Number(sharedLf) || 0,
+        sharedTotal: Number(sharedTotal) || 0,
         depositTotal: Number(materialsDepositTotal) || 0,
         notes,
         disclaimer: "",
@@ -2757,11 +3024,21 @@ function EstimatesPageInner() {
     const nextLabel = opts[Math.min(segments.length, opts.length - 1)] ?? "A–B";
     setSegments((prev) => [
       ...prev,
-      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, label: nextLabel, length: 0, removed: false, gate: false }
+      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, label: nextLabel, length: 0, removed: false, cardId: null, gateType: "none" }
     ]);
   }
 
-  function patchSegment(id: string, patch: Partial<{ label: string; length: number; removed: boolean; gate?: boolean }>) {
+  function patchSegment(
+    id: string,
+    patch: Partial<{
+      label: string;
+      length: number;
+      removed: boolean;
+      gate?: boolean;
+      cardId?: string | null;
+      gateType?: "none" | "walk" | "double";
+    }>
+  ) {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }
 
@@ -3121,6 +3398,15 @@ function EstimatesPageInner() {
       (Number(removalTotal) || 0);
     return Math.round(v * 100) / 100;
   }, [laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
+
+  const sharedTotal = useMemo(() => {
+    const lf = Number(totalLf) || 0;
+    if (lf <= 0) return 0;
+    const jobTotal = Number(grandTotal) || 0;
+    const perLf = jobTotal / lf;
+    const v = perLf * (Number(sharedLf) || 0);
+    return Math.round(v * 100) / 100;
+  }, [grandTotal, sharedLf, totalLf]);
 
   const depositTotal = useMemo(() => {
     return Math.round((Number(materialsDepositTotal) || 0) * 100) / 100;
@@ -3617,29 +3903,69 @@ function EstimatesPageInner() {
     setEmail(String(d.email ?? ""));
     setProjectPhoto(null);
     setProjectPhotoDataUrl(typeof (d as any).projectPhotoDataUrl === "string" ? (d as any).projectPhotoDataUrl : null);
-    const fenceType = (d.selectedFenceType ?? "wood") as "wood" | "vinyl" | "aluminum" | "chainlink";
-    setSelectedFenceType(fenceType);
+    // Restore combo cards (if present). Falls back to legacy single-card fields.
+    const incomingCardsRaw = (d as any).comboCards;
+    const incomingActiveIdRaw = (d as any).activeComboCardId;
+    if (Array.isArray(incomingCardsRaw) && incomingCardsRaw.length > 0) {
+      const normalizedCards = incomingCardsRaw
+        .filter((c: any) => c && typeof c === "object")
+        .map((c: any, idx: number) => {
+          const cid = typeof c.id === "string" && c.id ? c.id : `card-${Date.now()}-${idx}`;
+          const fenceType = (c.fenceType ?? "wood") as "wood" | "vinyl" | "aluminum" | "chainlink";
+          const vinylStyleTab = (c.vinylStyleTab ?? "privacy") as "privacy" | "semi-privacy" | "pool";
+          const selectedStyle = c.selectedStyle && typeof c.selectedStyle === "object" && typeof c.selectedStyle.name === "string" && typeof c.selectedStyle.thumb === "string"
+            ? { name: c.selectedStyle.name, thumb: c.selectedStyle.thumb }
+            : null;
+          const materialsDetails = (c.materialsDetails && typeof c.materialsDetails === "object")
+            ? ({ ...DEFAULT_MATERIALS_DETAILS, ...(c.materialsDetails as any) } as MaterialsDetails)
+            : DEFAULT_MATERIALS_DETAILS;
+          const extraPosts = Number(c.extraPosts) || 0;
+          const shared = typeof c.shared === "boolean" ? c.shared : false;
+          return { id: cid, fenceType, vinylStyleTab, selectedStyle, materialsDetails, extraPosts, shared };
+        });
 
-    const rawStyle = (d as any).selectedStyle;
-    const rawName =
-      typeof rawStyle === "string"
-        ? rawStyle
-        : rawStyle && typeof rawStyle === "object" && typeof rawStyle.name === "string"
-          ? rawStyle.name
-          : null;
+      const normalizedActiveId =
+        typeof incomingActiveIdRaw === "string" && normalizedCards.some((c: any) => c.id === incomingActiveIdRaw)
+          ? incomingActiveIdRaw
+          : normalizedCards[0].id;
 
-    const resolved = rawName
-      ? materialStyles.find((st) => st.type === fenceType && st.name === rawName) ?? materialStyles.find((st) => st.name === rawName)
-      : null;
+      setComboCards(normalizedCards);
+      setActiveComboCardId(normalizedActiveId);
 
-    setSelectedStyle(
-      resolved
-        ? { name: resolved.name, thumb: resolved.thumb }
-        : (rawStyle && typeof rawStyle === "object" && typeof rawStyle.name === "string" && typeof rawStyle.thumb === "string")
-          ? { name: rawStyle.name, thumb: rawStyle.thumb }
-          : null
-    );
-    setExtraPosts(Number((d as any).extraPosts) || 0);
+      const active = normalizedCards.find((c: any) => c.id === normalizedActiveId) || normalizedCards[0];
+      if (active) {
+        setSelectedFenceType(active.fenceType);
+        setVinylStyleTab(active.vinylStyleTab);
+        setSelectedStyle(active.selectedStyle);
+        setMaterialsDetails(active.materialsDetails);
+        setExtraPosts(Number(active.extraPosts) || 0);
+      }
+    } else {
+      const fenceType = (d.selectedFenceType ?? "wood") as "wood" | "vinyl" | "aluminum" | "chainlink";
+      setSelectedFenceType(fenceType);
+
+      const rawStyle = (d as any).selectedStyle;
+      const rawName =
+        typeof rawStyle === "string"
+          ? rawStyle
+          : rawStyle && typeof rawStyle === "object" && typeof rawStyle.name === "string"
+            ? rawStyle.name
+            : null;
+
+      const resolved = rawName
+        ? materialStyles.find((st) => st.type === fenceType && st.name === rawName) ?? materialStyles.find((st) => st.name === rawName)
+        : null;
+
+      setSelectedStyle(
+        resolved
+          ? { name: resolved.name, thumb: resolved.thumb }
+          : (rawStyle && typeof rawStyle === "object" && typeof rawStyle.name === "string" && typeof rawStyle.thumb === "string")
+            ? { name: rawStyle.name, thumb: rawStyle.thumb }
+            : null
+      );
+      setExtraPosts(Number((d as any).extraPosts) || 0);
+    }
+
     if (d.materialsDetails && typeof d.materialsDetails === "object") {
       const dd = d.materialsDetails as any;
       const woodType = (dd.woodType === "Cedar" || dd.woodType === "Cedar tone" || dd.woodType === "Pressure treated")
@@ -3824,7 +4150,18 @@ function EstimatesPageInner() {
     setReferenceLength(Number(d.referenceLength ?? 0));
     setNotes(String(d.notes ?? ""));
     setPreInstallPhotos(normalizePreInstallPhotos((d as any).preInstallPhotos));
-    setSegments(Array.isArray(d.segments) ? d.segments : []);
+    setSegments(
+      Array.isArray(d.segments)
+        ? d.segments.map((s: any) => {
+            const legacyGate = Boolean(s?.gate);
+            const gateType = (s?.gateType === "walk" || s?.gateType === "double" || s?.gateType === "none")
+              ? s.gateType
+              : (legacyGate ? "walk" : "none");
+            const cardId = (s?.cardId === null || typeof s?.cardId === "string") ? s.cardId : null;
+            return { ...s, cardId, gateType };
+          })
+        : []
+    );
     setItems(Array.isArray(d.items) ? d.items : []);
 
     try {
@@ -4174,24 +4511,57 @@ function EstimatesPageInner() {
                   <SecondaryButton
                     type="button"
                     data-no-swipe="true"
-                    onClick={() => patchSegment(seg.id, { gate: !(seg as any).gate })}
-                    aria-pressed={Boolean((seg as any).gate)}
-                    aria-label="Gate"
-                    title="Gate"
-                    style={
-                      (seg as any).gate
-                        ? {
-                            backgroundColor: "rgba(31,200,120,.22)",
-                            borderColor: "rgba(31,200,120,.40)",
-                            color: "rgba(235,255,245,.98)"
-                          }
-                        : undefined
+                    onClick={() => {
+                      const cur = (seg as any).gateType as ("none" | "walk" | "double" | undefined);
+                      const legacy = Boolean((seg as any).gate);
+                      const effective: "none" | "walk" | "double" = cur ?? (legacy ? "walk" : "none");
+                      const next: "none" | "walk" | "double" = effective === "none" ? "walk" : effective === "walk" ? "double" : "none";
+                      patchSegment(seg.id, { gateType: next });
+                    }}
+                    aria-pressed={
+                      ((seg as any).gateType && (seg as any).gateType !== "none") ||
+                      ((seg as any).gateType == null && Boolean((seg as any).gate))
                     }
+                    aria-label="Gate"
+                    title={(() => {
+                      const cur = (seg as any).gateType as ("none" | "walk" | "double" | undefined);
+                      const legacy = Boolean((seg as any).gate);
+                      const effective: "none" | "walk" | "double" = cur ?? (legacy ? "walk" : "none");
+                      return effective === "walk" ? "Walk gate" : effective === "double" ? "Double gate" : "No gate";
+                    })()}
+                    style={(() => {
+                      const cur = (seg as any).gateType as ("none" | "walk" | "double" | undefined);
+                      const legacy = Boolean((seg as any).gate);
+                      const effective: "none" | "walk" | "double" = cur ?? (legacy ? "walk" : "none");
+
+                      if (effective === "walk") {
+                        return {
+                          backgroundColor: "rgba(31,200,120,.22)",
+                          borderColor: "rgba(31,200,120,.40)",
+                          color: "rgba(235,255,245,.98)"
+                        };
+                      }
+
+                      if (effective === "double") {
+                        return {
+                          backgroundColor: "rgba(80,140,255,.22)",
+                          borderColor: "rgba(80,140,255,.42)",
+                          color: "rgba(235,245,255,.98)"
+                        };
+                      }
+
+                      return undefined;
+                    })()}
                     className={
                       "w-full min-w-0 px-2 py-2 text-[14px] leading-none transition-none active:bg-[rgba(31,200,120,.22)] active:border-[rgba(31,200,120,.40)]"
                     }
                   >
-                    🚪
+                    {(() => {
+                      const cur = (seg as any).gateType as ("none" | "walk" | "double" | undefined);
+                      const legacy = Boolean((seg as any).gate);
+                      const effective: "none" | "walk" | "double" = cur ?? (legacy ? "walk" : "none");
+                      return effective === "walk" ? "🚪 W" : effective === "double" ? "🚪 D" : "🚪";
+                    })()}
                   </SecondaryButton>
                   <SecondaryButton
                     type="button"
@@ -4223,6 +4593,26 @@ function EstimatesPageInner() {
                   </SecondaryButton>
                 </div>
               </div>
+
+              {comboCards.length > 1 ? (
+                <div className="mt-2">
+                  <div className="text-[11px] text-[var(--muted)] mb-1">Card</div>
+                  <Select
+                    value={String((seg as any).cardId ?? "")}
+                    onChange={(e) => {
+                      const v = String(e.target.value || "");
+                      patchSegment(seg.id, { cardId: v === "" ? null : v });
+                    }}
+                  >
+                    <option value="">Card 1 (default)</option>
+                    {comboCards.slice(1).map((c, i) => (
+                      <option key={c.id} value={c.id}>
+                        {`Card ${i + 2}`}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              ) : null}
             </div>
           ))}
 
@@ -4413,6 +4803,153 @@ function EstimatesPageInner() {
                 <div className="grid gap-2">
                   {s.key === "materials" ? (
                     <>
+                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Cards</div>
+                        <div className="grid gap-2">
+                          {comboCards.map((c, idx) => (
+                            <div
+                              key={c.id}
+                              className={
+                                "rounded-2xl border p-2 bg-[rgba(255,255,255,.05)] " +
+                                (c.id === activeComboCardId
+                                  ? "border-[rgba(255,214,10,.55)]"
+                                  : "border-[rgba(255,255,255,.12)]")
+                              }
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  onClick={() => setActiveComboCardId(c.id)}
+                                  className="flex-1 text-left"
+                                >
+                                  <div className="text-sm font-black">{`Card ${idx + 1}`}</div>
+                                  <div className="text-[11px] text-[var(--muted)] truncate">
+                                    {String(c.fenceType || "").toUpperCase()}
+                                    {c.selectedStyle?.name ? ` · ${c.selectedStyle.name}` : ""}
+                                  </div>
+                                </button>
+
+                                <div className="flex items-center gap-1">
+                                  {idx > 0 ? (
+                                    <SecondaryButton
+                                      data-no-swipe="true"
+                                      aria-pressed={Boolean(c.shared)}
+                                      onClick={() =>
+                                        setComboCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, shared: !x.shared } : x)))
+                                      }
+                                      className={
+                                        (c.shared
+                                          ? "!bg-[rgba(80,140,255,.22)] !border-[rgba(80,140,255,.42)] !text-[rgba(235,245,255,.98)] "
+                                          : "") + "px-3 py-2 text-[12px]"
+                                      }
+                                      title="Shared"
+                                    >
+                                      Shared
+                                    </SecondaryButton>
+                                  ) : null}
+                                  {idx > 0 ? (
+                                    <SecondaryButton
+                                      data-no-swipe="true"
+                                      className="px-2 py-2 text-[12px]"
+                                      aria-label={`Delete Card ${idx + 1}`}
+                                      title={`Delete Card ${idx + 1}`}
+                                      onClick={() => deleteComboCard(c.id)}
+                                    >
+                                      ✕
+                                    </SecondaryButton>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <PrimaryButton
+                            data-no-swipe="true"
+                            onClick={() => {
+                              const id =
+                                typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+                                  ? (crypto as any).randomUUID()
+                                  : `card-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                              setComboCards((prev) => [
+                                ...prev,
+                                {
+                                  id,
+                                  fenceType: selectedFenceType,
+                                  vinylStyleTab,
+                                  selectedStyle,
+                                  materialsDetails,
+                                  extraPosts,
+                                  shared: false
+                                }
+                              ]);
+                              setActiveComboCardId(id);
+                            }}
+                            className="px-3 py-2 text-[12px]"
+                          >
+                            Combo
+                          </PrimaryButton>
+                        </div>
+
+                        {comboCards.length > 1 && segments.length ? (
+                          <div className="mt-3 grid gap-2">
+                            {comboCards.map((c, idx) => (
+                              <div key={c.id} className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-[11px] font-extrabold text-[var(--muted)]">{`Card ${idx + 1} segments`}</div>
+                                  {idx > 0 && c.shared ? (
+                                    <div className="text-[10px] font-black text-[rgba(235,245,255,.98)] px-2 py-1 rounded-lg border border-[rgba(80,140,255,.42)] bg-[rgba(80,140,255,.18)]">
+                                      Shared
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {segments
+                                    .filter((s) => !s.removed)
+                                    .map((s) => {
+                                      const assigned = resolveSegmentCardId(s);
+                                      const onThis = assigned === c.id;
+                                      const highlightClass =
+                                        idx === 0
+                                          ? "bg-[rgba(255,214,10,.30)] border-[rgba(255,214,10,.55)] text-[rgba(255,244,200,.98)]"
+                                          : idx === 1
+                                            ? "bg-[rgba(80,140,255,.22)] border-[rgba(80,140,255,.42)] text-[rgba(235,245,255,.98)]"
+                                            : idx === 2
+                                              ? "bg-[rgba(170,90,255,.22)] border-[rgba(170,90,255,.42)] text-[rgba(245,235,255,.98)]"
+                                              : idx === 3
+                                                ? "bg-[rgba(255,90,180,.20)] border-[rgba(255,90,180,.40)] text-[rgba(255,235,245,.98)]"
+                                                : "bg-[rgba(40,210,180,.20)] border-[rgba(40,210,180,.40)] text-[rgba(235,255,252,.98)]";
+                                      return (
+                                        <button
+                                          key={s.id}
+                                          type="button"
+                                          data-no-swipe="true"
+                                          onClick={() => {
+                                            // toggle assignment
+                                            const next = onThis ? null : c.id;
+                                            patchSegment(s.id, { cardId: next });
+                                          }}
+                                          className={
+                                            "rounded-xl px-3 py-2 text-[12px] font-black border transition-none " +
+                                            (onThis
+                                              ? highlightClass
+                                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                          }
+                                          aria-pressed={onThis}
+                                          title={onThis ? "Assigned" : "Assign"}
+                                        >
+                                          {s.label}
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-2 text-[11px] text-[var(--muted)]">Use Combo to add a second tile, then assign segments to each card below.</div>
+                      </div>
+
                       <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                         <div className="text-[11px] text-[var(--muted)] mb-1">Fence type</div>
                         <Select value={selectedFenceType} onChange={(e) => {
@@ -6435,6 +6972,20 @@ function EstimatesPageInner() {
                   <span className="font-black">{money(f.lineTotal)}</span>
                 </div>
               ))}
+            </div>
+          ) : null}
+
+          {sharedLf > 0 ? (
+            <div className="mt-1 grid gap-1">
+              <div className="text-[11px] font-extrabold text-[var(--muted)]">Shared portion</div>
+              <div className="flex justify-between gap-2">
+                <span className="text-[var(--muted)]">LF</span>
+                <span className="font-black">{sharedLf.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-[var(--muted)]">Total</span>
+                <span className="font-black">{money(sharedTotal)}</span>
+              </div>
             </div>
           ) : null}
 

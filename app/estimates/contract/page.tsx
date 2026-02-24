@@ -25,6 +25,8 @@ type ContractData = {
     totalLf?: number;
     walkGateCount?: number;
     doubleGateCount?: number;
+    sharedLf?: number;
+    sharedTotal?: number;
     depositTotal: number;
     notes: string;
     disclaimer: string;
@@ -154,6 +156,8 @@ export default function EstimateContractPage() {
   const removalTotal = Number(totals.removalTotal ?? 0);
   const gateCount =
     (Number(estimate.walkGateCount ?? 0) || 0) + (Number(estimate.doubleGateCount ?? 0) || 0);
+  const sharedLf = Number(estimate.sharedLf ?? 0);
+  const sharedTotal = Number(estimate.sharedTotal ?? 0);
   const descriptionText = `${estimate.styleTitle}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`;
   const acceptanceText =
     "The above prices, specifications and conditions are satisfactory and hereby accepted. You are authorized to do the work as specified.\n" +
@@ -300,6 +304,14 @@ export default function EstimateContractPage() {
           </div>
 
           <div className="totalCost">
+            {sharedLf > 0 && sharedTotal > 0 ? (
+              <div style={{ marginBottom: 8 }}>
+                <div className="totalCostLabel">Shared Portion</div>
+                <div style={{ fontSize: 10, fontWeight: 800, marginTop: 2 }}>{Math.round(sharedLf)} LF</div>
+                <div className="totalCostValue">{money(sharedTotal)}</div>
+              </div>
+            ) : null}
+
             <div className="totalCostLabel">Total Cost</div>
             <div className="totalCostValue">{money(totals.total)}</div>
           </div>
