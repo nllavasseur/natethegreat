@@ -3589,15 +3589,7 @@ function EstimatesPageInner() {
         price: Number(i.lineTotal) || 0
       }));
 
-    const additionalRows = items
-      .filter((i) => i.section === "additional" && (Number(i.qty) || 0) > 0)
-      .map((i) => ({
-        name: i.name,
-        qty: Number(i.qty) || 0,
-        unit: i.unit,
-        unitPrice: Number(i.unitPrice) || 0,
-        price: Number(i.lineTotal) || 0
-      }));
+    const additionalRows: Array<{ name: string; qty: number; unit: string; unitPrice: number; price: number }> = [];
 
     const contractId = String(overrideDraftId || draftId || "");
     const submittedOn = new Date().toISOString();
@@ -3643,7 +3635,7 @@ function EstimatesPageInner() {
       totals: {
         materialsSubtotal: Number(materialsDepositTotal) || 0,
         laborSubtotal: Number(totals.laborSubtotal) || 0,
-        additionalSubtotal: Number(additionalServicesSubtotal) || 0,
+        additionalSubtotal: 0,
         removalTotal: Number(removalTotal) || 0,
         discount: 0,
         tax: 0,
@@ -4074,16 +4066,34 @@ function EstimatesPageInner() {
     return Math.round(v * 100) / 100;
   }, [takeoffMaterialsStable]);
 
-  const takeoffMaterialsAndExpensesTotal = useMemo(() => {
-    return computeMaterialsAndExpensesTotal(takeoffMaterialsStable);
-  }, [takeoffMaterialsStable]);
-
   const additionalServicesSubtotal = useMemo(() => {
     const v = items
       .filter((i) => i.section === "additional")
       .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
   }, [items]);
+
+  const additionalServicesSummaryItem = useMemo<QuoteItem | null>(() => {
+    const v = Number(additionalServicesSubtotal) || 0;
+    if (v <= 0) return null;
+    return {
+      section: "materials",
+      name: "Additional services",
+      qty: 1,
+      unit: "ea",
+      unitPrice: v,
+      lineTotal: v
+    };
+  }, [additionalServicesSubtotal]);
+
+  const takeoffMaterialsWithAdditional = useMemo(() => {
+    if (!additionalServicesSummaryItem) return takeoffMaterialsStable;
+    return [...takeoffMaterialsStable, additionalServicesSummaryItem];
+  }, [additionalServicesSummaryItem, takeoffMaterialsStable]);
+
+  const takeoffMaterialsAndExpensesTotal = useMemo(() => {
+    return computeMaterialsAndExpensesTotal(takeoffMaterialsWithAdditional);
+  }, [takeoffMaterialsWithAdditional]);
 
   const materialsDepositTotal = useMemo(() => {
     const v = Number(takeoffMaterialsAndExpensesTotal) || 0;
@@ -4128,9 +4138,9 @@ function EstimatesPageInner() {
   }, [items, laborFeeItems]);
 
   const laborFeesTotal = useMemo(() => {
-    const v = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+    const v = laborFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
-  }, [additionalFeeItems]);
+  }, [laborFeeItems]);
 
   const grandTotal = useMemo(() => {
     const v =
@@ -4557,9 +4567,9 @@ function EstimatesPageInner() {
         treeRemovalItem,
         stumpGrindingItem
       ].filter((it) => it.lineTotal !== 0);
-      return [...takeoffMaterialsStable, laborItem, ...laborExtras, ...manual];
+      return [...takeoffMaterialsWithAdditional, laborItem, ...laborExtras, ...manual];
     });
-  }, [laborItem, takeoffMaterialsStable, toughDigItem, gradeSurchargeItem, gradingItem, treeRemovalItem, stumpGrindingItem]);
+  }, [laborItem, takeoffMaterialsWithAdditional, toughDigItem, gradeSurchargeItem, gradingItem, treeRemovalItem, stumpGrindingItem]);
 
   function addItem(section: SectionKey) {
     setItems((prev) => [...prev, emptyItem(section)]);
