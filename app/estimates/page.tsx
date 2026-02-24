@@ -1561,10 +1561,13 @@ function EstimatesPageInner() {
 
       const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
       const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
-      const gate = Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0)) + gateDerived;
       const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
 
-      const total = Math.max(0, postsBase + corner + end + gate + blank + (Number(extraPosts) || 0));
+      const gate = materialsDetails.aluminumGateAuto
+        ? gateDerived
+        : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
+
+      const total = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
       const line = Math.max(0, total - (corner + gate + end + blank));
       return { total, line, corner, end, gate, blank, gateDerived };
     })();
