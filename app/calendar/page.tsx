@@ -1466,11 +1466,19 @@ export default function CalendarPage() {
                   const lf = totalLfFromDraft(j);
                   const labor = computeSpanDays((j as any).laborDays) || 0;
                   const hold = String((j as any).holdDate || "").slice(0, 10);
-                  const startIso = String((j as any).installDate || (j as any).startDate || "");
+                  const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
+                  const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
                   const dotColor = colorForJobId(j.id);
                   const endIso = (() => {
                     const endRaw = (j as any).end ?? (j as any).endDate;
                     if (endRaw instanceof Date && Number.isFinite(endRaw.getTime())) return endRaw.toISOString().slice(0, 10);
+                    if (typeof endRaw === "number" && Number.isFinite(endRaw) && endRaw > 0) {
+                      try {
+                        const d = new Date(endRaw);
+                        if (d instanceof Date && Number.isFinite(d.getTime())) return d.toISOString().slice(0, 10);
+                      } catch {
+                      }
+                    }
                     if (typeof endRaw === "string" && endRaw) {
                       try {
                         const d = new Date(endRaw);
