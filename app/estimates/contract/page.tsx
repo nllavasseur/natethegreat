@@ -162,6 +162,7 @@ export default function EstimateContractPage() {
   }, [setPrintScale]);
 
   const handlePrint = React.useCallback(() => {
+    document.documentElement.style.setProperty("--vf-print-scale", "0.75");
     setPrintScale();
     requestAnimationFrame(() => window.print());
   }, [setPrintScale]);
@@ -178,20 +179,6 @@ export default function EstimateContractPage() {
       // Gmail-only: no fallback, to avoid iOS opening Mailto with the wrong sender.
       // Note: the sender/from address cannot be controlled here; Gmail uses the user's active/default account.
       window.location.href = gmailUrl;
-    } catch {
-      // ignore
-    }
-  }, [data]);
-
-  const handleMail = React.useCallback(() => {
-    try {
-      if (!data) return;
-      const to = String(data.estimate?.customer?.email || "").trim();
-      if (!to) return;
-      const subject = `Vasseur Fencing estimate ${String(data.estimate?.id || "").trim() || ""}`.trim();
-      const body = `Hi ${String(data.estimate?.customer?.name || "").trim() || ""},\n\nAttached is your estimate.\n\nThanks,\nVasseur Fencing`;
-      const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoUrl;
     } catch {
       // ignore
     }
@@ -240,7 +227,6 @@ export default function EstimateContractPage() {
               <div className="stickyBar">
                 <button onClick={() => window.history.back()} className="backBtnHalf">Back</button>
                 <button onClick={handleEmail} className="backBtnHalf" disabled={!estimate.customer.email}>Gmail</button>
-                <button onClick={handleMail} className="backBtnHalf" disabled={!estimate.customer.email}>Mail</button>
                 <button onClick={handlePrint} className="backBtnHalf">Print / Save PDF</button>
               </div>
             </div>
@@ -461,7 +447,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 
 .stickyBack{ position:fixed; left:0; right:0; bottom:0; z-index:50; padding:0 16px calc(env(safe-area-inset-bottom) + 16px); }
 .stickyBackInner{ max-width:980px; margin:0 auto; padding-top:12px; }
-.stickyBar{ display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; }
+.stickyBar{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 .backBtnHalf{
   width:100%;
   height:64px;
