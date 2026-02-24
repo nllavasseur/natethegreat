@@ -20,6 +20,19 @@ function readDraftStore(): Record<string, any> {
 function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const items: QuoteItem[] = Array.isArray(draft?.items) ? (draft.items as QuoteItem[]) : [];
 
+  const removalTotal = (() => {
+    try {
+      const segments = Array.isArray(draft?.segments) ? (draft.segments as any[]) : [];
+      const lf = segments
+        .filter((s) => Boolean((s as any)?.removal) || Boolean((s as any)?.removed))
+        .reduce((sum, s) => sum + (Number((s as any)?.length) || 0), 0);
+      const v = lf > 0 ? lf * 6 : 0;
+      return Math.round(v * 100) / 100;
+    } catch {
+      return 0;
+    }
+  })();
+
   const materialsRows = items
     .filter((i) => i.section === "materials" && (Number(i.qty) || 0) > 0)
     .map((i) => ({
@@ -53,7 +66,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const additionalSubtotal = additionalRows.reduce((a, b) => a + (Number(b.price) || 0), 0);
   const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
   const depositTotal = Math.round((materialsAndExpensesTotal + additionalSubtotal) * 100) / 100;
-  const grandTotal = Math.round((depositTotal + laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0)) * 100) / 100;
+  const grandTotal = Math.round((depositTotal + laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0) + removalTotal) * 100) / 100;
 
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
@@ -92,6 +105,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       materialsSubtotal: depositTotal,
       laborSubtotal: laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0),
       additionalSubtotal,
+      removalTotal,
       discount: 0,
       tax: 0,
       total: grandTotal
@@ -320,7 +334,17 @@ export default function EstimateContractPage() {
     "The above prices, specifications and conditions are satisfactory and hereby accepted. You are authorized to do the work as specified.\n" +
     "By signing below you agree to have Vasseur Fencing complete all listed line items above in this document.\n" +
     "We look forward to working with you!";
-  const remainingBalance = Math.max(0, Math.round((Number(totals.total) - Number(estimate.depositTotal)) * 100) / 100);
+  const effectiveTotal = (() => {
+    const base = Number(totals.total) || 0;
+    const candidate = Math.round((Number(totals.materialsSubtotal || 0) + Number(totals.laborSubtotal || 0) + Number(totals.additionalSubtotal || 0) + removalTotal) * 100) / 100;
+    const baseRounded = Math.round(base * 100) / 100;
+    // If totals.total already includes removal, it should match the full candidate.
+    // Otherwise, treat it as missing and add removal.
+    if (Math.abs(candidate - baseRounded) <= 0.01) return baseRounded;
+    if (removalTotal > 0 && Math.abs((candidate - removalTotal) - baseRounded) <= 0.01) return candidate;
+    return baseRounded;
+  })();
+  const remainingBalance = Math.max(0, Math.round((effectiveTotal - Number(estimate.depositTotal)) * 100) / 100);
   const estimateIncludesText =
     "Estimate Includes all labor, materials, taxes, 811 miss dig ticket, and a 12 month workmanship warranty.\n" +
     `-The \"Materials & Expences\" ${money(estimate.depositTotal)} must be paid prior to ordering materials.\n` +

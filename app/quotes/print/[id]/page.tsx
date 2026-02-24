@@ -90,7 +90,16 @@ export default async function QuotePrintPage({ params }: { params: { id: string 
   const data = await getQuoteForPrint(params.id);
   const { company, estimate, sections, totals } = data;
   const subtotal = totals.materialsSubtotal + totals.laborSubtotal + totals.additionalSubtotal;
-  const remainingBalance = Math.max(0, Math.round((Number(totals.total) - Number(estimate.depositTotal)) * 100) / 100);
+  const removalTotal = Number((totals as any).removalTotal ?? 0);
+  const effectiveTotal = (() => {
+    const base = Number(totals.total) || 0;
+    const candidate = Math.round((Number(totals.materialsSubtotal || 0) + Number(totals.laborSubtotal || 0) + Number(totals.additionalSubtotal || 0) + removalTotal) * 100) / 100;
+    const baseRounded = Math.round(base * 100) / 100;
+    if (Math.abs(candidate - baseRounded) <= 0.01) return baseRounded;
+    if (removalTotal > 0 && Math.abs((candidate - removalTotal) - baseRounded) <= 0.01) return candidate;
+    return baseRounded;
+  })();
+  const remainingBalance = Math.max(0, Math.round((effectiveTotal - Number(estimate.depositTotal)) * 100) / 100);
   const estimateIncludesText =
     "Estimate Includes all labor, materials, taxes, 811 miss dig ticket, and a 12 month workmanship warranty.\n" +
     `-The \"Materials & Expences\" ${money(estimate.depositTotal)} must be paid prior to ordering materials.\n` +
