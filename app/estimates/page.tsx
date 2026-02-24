@@ -4116,6 +4116,12 @@ function EstimatesPageInner() {
 
   function reset() {
     clearUnsavedSnapshot();
+
+    const nextComboCardId =
+      typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+        ? (crypto as any).randomUUID()
+        : `card-${Date.now()}`;
+
     setCustomerName("");
     setProjectAddress("");
     setPhoneNumber("");
@@ -4132,6 +4138,24 @@ function EstimatesPageInner() {
     setPickOcrForLabel(null);
     setReferenceLength(0);
     setSegments([]);
+
+    setSelectedFenceType("wood");
+    setVinylStyleTab("privacy");
+    setSelectedStyle(null);
+    setMaterialsDetails(DEFAULT_MATERIALS_DETAILS);
+    setExtraPosts(0);
+    setComboCards([
+      {
+        id: nextComboCardId,
+        fenceType: "wood",
+        vinylStyleTab: "privacy",
+        selectedStyle: null,
+        materialsDetails: DEFAULT_MATERIALS_DETAILS,
+        extraPosts: 0,
+        shared: false
+      }
+    ]);
+    setActiveComboCardId(nextComboCardId);
   }
 
 // ...
