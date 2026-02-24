@@ -2969,6 +2969,21 @@ function EstimatesPageInner() {
   }
 
   function buildDraftData(id: string) {
+    const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
+    const hasRealMaterials = Array.isArray(items)
+      ? items.some((i: any) => i && i.section === "materials" && (Number(i.qty) || 0) > 0 && !feeNames.has(String(i.name || "")))
+      : false;
+    const existingStatus = (() => {
+      try {
+        const store = readDraftStore();
+        return store && (store as any)[id] ? String((store as any)[id].status || "") : "";
+      } catch {
+        return "";
+      }
+    })();
+    const status = existingStatus === "sold" || existingStatus === "complete" || existingStatus === "void"
+      ? (existingStatus as any)
+      : (hasRealMaterials ? "pending" : "estimate");
     return {
       id,
       customerName,
@@ -2997,6 +3012,7 @@ function EstimatesPageInner() {
       preInstallPhotos,
       segments,
       items,
+      status,
       updatedAt: Date.now()
     };
   }
