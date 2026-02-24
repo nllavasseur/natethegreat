@@ -24,7 +24,7 @@ type DraftEntry = {
   };
   segments?: Array<{ length: number; removed: boolean }>;
   items?: QuoteItem[];
-  status?: "estimate" | "pending" | "sold" | "void";
+  status?: "estimate" | "pending" | "sold" | "complete" | "void";
   scheduledAt?: string;
   installDate?: string;
   startDate?: string;
@@ -70,6 +70,7 @@ export default function QuotesPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [completedSearchQuery, setCompletedSearchQuery] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
@@ -397,6 +398,7 @@ export default function QuotesPage() {
   function statusLabel(s: DraftEntry["status"]) {
     if (s === "pending") return "Pending";
     if (s === "sold") return "Sold";
+    if (s === "complete") return "Complete";
     if (s === "void") return "Void";
     return "Estimate";
   }
@@ -408,6 +410,9 @@ export default function QuotesPage() {
     if (s === "sold") {
       return "border-[rgba(31,200,120,.40)] bg-[linear-gradient(180deg,rgba(31,200,120,.22),rgba(31,200,120,.10))]";
     }
+    if (s === "complete") {
+      return "border-[rgba(255,255,255,.18)] bg-[linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04))]";
+    }
     if (s === "void") {
       return "border-[rgba(255,80,80,.40)] bg-[linear-gradient(180deg,rgba(255,80,80,.22),rgba(255,80,80,.10))]";
     }
@@ -417,6 +422,7 @@ export default function QuotesPage() {
   function statusPillClass(s: DraftEntry["status"]) {
     if (s === "pending") return "bg-[rgba(255,214,10,.22)] border-[rgba(255,214,10,.40)]";
     if (s === "sold") return "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)]";
+    if (s === "complete") return "bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.18)]";
     if (s === "void") return "bg-[rgba(255,80,80,.22)] border-[rgba(255,80,80,.40)]";
     return "bg-[rgba(64,156,255,.30)] border-[rgba(64,156,255,.55)]";
   }
@@ -511,7 +517,7 @@ export default function QuotesPage() {
   }, [drafts]);
 
   const filteredCards = useMemo(() => {
-    const q = String(searchQuery || "").trim().toLowerCase();
+    const q = String((statusFilter === "complete" ? completedSearchQuery : searchQuery) || "").trim().toLowerCase();
     const byStatus = statusFilter === "all"
       ? cards
       : cards.filter((c) => (c.status ?? "estimate") === statusFilter);
@@ -641,9 +647,9 @@ export default function QuotesPage() {
       <GlassCard className="p-4">
         <div className="mb-3">
           <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search quotes…"
+            value={statusFilter === "complete" ? completedSearchQuery : searchQuery}
+            onChange={(e) => (statusFilter === "complete" ? setCompletedSearchQuery(e.target.value) : setSearchQuery(e.target.value))}
+            placeholder={statusFilter === "complete" ? "Search completed…" : "Search quotes…"}
             className="block box-border w-full max-w-full min-w-0 rounded-full px-3 py-2 text-[13px] bg-[rgba(255,255,255,.10)] border border-[rgba(255,255,255,.16)] outline-none"
             style={{ minWidth: 0, WebkitAppearance: "none", appearance: "none" }}
           />
@@ -900,7 +906,7 @@ export default function QuotesPage() {
                       type="button"
                       data-no-swipe="true"
                       onClick={() => {
-                        const order: Array<DraftEntry["status"] | "all"> = ["all", "estimate", "pending", "sold", "void"];
+                        const order: Array<DraftEntry["status"] | "all"> = ["all", "estimate", "pending", "sold", "complete", "void"];
                         const idx = order.indexOf(statusFilter);
                         const next = order[(idx + 1) % order.length];
                         setStatusFilter(next);

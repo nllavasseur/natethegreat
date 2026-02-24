@@ -63,7 +63,7 @@ type DraftEntry = {
   selectedStyle?: { name: string } | null;
   segments?: Array<{ length: number; removed?: boolean }>;
   contract?: unknown;
-  status?: "estimate" | "pending" | "sold" | "void";
+  status?: "estimate" | "pending" | "sold" | "complete" | "void";
   scheduledAt?: string;
   installDate?: string;
   startDate?: string;
@@ -162,6 +162,26 @@ function openContractPreview(d: DraftEntry) {
     window.location.assign("/estimates/contract");
   } catch {
     // ignore
+  }
+}
+
+function markDraftComplete(id: string) {
+  try {
+    const store = readDraftStore();
+    if (!(store as any)[id]) return;
+    (store as any)[id] = {
+      ...(store as any)[id],
+      status: "complete",
+      calendarHidden: true,
+      updatedAt: Date.now()
+    };
+    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      void upsertDraft({ id, data: (store as any)[id] });
+    } catch {
+    }
+    notifyDraftsChanged();
+  } catch {
   }
 }
 
@@ -682,7 +702,7 @@ export default function CalendarPage() {
     const occupiedEndByDay = new Map<string, Date>();
     const occupyRange = (startIso: string, laborDays: unknown, status: DraftEntry["status"], allowSaturday: boolean, allowSunday: boolean) => {
       if (!startIso) return;
-      if (status === "estimate" || status === "void") return;
+      if (status === "estimate" || status === "void" || status === "complete") return;
       const span = computeSpanDays(laborDays);
       const start = new Date(startIso + "T12:00:00");
       const seq = workdaySequenceForJob(start, span, allowSaturday, allowSunday);
@@ -847,7 +867,7 @@ export default function CalendarPage() {
       allowSunday: boolean
     ) => {
       if (!startIso) return;
-      if (status === "estimate" || status === "void") return;
+      if (status === "estimate" || status === "void" || status === "complete") return;
       const span = computeSpanDays(laborDays);
       const start = new Date(startIso + "T12:00:00");
       const seq = workdaySequenceForJob(start, span, allowSaturday, allowSunday);
@@ -944,6 +964,7 @@ export default function CalendarPage() {
         (d) =>
           !(d as any).calendarHidden &&
           (d as any).status !== "sold" &&
+          (d as any).status !== "complete" &&
           (d as any).status !== "estimate" &&
           (d as any).status !== "void" &&
           Boolean(explicitStartIso(d))
@@ -1452,6 +1473,15 @@ export default function CalendarPage() {
                     if (end instanceof Date && Number.isFinite(end.getTime())) return end.toISOString().slice(0, 10);
                     return "";
                   })();
+                  const canComplete = (() => {
+                    if (!endIso) return false;
+                    try {
+                      const end = new Date(endIso + "T12:00:00");
+                      return today0.getTime() > end.getTime();
+                    } catch {
+                      return false;
+                    }
+                  })();
                   const usedWeekend = (() => {
                     if (!startIso) return { sat: false, sun: false };
                     try {
@@ -1502,6 +1532,24 @@ export default function CalendarPage() {
                             style={{ background: dotColor }}
                             aria-hidden="true"
                           />
+                          {canComplete ? (
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const ok = window.confirm("Did you complete this job?");
+                                if (!ok) return;
+                                markDraftComplete(j.id);
+                              }}
+                              className="rounded-xl border px-2.5 py-2 text-[11px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              aria-label="Complete"
+                              title="Complete"
+                            >
+                              Complete
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             data-no-swipe="true"
