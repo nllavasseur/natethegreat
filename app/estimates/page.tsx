@@ -2433,15 +2433,15 @@ function EstimatesPageInner() {
 
       const rails = isPictureFramed
         ? (segmentLengths.length
-            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * pictureFramedRailsPerSection), 0)
-            : (totalLf > 0 ? Math.ceil((totalLf / 7.5) * pictureFramedRailsPerSection) : 0))
+            ? segmentLengths.reduce((sum, len) => sum + (Math.ceil(len / 7.5) * pictureFramedRailsPerSection), 0)
+            : (totalLf > 0 ? panels * pictureFramedRailsPerSection : 0))
         : (segmentLengths.length
             ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
             : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0));
 
       const pictureFramed2x4x8 = isPictureFramed ? rails : 0;
       const pictureFramed2x4x16 =
-        (isFourFootPictureFramedKind || (isNiko && Boolean(materialsDetails.topCaps)) || (isCasto && Boolean(materialsDetails.topCaps) && materialsDetails.postDim === "4x4"))
+        (isPictureFramed && Boolean(materialsDetails.topCaps))
           ? (segmentLengths.length
               ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
               : (totalLf > 0 ? Math.ceil(totalLf / 15) : 0))
