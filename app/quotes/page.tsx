@@ -522,24 +522,43 @@ export default function QuotesPage() {
       ? cards
       : cards.filter((c) => (c.status ?? "estimate") === statusFilter);
 
-    if (!q) return byStatus;
-    return byStatus.filter((c) => {
-      const hay = [
-        c.id,
-        c.title,
-        c.style,
-        String((c as any).material || ""),
-        String((c as any).phoneNumber || ""),
-        c.status,
-        String((c as any).startDate || ""),
-        String((c as any).endDate || "")
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
+    const withSearch = (() => {
+      if (!q) return byStatus;
+      return byStatus.filter((c) => {
+        const hay = [
+          c.id,
+          c.title,
+          c.style,
+          String((c as any).material || ""),
+          String((c as any).phoneNumber || ""),
+          c.status,
+          String((c as any).scheduledAt || ""),
+          String((c as any).startDate || ""),
+          String((c as any).endDate || "")
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
+      });
+    })();
+
+    if (statusFilter !== "estimate") return withSearch;
+
+    const indexed = withSearch.map((c, idx) => ({ c, idx }));
+    const parseMs = (iso: string) => {
+      if (!iso) return Number.POSITIVE_INFINITY;
+      const ms = Date.parse(iso);
+      return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+    };
+    indexed.sort((a, b) => {
+      const am = parseMs(String((a.c as any).scheduledAt || ""));
+      const bm = parseMs(String((b.c as any).scheduledAt || ""));
+      if (am !== bm) return am - bm;
+      return a.idx - b.idx;
     });
-  }, [cards, searchQuery, statusFilter]);
+    return indexed.map((x) => x.c);
+  }, [cards, completedSearchQuery, searchQuery, statusFilter]);
 
   return (
     <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
@@ -884,6 +903,9 @@ export default function QuotesPage() {
                       : "")
                   : ""}
               </div>
+              {String((q as any).scheduledAt || "") ? (
+                <div className="text-[11px] text-[var(--muted)]">Scheduled {toDateLocalValue(String((q as any).scheduledAt || ""))}</div>
+              ) : null}
             </Link>
           ))}
         </div>
