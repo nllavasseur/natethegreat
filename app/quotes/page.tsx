@@ -562,7 +562,7 @@ export default function QuotesPage() {
   const filteredCards = useMemo(() => {
     const q = String((statusFilter === "complete" ? completedSearchQuery : searchQuery) || "").trim().toLowerCase();
     const byStatus = statusFilter === "all"
-      ? cards
+      ? cards.filter((c) => (c.status ?? "estimate") !== "complete")
       : cards.filter((c) => (c.status ?? "estimate") === statusFilter);
 
     const withSearch = (() => {
@@ -778,7 +778,12 @@ export default function QuotesPage() {
                         e.stopPropagation();
                       }}
                     >
-                      {(["estimate", "pending", "sold", "void"] as DraftEntry["status"][]).map((s) => (
+                      {(q.status === "complete"
+                        ? (["sold"] as DraftEntry["status"][])
+                        : (["estimate", "pending", "sold", "complete", "void"] as DraftEntry["status"][])
+                      )
+                        .filter((s) => (q.status === "complete" ? statusFilter === "complete" : true))
+                        .map((s) => (
                         <button
                           key={s}
                           type="button"
