@@ -114,6 +114,13 @@ function woodPostItemName(postSize: number, postType: "Pressure treated" | "Ceda
   return `4x4 x ${s}' Post`;
 }
 
+function woodPost6x6ItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone") {
+  const s = postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
+  if (postType === "Cedar") return `6x6 x ${s}' Cedar S4S Post`;
+  if (postType === "Cedar tone") return `6x6 x ${s}' CedarTone Post`;
+  return `6x6 x ${s}' Pressure Treated Post`;
+}
+
 function woodRail2x4Name(lengthFt: 8 | 16, railMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
   if (railMaterial === "Cedar") return `2x4 ${lengthFt}' Cedar S4S Rails`;
   if (railMaterial === "Cedar tone") return `2x4 ${lengthFt}' CedarTone Rails`;
@@ -2188,7 +2195,7 @@ function EstimatesPageInner() {
 
       let postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
       if (isCasto) {
-        postName = "6x6 x 10' Pressure Treated Post";
+        postName = woodPost6x6ItemName(10, materialsDetails.postType);
       }
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
