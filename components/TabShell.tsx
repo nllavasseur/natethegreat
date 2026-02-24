@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import Link from "next/link";
 import React from "react";
 import { IconCalendar, IconDoc, IconPortfolio, IconQuote } from "./icons";
 import TopBar from "./TopBar";
@@ -168,9 +167,20 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                   const isActive = active === t.href;
                   const Icon = t.icon;
                   return (
-                    <Link
+                    <button
                       key={t.href}
-                      href={t.href}
+                      type="button"
+                      onClick={() => {
+                        try {
+                          router.push(t.href);
+                        } catch {
+                          try {
+                            window.location.href = t.href;
+                          } catch {
+                            // ignore
+                          }
+                        }
+                      }}
                       className={clsx(
                         "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition",
                         isActive ? "bg-[rgba(255,255,255,.10)]" : "opacity-80 hover:opacity-100"
@@ -185,7 +195,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                       >
                         {t.label}
                       </span>
-                    </Link>
+                    </button>
                   );
                 })}
               </div>
