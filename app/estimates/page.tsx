@@ -1060,13 +1060,14 @@ function EstimatesPageInner() {
 
     setMaterialsDetails((p) => {
       const defaultWalk = (Number(p.aluminumPanelHeight) || 0) === 60 ? "walk_48_5" : "walk_48_4";
+      const defaultDouble = (Number(p.aluminumPanelHeight) || 0) === 60 ? "double_48_5" : "double_48_4";
       const nextWalk = Array.from({ length: walkGates }, (_, i) => {
         const cur = p.mansfieldWalkGateOptions?.[i] || defaultWalk;
         if (cur === "walk_48_5_arched") return "walk_48_5";
         if (cur === "walk_60_5_arched") return "walk_60_5";
         return cur;
       });
-      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.mansfieldDoubleGateOptions?.[i] || "double_48_4");
+      const nextDouble = Array.from({ length: doubleGates }, (_, i) => p.mansfieldDoubleGateOptions?.[i] || defaultDouble);
 
       const walkSame = (p.mansfieldWalkGateOptions?.length || 0) === nextWalk.length && nextWalk.every((v, i) => v === p.mansfieldWalkGateOptions?.[i]);
       const doubleSame = (p.mansfieldDoubleGateOptions?.length || 0) === nextDouble.length && nextDouble.every((v, i) => v === p.mansfieldDoubleGateOptions?.[i]);
@@ -5789,12 +5790,6 @@ function EstimatesPageInner() {
                               </div>
                             </div>
 
-                            {Number(materialsDetails.aluminumPanelHeight) !== 48 ? (
-                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.04)] px-3 py-2 text-[11px] text-[var(--muted)]">
-                                Mansfield gate pricing currently configured for 4' height only.
-                              </div>
-                            ) : null}
-
                             {(materialsDetails.mansfieldWalkGateOptions || []).map((v, i) => (
                               <div key={`walk-${i}`} className="grid grid-cols-[130px_minmax(0,1fr)] gap-2 items-center mb-2">
                                 <div className="text-[12px] font-extrabold">Walk gate {i + 1}</div>
@@ -5851,17 +5846,25 @@ function EstimatesPageInner() {
                                     }
                                     disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
                                   >
-                                    <option value="double_48_4">
-                                      48" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 48, hIn: 48 }) }))}
-                                    </option>
-                                    <option value="double_60_4">
-                                      60" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: 48 }) }))}
-                                    </option>
                                     {Number(materialsDetails.aluminumPanelHeight) === 60 ? (
-                                      <option value="double_60_5_arched">
-                                        60" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: 60 }) }))}
-                                      </option>
-                                    ) : null}
+                                      <>
+                                        <option value="double_48_5">
+                                          48" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 48, hIn: 60 }) }))}
+                                        </option>
+                                        <option value="double_60_5">
+                                          60" wide x 5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: 60 }) }))}
+                                        </option>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <option value="double_48_4">
+                                          48" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 48, hIn: 48 }) }))}
+                                        </option>
+                                        <option value="double_60_4">
+                                          60" wide x 4' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: 48 }) }))}
+                                        </option>
+                                      </>
+                                    )}
                                   </Select>
                                 </div>
                               </div>
