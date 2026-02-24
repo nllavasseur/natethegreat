@@ -60,6 +60,10 @@ function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number
   }
   const normalized = Number(materialUnitPrices[normalizeUnitPriceKey(name)] ?? NaN);
   if (Number.isFinite(normalized)) return normalized;
+  if (baseName) {
+    const normalizedBase = Number(materialUnitPrices[normalizeUnitPriceKey(baseName)] ?? NaN);
+    if (Number.isFinite(normalizedBase)) return normalizedBase;
+  }
   // If we had an explicit 0 set as a placeholder, keep it as the final fallback.
   if (Number.isFinite(direct)) return direct;
   return 0;
@@ -1389,11 +1393,13 @@ function EstimatesPageInner() {
         const patch: Record<string, number> = {};
         for (const line of lines.slice(start)) {
           const [itemRaw, priceRaw] = parseCsvLine(line);
+          const exactName = String(itemRaw || "").trim();
           const name = normalizeUnitPriceKey(itemRaw);
           const price = Number(String(priceRaw || "").trim());
-          if (!name) continue;
+          if (!name && !exactName) continue;
           if (!Number.isFinite(price)) continue;
-          patch[name] = price;
+          if (exactName) patch[exactName] = price;
+          if (name) patch[name] = price;
         }
         if (Object.keys(patch).length <= 0) return;
         setMaterialUnitPrices((prev) => ({ ...prev, ...patch }));
