@@ -331,7 +331,6 @@ export default function EstimatesPage() {
 function EstimatesPageInner() {
   const router = useRouter();
   const [draftParam, setDraftParam] = useState<string | null>(null);
-  const [returnTo, setReturnTo] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const restoringRef = useRef(false);
@@ -3985,16 +3984,16 @@ function EstimatesPageInner() {
         const q = new URLSearchParams(window.location.search);
         const id = q.get("draft");
         setDraftParam(id ? String(id) : null);
-        const rt = String(q.get("returnTo") || "").trim();
-        setReturnTo(rt ? rt : null);
         setDebugTotals(q.get("debugTotals") === "1");
       } catch {
         setDraftParam(null);
-        setReturnTo(null);
         setDebugTotals(false);
       }
     };
     read();
+    if (typeof window === "undefined") return;
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
   }, []);
 
   useEffect(() => {
@@ -8062,24 +8061,6 @@ function EstimatesPageInner() {
                 </div>
               ) : null}
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-                {returnTo ? (
-                  <SecondaryButton
-                    data-no-swipe="true"
-                    onClick={() => {
-                      try {
-                        router.push(returnTo);
-                      } catch {
-                        try {
-                          window.location.href = returnTo;
-                        } catch {
-                        }
-                      }
-                    }}
-                    disabled={saving || savingAsNew}
-                  >
-                    Back
-                  </SecondaryButton>
-                ) : null}
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
