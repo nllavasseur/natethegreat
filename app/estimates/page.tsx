@@ -333,6 +333,7 @@ function EstimatesPageInner() {
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
+  const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -2970,6 +2971,8 @@ function EstimatesPageInner() {
         activeComboCardId
       };
       const payload = {
+        draftId,
+        draftParam,
         customerName,
         projectAddress,
         phoneNumber,
@@ -3001,6 +3004,58 @@ function EstimatesPageInner() {
       // ignore
     }
   }
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (draftParam) {
+      // Still persist while editing an existing draft so navigation away/back restores unsaved changes.
+    }
+    if (restoringRef.current) return;
+
+    const t = window.setTimeout(() => {
+      try {
+        writeUnsavedSnapshot();
+      } catch {
+      }
+    }, 250);
+    return () => {
+      window.clearTimeout(t);
+      try {
+        if (!restoringRef.current) writeUnsavedSnapshot();
+      } catch {
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    draftId,
+    draftParam,
+    customerName,
+    projectAddress,
+    phoneNumber,
+    email,
+    projectPhotoDataUrl,
+    selectedFenceType,
+    selectedStyle,
+    materialsDetails,
+    extraPosts,
+    comboCards,
+    activeComboCardId,
+    materialUnitPrices,
+    laborDays,
+    laborManualDays,
+    laborManualCost,
+    gradingPrice,
+    treeRemovalPrice,
+    toughDigEnabled,
+    gradeEnabled,
+    stumpGrindingPrice,
+    effectiveDoubleGateCount,
+    referenceLength,
+    notes,
+    preInstallPhotos,
+    segments,
+    items
+  ]);
 
   function buildDraftData(id: string) {
     const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
@@ -3067,8 +3122,6 @@ function EstimatesPageInner() {
       } catch {
         // ignore
       }
-
-      clearUnsavedSnapshot();
     } catch {
       setSaveError("Failed to save.");
     } finally {
@@ -3092,8 +3145,6 @@ function EstimatesPageInner() {
       } catch {
         // ignore
       }
-
-      clearUnsavedSnapshot();
       setSaveAsNewJustSaved(true);
       setTimeout(() => setSaveAsNewJustSaved(false), 900);
     } catch {
@@ -3461,11 +3512,14 @@ function EstimatesPageInner() {
   }, [draftParam]);
 
   useEffect(() => {
-    if (draftParam) return;
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(unsavedSnapshotKey);
       if (!raw) return;
+      const snap = JSON.parse(raw) as any;
+      const snapDraftParam = typeof snap?.draftParam === "string" ? String(snap.draftParam) : null;
+      const allow = (!draftParam && !snapDraftParam) || (draftParam && snapDraftParam === draftParam);
+      if (!allow) return;
       void loadDraft("__snapshot__", { source: "snapshot" });
     } catch {
       // ignore
@@ -4073,7 +4127,14 @@ function EstimatesPageInner() {
       }
     }
     if (!d) return;
-    setDraftId(source === "snapshot" ? null : id);
+
+    restoringRef.current = true;
+    setTimeout(() => {
+      restoringRef.current = false;
+    }, 0);
+
+    const snapDraftId = source === "snapshot" && typeof (d as any).draftId === "string" ? String((d as any).draftId) : null;
+    setDraftId(source === "snapshot" ? snapDraftId : id);
     setCustomerName(String(d.customerName ?? ""));
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
