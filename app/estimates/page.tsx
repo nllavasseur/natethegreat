@@ -3322,12 +3322,14 @@ function EstimatesPageInner() {
         const bi = feeOrder[b.r.name];
         const aIsFee = Number.isFinite(ai);
         const bIsFee = Number.isFinite(bi);
-        const aIsShared = Boolean((a.r as any).__shared);
-        const bIsShared = Boolean((b.r as any).__shared);
+        const aCardIds = Array.isArray((a.r as any).__cardIds) ? ((a.r as any).__cardIds as string[]) : [];
+        const bCardIds = Array.isArray((b.r as any).__cardIds) ? ((b.r as any).__cardIds as string[]) : [];
+        const aIsSharedMaterial = aCardIds.length > 1;
+        const bIsSharedMaterial = bCardIds.length > 1;
 
-        const group = (isShared: boolean, isFee: boolean) => (isFee ? 2 : isShared ? 1 : 0);
-        const ag = group(aIsShared, aIsFee);
-        const bg = group(bIsShared, bIsFee);
+        const group = (isSharedMaterial: boolean, isFee: boolean) => (isFee ? 2 : isSharedMaterial ? 1 : 0);
+        const ag = group(aIsSharedMaterial, aIsFee);
+        const bg = group(bIsSharedMaterial, bIsFee);
         if (ag !== bg) return ag - bg;
 
         if (aIsFee && bIsFee) return ai - bi;
