@@ -210,6 +210,23 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                     <button
                       key={t.href}
                       type="button"
+                      onPointerDown={(e) => {
+                        try {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        } catch {
+                          // ignore
+                        }
+                        try {
+                          router.push(t.href);
+                        } catch {
+                          try {
+                            window.location.href = t.href;
+                          } catch {
+                            // ignore
+                          }
+                        }
+                      }}
                       onClick={() => {
                         try {
                           router.push(t.href);
