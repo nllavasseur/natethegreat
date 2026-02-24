@@ -924,6 +924,10 @@ export default function QuotesPage() {
                       <PrimaryButton>New Quote</PrimaryButton>
                     </Link>
 
+                    <Link href="/tasks" className="shrink-0">
+                      <PrimaryButton>Tasks</PrimaryButton>
+                    </Link>
+
                     <button
                       type="button"
                       data-no-swipe="true"
