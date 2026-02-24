@@ -2161,12 +2161,8 @@ function EstimatesPageInner() {
         ? "Cedar trim"
         : trimName;
 
-      const nailsNameFinal = isAllCedarNiko
-        ? "2\" Nails 1000ct Stainless Steel Ring Shank Nails"
-        : nailsName;
-      const nailsBoxesFinal = isAllCedarNiko
-        ? (pickets > 0 ? Math.ceil((pickets * 6) / 1000) : 0)
-        : nailsBoxes;
+      const nailsNameFinal = nailsName;
+      const nailsBoxesFinal = nailsBoxes;
 
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
@@ -2193,10 +2189,6 @@ function EstimatesPageInner() {
       let postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
       if (isCasto) {
         postName = "6x6 x 10' Pressure Treated Post";
-      } else if (isAllCedarNiko || isAllCedarPictureFramed) {
-        postName = woodPostItemName(10, "Cedar");
-      } else if (isNiko || isMaryJane) {
-        postName = woodPostItemName(10, materialsDetails.postType);
       }
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
