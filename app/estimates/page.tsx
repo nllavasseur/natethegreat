@@ -51,6 +51,8 @@ function getUnitPriceFromMap(params: { materialUnitPrices: Record<string, number
     const keyed = Number(materialUnitPrices[priceKey] ?? NaN);
     if (Number.isFinite(keyed)) return keyed;
   }
+  const direct = Number(materialUnitPrices[name] ?? NaN);
+  if (Number.isFinite(direct)) return direct;
   return Number(materialUnitPrices[normalizeUnitPriceKey(name)] ?? 0);
 }
 
@@ -2103,7 +2105,7 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
           return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
@@ -2165,7 +2167,7 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
           return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
@@ -2239,7 +2241,7 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
           return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
@@ -2334,7 +2336,7 @@ function EstimatesPageInner() {
         return rows
           .filter((r) => (Number(r.qty) || 0) > 0)
           .map((r) => {
-            const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+            const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
             const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
             return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
           });
@@ -2442,7 +2444,7 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
           return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
@@ -2466,7 +2468,7 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
           return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
@@ -2652,7 +2654,7 @@ function EstimatesPageInner() {
       return rows
         .filter((r) => (Number(r.qty) || 0) > 0)
         .map((r) => {
-          const unitPrice = Number(materialUnitPrices[normalizeUnitPriceKey(r.name)] ?? 0);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
           return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
@@ -5029,7 +5031,7 @@ function EstimatesPageInner() {
                                         inputMode="decimal"
                                         value={
                                           materialUnitPriceDrafts[normalizeUnitPriceKey(m.name)] ??
-                                          String(materialUnitPrices[normalizeUnitPriceKey(m.name)] ?? m.unitPrice ?? 0)
+                                          String(getUnitPriceFromMap({ materialUnitPrices, name: m.name }) ?? m.unitPrice ?? 0)
                                         }
                                         onChange={(e) =>
                                           setMaterialUnitPriceDrafts((prev) => ({
