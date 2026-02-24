@@ -617,175 +617,175 @@ function EstimatesPageInner() {
       type: "vinyl",
       name: "Neptune",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/neptune.jpg"
     },
     {
       type: "vinyl",
       name: "Williamsport",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/williamsport.jpg"
     },
     {
       type: "vinyl",
       name: "Atlantis",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/atlantis.jpg"
     },
     {
       type: "vinyl",
       name: "Crestview",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/crestview.jpg"
     },
     {
       type: "vinyl",
       name: "Hanover",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/hanover.jpg"
     },
     {
       type: "vinyl",
       name: "Captiva",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/captiva.jpg"
     },
     {
       type: "vinyl",
       name: "Sarasota",
       group: "pool",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/sarasota.jpg"
     },
     {
       type: "vinyl",
       name: "Davenport",
       group: "semi-privacy",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/davenport.jpg"
     },
     {
       type: "vinyl",
       name: "Glendale",
       group: "semi-privacy",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/glendale.jpg"
     },
     {
       type: "vinyl",
       name: "Alden",
       group: "semi-privacy",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/alden.jpg"
     },
     {
       type: "vinyl",
       name: "Everglade",
       group: "semi-privacy",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/everglade.jpg"
     },
     {
       type: "vinyl",
       name: "Huntington",
       group: "semi-privacy",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/huntington.jpg"
     },
     {
       type: "vinyl",
       name: "Meridian",
       group: "semi-privacy",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/meridian.jpg"
     },
     {
       type: "vinyl",
       name: "Provincetown",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/provincetown.jpg"
     },
     {
       type: "vinyl",
       name: "Plymouth",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/plymouth.jpg"
     },
     {
       type: "vinyl",
       name: "Ellington",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/ellington.jpg"
     },
     {
       type: "vinyl",
       name: "Chelsea",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/chelsea.jpg"
     },
     {
       type: "vinyl",
       name: "Hampshire",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/hampshire.jpg"
     },
     {
       type: "vinyl",
       name: "Monterey",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/monterey.jpg"
     },
     {
       type: "vinyl",
       name: "Richmond",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/richmond.jpg"
     },
     {
       type: "vinyl",
       name: "Abbington",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/abbington.jpg"
     },
     {
       type: "vinyl",
       name: "Classic",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/classic.jpg"
     },
     {
       type: "vinyl",
       name: "Stratford",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/stratford.jpg"
     },
     {
       type: "vinyl",
       name: "Barrington",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/barrington.jpg"
     },
     {
       type: "vinyl",
       name: "Hartford",
       group: "picket",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/hartford.jpg"
     },
     {
       type: "vinyl",
       name: "Cross Buck",
       group: "horse",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/cross-buck.jpg"
     },
     {
       type: "vinyl",
       name: "2 Rail Horse",
       group: "horse",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/2-rail-horse.jpg"
     },
     {
       type: "vinyl",
       name: "3 Rail Horse",
       group: "horse",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/3-rail-horse.jpg"
     },
     {
       type: "vinyl",
       name: "4 Rail Horse",
       group: "horse",
-      thumb: "/vinyl_colors.jpeg"
+      thumb: "/style-thumbs/vinyl/brochure/styles/4-rail-horse.jpg"
     },
     {
       type: "aluminum",
