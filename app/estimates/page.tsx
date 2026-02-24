@@ -904,6 +904,33 @@ function EstimatesPageInner() {
     }));
   }, [castoTopCapsLocked, materialsDetails.topCaps]);
 
+  useEffect(() => {
+    if (selectedStyleKind !== "wood_am") return;
+    if ((Number(materialsDetails.pictureFrameTrimPieces) || 0) === 5) return;
+    setMaterialsDetails((p) => ({
+      ...p,
+      pictureFrameTrimPieces: 5
+    }));
+  }, [materialsDetails.pictureFrameTrimPieces, selectedStyleKind]);
+
+  useEffect(() => {
+    const isPictureFramedFamily =
+      selectedStyleKind === "wood_picture_framed" ||
+      selectedStyleKind === "wood_niko" ||
+      selectedStyleKind === "wood_casto" ||
+      selectedStyleKind === "wood_picture_framed_4ft" ||
+      selectedStyleKind === "wood_picture_framed_lattice";
+    if (!isPictureFramedFamily) return;
+
+    const raw = Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0);
+    const next = raw === 2 ? 2 : 3;
+    if (raw === next) return;
+    setMaterialsDetails((p) => ({
+      ...p,
+      pictureFrameTrimPieces: next
+    }));
+  }, [materialsDetails.pictureFrameTrimPieces, selectedStyleKind]);
+
   const vinylPrivacyMatrix = useMemo(() => {
     const fourSixEight = [4, 6, 8];
     const sixEight = [6, 8];
@@ -3814,8 +3841,6 @@ function EstimatesPageInner() {
         twoByTwoMaterial: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         topCaps: true
       };
@@ -3824,8 +3849,6 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 2,
-        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
@@ -3835,8 +3858,6 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 2,
-        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
@@ -3855,11 +3876,10 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 5,
-        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: true,
-        topCaps: false
+        topCaps: false,
+        pictureFrameTrimPieces: 5
       };
     } else if (styleName === "all cedar niko") {
       overrides = {
@@ -3870,8 +3890,6 @@ function EstimatesPageInner() {
         twoByTwoMaterial: "Cedar",
         postSize: 10,
         postType: "Cedar",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Cedar",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
@@ -3881,8 +3899,6 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: true
@@ -3896,8 +3912,6 @@ function EstimatesPageInner() {
         twoByTwoMaterial: "Cedar",
         postSize: 10,
         postType: "Cedar",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Cedar",
         takeoffPreset: "standard",
         postCaps: false,
         topCaps: false
@@ -3907,8 +3921,6 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Pressure treated",
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
@@ -3921,8 +3933,6 @@ function EstimatesPageInner() {
         trimMaterial: "Cedar",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Cedar",
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
@@ -3932,8 +3942,6 @@ function EstimatesPageInner() {
         woodType: "Pressure treated",
         postSize: 10,
         postType: "Pressure treated",
-        pictureFrameTrimPieces: 3,
-        pictureFrameTrimMaterial: "Cedar tone",
         takeoffPreset: "standard",
         postCaps: true,
         topCaps: false
