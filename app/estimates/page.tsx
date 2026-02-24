@@ -3099,135 +3099,143 @@ function EstimatesPageInner() {
   }
 
   const generatedMaterials = useMemo(() => {
-    const baseId = baseComboCardId;
-    if (!baseId) return [] as QuoteItem[];
+    try {
+      const baseId = baseComboCardId;
+      if (!baseId) return [] as QuoteItem[];
 
-    const allRows: QuoteItem[] = [];
+      const allRows: QuoteItem[] = [];
 
-    for (const card of comboCards) {
-      if (!card.selectedStyle) continue;
+      for (const card of comboCards) {
+        if (!card.selectedStyle) continue;
 
-      let usedExtraPosts = false;
+        let usedExtraPosts = false;
 
-      // Split into contiguous runs based on original segment order.
-      let currentRun: typeof segments = [];
-      const flush = () => {
-        if (!currentRun.length) return;
-        allRows.push(
-          ...generateMaterialsForContext({
-            selectedStyle: card.selectedStyle,
-            selectedFenceType: card.fenceType,
-            vinylStyleTab: card.vinylStyleTab,
-            materialsDetails: card.materialsDetails,
-            extraPosts: usedExtraPosts ? 0 : (Number(card.extraPosts) || 0),
-            segments: currentRun
-          })
-        );
-        usedExtraPosts = true;
-        currentRun = [];
+        // Split into contiguous runs based on original segment order.
+        let currentRun: typeof segments = [];
+        const flush = () => {
+          if (!currentRun.length) return;
+          allRows.push(
+            ...generateMaterialsForContext({
+              selectedStyle: card.selectedStyle,
+              selectedFenceType: card.fenceType,
+              vinylStyleTab: card.vinylStyleTab,
+              materialsDetails: card.materialsDetails,
+              extraPosts: usedExtraPosts ? 0 : (Number(card.extraPosts) || 0),
+              segments: currentRun
+            })
+          );
+          usedExtraPosts = true;
+          currentRun = [];
+        };
+
+        for (const s of segments) {
+          if (s.removed) {
+            flush();
+            continue;
+          }
+          const len = Number(s.length) || 0;
+          if (len <= 0) {
+            flush();
+            continue;
+          }
+          const resolved = resolveSegmentCardId(s);
+          if (resolved === card.id) {
+            currentRun.push(s);
+          } else {
+            flush();
+          }
+        }
+        flush();
+      }
+
+      const merged = allRows.reduce((acc, r) => {
+        const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
+        const prev = acc.get(key);
+        if (prev) {
+          prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
+          const prevPrice = Number(prev.unitPrice) || 0;
+          const nextPrice = Number(r.unitPrice) || 0;
+          if (prevPrice <= 0 && nextPrice > 0) {
+            prev.unitPrice = nextPrice;
+            prev.name = r.name;
+          } else if (nextPrice > prevPrice) {
+            // If we canonical-merge two equivalent names, keep the higher non-zero price.
+            // Also switch display name so price edits map to the priced name.
+            prev.unitPrice = nextPrice;
+            prev.name = r.name;
+          }
+          prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
+        } else {
+          acc.set(key, { ...r });
+        }
+        return acc;
+      }, new Map<string, QuoteItem>());
+
+      // Gate accessories (hinges/kits/framing) are wood-only and should reflect estimate-level wood gate count,
+      // not multiply per card/run.
+      const baseIdResolved = baseComboCardId || null;
+      const woodGateSegments = segments
+        .filter((s) => !s.removed)
+        .filter((s) => {
+          const cid = (s as any).cardId ?? null;
+          const resolved = cid === null ? baseIdResolved : cid;
+          const card = comboCards.find((c) => c.id === resolved);
+          return card?.fenceType === "wood";
+        });
+
+      const totalWalkGates = Math.max(
+        0,
+        woodGateSegments.filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length
+      );
+      const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
+
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
+        const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
+        if (qty <= 0) {
+          merged.delete(k);
+          return;
+        }
+        const prev = merged.get(k);
+        if (prev) {
+          prev.qty = qty;
+          prev.name = name;
+          prev.unit = unit;
+          prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
+        } else {
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
+          merged.set(k, { section: "materials", name, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 });
+        }
       };
 
-      for (const s of segments) {
-        if (s.removed) {
-          flush();
-          continue;
-        }
-        const len = Number(s.length) || 0;
-        if (len <= 0) {
-          flush();
-          continue;
-        }
-        const resolved = resolveSegmentCardId(s);
-        if (resolved === card.id) {
-          currentRun.push(s);
-        } else {
-          flush();
-        }
-      }
-      flush();
-    }
+      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
+      ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
+      ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
 
-    const merged = allRows.reduce((acc, r) => {
-      const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
-      const prev = acc.get(key);
-      if (prev) {
-        prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
-        const prevPrice = Number(prev.unitPrice) || 0;
-        const nextPrice = Number(r.unitPrice) || 0;
-        if (prevPrice <= 0 && nextPrice > 0) {
-          prev.unitPrice = nextPrice;
-          prev.name = r.name;
-        } else if (nextPrice > prevPrice) {
-          // If we canonical-merge two equivalent names, keep the higher non-zero price.
-          // Also switch display name so price edits map to the priced name.
-          prev.unitPrice = nextPrice;
-          prev.name = r.name;
-        }
-        prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
-      } else {
-        acc.set(key, { ...r });
-      }
-      return acc;
-    }, new Map<string, QuoteItem>());
+      ensureQty("Disposal", "ea", 1);
+      ensureQty("Delivery", "ea", 1);
+      ensureQty("Equipment Fees", "ea", 1);
 
-    // Gate accessories (hinges/kits/framing) are wood-only and should reflect estimate-level wood gate count,
-    // not multiply per card/run.
-    const baseIdResolved = baseComboCardId || null;
-    const woodGateSegments = segments
-      .filter((s) => !s.removed)
-      .filter((s) => {
-        const cid = (s as any).cardId ?? null;
-        const resolved = cid === null ? baseIdResolved : cid;
-        const card = comboCards.find((c) => c.id === resolved);
-        return card?.fenceType === "wood";
+      const out = Array.from(merged.values());
+      const feeOrder: Record<string, number> = { Disposal: 0, Delivery: 1, "Equipment Fees": 2 };
+      const indexed = out.map((r, idx) => ({ r, idx }));
+      indexed.sort((a, b) => {
+        const ai = feeOrder[a.r.name];
+        const bi = feeOrder[b.r.name];
+        const aIsFee = Number.isFinite(ai);
+        const bIsFee = Number.isFinite(bi);
+        if (aIsFee && bIsFee) return ai - bi;
+        if (aIsFee) return 1;
+        if (bIsFee) return -1;
+        return a.idx - b.idx;
       });
-
-    const totalWalkGates = Math.max(
-      0,
-      woodGateSegments.filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length
-    );
-    const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
-
-    const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
-      const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
-      if (qty <= 0) {
-        merged.delete(k);
-        return;
+      return indexed.map((x) => x.r);
+    } catch (e) {
+      try {
+        console.error(e);
+      } catch {
       }
-      const prev = merged.get(k);
-      if (prev) {
-        prev.qty = qty;
-        prev.name = name;
-        prev.unit = unit;
-        prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
-      } else {
-        const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
-        merged.set(k, { section: "materials", name, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 });
-      }
-    };
-
-    ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
-    ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
-    ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
-
-    ensureQty("Disposal", "ea", 1);
-    ensureQty("Delivery", "ea", 1);
-    ensureQty("Equipment Fees", "ea", 1);
-
-    const out = Array.from(merged.values());
-    const feeOrder: Record<string, number> = { Disposal: 0, Delivery: 1, "Equipment Fees": 2 };
-    const indexed = out.map((r, idx) => ({ r, idx }));
-    indexed.sort((a, b) => {
-      const ai = feeOrder[a.r.name];
-      const bi = feeOrder[b.r.name];
-      const aIsFee = Number.isFinite(ai);
-      const bIsFee = Number.isFinite(bi);
-      if (aIsFee && bIsFee) return ai - bi;
-      if (aIsFee) return 1;
-      if (bIsFee) return -1;
-      return a.idx - b.idx;
-    });
-    return indexed.map((x) => x.r);
+      return [] as QuoteItem[];
+    }
   }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
 
   const storageKey = "vf_estimate_drafts_v1";
@@ -3416,8 +3424,13 @@ function EstimatesPageInner() {
       } catch {
         // ignore
       }
-    } catch {
-      setSaveError("Failed to save.");
+    } catch (e) {
+      try {
+        console.error(e);
+      } catch {
+      }
+      const msg = e instanceof Error ? e.message : String(e);
+      setSaveError(msg ? `Failed to save: ${msg}` : "Failed to save.");
     } finally {
       setSaving(false);
     }
@@ -3441,8 +3454,13 @@ function EstimatesPageInner() {
       }
       setSaveAsNewJustSaved(true);
       setTimeout(() => setSaveAsNewJustSaved(false), 900);
-    } catch {
-      setSaveError("Failed to save.");
+    } catch (e) {
+      try {
+        console.error(e);
+      } catch {
+      }
+      const msg = e instanceof Error ? e.message : String(e);
+      setSaveError(msg ? `Failed to save: ${msg}` : "Failed to save.");
     } finally {
       setSavingAsNew(false);
     }
