@@ -2190,23 +2190,14 @@ function EstimatesPageInner() {
       const railsForScrews = isPictureFramed ? (pictureFramed2x4x8 + pictureFramed2x4x16) : rails;
       screwBoxes = railsForScrews > 0 ? Math.ceil((railsForScrews * 6) / 350) : 0;
 
-      const postName = isAllCedarNiko
-        ? "4x4 x 10' Cedar S4S Post"
-        : isAllCedarPictureFramed
-          ? "4x4 x 10' Cedar S4S Post"
-          : isCasto
-            ? "6x6 x 10' Pressure Treated Post"
-        : (isNiko && materialsDetails.postType === "Cedar tone")
-          ? "4x4 x 10' CedarTone Post"
-          : (isNiko
-            ? woodPostItemName(10, materialsDetails.postType)
-            : (isMaryJane
-              ? (materialsDetails.postType === "Cedar tone"
-                ? "4x4x10' CedarTone Post"
-                : materialsDetails.postType === "Cedar"
-                  ? "4x4x10' Cedar S4S Post"
-                  : "4x4x10' Pressure Treated Post")
-              : woodPostItemName(materialsDetails.postSize, materialsDetails.postType)));
+      let postName = woodPostItemName(materialsDetails.postSize, materialsDetails.postType);
+      if (isCasto) {
+        postName = "6x6 x 10' Pressure Treated Post";
+      } else if (isAllCedarNiko || isAllCedarPictureFramed) {
+        postName = woodPostItemName(10, "Cedar");
+      } else if (isNiko || isMaryJane) {
+        postName = woodPostItemName(10, materialsDetails.postType);
+      }
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
