@@ -1503,7 +1503,7 @@ export default function CalendarPage() {
                     if (!endIso) return false;
                     try {
                       const end = new Date(endIso + "T12:00:00");
-                      return today0.getTime() > end.getTime();
+                      return today0.getTime() >= end.getTime();
                     } catch {
                       return false;
                     }
