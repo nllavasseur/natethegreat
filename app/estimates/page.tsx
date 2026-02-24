@@ -2620,7 +2620,9 @@ function EstimatesPageInner() {
         if (walkCount <= 0) return [];
 
         if (style === "Mansfield") {
-          const opts = materialsDetails.mansfieldWalkGateOptions || [];
+          const defaultOpt = h === 60 ? "walk_48_5" : "walk_48_4";
+          const raw = materialsDetails.mansfieldWalkGateOptions || [];
+          const opts = raw.length === walkCount ? raw : Array.from({ length: walkCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => (h === 60 ? v === "walk_48_5" : v === "walk_48_4")).length;
           const qty60 = opts.filter((v) => (h === 60 ? v === "walk_60_5" : v === "walk_60_4")).length;
           const name48 = `Mansfield walk gate 48\" x ${heightLabel}`;
@@ -2632,7 +2634,9 @@ function EstimatesPageInner() {
         }
 
         if (style === "Toledo") {
-          const opts = materialsDetails.toledoWalkGateOptions || [];
+          const defaultOpt = h === 60 ? "walk_48_5" : "walk_48_4";
+          const raw = materialsDetails.toledoWalkGateOptions || [];
+          const opts = raw.length === walkCount ? raw : Array.from({ length: walkCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => (h === 60 ? v === "walk_48_5" : v === "walk_48_4")).length;
           const qty60 = opts.filter((v) => (h === 60 ? v === "walk_60_5" : v === "walk_60_4")).length;
           const name48 = `Toledo walk gate 48\" x ${heightLabel}`;
@@ -2644,7 +2648,9 @@ function EstimatesPageInner() {
         }
 
         if (style === "Atlantic") {
-          const opts = materialsDetails.atlanticWalkGateOptions || [];
+          const defaultOpt = h === 60 ? "walk_48_5" : "walk_48_4";
+          const raw = materialsDetails.atlanticWalkGateOptions || [];
+          const opts = raw.length === walkCount ? raw : Array.from({ length: walkCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => v === "walk_48_4" || v === "walk_48_5" || v === "walk_48_45").length;
           const qty60 = opts.filter((v) => v === "walk_60_4" || v === "walk_60_5" || v === "walk_60_45").length;
           const name48 = `Atlantic walk gate 48\" x ${heightLabel}`;
@@ -2656,7 +2662,9 @@ function EstimatesPageInner() {
         }
 
         if (style === "Pacific") {
-          const opts = materialsDetails.pacificWalkGateOptions || [];
+          const defaultOpt = "walk_48_45";
+          const raw = materialsDetails.pacificWalkGateOptions || [];
+          const opts = raw.length === walkCount ? raw : Array.from({ length: walkCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => v === "walk_48_45").length;
           const qty60 = opts.filter((v) => v === "walk_60_45").length;
           const name48 = `Pacific walk gate 48\" x ${heightLabel}`;
@@ -2675,19 +2683,23 @@ function EstimatesPageInner() {
         if (doubleCount <= 0) return [] as Array<{ name: string; qty: number; unit: string }>;
 
         if (style === "Mansfield") {
-          const opts = materialsDetails.mansfieldDoubleGateOptions || [];
+          const defaultOpt = h === 60 ? "double_48_5" : "double_48_4";
+          const raw = materialsDetails.mansfieldDoubleGateOptions || [];
+          const opts = raw.length === doubleCount ? raw : Array.from({ length: doubleCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => (h === 60 ? v === "double_48_5" : v === "double_48_4")).length;
           const qty60 = opts.filter((v) => (h === 60 ? v === "double_60_5" : v === "double_60_4")).length;
           const name48 = `Mansfield double gate 48\" x ${heightLabel}`;
           const name60 = `Mansfield double gate 60\" x ${heightLabel}`;
           return [
-            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
-            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Mansfield", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [])
           ];
         }
 
         if (style === "Atlantic") {
-          const opts = materialsDetails.atlanticDoubleGateOptions || [];
+          const defaultOpt = "double_60_4";
+          const raw = materialsDetails.atlanticDoubleGateOptions || [];
+          const opts = raw.length === doubleCount ? raw : Array.from({ length: doubleCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => v === "double_48_4").length;
           const qty60 = opts.filter((v) => v === "double_60_4").length;
           const name48 = `Atlantic double gate 48\" x ${heightLabel}`;
@@ -2699,7 +2711,9 @@ function EstimatesPageInner() {
         }
 
         if (style === "Toledo") {
-          const opts = materialsDetails.toledoDoubleGateOptions || [];
+          const defaultOpt = h === 60 ? "double_48_5" : "double_48_4";
+          const raw = materialsDetails.toledoDoubleGateOptions || [];
+          const opts = raw.length === doubleCount ? raw : Array.from({ length: doubleCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => (h === 60 ? v === "double_48_5" : v === "double_48_4")).length;
           const qty60 = opts.filter((v) => (h === 60 ? v === "double_60_5" : v === "double_60_4")).length;
           const name48 = `Toledo double gate 48\" x ${heightLabel}`;
@@ -2711,14 +2725,16 @@ function EstimatesPageInner() {
         }
 
         if (style === "Pacific") {
-          const opts = materialsDetails.pacificDoubleGateOptions || [];
+          const defaultOpt = "double_48_45";
+          const raw = materialsDetails.pacificDoubleGateOptions || [];
+          const opts = raw.length === doubleCount ? raw : Array.from({ length: doubleCount }, (_, i) => String(raw[i] || defaultOpt));
           const qty48 = opts.filter((v) => v === "double_48_45").length;
           const qty60 = opts.filter((v) => v === "double_60_45").length;
           const name48 = `Pacific double gate 48\" x ${heightLabel}`;
           const name60 = `Pacific double gate 60\" x ${heightLabel}`;
           return [
-            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea" }] : []),
-            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea" }] : [])
+            ...(qty48 > 0 ? [{ name: name48, qty: qty48, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 48, hIn: h }) }] : []),
+            ...(qty60 > 0 ? [{ name: name60, qty: qty60, unit: "ea", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 60, hIn: h }) }] : [])
           ];
         }
 
