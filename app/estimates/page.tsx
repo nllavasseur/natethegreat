@@ -4474,7 +4474,30 @@ function EstimatesPageInner() {
           {segments.map((seg) => (
             <div
               key={seg.id}
-              className={"rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-2"}
+              className={(() => {
+                if (comboCards.length <= 1) {
+                  return "rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-2";
+                }
+                const assignedId = resolveSegmentCardId(seg);
+                const idx = comboCards.findIndex((c) => c.id === assignedId);
+                const base = "rounded-2xl border px-2 py-2 ";
+                if (idx === 0) {
+                  return base + "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.10)]";
+                }
+                if (idx === 1) {
+                  return base + "border-[rgba(80,140,255,.42)] bg-[rgba(80,140,255,.12)]";
+                }
+                if (idx === 2) {
+                  return base + "border-[rgba(170,90,255,.42)] bg-[rgba(170,90,255,.12)]";
+                }
+                if (idx === 3) {
+                  return base + "border-[rgba(255,90,180,.40)] bg-[rgba(255,90,180,.10)]";
+                }
+                if (idx >= 4) {
+                  return base + "border-[rgba(40,210,180,.40)] bg-[rgba(40,210,180,.10)]";
+                }
+                return "rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-2";
+              })()}
             >
               <div className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-4">
