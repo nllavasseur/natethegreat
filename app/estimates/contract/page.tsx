@@ -3,6 +3,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { money } from "@/lib/money";
+import { fetchDraft } from "@/lib/draftsStore";
 
 type ContractRow = { name: string; qty: number; unit: string; unitPrice: number; price: number };
 
@@ -84,14 +85,42 @@ export default function EstimateContractPage() {
   const [portalReady, setPortalReady] = React.useState(false);
 
   React.useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      setData(parsed);
-    } catch {
-      // ignore
-    }
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const draftId = (() => {
+          try {
+            const q = new URLSearchParams(window.location.search);
+            return String(q.get("draft") || "").trim();
+          } catch {
+            return "";
+          }
+        })();
+        if (draftId) {
+          const remote = await fetchDraft({ id: draftId });
+          if (!cancelled && remote.ok && remote.draft && (remote.draft as any).contract) {
+            setData((remote.draft as any).contract as ContractData);
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!cancelled) setData(parsed);
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   React.useEffect(() => {

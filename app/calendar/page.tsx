@@ -158,8 +158,12 @@ function totalLfFromDraft(d: DraftEntry) {
 function openContractPreview(d: DraftEntry) {
   try {
     if (!d || !(d as any).contract) return;
-    window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify((d as any).contract));
-    window.location.assign("/estimates/contract");
+    try {
+      window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify((d as any).contract));
+    } catch {
+    }
+    const id = String((d as any).id || "").trim();
+    window.location.assign(`/estimates/contract${id ? `?draft=${encodeURIComponent(id)}` : ""}`);
   } catch {
     // ignore
   }
