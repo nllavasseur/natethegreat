@@ -149,14 +149,47 @@ export default function EstimateContractPage() {
 
       // Prefer Gmail app if installed; fall back to mailto.
       // Note: the sender/from address cannot be controlled here; Gmail uses the user's active/default account.
+      let didBackground = false;
+      const markBackground = () => {
+        didBackground = true;
+      };
+      const onVis = () => {
+        if (document.visibilityState === "hidden") markBackground();
+      };
+
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("pagehide", markBackground);
+      window.addEventListener("blur", markBackground);
+
       window.location.href = gmailUrl;
-      window.setTimeout(() => {
+
+      const t = window.setTimeout(() => {
+        try {
+          document.removeEventListener("visibilitychange", onVis);
+          window.removeEventListener("pagehide", markBackground);
+          window.removeEventListener("blur", markBackground);
+        } catch {
+          // ignore
+        }
+
+        if (didBackground) return;
         try {
           window.location.href = mailtoUrl;
         } catch {
           // ignore
         }
-      }, 500);
+      }, 700);
+
+      window.setTimeout(() => {
+        try {
+          window.clearTimeout(t);
+          document.removeEventListener("visibilitychange", onVis);
+          window.removeEventListener("pagehide", markBackground);
+          window.removeEventListener("blur", markBackground);
+        } catch {
+          // ignore
+        }
+      }, 4000);
     } catch {
       // ignore
     }
