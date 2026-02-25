@@ -91,6 +91,7 @@ export default function QuotesPage() {
   const [scheduleDate, setScheduleDate] = useState<string>("");
   const [scheduleTime, setScheduleTime] = useState<string>("");
   const [portalReady, setPortalReady] = useState(false);
+  const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
 
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
@@ -605,6 +606,36 @@ export default function QuotesPage() {
     return indexed.map((x) => x.c);
   }, [cards, completedSearchQuery, searchQuery, statusFilter]);
 
+  const customerStacks = useMemo(() => {
+    const normalizeKey = (raw: unknown) => String(raw || "").trim().replace(/\s+/g, " ");
+    const keyFor = (q: any) => {
+      const name = normalizeKey((q as any).title);
+      const customer = normalizeKey((q as any).customerName);
+      const primary = customer || name;
+      return primary ? primary.toLowerCase() : "";
+    };
+
+    const displayNameFor = (q: any) => {
+      const customer = normalizeKey((q as any).customerName);
+      return customer || "(No customer name)";
+    };
+
+    const order: Array<{ key: string; label: string; cards: any[] }> = [];
+    const byKey = new Map<string, { key: string; label: string; cards: any[] }>();
+    for (const c of filteredCards as any[]) {
+      const key = keyFor(c) || `__no_customer__:${String((c as any).id || "")}`;
+      const existing = byKey.get(key);
+      if (existing) {
+        existing.cards.push(c);
+        continue;
+      }
+      const entry = { key, label: displayNameFor(c), cards: [c] };
+      byKey.set(key, entry);
+      order.push(entry);
+    }
+    return order;
+  }, [filteredCards]);
+
   return (
     <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
       {scheduleForId ? (
@@ -722,24 +753,64 @@ export default function QuotesPage() {
           {filteredCards.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">No saved quotes yet. Save an estimate to see it here.</div>
           ) : null}
-          {filteredCards.map((q) => (
-            <Link
-              key={q.id}
-              href={`/quotes/${encodeURIComponent(q.id)}`}
-              onClick={(e) => {
-                if (Date.now() < suppressNavUntil) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-              className={
-                "block rounded-xl border px-3 py-3 hover:bg-[rgba(255,255,255,.08)] transition " +
-                statusCardClass(q.status) +
-                (deletingId === q.id
-                  ? " !border-[rgba(255,80,80,.70)] !bg-[linear-gradient(180deg,rgba(255,80,80,.22),rgba(255,80,80,.10))]"
-                  : "")
-              }
-            >
+          {customerStacks.map((stack) => {
+            const expanded = Boolean(expandedCustomerStacks[stack.key]);
+            const stackTotal = stack.cards.reduce((sum, c) => sum + (Number((c as any).due) || 0), 0);
+            const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
+              ? "sold"
+              : stack.cards.some((c) => (c as any).status === "pending")
+                ? "pending"
+                : stack.cards.some((c) => (c as any).status === "estimate")
+                  ? "estimate"
+                  : (stack.cards[0] as any)?.status;
+
+            return (
+              <div key={stack.key} className="grid gap-2">
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  onClick={() =>
+                    setExpandedCustomerStacks((prev) => ({
+                      ...prev,
+                      [stack.key]: !Boolean(prev[stack.key])
+                    }))
+                  }
+                  className={
+                    "w-full text-left rounded-xl border px-3 py-3 transition hover:bg-[rgba(255,255,255,.08)] " +
+                    statusCardClass(stackStatus as any)
+                  }
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-extrabold truncate">{stack.label}</div>
+                      <div className="text-[11px] text-[var(--muted)]">
+                        {stack.cards.length} quote{stack.cards.length === 1 ? "" : "s"}
+                        {expanded ? " · Tap to collapse" : " · Tap to expand"}
+                      </div>
+                    </div>
+                    <div className="text-sm font-black whitespace-nowrap">{money(stackTotal)}</div>
+                  </div>
+                </button>
+
+                {expanded
+                  ? stack.cards.map((q) => (
+                    <Link
+                      key={q.id}
+                      href={`/quotes/${encodeURIComponent(q.id)}`}
+                      onClick={(e) => {
+                        if (Date.now() < suppressNavUntil) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                      className={
+                        "block rounded-xl border px-3 py-3 hover:bg-[rgba(255,255,255,.08)] transition " +
+                        statusCardClass(q.status) +
+                        (deletingId === q.id
+                          ? " !border-[rgba(255,80,80,.70)] !bg-[linear-gradient(180deg,rgba(255,80,80,.22),rgba(255,80,80,.10))]"
+                          : "")
+                      }
+                    >
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="relative">
                   <button
@@ -978,8 +1049,12 @@ export default function QuotesPage() {
               {String((q as any).scheduledAt || "") ? (
                 <div className="text-[11px] text-[var(--muted)]">Scheduled {toDateLocalValue(String((q as any).scheduledAt || ""))}</div>
               ) : null}
-            </Link>
-          ))}
+                    </Link>
+                  ))
+                  : null}
+              </div>
+            );
+          })}
         </div>
       </GlassCard>
 
