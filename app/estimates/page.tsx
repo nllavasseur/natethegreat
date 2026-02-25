@@ -382,6 +382,8 @@ function EstimatesPageInner() {
   const [preInstallPhotos, setPreInstallPhotos] = useState<Array<{ src: string; srcPath?: string; note: string; createdAt: number }>>([]);
   const preInstallPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [notePhotoIdx, setNotePhotoIdx] = useState<number | null>(null);
+  const preInstallPendingRef = useRef<Set<number>>(new Set());
+  const [preInstallPendingCount, setPreInstallPendingCount] = useState(0);
   const [laborDays, setLaborDays] = useState<number>(0);
   const [laborManualDays, setLaborManualDays] = useState<string>("");
   const [laborManualCost, setLaborManualCost] = useState<string>("");
@@ -3603,6 +3605,10 @@ function EstimatesPageInner() {
     setSaveError(null);
     setSaveNotice(null);
     try {
+      if (preInstallPendingCount > 0 || preInstallPhotos.some((p) => !String((p as any)?.src || "").trim())) {
+        setSaveError("Photos are still processing. Please wait a moment and try saving again.");
+        return;
+      }
       const store = readDraftStore();
       const payload = buildDraftData(id);
       store[id] = payload;
@@ -3652,6 +3658,10 @@ function EstimatesPageInner() {
     setSaveError(null);
     setSaveNotice(null);
     try {
+      if (preInstallPendingCount > 0 || preInstallPhotos.some((p) => !String((p as any)?.src || "").trim())) {
+        setSaveError("Photos are still processing. Please wait a moment and try saving again.");
+        return;
+      }
       const store = readDraftStore();
       const payload = buildDraftData(id);
       store[id] = payload;
@@ -6492,6 +6502,11 @@ function EstimatesPageInner() {
               createdAt: baseTs + i
             }));
 
+            placeholders.forEach((p) => {
+              preInstallPendingRef.current.add(p.createdAt);
+            });
+            setPreInstallPendingCount(preInstallPendingRef.current.size);
+
             setPreInstallPhotos((prev) => [...prev, ...placeholders]);
             setNotePhotoIdx((cur) => (cur == null ? startIdx : cur));
 
@@ -6503,6 +6518,10 @@ function EstimatesPageInner() {
               fileToCompressedDataUrl(file, 1280, 0.72).then((data) => {
                 if (!data) return;
                 setPreInstallPhotos((prev) => prev.map((p) => (p.createdAt === createdAt ? { ...p, src: data } : p)));
+                if (preInstallPendingRef.current.has(createdAt)) {
+                  preInstallPendingRef.current.delete(createdAt);
+                  setPreInstallPendingCount(preInstallPendingRef.current.size);
+                }
               });
 
               (async () => {
@@ -6514,6 +6533,10 @@ function EstimatesPageInner() {
                 });
                 if (uploaded.ok) {
                   setPreInstallPhotos((prev) => prev.map((p) => (p.createdAt === createdAt ? { ...p, src: uploaded.url, srcPath: uploaded.path } : p)));
+                  if (preInstallPendingRef.current.has(createdAt)) {
+                    preInstallPendingRef.current.delete(createdAt);
+                    setPreInstallPendingCount(preInstallPendingRef.current.size);
+                  }
                   return;
                 }
                 const blob = await fileToCompressedBlob(file, 1280, 0.72);
@@ -6526,6 +6549,10 @@ function EstimatesPageInner() {
                 });
                 if (!uploaded2.ok) return;
                 setPreInstallPhotos((prev) => prev.map((p) => (p.createdAt === createdAt ? { ...p, src: uploaded2.url, srcPath: uploaded2.path } : p)));
+                if (preInstallPendingRef.current.has(createdAt)) {
+                  preInstallPendingRef.current.delete(createdAt);
+                  setPreInstallPendingCount(preInstallPendingRef.current.size);
+                }
               })().catch(() => {
                 // ignore
               });
