@@ -545,6 +545,7 @@ export default function QuotesPage() {
 
       return {
         id: d.id,
+        customerName: String((d as any).customerName || ""),
         title,
         style,
         material,
@@ -617,7 +618,8 @@ export default function QuotesPage() {
 
     const displayNameFor = (q: any) => {
       const customer = normalizeKey((q as any).customerName);
-      return customer || "(No customer name)";
+      const name = normalizeKey((q as any).title);
+      return customer || name || "(No customer name)";
     };
 
     const order: Array<{ key: string; label: string; cards: any[] }> = [];
