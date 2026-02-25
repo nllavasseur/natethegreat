@@ -99,11 +99,17 @@ export default function QuoteDetailPage() {
     const el = contractFrameRef.current;
     if (!el) return;
     const BASE_W = 720;
-    const PREVIEW_SHRINK = 0.78;
+    const BASE_H = 1040;
+    const PREVIEW_SHRINK = 0.96;
     const ro = new ResizeObserver(() => {
-      const w = el.getBoundingClientRect().width || 0;
-      if (!w) return;
-      const next = Math.max(0.22, Math.min(0.92, (w / BASE_W) * PREVIEW_SHRINK));
+      const rect = el.getBoundingClientRect();
+      const w = rect.width || 0;
+      const h = rect.height || 0;
+      if (!w || !h) return;
+      const fitW = w / BASE_W;
+      const fitH = h / BASE_H;
+      const fit = Math.min(fitW, fitH) * PREVIEW_SHRINK;
+      const next = Math.max(0.14, Math.min(0.86, fit));
       setContractScale(next);
     });
     ro.observe(el);
@@ -445,7 +451,7 @@ export default function QuoteDetailPage() {
               ref={contractFrameRef}
               className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white"
             >
-              <div className="relative w-full aspect-[8.5/11] overflow-hidden bg-white">
+              <div className="relative w-full h-[520px] overflow-hidden bg-white">
                 <iframe
                   title="Contract"
                   src={`/estimates/contract?draft=${encodeURIComponent(id)}&embed=1`}
