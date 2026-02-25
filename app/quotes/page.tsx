@@ -757,6 +757,7 @@ export default function QuotesPage() {
           ) : null}
           {customerStacks.map((stack) => {
             const expanded = Boolean(expandedCustomerStacks[stack.key]);
+            const hasScheduled = stack.cards.some((c) => Boolean(String((c as any).scheduledAt || "").trim()));
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"
               : stack.cards.some((c) => (c as any).status === "pending")
@@ -789,6 +790,11 @@ export default function QuotesPage() {
                         {expanded ? " · Tap to collapse" : " · Tap to expand"}
                       </div>
                     </div>
+                    {hasScheduled ? (
+                      <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
+                        Scheduled
+                      </div>
+                    ) : null}
                   </div>
                 </button>
 
