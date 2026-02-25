@@ -2826,7 +2826,10 @@ function EstimatesPageInner() {
 
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
-      const trimNameFinal = woodTrimName(materialsDetails.trimMaterial);
+      const trimMaterialFinal = isPictureFramed
+        ? (materialsDetails.pictureFrameTrimMaterial || materialsDetails.trimMaterial)
+        : materialsDetails.trimMaterial;
+      const trimNameFinal = woodTrimName(trimMaterialFinal);
       const trimBoards = isPictureFramed ? Math.max(0, Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0)) * panels : 0;
 
       const latticeName = "";
@@ -3167,7 +3170,17 @@ function EstimatesPageInner() {
     const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
     const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
-    const trimName = woodTrimName(materialsDetails.trimMaterial);
+    const isPictureFrameKind =
+      selectedStyleKind === "wood_picture_framed" ||
+      selectedStyleKind === "wood_am" ||
+      selectedStyleKind === "wood_niko" ||
+      selectedStyleKind === "wood_casto" ||
+      selectedStyleKind === "wood_picture_framed_4ft" ||
+      selectedStyleKind === "wood_picture_framed_lattice";
+    const trimMaterialFinal = isPictureFrameKind
+      ? (materialsDetails.pictureFrameTrimMaterial || materialsDetails.trimMaterial)
+      : materialsDetails.trimMaterial;
+    const trimName = woodTrimName(trimMaterialFinal);
     const trimBoards = selectedStyleKind === "wood_picture_framed" || selectedStyleKind === "wood_am" || selectedStyleKind === "wood_niko" || selectedStyleKind === "wood_casto" || selectedStyleKind === "wood_picture_framed_4ft" || selectedStyleKind === "wood_picture_framed_lattice"
       ? Math.max(0, Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0)) * panels
       : 0;
@@ -5099,7 +5112,7 @@ function EstimatesPageInner() {
         : 3;
       const pictureFrameTrimMaterial = (dd.pictureFrameTrimMaterial === "Cedar" || dd.pictureFrameTrimMaterial === "Cedar tone" || dd.pictureFrameTrimMaterial === "Pressure treated")
         ? dd.pictureFrameTrimMaterial
-        : "Pressure treated";
+        : woodType;
       const takeoffPreset = dd.takeoffPreset === "horizontal_cedar" || dd.takeoffPreset === "standard"
         ? dd.takeoffPreset
         : "standard";
