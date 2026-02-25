@@ -1638,6 +1638,8 @@ function EstimatesPageInner() {
     "6' Pressure Treated Dog Ear Pickets": 2.38,
     "2x4 16' Pressure Treated Rails": 13.78,
     "5/4x6x12 Pressure Treated Boards": 10.59,
+    "5/4x6x12 Cedar S4S Rails": 29.79,
+    "5/4x6x12 CedarTone Rails": 17.69,
     "Concrete 60lb Bag": 0,
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
