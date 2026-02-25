@@ -51,13 +51,14 @@ function normalizePreInstallPhotos(input: unknown) {
   const out: Array<{ src: string; note: string; createdAt: number }> = [];
   for (const v of input) {
     if (typeof v === "string") {
-      if (!v.startsWith("data:")) continue;
+      const src = String(v || "");
+      if (!src) continue;
       out.push({ src: v, note: "", createdAt: Date.now() });
       continue;
     }
     if (v && typeof v === "object") {
       const src = typeof (v as any).src === "string" ? (v as any).src : "";
-      if (!src.startsWith("data:")) continue;
+      if (!src) continue;
       out.push({
         src,
         note: typeof (v as any).note === "string" ? (v as any).note : "",
