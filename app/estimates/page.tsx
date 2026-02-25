@@ -1637,6 +1637,16 @@ function EstimatesPageInner() {
     setMaterialsDetails((p) => ({ ...p, postSize: desiredPostSize }));
   }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind]);
 
+  useEffect(() => {
+    if (selectedStyleKind !== "wood_horizontal") return;
+
+    const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
+    const desiredPostSize = heightFt >= 6 ? 10 : 8;
+    if (materialsDetails.postSize === desiredPostSize) return;
+
+    setMaterialsDetails((p) => ({ ...p, postSize: desiredPostSize }));
+  }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind]);
+
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "4x4 x 10' Post": 16.88,
@@ -2710,7 +2720,10 @@ function EstimatesPageInner() {
           : (lf > 0 ? Math.ceil(lf / 5.5) : 0);
         const cornerCount = Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarCornerAdjust) || 0));
 
-        const baseBoards = panels > 0 ? (panels / 2) * 13 : 0;
+        const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
+        const boardsPerPanel = heightFt >= 6 ? 13 : heightFt === 5 ? 11 : 9;
+
+        const baseBoards = panels > 0 ? (panels / 2) * boardsPerPanel : 0;
         const includeVerticals = Boolean(materialsDetails.horizontalCedarVerticals);
         const verticalBoards = includeVerticals && posts > 0 ? posts * 0.5 : 0;
         const spineBoards = panels > 0 ? panels * 0.25 : 0;
@@ -7839,6 +7852,24 @@ function EstimatesPageInner() {
 
                   {selectedStyleKind === "wood_horizontal" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Height</div>
+                          <Select
+                            value={String(Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6))))}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylPanelHeightFt: Number(e.target.value) }))}
+                            disabled={!selectedStyle}
+                          >
+                            {[4, 5, 6].map((h) => (
+                              <option key={h} value={String(h)}>{h}'</option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div className="text-[11px] text-[var(--muted)] flex items-end">
+                          Boards + posts update with height.
+                        </div>
+                      </div>
+
                       <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
                       <button
                         type="button"
