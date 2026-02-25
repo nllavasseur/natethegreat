@@ -3633,14 +3633,41 @@ function EstimatesPageInner() {
           ...payload,
           projectPhotoDataUrl: null,
           projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
-          preInstallPhotos: Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : []
+          preInstallPhotos: stripDataUrlsFromPreInstall(Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : [])
         };
         store[id] = lite;
         try {
           writeDraftStore(store);
           setSaveNotice("Saved without local photo cache (storage full on this device). ");
-        } catch {
-          throw e;
+        } catch (e2) {
+          if (!isQuotaError(e2)) throw e2;
+          // As a last resort, clear older local drafts until it fits.
+          try {
+            const entries = Object.entries(store)
+              .map(([k, v]) => ({ k, v }))
+              .filter((x) => x.k !== id);
+            entries.sort((a, b) => (Number((a.v as any)?.updatedAt) || 0) - (Number((b.v as any)?.updatedAt) || 0));
+            let working: Record<string, any> = { ...store };
+            for (const ent of entries) {
+              delete working[ent.k];
+              try {
+                writeDraftStore(working);
+                setSaveNotice("Saved after clearing old local drafts (storage full on this device). ");
+                break;
+              } catch {
+                // keep pruning
+              }
+            }
+            // If we still can't write, keep only the current draft and continue (remote save still happens).
+            try {
+              writeDraftStore({ [id]: lite });
+              setSaveNotice("Saved without local history (storage full on this device). ");
+            } catch {
+              setSaveNotice("Saved remotely (local storage full on this device). ");
+            }
+          } catch {
+            setSaveNotice("Saved remotely (local storage full on this device). ");
+          }
         }
       }
       setDraftId(id);
@@ -3709,7 +3736,7 @@ function EstimatesPageInner() {
           ...payload,
           projectPhotoDataUrl: null,
           projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
-          preInstallPhotos: Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : []
+          preInstallPhotos: stripDataUrlsFromPreInstall(Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : [])
         };
         store[id] = lite;
         try {
