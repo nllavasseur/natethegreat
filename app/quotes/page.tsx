@@ -504,18 +504,20 @@ export default function QuotesPage() {
       const laborBaseTotal = items
         .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
         .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-      const laborFeesTotal = items
+      const laborFeeItems = items
         .filter((i) => i.section === "labor" && String(i.name || "") !== "Days labor")
-        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-
-      const additionalFeesTotal = items
+        .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+        .filter((i) => i.lineTotal !== 0);
+      const additionalSectionFeeItems = items
         .filter((i) => i.section === "additional")
-        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+        .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+        .filter((i) => i.lineTotal !== 0);
+      const additionalFeeItems = [...laborFeeItems, ...additionalSectionFeeItems];
+      const additionalFeesTotal = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
 
       const total = Math.round(
         ((Number(materialsAndExpensesTotal) || 0) +
           (Number(laborBaseTotal) || 0) +
-          (Number(laborFeesTotal) || 0) +
           (Number(additionalFeesTotal) || 0) +
           (Number(removalTotal) || 0)) *
           100
