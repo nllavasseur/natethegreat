@@ -245,6 +245,7 @@ type MaterialsDetails = {
   takeoffPreset: "standard" | "horizontal_cedar";
   horizontalCedarVerticals: boolean;
   horizontalCedarCornerAdjust: number;
+  horizontalCedarExtraBoards: number;
   aluminumPanelHeight: number;
   aluminumGateAuto: boolean;
   aluminumCornerPosts: number;
@@ -298,6 +299,7 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   takeoffPreset: "standard",
   horizontalCedarVerticals: false,
   horizontalCedarCornerAdjust: 0,
+  horizontalCedarExtraBoards: 0,
   aluminumPanelHeight: 48,
   aluminumGateAuto: true,
   aluminumCornerPosts: 0,
@@ -513,13 +515,13 @@ function EstimatesPageInner() {
     },
     {
       type: "wood",
-      name: "picture framed caps",
-      thumb: "/picture framed caps.jpg"
+      name: "picture framed lattice panel",
+      thumb: "/picture framed lattice panel.jpeg"
     },
     {
       type: "wood",
-      name: "picture framed lattice panel",
-      thumb: "/picture framed lattice panel.jpeg"
+      name: "picture framed caps",
+      thumb: "/picture framed caps.jpg"
     },
     {
       type: "wood",
@@ -1405,6 +1407,7 @@ function EstimatesPageInner() {
     return (
       materialsDetails.horizontalCedarVerticals ||
       (Number(materialsDetails.horizontalCedarCornerAdjust) || 0) !== 0 ||
+      (Number(materialsDetails.horizontalCedarExtraBoards) || 0) !== 0 ||
       materialsDetails.horizontalCedarBoardMaterial !== "5/4 cedar" ||
       materialsDetails.postSize !== 10 ||
       materialsDetails.postType !== "Pressure treated" ||
@@ -2706,7 +2709,8 @@ function EstimatesPageInner() {
         const verticalBoards = posts > 0 ? posts * 0.5 : 0;
         const spineBoards = panels > 0 ? panels * 0.25 : 0;
         const cornerBoards = cornerCount;
-        const boards = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards);
+        const extraBoards = Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0));
+        const boards = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards) + extraBoards;
 
         const topCapBoards = materialsDetails.topCaps && panels > 0 ? Math.ceil(panels / 2) : 0;
         const topCapName = `Top cap (${boardName})`;
@@ -7621,6 +7625,20 @@ function EstimatesPageInner() {
                           </PrimaryButton>
                         </div>
                         <div className="mt-2 text-[11px] text-[var(--muted)]">Adjusts corners used for takeoff. Default is based on segment count.</div>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Extra 5/4 boards</div>
+                        <Input
+                          inputMode="numeric"
+                          value={String(Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0)))}
+                          onChange={(e) => {
+                            const n = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                            setMaterialsDetails((p) => ({ ...p, horizontalCedarExtraBoards: n }));
+                          }}
+                          placeholder="0"
+                        />
+                        <div className="mt-2 text-[11px] text-[var(--muted)]">Adds directly to the 5/4x6x12 board quantity.</div>
                       </div>
                     </div>
                   ) : null}
