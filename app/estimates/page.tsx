@@ -2695,6 +2695,9 @@ function EstimatesPageInner() {
         const cornerBoards = cornerCount;
         const boards = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards);
 
+        const topCapBoards = materialsDetails.topCaps && panels > 0 ? Math.ceil(panels / 2) : 0;
+        const topCapName = `Top cap (${boardName})`;
+
         // Keep these proportional to the reference sheet (274 LF):
         const screwCount = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
         const useStainlessScrews = materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar";
@@ -2706,6 +2709,7 @@ function EstimatesPageInner() {
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
           { name: boardName, qty: boards, unit: "ea" },
+          ...(topCapBoards > 0 ? [{ name: topCapName, qty: topCapBoards, unit: "ea" }] : []),
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
