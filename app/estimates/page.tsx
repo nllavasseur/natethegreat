@@ -956,6 +956,7 @@ function EstimatesPageInner() {
   const [savingAsNew, setSavingAsNew] = useState(false);
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   const [takeoffError, setTakeoffError] = useState<string | null>(null);
   const takeoffErrorRef = useRef<string | null>(null);
@@ -3598,14 +3599,15 @@ function EstimatesPageInner() {
     const id = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setSaving(true);
     setSaveError(null);
+    setSaveNotice(null);
     try {
       const store = readDraftStore();
       const payload = buildDraftData(id);
       store[id] = payload;
-
       try {
         writeDraftStore(store);
       } catch (e) {
+        if (!isQuotaError(e)) throw e;
         const lite = {
           ...payload,
           projectPhotoDataUrl: null,
@@ -3615,7 +3617,7 @@ function EstimatesPageInner() {
         store[id] = lite;
         try {
           writeDraftStore(store);
-          setSaveError("Saved without local photo cache (storage full on this device). ");
+          setSaveNotice("Saved without local photo cache (storage full on this device). ");
         } catch {
           throw e;
         }
@@ -3646,6 +3648,7 @@ function EstimatesPageInner() {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setSavingAsNew(true);
     setSaveError(null);
+    setSaveNotice(null);
     try {
       const store = readDraftStore();
       const payload = buildDraftData(id);
@@ -3686,14 +3689,14 @@ function EstimatesPageInner() {
         store[id] = lite;
         try {
           tryWrite(store);
-          setSaveError("Saved without local photo cache (storage full on this device). ");
+          setSaveNotice("Saved without local photo cache (storage full on this device). ");
         } catch (e2) {
           if (!isQuotaError(e2)) throw e2;
           const pruned = pruneAndWrite(store);
           if (Object.keys(pruned).length <= 1) {
-            setSaveError("Saved without local history (storage full on this device). ");
+            setSaveNotice("Saved without local history (storage full on this device). ");
           } else {
-            setSaveError("Saved after clearing old local drafts (storage full on this device). ");
+            setSaveNotice("Saved after clearing old local drafts (storage full on this device). ");
           }
         }
       }
@@ -8352,6 +8355,11 @@ function EstimatesPageInner() {
               {saveError ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
                   {saveError}
+                </div>
+              ) : null}
+              {saveNotice ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.45)] bg-[rgba(255,214,10,.10)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.95)] shadow-glass">
+                  {saveNotice}
                 </div>
               ) : null}
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
