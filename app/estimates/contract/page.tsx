@@ -20,9 +20,38 @@ function readDraftStore(): Record<string, any> {
 function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const items: QuoteItem[] = Array.isArray(draft?.items) ? (draft.items as QuoteItem[]) : [];
 
+  const segments = (() => {
+    try {
+      return Array.isArray(draft?.segments) ? (draft.segments as any[]) : [];
+    } catch {
+      return [] as any[];
+    }
+  })();
+
+  const totalLf = (() => {
+    try {
+      const lf = segments
+        .filter((s) => !Boolean((s as any)?.removed))
+        .reduce((sum, s) => sum + (Number((s as any)?.length) || 0), 0);
+      return Math.round(lf * 100) / 100;
+    } catch {
+      return 0;
+    }
+  })();
+
+  const gateCounts = (() => {
+    try {
+      const eligible = segments.filter((s) => !Boolean((s as any)?.removed));
+      const walk = eligible.filter((s) => (s as any)?.gateType === "walk" || ((s as any)?.gateType == null && Boolean((s as any)?.gate))).length;
+      const dbl = eligible.filter((s) => (s as any)?.gateType === "double").length;
+      return { walk, dbl };
+    } catch {
+      return { walk: 0, dbl: 0 };
+    }
+  })();
+
   const removalTotal = (() => {
     try {
-      const segments = Array.isArray(draft?.segments) ? (draft.segments as any[]) : [];
       const lf = segments
         .filter((s) => Boolean((s as any)?.removal) || Boolean((s as any)?.removed))
         .reduce((sum, s) => sum + (Number((s as any)?.length) || 0), 0);
@@ -91,6 +120,9 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       customer: { name: customerName, phone: phoneNumber, email },
       projectAddress,
       styleTitle,
+      totalLf,
+      walkGateCount: gateCounts.walk,
+      doubleGateCount: gateCounts.dbl,
       depositTotal,
       notes,
       disclaimer: "",
