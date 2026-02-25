@@ -24,6 +24,9 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   const [sessionChecked, setSessionChecked] = React.useState(false);
 
+  const [updateAvailable, setUpdateAvailable] = React.useState(false);
+  const [versionSha, setVersionSha] = React.useState<string>("");
+
   const hasLocalAuthToken = React.useMemo(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -57,6 +60,68 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       body.style.overflow = "";
     }
   }, [pathname]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+
+    const readStored = () => {
+      try {
+        return String(window.localStorage.getItem("vf_app_version_sha") || "");
+      } catch {
+        return "";
+      }
+    };
+
+    const writeStored = (sha: string) => {
+      try {
+        window.localStorage.setItem("vf_app_version_sha", String(sha || ""));
+      } catch {
+        // ignore
+      }
+    };
+
+    const check = async () => {
+      try {
+        const res = await fetch("/api/version", { cache: "no-store" as any });
+        const json = (await res.json()) as any;
+        const sha = typeof json?.sha === "string" ? String(json.sha) : "";
+        if (cancelled) return;
+        if (sha) setVersionSha(sha.slice(0, 7));
+        const prev = readStored();
+        if (prev && sha && prev !== sha) {
+          setUpdateAvailable(true);
+          return;
+        }
+        if (sha && (!prev || prev !== sha)) writeStored(sha);
+      } catch {
+        // ignore
+      }
+    };
+
+    void check();
+    const t = window.setInterval(check, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, []);
+
+  const applyUpdate = React.useCallback(async () => {
+    try {
+      try {
+        if ("caches" in window) {
+          const keys = await (window as any).caches.keys();
+          await Promise.all(keys.map((k: string) => (window as any).caches.delete(k)));
+        }
+      } catch {
+        // ignore
+      }
+      window.location.reload();
+    } catch {
+      // ignore
+    }
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -159,6 +224,17 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh flex flex-col vf-app-bg">
       {hideChrome ? null : (
         <div ref={headerRef} className="sticky top-0 z-[59] isolate transform-gpu">
+          {updateAvailable ? (
+            <div className="px-4 pt-3">
+              <button
+                type="button"
+                onClick={applyUpdate}
+                className="w-full rounded-2xl border border-[rgba(255,210,80,.35)] bg-[rgba(255,210,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,245,220,.95)] shadow-glass"
+              >
+                Update available{versionSha ? ` (${versionSha})` : ""} · Tap to refresh
+              </button>
+            </div>
+          ) : null}
           <TopBar />
           <nav aria-label="Top navigation">
             <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
