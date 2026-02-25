@@ -905,6 +905,28 @@ export default function QuotesPage() {
                     e.stopPropagation();
                     setSuppressNavUntil(Date.now() + 600);
                     setOpenStatusId(null);
+                    setConfirmDeleteId(null);
+                    window.location.href = `/estimates/contract?draft=${encodeURIComponent(q.id)}`;
+                  }}
+                  className="rounded-full border px-2 py-1 text-[11px] font-extrabold bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.90)]"
+                >
+                  Contract
+                </button>
+
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  data-keep-open="true"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSuppressNavUntil(Date.now() + 600);
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSuppressNavUntil(Date.now() + 600);
+                    setOpenStatusId(null);
                     if (confirmDeleteId === q.id) {
                       setConfirmDeleteId(null);
                       setDeletingId(q.id);
