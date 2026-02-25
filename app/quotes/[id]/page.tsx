@@ -71,6 +71,8 @@ export default function QuoteDetailPage() {
   const [draft, setDraft] = React.useState<DraftEntry | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
   const [viewerIdx, setViewerIdx] = React.useState<number | null>(null);
+  const contractFrameRef = React.useRef<HTMLDivElement | null>(null);
+  const [contractScale, setContractScale] = React.useState(1);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -91,6 +93,20 @@ export default function QuoteDetailPage() {
 
   React.useEffect(() => {
     setPortalReady(true);
+  }, []);
+
+  React.useEffect(() => {
+    const el = contractFrameRef.current;
+    if (!el) return;
+    const BASE_W = 720;
+    const ro = new ResizeObserver(() => {
+      const w = el.getBoundingClientRect().width || 0;
+      if (!w) return;
+      const next = Math.max(0.25, Math.min(1, w / BASE_W));
+      setContractScale(next);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const title = String(draft?.title || draft?.customerName || draft?.projectAddress || draft?.selectedStyle?.name || `Quote #${id}`);
@@ -424,13 +440,24 @@ export default function QuoteDetailPage() {
 
           <div className="mt-3">
             <div className="text-[11px] text-[var(--muted)] mb-2">Contract</div>
-            <div className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white">
-              <iframe
-                title="Contract"
-                src={`/estimates/contract?draft=${encodeURIComponent(id)}`}
-                className="block w-full"
-                style={{ height: 820 }}
-              />
+            <div
+              ref={contractFrameRef}
+              className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white"
+            >
+              <div className="relative w-full aspect-[8.5/11] overflow-hidden bg-white">
+                <iframe
+                  title="Contract"
+                  src={`/estimates/contract?draft=${encodeURIComponent(id)}`}
+                  className="absolute left-0 top-0 border-0"
+                  style={{
+                    width: 720,
+                    height: 1040,
+                    transformOrigin: "top left",
+                    transform: `scale(${contractScale})`
+                  }}
+                  scrolling="no"
+                />
+              </div>
             </div>
           </div>
 
