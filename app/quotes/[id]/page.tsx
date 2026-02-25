@@ -101,7 +101,7 @@ export default function QuoteDetailPage() {
     const BASE_W = 720;
     const BASE_H = 1040;
     const PREVIEW_SHRINK = 0.96;
-    const ro = new ResizeObserver(() => {
+    const compute = () => {
       const rect = el.getBoundingClientRect();
       const w = rect.width || 0;
       const h = rect.height || 0;
@@ -109,10 +109,15 @@ export default function QuoteDetailPage() {
       const fitW = w / BASE_W;
       const fitH = h / BASE_H;
       const fit = Math.min(fitW, fitH) * PREVIEW_SHRINK;
-      const next = Math.max(0.14, Math.min(0.86, fit));
+      const next = Math.max(0.12, Math.min(0.84, fit));
       setContractScale(next);
+    };
+    const ro = new ResizeObserver(() => {
+      compute();
     });
     ro.observe(el);
+    compute();
+    window.addEventListener("resize", compute);
     return () => ro.disconnect();
   }, []);
 
@@ -448,10 +453,9 @@ export default function QuoteDetailPage() {
           <div className="mt-3">
             <div className="text-[11px] text-[var(--muted)] mb-2">Contract</div>
             <div
-              ref={contractFrameRef}
               className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white"
             >
-              <div className="relative w-full h-[520px] overflow-hidden bg-white">
+              <div ref={contractFrameRef} className="relative w-full h-[420px] sm:h-[520px] overflow-hidden bg-white">
                 <iframe
                   title="Contract"
                   src={`/estimates/contract?draft=${encodeURIComponent(id)}&embed=1`}
