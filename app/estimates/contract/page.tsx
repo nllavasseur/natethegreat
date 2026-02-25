@@ -223,12 +223,20 @@ export default function EstimateContractPage() {
   const [data, setData] = React.useState<ContractData | null>(null);
   const pageRef = React.useRef<HTMLElement | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
+  const [embed, setEmbed] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
+        try {
+          const q = new URLSearchParams(window.location.search);
+          setEmbed(q.get("embed") === "1");
+        } catch {
+          setEmbed(false);
+        }
+
         const draftId = (() => {
           try {
             const q = new URLSearchParams(window.location.search);
@@ -387,7 +395,8 @@ export default function EstimateContractPage() {
       <style>{PRINT_CSS}</style>
 
       {portalReady
-        ? createPortal(
+        ? (!embed
+          ? createPortal(
           <div className="noPrint stickyBack" aria-label="Contract actions">
             <div className="stickyBackInner">
               <div className="stickyBar">
@@ -398,7 +407,8 @@ export default function EstimateContractPage() {
             </div>
           </div>,
           document.body
-        )
+          )
+          : null)
         : null}
 
       <main ref={(el) => {

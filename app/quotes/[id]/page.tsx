@@ -99,7 +99,7 @@ export default function QuoteDetailPage() {
     const el = contractFrameRef.current;
     if (!el) return;
     const BASE_W = 720;
-    const PREVIEW_SHRINK = 0.86;
+    const PREVIEW_SHRINK = 0.78;
     const ro = new ResizeObserver(() => {
       const w = el.getBoundingClientRect().width || 0;
       if (!w) return;
@@ -448,7 +448,7 @@ export default function QuoteDetailPage() {
               <div className="relative w-full aspect-[8.5/11] overflow-hidden bg-white">
                 <iframe
                   title="Contract"
-                  src={`/estimates/contract?draft=${encodeURIComponent(id)}`}
+                  src={`/estimates/contract?draft=${encodeURIComponent(id)}&embed=1`}
                   className="absolute left-0 top-0 border-0"
                   style={{
                     width: 720,
