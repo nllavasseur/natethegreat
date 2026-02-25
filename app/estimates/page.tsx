@@ -2708,8 +2708,9 @@ function EstimatesPageInner() {
         const cornerCount = Math.max(0, cornerBase + cornerAdjust);
 
         const baseBoards = panels > 0 ? (panels / 2) * 13 : 0;
-        const verticalBoards = posts > 0 ? posts * 0.5 : 0;
-        const spineBoards = panels > 0 ? panels * 0.25 : 0;
+        const includeVerticals = Boolean(materialsDetails.horizontalCedarVerticals);
+        const verticalBoards = includeVerticals && posts > 0 ? posts * 0.5 : 0;
+        const spineBoards = includeVerticals && panels > 0 ? panels * 0.25 : 0;
         const cornerBoards = cornerCount;
         const extraBoards = Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0));
         const boardsBase = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards) + extraBoards;
