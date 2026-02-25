@@ -99,10 +99,11 @@ export default function QuoteDetailPage() {
     const el = contractFrameRef.current;
     if (!el) return;
     const BASE_W = 720;
+    const PREVIEW_SHRINK = 0.86;
     const ro = new ResizeObserver(() => {
       const w = el.getBoundingClientRect().width || 0;
       if (!w) return;
-      const next = Math.max(0.25, Math.min(1, w / BASE_W));
+      const next = Math.max(0.22, Math.min(0.92, (w / BASE_W) * PREVIEW_SHRINK));
       setContractScale(next);
     });
     ro.observe(el);
