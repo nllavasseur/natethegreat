@@ -4351,10 +4351,9 @@ function EstimatesPageInner() {
       (Number(materialsDepositTotal) || 0) +
       (Number(laborBaseTotal) || 0) +
       (Number(laborFeesTotal) || 0) +
-      (Number(additionalFeesTotal) || 0) +
       (Number(removalTotal) || 0);
     return Math.round(v * 100) / 100;
-  }, [additionalFeesTotal, laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
+  }, [laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
 
   const sharedTotal = useMemo(() => {
     const lf = Number(totalLf) || 0;
