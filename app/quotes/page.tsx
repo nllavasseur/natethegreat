@@ -757,7 +757,6 @@ export default function QuotesPage() {
           ) : null}
           {customerStacks.map((stack) => {
             const expanded = Boolean(expandedCustomerStacks[stack.key]);
-            const stackTotal = stack.cards.reduce((sum, c) => sum + (Number((c as any).due) || 0), 0);
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"
               : stack.cards.some((c) => (c as any).status === "pending")
@@ -790,7 +789,6 @@ export default function QuotesPage() {
                         {expanded ? " · Tap to collapse" : " · Tap to expand"}
                       </div>
                     </div>
-                    <div className="text-sm font-black whitespace-nowrap">{money(stackTotal)}</div>
                   </div>
                 </button>
 
