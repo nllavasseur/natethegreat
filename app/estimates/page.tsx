@@ -3568,9 +3568,39 @@ function EstimatesPageInner() {
         return "";
       }
     })();
+
+    const existingSchedule = (() => {
+      try {
+        const store = readDraftStore();
+        return store && (store as any)[id] && typeof (store as any)[id] === "object" ? (store as any)[id] : null;
+      } catch {
+        return null;
+      }
+    })();
     const status = existingStatus === "sold" || existingStatus === "complete" || existingStatus === "void"
       ? (existingStatus as any)
       : (hasRealMaterials ? "pending" : "estimate");
+
+    // Calendar scheduling fields live on the draft object and should not be blown away by an edit-save.
+    // This is especially important for SOLD jobs whose calendar position is queue-based.
+    const createdAt = Number((existingSchedule as any)?.createdAt) || Date.now();
+    const scheduledAt = typeof (existingSchedule as any)?.scheduledAt === "string" ? (existingSchedule as any).scheduledAt : undefined;
+    const installDate = typeof (existingSchedule as any)?.installDate === "string" ? (existingSchedule as any).installDate : undefined;
+    const startDate = typeof (existingSchedule as any)?.startDate === "string" ? (existingSchedule as any).startDate : undefined;
+    const holdDate = typeof (existingSchedule as any)?.holdDate === "string" ? (existingSchedule as any).holdDate : undefined;
+    const allowSaturday = typeof (existingSchedule as any)?.allowSaturday === "boolean" ? (existingSchedule as any).allowSaturday : undefined;
+    const allowSunday = typeof (existingSchedule as any)?.allowSunday === "boolean" ? (existingSchedule as any).allowSunday : undefined;
+    const calendarHidden = typeof (existingSchedule as any)?.calendarHidden === "boolean" ? (existingSchedule as any).calendarHidden : undefined;
+    const originalLaborDays = Number.isFinite(Number((existingSchedule as any)?.originalLaborDays))
+      ? Number((existingSchedule as any).originalLaborDays)
+      : undefined;
+
+    // Keep a stable sold ordering key so edits don't reshuffle the calendar.
+    const queueRank = status === "sold"
+      ? (Number.isFinite(Number((existingSchedule as any)?.queueRank))
+        ? Number((existingSchedule as any).queueRank)
+        : createdAt)
+      : (Number.isFinite(Number((existingSchedule as any)?.queueRank)) ? Number((existingSchedule as any).queueRank) : undefined);
     const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
     const projectDataBackup = sanitized.projectPhotoDataUrl;
     const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
@@ -3578,6 +3608,7 @@ function EstimatesPageInner() {
 
     return {
       id,
+      createdAt,
       customerName,
       projectAddress,
       phoneNumber,
@@ -3608,6 +3639,15 @@ function EstimatesPageInner() {
       segments,
       items,
       status,
+      scheduledAt,
+      installDate,
+      startDate,
+      holdDate,
+      allowSaturday,
+      allowSunday,
+      calendarHidden,
+      queueRank,
+      originalLaborDays,
       updatedAt: Date.now()
     };
   }
