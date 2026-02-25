@@ -958,6 +958,8 @@ function EstimatesPageInner() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
+  const [cloneParam, setCloneParam] = useState<string | null>(null);
+
   const [takeoffError, setTakeoffError] = useState<string | null>(null);
   const takeoffErrorRef = useRef<string | null>(null);
 
@@ -4175,10 +4177,13 @@ function EstimatesPageInner() {
       try {
         const q = new URLSearchParams(window.location.search);
         const id = q.get("draft");
+        const clone = q.get("clone");
         setDraftParam(id ? String(id) : null);
+        setCloneParam(clone ? String(clone) : null);
         setDebugTotals(q.get("debugTotals") === "1");
       } catch {
         setDraftParam(null);
+        setCloneParam(null);
         setDebugTotals(false);
       }
     };
@@ -4194,6 +4199,14 @@ function EstimatesPageInner() {
     void loadDraft(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftParam]);
+
+  useEffect(() => {
+    const id = cloneParam;
+    if (!id) return;
+    // Clone-lite: copy only customer fields, segments, and additional services.
+    void loadDraftForClone(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloneParam]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -4831,6 +4844,79 @@ function EstimatesPageInner() {
   }
 
 // ...
+
+  async function loadDraftForClone(id: string) {
+    let d: any = null;
+    try {
+      const store = readDraftStore();
+      d = (store as any)[id] as any;
+    } catch {
+      d = null;
+    }
+
+    if (!d) {
+      try {
+        const remote = await fetchDraft({ id });
+        if (remote.ok && remote.draft) {
+          d = remote.draft as any;
+        }
+      } catch {
+      }
+    }
+
+    if (!d) return;
+
+    const nextComboCardId =
+      typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+        ? (crypto as any).randomUUID()
+        : `card-${Date.now()}`;
+
+    restoringRef.current = true;
+    setTimeout(() => {
+      restoringRef.current = false;
+    }, 0);
+
+    setDraftId(null);
+    setCustomerName(String(d.customerName ?? ""));
+    setProjectAddress(String(d.projectAddress ?? ""));
+    setPhoneNumber(String(d.phoneNumber ?? ""));
+    setEmail(String(d.email ?? ""));
+
+    setProjectPhoto(null);
+    setProjectPhotoPath(null);
+    setProjectPhotoUrl(null);
+    setProjectPhotoDataUrl(null);
+
+    setMeasureOpen(false);
+    setTracePoints([]);
+    setReferenceLength(0);
+    setPickOcrForLabel(null);
+
+    setSegments(Array.isArray(d.segments) ? (d.segments as any[]) : []);
+
+    setSelectedFenceType("wood");
+    setVinylStyleTab("privacy");
+    setSelectedStyle(null);
+    setMaterialsDetails(DEFAULT_MATERIALS_DETAILS);
+    setExtraPosts(0);
+    setComboCards([
+      {
+        id: nextComboCardId,
+        fenceType: "wood",
+        vinylStyleTab: "privacy",
+        selectedStyle: null,
+        materialsDetails: DEFAULT_MATERIALS_DETAILS,
+        extraPosts: 0,
+        shared: false
+      }
+    ]);
+    setActiveComboCardId(nextComboCardId);
+
+    const additionalItems = Array.isArray(d.items)
+      ? (d.items as any[]).filter((it) => it && typeof it === "object" && (it as any).section === "additional")
+      : [];
+    setItems(additionalItems as QuoteItem[]);
+  }
 
   async function loadDraft(id: string, opts?: { source?: "snapshot" | "draft" }) {
     let d: any = null;

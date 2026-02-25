@@ -233,6 +233,7 @@ export default function QuoteDetailPage() {
         </div>
         <div className="flex flex-wrap justify-start sm:justify-end gap-2 max-w-full">
           <Link href="/quotes"><SecondaryButton>Back</SecondaryButton></Link>
+          <Link href={`/estimates?clone=${encodeURIComponent(id)}`}><SecondaryButton>Additional quote</SecondaryButton></Link>
           <Link href={`/estimates?draft=${encodeURIComponent(id)}`}><PrimaryButton>Edit</PrimaryButton></Link>
         </div>
       </div>
