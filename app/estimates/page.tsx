@@ -1622,6 +1622,7 @@ function EstimatesPageInner() {
     "4x4 x 10' Post": 16.88,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
     "2x4 16' Pressure Treated Rails": 13.78,
+    "5/4x6x12 Pressure Treated Boards": 10.59,
     "Concrete 60lb Bag": 0,
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
