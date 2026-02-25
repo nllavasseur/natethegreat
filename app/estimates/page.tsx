@@ -4820,7 +4820,16 @@ function EstimatesPageInner() {
       };
     }
 
-    setMaterialsDetails(() => ({ ...DEFAULT_MATERIALS_DETAILS, ...overrides }));
+    setMaterialsDetails(() => {
+      const base = { ...DEFAULT_MATERIALS_DETAILS, ...overrides } as MaterialsDetails;
+      const set = base.woodType;
+
+      // If a style only specifies a woodType (material set), keep trim aligned by default.
+      if (overrides.trimMaterial === undefined) base.trimMaterial = set;
+      if (overrides.pictureFrameTrimMaterial === undefined) base.pictureFrameTrimMaterial = set;
+
+      return base;
+    });
     setStylePickerIdx(false);
     if (selectedFenceType === "vinyl") setMaterialsDetailsOpen(true);
   }
