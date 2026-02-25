@@ -1151,6 +1151,18 @@ function EstimatesPageInner() {
   }, [materialsDetails.pictureFrameTrimPieces, selectedStyleKind]);
 
   useEffect(() => {
+    const useHorizontalCedarTakeoff =
+      (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
+      selectedStyleKind === "wood_horizontal";
+    if (!useHorizontalCedarTakeoff) return;
+
+    const wood = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Cedar tone";
+    const desired = wood === "Cedar tone" ? "CedarTone" : wood === "Pressure treated" ? "Pressure Treated" : "5/4 cedar";
+    if (materialsDetails.horizontalCedarBoardMaterial === desired) return;
+    setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardMaterial: desired }));
+  }, [materialsDetails.horizontalCedarBoardMaterial, materialsDetails.takeoffPreset, materialsDetails.woodType, selectedStyleKind]);
+
+  useEffect(() => {
     const isPictureFramedFamily =
       selectedStyleKind === "wood_picture_framed" ||
       selectedStyleKind === "wood_niko" ||
