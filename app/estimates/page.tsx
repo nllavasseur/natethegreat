@@ -1422,6 +1422,13 @@ function EstimatesPageInner() {
     );
   }, [extraPosts, materialsDetails, selectedStyleKind]);
 
+  const useHorizontalCedarTakeoff = useMemo(() => {
+    return (
+      (selectedStyleKind === "wood_standard" && materialsDetails.takeoffPreset === "horizontal_cedar") ||
+      selectedStyleKind === "wood_horizontal"
+    );
+  }, [materialsDetails.takeoffPreset, selectedStyleKind]);
+
   const aluminumAllowedPanelHeights = useMemo(() => {
     if (selectedFenceType !== "aluminum") return [48];
     const style = String(selectedStyle?.name || "");
@@ -1638,14 +1645,14 @@ function EstimatesPageInner() {
   }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind]);
 
   useEffect(() => {
-    if (selectedStyleKind !== "wood_horizontal") return;
+    if (!useHorizontalCedarTakeoff) return;
 
     const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
     const desiredPostSize = heightFt >= 6 ? 10 : 8;
     if (materialsDetails.postSize === desiredPostSize) return;
 
     setMaterialsDetails((p) => ({ ...p, postSize: desiredPostSize }));
-  }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind]);
+  }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, useHorizontalCedarTakeoff]);
 
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
@@ -7850,7 +7857,7 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyleKind === "wood_horizontal" ? (
+                  {useHorizontalCedarTakeoff ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div>
