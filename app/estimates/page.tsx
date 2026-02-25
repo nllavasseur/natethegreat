@@ -2710,10 +2710,9 @@ function EstimatesPageInner() {
         const spineBoards = panels > 0 ? panels * 0.25 : 0;
         const cornerBoards = cornerCount;
         const extraBoards = Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0));
-        const boards = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards) + extraBoards;
-
+        const boardsBase = Math.ceil(baseBoards + verticalBoards + spineBoards + cornerBoards) + extraBoards;
         const topCapBoards = materialsDetails.topCaps && panels > 0 ? Math.ceil(panels / 2) : 0;
-        const topCapName = `Top cap (${boardName})`;
+        const boards = boardsBase + topCapBoards;
 
         // Keep these proportional to the reference sheet (274 LF):
         const screwCount = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
@@ -2726,7 +2725,6 @@ function EstimatesPageInner() {
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
           { name: boardName, qty: boards, unit: "ea" },
-          ...(topCapBoards > 0 ? [{ name: topCapName, qty: topCapBoards, unit: "ea" }] : []),
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
@@ -4335,6 +4333,13 @@ function EstimatesPageInner() {
     return [...laborFeeItems, ...additional];
   }, [items, laborFeeItems]);
 
+  const additionalFeesTotal = useMemo(() => {
+    const v = items
+      .filter((i) => i.section === "additional")
+      .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+    return Math.round(v * 100) / 100;
+  }, [items]);
+
   const laborFeesTotal = useMemo(() => {
     const v = laborFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
@@ -4345,9 +4350,10 @@ function EstimatesPageInner() {
       (Number(materialsDepositTotal) || 0) +
       (Number(laborBaseTotal) || 0) +
       (Number(laborFeesTotal) || 0) +
+      (Number(additionalFeesTotal) || 0) +
       (Number(removalTotal) || 0);
     return Math.round(v * 100) / 100;
-  }, [laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
+  }, [additionalFeesTotal, laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
 
   const sharedTotal = useMemo(() => {
     const lf = Number(totalLf) || 0;
