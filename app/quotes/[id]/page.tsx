@@ -101,24 +101,65 @@ export default function QuoteDetailPage() {
     const BASE_W = 720;
     const BASE_H = 1040;
     const PREVIEW_SHRINK = 0.96;
-    const compute = () => {
-      const rect = el.getBoundingClientRect();
+
+    const computeFromRect = (rect: DOMRect) => {
       const w = rect.width || 0;
       const h = rect.height || 0;
-      if (!w || !h) return;
+      if (!w || !h) return null;
       const fitW = w / BASE_W;
       const fitH = h / BASE_H;
       const fit = Math.min(fitW, fitH) * PREVIEW_SHRINK;
-      const next = Math.max(0.12, Math.min(0.84, fit));
-      setContractScale(next);
+      return Math.max(0.12, Math.min(0.84, fit));
+    };
+
+    const computeFromWindow = () => {
+      // iOS/PWA sometimes reports 0-size rects for below-the-fold content.
+      // Use conservative fallbacks so we never leave scale at 1.
+      const vw = Math.max(0, Number(window.innerWidth) || 0);
+      const vh = Math.max(0, Number(window.innerHeight) || 0);
+      const w = Math.max(0, vw - 32); // page padding
+      const h = Math.max(0, Math.min(520, vh - 220));
+      if (!w || !h) return null;
+      const fitW = w / BASE_W;
+      const fitH = h / BASE_H;
+      const fit = Math.min(fitW, fitH) * PREVIEW_SHRINK;
+      return Math.max(0.12, Math.min(0.84, fit));
+    };
+
+    const compute = () => {
+      const rect = el.getBoundingClientRect();
+      const fromRect = computeFromRect(rect);
+      const next = fromRect ?? computeFromWindow();
+      if (typeof next === "number" && Number.isFinite(next) && next > 0) {
+        setContractScale(next);
+      }
     };
     const ro = new ResizeObserver(() => {
       compute();
     });
     ro.observe(el);
+    // Retry a few times because iOS/PWA can delay layout until after paint.
     compute();
+    const t1 = window.setTimeout(compute, 60);
+    const t2 = window.setTimeout(compute, 260);
+    const t3 = window.setTimeout(compute, 900);
+
     window.addEventListener("resize", compute);
-    return () => ro.disconnect();
+    window.addEventListener("scroll", compute, { passive: true });
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    vv?.addEventListener("resize", compute);
+    vv?.addEventListener("scroll", compute);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      window.removeEventListener("resize", compute);
+      window.removeEventListener("scroll", compute);
+      vv?.removeEventListener("resize", compute);
+      vv?.removeEventListener("scroll", compute);
+      ro.disconnect();
+    };
   }, []);
 
   const title = String(draft?.title || draft?.customerName || draft?.projectAddress || draft?.selectedStyle?.name || `Quote #${id}`);
