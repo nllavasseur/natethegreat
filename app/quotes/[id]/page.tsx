@@ -422,6 +422,18 @@ export default function QuoteDetailPage() {
             </div>
           ) : null}
 
+          <div className="mt-3">
+            <div className="text-[11px] text-[var(--muted)] mb-2">Contract</div>
+            <div className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white">
+              <iframe
+                title="Contract"
+                src={`/estimates/contract?draft=${encodeURIComponent(id)}`}
+                className="block w-full"
+                style={{ height: 820 }}
+              />
+            </div>
+          </div>
+
           <div className="flex items-center justify-between gap-3 text-sm">
             <div className="text-[var(--muted)]">Photos</div>
             <div className="text-[11px] text-[var(--muted)]">
