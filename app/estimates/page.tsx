@@ -3651,7 +3651,53 @@ function EstimatesPageInner() {
       const store = readDraftStore();
       const payload = buildDraftData(id);
       store[id] = payload;
-      writeDraftStore(store);
+      const tryWrite = (nextStore: Record<string, any>) => {
+        writeDraftStore(nextStore);
+      };
+
+      const pruneAndWrite = (nextStore: Record<string, any>) => {
+        const entries = Object.entries(nextStore)
+          .map(([k, v]) => ({ k, v }))
+          .filter((x) => x.k !== id);
+        entries.sort((a, b) => (Number(a.v?.updatedAt) || 0) - (Number(b.v?.updatedAt) || 0));
+        let working = { ...nextStore };
+        for (const e of entries) {
+          delete working[e.k];
+          try {
+            tryWrite(working);
+            return working;
+          } catch {
+            // keep pruning
+          }
+        }
+        tryWrite({ [id]: nextStore[id] });
+        return { [id]: nextStore[id] };
+      };
+
+      try {
+        tryWrite(store);
+      } catch (e) {
+        if (!isQuotaError(e)) throw e;
+        const lite = {
+          ...payload,
+          projectPhotoDataUrl: null,
+          projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
+          preInstallPhotos: Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : []
+        };
+        store[id] = lite;
+        try {
+          tryWrite(store);
+          setSaveError("Saved without local photo cache (storage full on this device). ");
+        } catch (e2) {
+          if (!isQuotaError(e2)) throw e2;
+          const pruned = pruneAndWrite(store);
+          if (Object.keys(pruned).length <= 1) {
+            setSaveError("Saved without local history (storage full on this device). ");
+          } else {
+            setSaveError("Saved after clearing old local drafts (storage full on this device). ");
+          }
+        }
+      }
       setDraftId(id);
 
       try {
