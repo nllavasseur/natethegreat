@@ -224,6 +224,7 @@ type MaterialsDetails = {
   picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
   trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
   twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  horizontalCedarBoardProfile: "5/4" | "1x6";
   horizontalCedarBoardMaterial: "Pressure Treated" | "5/4 cedar" | "1x6 cedar" | "CedarTone";
   shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
   fiveQuarterTwoRailMeshVerticals: boolean;
@@ -278,6 +279,7 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   picketMaterial: "Pressure treated",
   trimMaterial: "Pressure treated",
   twoByTwoMaterial: "Pressure treated",
+  horizontalCedarBoardProfile: "5/4",
   horizontalCedarBoardMaterial: "Pressure Treated",
   shadowboxBoardMaterial: "Pressure Treated",
   fiveQuarterTwoRailMeshVerticals: true,
@@ -1164,10 +1166,15 @@ function EstimatesPageInner() {
     if (!useHorizontalCedarTakeoff) return;
 
     const wood = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Cedar tone";
-    const desired = wood === "Cedar tone" ? "CedarTone" : wood === "Pressure treated" ? "Pressure Treated" : "5/4 cedar";
+    const desired =
+      wood === "Cedar tone"
+        ? "CedarTone"
+        : wood === "Pressure treated"
+          ? "Pressure Treated"
+          : (materialsDetails.horizontalCedarBoardProfile === "1x6" ? "1x6 cedar" : "5/4 cedar");
     if (materialsDetails.horizontalCedarBoardMaterial === desired) return;
     setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardMaterial: desired }));
-  }, [materialsDetails.horizontalCedarBoardMaterial, materialsDetails.takeoffPreset, materialsDetails.woodType, selectedStyleKind]);
+  }, [materialsDetails.horizontalCedarBoardMaterial, materialsDetails.horizontalCedarBoardProfile, materialsDetails.takeoffPreset, materialsDetails.woodType, selectedStyleKind]);
 
   useEffect(() => {
     const isPictureFramedFamily =
@@ -2701,14 +2708,20 @@ function EstimatesPageInner() {
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
         const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+        const boardProfile = materialsDetails.horizontalCedarBoardProfile === "1x6" ? "1x6" : "5/4";
+        const woodType = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Cedar tone";
         const boardName =
-          materialsDetails.horizontalCedarBoardMaterial === "Pressure Treated"
-            ? "5/4x6x12 Pressure Treated Boards"
-            : materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar"
-              ? "5/4x6x12 Cedar S4S Rails"
-              : materialsDetails.horizontalCedarBoardMaterial === "CedarTone"
+          boardProfile === "1x6"
+            ? (woodType === "Pressure treated"
+              ? "1x6x12 Pressure Treated Boards"
+              : woodType === "Cedar tone"
+                ? "1x6x12 CedarTone Boards"
+                : "1x6x12 Cedar Boards")
+            : (woodType === "Pressure treated"
+              ? "5/4x6x12 Pressure Treated Boards"
+              : woodType === "Cedar tone"
                 ? "5/4x6x12 CedarTone Rails"
-                : "1x6x12 Cedar Boards";
+                : "5/4x6x12 Cedar S4S Rails");
 
         const segmentLengths = segments
           .filter((s) => !s.removed)
@@ -5153,6 +5166,10 @@ function EstimatesPageInner() {
         ? dd.woodType
         : "Pressure treated";
 
+      const horizontalCedarBoardProfile = dd.horizontalCedarBoardProfile === "1x6" || dd.horizontalCedarBoardProfile === "5/4"
+        ? dd.horizontalCedarBoardProfile
+        : "5/4";
+
       const horizontalCedarBoardMaterial =
         dd.horizontalCedarBoardMaterial === "5/4 cedar" ||
         dd.horizontalCedarBoardMaterial === "1x6 cedar" ||
@@ -5286,6 +5303,7 @@ function EstimatesPageInner() {
         picketMaterial,
         trimMaterial,
         twoByTwoMaterial,
+        horizontalCedarBoardProfile,
         horizontalCedarBoardMaterial,
         shadowboxBoardMaterial,
         postType,
@@ -7877,6 +7895,44 @@ function EstimatesPageInner() {
                         </div>
                       </div>
 
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "5/4" }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.horizontalCedarBoardProfile === "5/4"
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.horizontalCedarBoardProfile === "5/4"}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">5/4x6x12</div>
+                            <div className="text-[11px] text-[var(--muted)]">Boards</div>
+                          </div>
+                        </button>
+
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "1x6" }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.horizontalCedarBoardProfile === "1x6"
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.horizontalCedarBoardProfile === "1x6"}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">1x6x12</div>
+                            <div className="text-[11px] text-[var(--muted)]">Boards</div>
+                          </div>
+                        </button>
+                      </div>
+
                       <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
                       <button
                         type="button"
@@ -8014,7 +8070,12 @@ function EstimatesPageInner() {
                                     trimMaterial: next,
                                     twoByTwoMaterial: next,
                                     pictureFrameTrimMaterial: next,
-                                    horizontalCedarBoardMaterial: next === "Cedar tone" ? "CedarTone" : next === "Pressure treated" ? "Pressure Treated" : "5/4 cedar",
+                                    horizontalCedarBoardMaterial:
+                                      next === "Cedar tone"
+                                        ? "CedarTone"
+                                        : next === "Pressure treated"
+                                          ? "Pressure Treated"
+                                          : (p.horizontalCedarBoardProfile === "1x6" ? "1x6 cedar" : "5/4 cedar"),
                                     shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
                                   }));
                                 }}
