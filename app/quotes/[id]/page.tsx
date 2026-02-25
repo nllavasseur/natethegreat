@@ -456,18 +456,23 @@ export default function QuoteDetailPage() {
               className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white"
             >
               <div ref={contractFrameRef} className="relative w-full h-[420px] sm:h-[520px] overflow-hidden bg-white">
-                <iframe
-                  title="Contract"
-                  src={`/estimates/contract?draft=${encodeURIComponent(id)}&embed=1`}
-                  className="absolute left-0 top-0 border-0"
+                <div
+                  className="absolute left-0 top-0"
                   style={{
                     width: 720,
                     height: 1040,
                     transformOrigin: "top left",
                     transform: `scale(${contractScale})`
                   }}
-                  scrolling="no"
-                />
+                >
+                  <iframe
+                    title="Contract"
+                    src={`/estimates/contract?draft=${encodeURIComponent(id)}&embed=1`}
+                    className="block border-0"
+                    style={{ width: 720, height: 1040 }}
+                    scrolling="no"
+                  />
+                </div>
               </div>
             </div>
           </div>
