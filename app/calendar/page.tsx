@@ -1457,7 +1457,7 @@ export default function CalendarPage() {
 
               <div
                 ref={queueListRef}
-                className="mt-2 grid gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
+                className="mt-2 grid content-start gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
                 style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
               >
                 {soldQueue.length === 0 ? (
