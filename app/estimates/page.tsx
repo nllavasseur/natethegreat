@@ -347,18 +347,6 @@ function EstimatesPageInner() {
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
   const [projectPhotoPath, setProjectPhotoPath] = useState<string | null>(null);
   const [projectPhotoDataUrl, setProjectPhotoDataUrl] = useState<string | null>(null);
-  const [layoutBgFile, setLayoutBgFile] = useState<File | null>(null);
-  const [layoutBgDataUrl, setLayoutBgDataUrl] = useState<string | null>(null);
-  const [layoutPoints, setLayoutPoints] = useState<Array<{ x: number; y: number }>>([]);
-  const layoutCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [layoutOpen, setLayoutOpen] = useState(false);
-  const [layoutSearchQuery, setLayoutSearchQuery] = useState("");
-  const [layoutSearchBusy, setLayoutSearchBusy] = useState(false);
-  const [layoutSearchResults, setLayoutSearchResults] = useState<Array<{ displayName: string; lat: number; lon: number }>>([]);
-  const [layoutCenter, setLayoutCenter] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
-  const [layoutBgBusy, setLayoutBgBusy] = useState(false);
-  const [layoutBgError, setLayoutBgError] = useState<string | null>(null);
-  const layoutDrawTransformRef = useRef<{ dx: number; dy: number; dw: number; dh: number; w: number; h: number } | null>(null);
   const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
   const [photoViewerScale, setPhotoViewerScale] = useState(1);
   const [photoViewerX, setPhotoViewerX] = useState(0);
@@ -4270,231 +4258,6 @@ function EstimatesPageInner() {
     };
   }, [draftId, projectPhoto, projectPhotoDataUrl]);
 
-  async function fetchUrlAsDataUrl(url: string) {
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) return null;
-      const blob = await res.blob();
-      const data = await new Promise<string | null>((resolve) => {
-        try {
-          const reader = new FileReader();
-          reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
-          reader.onerror = () => resolve(null);
-          reader.readAsDataURL(blob);
-        } catch {
-          resolve(null);
-        }
-      });
-      return data;
-    } catch {
-      return null;
-    }
-  }
-
-  async function runLayoutSearch(q: string) {
-    const query = String(q || "").trim();
-    if (!query) {
-      setLayoutSearchResults([]);
-      return;
-    }
-
-    setLayoutSearchBusy(true);
-    try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
-      const data = res.ok ? await res.json() : null;
-      const results = Array.isArray((data as any)?.results) ? (data as any).results : [];
-      setLayoutSearchResults(
-        results
-          .map((r: any) => ({ displayName: String(r?.displayName || ""), lat: Number(r?.lat), lon: Number(r?.lon) }))
-          .filter((r: any) => r.displayName && Number.isFinite(r.lat) && Number.isFinite(r.lon))
-      );
-    } catch {
-      setLayoutSearchResults([]);
-    } finally {
-      setLayoutSearchBusy(false);
-    }
-  }
-
-  async function loadStaticMapForCenter(center: { lat: number; lon: number; zoom: number }) {
-    setLayoutBgBusy(true);
-    setLayoutBgError(null);
-    const url = `/api/staticmap?lat=${encodeURIComponent(String(center.lat))}&lon=${encodeURIComponent(String(center.lon))}&z=${encodeURIComponent(String(center.zoom))}&w=1200&h=800`;
-    const data = await fetchUrlAsDataUrl(url);
-    if (!data) {
-      setLayoutBgError("Failed to load map. Try again or upload a screenshot.");
-      setLayoutBgBusy(false);
-      return;
-    }
-    setLayoutBgFile(null);
-    setLayoutBgDataUrl(data);
-    setLayoutPoints([]);
-    setLayoutBgBusy(false);
-  }
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const canvas = layoutCanvasRef.current;
-    if (!canvas) return;
-
-    let cancelled = false;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const draw = (img: HTMLImageElement | null) => {
-      if (cancelled) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width || 0));
-      const h = Math.max(1, Math.round(rect.height || 0));
-      if (canvas.width !== w) canvas.width = w;
-      if (canvas.height !== h) canvas.height = h;
-
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = "rgba(255,255,255,.04)";
-      ctx.fillRect(0, 0, w, h);
-
-      if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
-        const fit = Math.min(w / img.naturalWidth, h / img.naturalHeight);
-        const dw = img.naturalWidth * fit;
-        const dh = img.naturalHeight * fit;
-        const dx = (w - dw) / 2;
-        const dy = (h - dh) / 2;
-        layoutDrawTransformRef.current = { dx, dy, dw, dh, w, h };
-        ctx.drawImage(img, dx, dy, dw, dh);
-
-        const mapX = (p: { x: number; y: number }) => dx + p.x * dw;
-        const mapY = (p: { x: number; y: number }) => dy + p.y * dh;
-
-        if (layoutPoints.length) {
-          ctx.lineJoin = "round";
-          ctx.lineCap = "round";
-          ctx.strokeStyle = "rgba(255,214,10,.95)";
-          ctx.lineWidth = Math.max(2, Math.min(6, Math.round(Math.max(2, w * 0.004))));
-          ctx.beginPath();
-          ctx.moveTo(mapX(layoutPoints[0]), mapY(layoutPoints[0]));
-          for (let i = 1; i < layoutPoints.length; i++) {
-            ctx.lineTo(mapX(layoutPoints[i]), mapY(layoutPoints[i]));
-          }
-          ctx.stroke();
-
-          for (let i = 0; i < layoutPoints.length; i++) {
-            ctx.fillStyle = "rgba(0,0,0,.55)";
-            ctx.beginPath();
-            ctx.arc(mapX(layoutPoints[i]), mapY(layoutPoints[i]), 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = "rgba(255,214,10,.95)";
-            ctx.beginPath();
-            ctx.arc(mapX(layoutPoints[i]), mapY(layoutPoints[i]), 3.2, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-
-        return;
-      }
-
-      layoutDrawTransformRef.current = null;
-
-      ctx.fillStyle = "rgba(255,255,255,.55)";
-      ctx.font = "600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
-      ctx.textAlign = "center";
-      ctx.fillText("Upload a background image to start", w / 2, h / 2);
-    };
-
-    if (!layoutBgDataUrl) {
-      draw(null);
-      return;
-    }
-
-    const img = new Image();
-    img.onload = () => draw(img);
-    img.onerror = () => draw(null);
-    img.src = layoutBgDataUrl;
-
-    const ro = new ResizeObserver(() => {
-      draw(img);
-    });
-    ro.observe(canvas);
-
-    return () => {
-      cancelled = true;
-      ro.disconnect();
-    };
-  }, [layoutBgDataUrl, layoutOpen, layoutPoints]);
-
-  async function saveLayoutToDraft() {
-    const bg = String(layoutBgDataUrl || "");
-    if (!bg) return;
-    if (layoutPoints.length < 2) return;
-
-    const idForPhoto = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    if (!draftId) setDraftId(idForPhoto);
-
-    const img = await new Promise<HTMLImageElement | null>((resolve) => {
-      try {
-        const el = new Image();
-        el.onload = () => resolve(el);
-        el.onerror = () => resolve(null);
-        el.src = bg;
-      } catch {
-        resolve(null);
-      }
-    });
-    if (!img || !img.naturalWidth || !img.naturalHeight) return;
-
-    const outW = img.naturalWidth;
-    const outH = img.naturalHeight;
-    const canvas = document.createElement("canvas");
-    canvas.width = outW;
-    canvas.height = outH;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(img, 0, 0, outW, outH);
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "rgba(255,214,10,.95)";
-    ctx.lineWidth = Math.max(3, Math.round(outW * 0.006));
-    ctx.beginPath();
-    ctx.moveTo(layoutPoints[0].x * outW, layoutPoints[0].y * outH);
-    for (let i = 1; i < layoutPoints.length; i++) {
-      ctx.lineTo(layoutPoints[i].x * outW, layoutPoints[i].y * outH);
-    }
-    ctx.stroke();
-
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
-    if (typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
-      setProjectPhoto(null);
-      setProjectPhotoPath(null);
-      setProjectPhotoDataUrl(dataUrl);
-      setProjectPhotoUrl(dataUrl);
-    }
-
-    const blob = await new Promise<Blob | null>((resolve) => {
-      try {
-        canvas.toBlob((b) => resolve(b ?? null), "image/jpeg", 0.86);
-      } catch {
-        resolve(null);
-      }
-    });
-
-    if (!blob) return;
-    try {
-      const uploaded = await uploadDraftPhoto({
-        draftId: idForPhoto,
-        file: blob,
-        filename: "fence-layout.jpg",
-        kind: "project"
-      });
-      if (uploaded.ok) {
-        setProjectPhotoPath(uploaded.path);
-        setProjectPhotoUrl(uploaded.url);
-        return;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
   const lastPersistedProjectPhotoRef = useRef<string>("");
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -5886,277 +5649,28 @@ function EstimatesPageInner() {
         </div>
       </GlassCard>
 
-      <SectionTitle title="Fence layout" />
+      <SectionTitle title="Project photo" />
       <GlassCard className="p-4">
-        {portalReady
-          ? createPortal(
-              layoutOpen ? (
-                <div className="fixed inset-0 z-[80]" data-no-swipe="true">
-                  <div
-                    className="absolute inset-0 bg-[rgba(0,0,0,.70)]"
-                    onClick={() => setLayoutOpen(false)}
-                  />
-                  <div
-                    className="absolute inset-0 p-3"
-                    style={{ paddingTop: "calc(var(--vf-header-h, 0px) + 8px)" }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <GlassCard className="w-full h-full max-w-[980px] mx-auto p-3 overflow-hidden flex flex-col">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-black truncate">Fence layout</div>
-                        <div className="flex items-center gap-2">
-                          <SecondaryButton data-no-swipe="true" onClick={() => setLayoutOpen(false)}>
-                            Close
-                          </SecondaryButton>
-                          <PrimaryButton
-                            data-no-swipe="true"
-                            onClick={() => {
-                              void saveLayoutToDraft();
-                            }}
-                            disabled={!layoutBgDataUrl || layoutPoints.length < 2}
-                          >
-                            Save
-                          </PrimaryButton>
-                        </div>
-                      </div>
-
-                      <div className="mt-2 grid gap-2">
-                        <div className="grid sm:grid-cols-[minmax(0,1fr)_auto] gap-2 items-end">
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Search address</div>
-                            <Input
-                              value={layoutSearchQuery}
-                              onChange={(e) => setLayoutSearchQuery(e.target.value)}
-                              placeholder="123 Main St, City"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <SecondaryButton
-                              data-no-swipe="true"
-                              onClick={() => void runLayoutSearch(layoutSearchQuery)}
-                              disabled={layoutSearchBusy || !String(layoutSearchQuery || "").trim()}
-                            >
-                              {layoutSearchBusy ? "Searching…" : "Search"}
-                            </SecondaryButton>
-                            <Select
-                              value={String(layoutCenter?.zoom ?? 18)}
-                              onChange={(e) => {
-                                const z = Math.max(1, Math.min(20, Math.floor(Number(e.target.value) || 18)));
-                                if (!layoutCenter) return;
-                                const next = { ...layoutCenter, zoom: z };
-                                setLayoutCenter(next);
-                                void loadStaticMapForCenter(next);
-                              }}
-                              disabled={!layoutCenter}
-                            >
-                              {[16, 17, 18, 19].map((z) => (
-                                <option key={z} value={String(z)}>{`Zoom ${z}`}</option>
-                              ))}
-                            </Select>
-                          </div>
-                        </div>
-
-                        {layoutSearchResults.length ? (
-                          <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2 max-h-[140px] overflow-auto">
-                            <div className="grid gap-1">
-                              {layoutSearchResults.map((r, idx) => (
-                                <button
-                                  key={`${r.lat}:${r.lon}:${idx}`}
-                                  type="button"
-                                  data-no-swipe="true"
-                                  onClick={() => {
-                                    const center = { lat: r.lat, lon: r.lon, zoom: layoutCenter?.zoom ?? 18 };
-                                    setLayoutCenter(center);
-                                    setLayoutSearchResults([]);
-                                    void loadStaticMapForCenter(center);
-                                  }}
-                                  className="w-full text-left rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.04)] hover:bg-[rgba(255,255,255,.08)] px-3 py-2 text-[12px] font-extrabold"
-                                >
-                                  <div className="truncate">{r.displayName}</div>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="grid md:grid-cols-12 gap-3">
-                          <div className="md:col-span-4">
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Or upload background</div>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0] ?? null;
-                                setLayoutBgFile(file);
-                                setLayoutCenter(null);
-                                setLayoutPoints([]);
-                                if (file) {
-                                  fileToCompressedDataUrl(file, 1600, 0.8).then((data) => {
-                                    if (!data) return;
-                                    setLayoutBgDataUrl(data);
-                                  });
-                                } else {
-                                  setLayoutBgDataUrl(null);
-                                }
-                              }}
-                              className="block w-full text-sm text-[rgba(255,255,255,.85)] file:mr-3 file:rounded-xl file:border file:border-[rgba(255,255,255,.16)] file:bg-[rgba(255,255,255,.10)] file:px-3 file:py-2 file:text-sm file:font-extrabold file:text-white"
-                            />
-
-                            <div className="mt-2 grid grid-cols-3 gap-2">
-                              <SecondaryButton onClick={() => setLayoutPoints((p) => p.slice(0, -1))} disabled={layoutPoints.length === 0} data-no-swipe="true">
-                                Undo
-                              </SecondaryButton>
-                              <SecondaryButton onClick={() => setLayoutPoints([])} disabled={layoutPoints.length === 0} data-no-swipe="true">
-                                Clear
-                              </SecondaryButton>
-                              <SecondaryButton
-                                onClick={() => {
-                                  setLayoutBgFile(null);
-                                  setLayoutBgDataUrl(null);
-                                  setLayoutCenter(null);
-                                  setLayoutPoints([]);
-                                }}
-                                disabled={!layoutBgFile && !layoutBgDataUrl}
-                                data-no-swipe="true"
-                              >
-                                Reset
-                              </SecondaryButton>
-                            </div>
-
-                            <div className="mt-2 text-[11px] text-[var(--muted)]">
-                              Tap on the map to place fence points.
-                            </div>
-                          </div>
-
-                          <div className="md:col-span-8">
-                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
-                              <div className="relative w-full h-[60vh] min-h-[360px]">
-                                <canvas
-                                  ref={layoutCanvasRef}
-                                  className="absolute inset-0 w-full h-full"
-                                  onPointerDown={(e) => {
-                                    const canvas = layoutCanvasRef.current;
-                                    if (!canvas) return;
-                                    if (!layoutBgDataUrl) return;
-
-                                    const t = layoutDrawTransformRef.current;
-                                    if (!t) return;
-
-                                    const rect = canvas.getBoundingClientRect();
-                                    const localX = e.clientX - rect.left;
-                                    const localY = e.clientY - rect.top;
-                                    if (!Number.isFinite(localX) || !Number.isFinite(localY)) return;
-
-                                    const nx = (localX - t.dx) / Math.max(1, t.dw);
-                                    const ny = (localY - t.dy) / Math.max(1, t.dh);
-                                    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return;
-                                    if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
-
-                                    setLayoutPoints((prev) => [...prev, { x: nx, y: ny }]);
-                                  }}
-                                />
-
-                                {layoutBgBusy ? (
-                                  <div className="absolute inset-0 grid place-items-center bg-[rgba(0,0,0,.35)]">
-                                    <div className="rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.70)] px-4 py-3 text-[12px] font-black">
-                                      Loading map…
-                                    </div>
-                                  </div>
-                                ) : null}
-
-                                {layoutBgError ? (
-                                  <div className="absolute left-3 right-3 bottom-3">
-                                    <div className="rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-                                      <div>{layoutBgError}</div>
-                                      {layoutCenter ? (
-                                        <div className="mt-2">
-                                          <SecondaryButton
-                                            data-no-swipe="true"
-                                            onClick={() => void loadStaticMapForCenter(layoutCenter)}
-                                            className="w-full"
-                                          >
-                                            Retry map
-                                          </SecondaryButton>
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  </div>
-                </div>
-              ) : null,
-              document.body
-            )
-          : null}
-
         <div className="grid md:grid-cols-12 gap-3">
           <div className="md:col-span-5">
-            <div className="text-[11px] text-[var(--muted)] mb-2">Editor</div>
-            <PrimaryButton data-no-swipe="true" className="w-full" onClick={() => setLayoutOpen(true)}>
-              Open fullscreen layout editor
-            </PrimaryButton>
-
-            <div className="mt-2 text-[11px] text-[var(--muted)]">
-              Search an address and draw, or upload a screenshot.
-            </div>
-          </div>
-
-          <div className="md:col-span-7">
-            <div className="text-[11px] text-[var(--muted)] mb-1">Layout</div>
-            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
-              {projectPhotoUrl || projectPhotoDataUrl ? (
-                <button
-                  type="button"
-                  data-no-swipe="true"
-                  onClick={() => setPhotoViewerSrc(String(projectPhotoUrl || projectPhotoDataUrl || ""))}
-                  className="block w-full text-left"
-                >
-                  <img
-                    src={String(projectPhotoUrl || projectPhotoDataUrl || "")}
-                    alt="Fence layout"
-                    className="w-full h-[260px] object-cover"
-                  />
-                </button>
-              ) : (
-                <div className="h-[260px] flex items-center justify-center text-sm text-[var(--muted)]">
-                  No saved layout yet
-                </div>
-              )}
-            </div>
-
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <SecondaryButton
-                onClick={() => {
-                  const src = projectPhotoUrl || projectPhotoDataUrl;
-                  if (!src) return;
-                  setPhotoViewerSrc(src);
-                }}
-                disabled={!projectPhotoUrl && !projectPhotoDataUrl}
-                data-no-swipe="true"
-              >
-                View saved layout
-              </SecondaryButton>
-              <PrimaryButton
-                onClick={() => {
-                  setLayoutOpen(true);
-                }}
-                data-no-swipe="true"
-              >
-                Edit
-              </PrimaryButton>
-            </div>
+            <div className="text-[11px] text-[var(--muted)] mb-2">Upload</div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setProjectPhoto(file);
+                if (file) {
+                  fileToCompressedDataUrl(file, 1600, 0.8).then((data) => {
+                    if (!data) return;
+                    setProjectPhotoDataUrl(data);
+                    setProjectPhotoUrl(data);
+                    setProjectPhotoPath(null);
+                  });
+                }
+              }}
+              className="block w-full text-sm text-[rgba(255,255,255,.85)] file:mr-3 file:rounded-xl file:border file:border-[rgba(255,255,255,.16)] file:bg-[rgba(255,255,255,.10)] file:px-3 file:py-2 file:text-sm file:font-extrabold file:text-white"
+            />
 
             <div className="mt-2">
               <SecondaryButton
@@ -6170,7 +5684,45 @@ function EstimatesPageInner() {
                 data-no-swipe="true"
                 className="w-full"
               >
-                Clear saved layout
+                Clear photo
+              </SecondaryButton>
+            </div>
+          </div>
+
+          <div className="md:col-span-7">
+            <div className="text-[11px] text-[var(--muted)] mb-1">Photo</div>
+            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
+              {projectPhotoUrl || projectPhotoDataUrl ? (
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  onClick={() => setPhotoViewerSrc(String(projectPhotoUrl || projectPhotoDataUrl || ""))}
+                  className="block w-full text-left"
+                >
+                  <img
+                    src={String(projectPhotoUrl || projectPhotoDataUrl || "")}
+                    alt="Project photo"
+                    className="w-full h-[260px] object-cover"
+                  />
+                </button>
+              ) : (
+                <div className="h-[260px] flex items-center justify-center text-sm text-[var(--muted)]">
+                  Drop in a photo to save with this customer
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2 grid grid-cols-1 gap-2">
+              <SecondaryButton
+                onClick={() => {
+                  const src = projectPhotoUrl || projectPhotoDataUrl;
+                  if (!src) return;
+                  setPhotoViewerSrc(src);
+                }}
+                disabled={!projectPhotoUrl && !projectPhotoDataUrl}
+                data-no-swipe="true"
+              >
+                View photo
               </SecondaryButton>
             </div>
           </div>
