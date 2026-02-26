@@ -425,7 +425,7 @@ export default function QuoteDetailPage() {
 
           {additionalFeeItems.length ? (
             <div className="mt-1 grid gap-1">
-              <div className="text-[11px] font-extrabold text-[var(--muted)]">Additional fees</div>
+              <div className="text-[11px] font-extrabold text-[var(--muted)]">Fee breakdown</div>
               {additionalFeeItems.map((f) => (
                 <div key={f.name} className="flex justify-between gap-3">
                   <div className="text-[var(--muted)] truncate">{f.name}</div>

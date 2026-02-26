@@ -92,10 +92,20 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       price: Number(i.lineTotal) || 0
     }));
 
-  const additionalSubtotal = additionalRows.reduce((a, b) => a + (Number(b.price) || 0), 0);
+  const additionalServicesTotal = additionalRows.reduce((a, b) => a + (Number(b.price) || 0), 0);
+  const laborBaseTotal = laborRows
+    .filter((r) => String(r.name || "") === "Days labor")
+    .reduce((a, b) => a + (Number(b.price) || 0), 0);
+  const laborFeeTotal = laborRows
+    .filter((r) => String(r.name || "") !== "Days labor")
+    .reduce((a, b) => a + (Number(b.price) || 0), 0);
+
   const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
-  const depositTotal = Math.round((materialsAndExpensesTotal + additionalSubtotal) * 100) / 100;
-  const grandTotal = Math.round((depositTotal + laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0) + removalTotal) * 100) / 100;
+  const additionalFeesTotal = Math.round((Number(additionalServicesTotal) + Number(laborFeeTotal)) * 100) / 100;
+  const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
+  const grandTotal = Math.round(
+    ((Number(materialsAndExpensesTotal) || 0) + (Number(additionalFeesTotal) || 0) + (Number(removalTotal) || 0) + (Number(laborBaseTotal) || 0)) * 100
+  ) / 100;
 
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
@@ -135,8 +145,8 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     },
     totals: {
       materialsSubtotal: depositTotal,
-      laborSubtotal: laborRows.reduce((a, b) => a + (Number(b.price) || 0), 0),
-      additionalSubtotal,
+      laborSubtotal: laborBaseTotal,
+      additionalSubtotal: additionalFeesTotal,
       removalTotal,
       discount: 0,
       tax: 0,

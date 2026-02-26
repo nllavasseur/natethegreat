@@ -4591,10 +4591,9 @@ function EstimatesPageInner() {
   }, [takeoffMaterialsStable]);
 
   const takeoffMaterialsAndExpensesTotal = useMemo(() => {
-    // Additional services should increase materials/deposit by exactly their line totals (no markup).
-    const v = (Number(takeoffMaterialsAndExpensesBaseTotal) || 0) + (Number(additionalServicesSubtotal) || 0);
+    const v = Number(takeoffMaterialsAndExpensesBaseTotal) || 0;
     return Math.round(v * 100) / 100;
-  }, [additionalServicesSubtotal, takeoffMaterialsAndExpensesBaseTotal]);
+  }, [takeoffMaterialsAndExpensesBaseTotal]);
 
   const materialsDepositTotal = useMemo(() => {
     const v = Number(takeoffMaterialsAndExpensesTotal) || 0;
@@ -8794,7 +8793,7 @@ function EstimatesPageInner() {
 
           {additionalFeeItems.length ? (
             <div className="mt-1 grid gap-1">
-              <div className="text-[11px] font-extrabold text-[var(--muted)]">Additional fees</div>
+              <div className="text-[11px] font-extrabold text-[var(--muted)]">Fee breakdown</div>
               {additionalFeeItems.map((f) => (
                 <div key={f.name} className="flex justify-between gap-2">
                   <span className="text-[var(--muted)] truncate">{f.name}</span>
