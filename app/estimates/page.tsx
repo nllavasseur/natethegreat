@@ -3934,6 +3934,22 @@ function EstimatesPageInner() {
     return out;
   }
 
+  function dataUrlToBlob(dataUrl: string) {
+    try {
+      const m = String(dataUrl || "").match(/^data:([^;]+);base64,(.*)$/);
+      if (!m) return null;
+      const mime = m[1] || "application/octet-stream";
+      const b64 = m[2] || "";
+      const bin = atob(b64);
+      const len = bin.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: mime });
+    } catch {
+      return null;
+    }
+  }
+
   function addSegment() {
     const opts = segmentOptions();
     const nextLabel = opts[Math.min(segments.length, opts.length - 1)] ?? "A–B";
@@ -4257,6 +4273,41 @@ function EstimatesPageInner() {
       cancelled = true;
     };
   }, [draftId, projectPhoto, projectPhotoDataUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const data = typeof projectPhotoDataUrl === "string" ? projectPhotoDataUrl : null;
+    const needsUpload =
+      Boolean(data && data.startsWith("data:")) &&
+      Boolean(draftId) &&
+      !projectPhotoPath &&
+      (!projectPhotoUrl || String(projectPhotoUrl).startsWith("data:"));
+    if (!needsUpload) return;
+
+    const blob = dataUrlToBlob(data!);
+    if (!blob) return;
+
+    (async () => {
+      try {
+        const uploaded = await uploadDraftPhoto({
+          draftId: String(draftId),
+          file: blob,
+          filename: "project-photo.jpg",
+          kind: "project"
+        });
+        if (cancelled) return;
+        if (!uploaded.ok) return;
+        setProjectPhotoPath(uploaded.path);
+        setProjectPhotoUrl(uploaded.url);
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draftId, projectPhotoDataUrl, projectPhotoPath, projectPhotoUrl]);
 
   const lastPersistedProjectPhotoRef = useRef<string>("");
   useEffect(() => {
