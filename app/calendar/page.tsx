@@ -1450,7 +1450,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="w-full max-w-[480px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
+            <GlassCard className="w-full max-w-[440px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
               </div>
@@ -1557,7 +1557,7 @@ export default function CalendarPage() {
                             {hold ? ` · Hold ${hold}` : ""}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 sm:justify-end">
+                        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                           <div
                             className="h-3.5 w-3.5 rounded-full shrink-0"
                             style={{ background: dotColor }}
@@ -1574,7 +1574,7 @@ export default function CalendarPage() {
                                 if (!ok) return;
                                 markDraftComplete(j.id);
                               }}
-                              className="rounded-xl border px-2.5 py-2 text-[11px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              className="rounded-xl border px-2 py-1.5 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
                               aria-label="Complete"
                               title="Complete"
                             >
@@ -1593,7 +1593,7 @@ export default function CalendarPage() {
                               setMovePreviewPos(idx + 1);
                             }}
                             className={
-                              "rounded-xl border px-2.5 py-2 text-[11px] font-black leading-none " +
+                              "rounded-xl border px-2 py-1.5 text-[10px] font-black leading-none " +
                               (hold
                                 ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
                                 : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
