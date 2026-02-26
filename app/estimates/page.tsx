@@ -356,6 +356,9 @@ function EstimatesPageInner() {
   const [layoutSearchBusy, setLayoutSearchBusy] = useState(false);
   const [layoutSearchResults, setLayoutSearchResults] = useState<Array<{ displayName: string; lat: number; lon: number }>>([]);
   const [layoutCenter, setLayoutCenter] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
+  const [layoutBgBusy, setLayoutBgBusy] = useState(false);
+  const [layoutBgError, setLayoutBgError] = useState<string | null>(null);
+  const layoutDrawTransformRef = useRef<{ dx: number; dy: number; dw: number; dh: number; w: number; h: number } | null>(null);
   const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
   const [photoViewerScale, setPhotoViewerScale] = useState(1);
   const [photoViewerX, setPhotoViewerX] = useState(0);
@@ -4313,12 +4316,19 @@ function EstimatesPageInner() {
   }
 
   async function loadStaticMapForCenter(center: { lat: number; lon: number; zoom: number }) {
+    setLayoutBgBusy(true);
+    setLayoutBgError(null);
     const url = `/api/staticmap?lat=${encodeURIComponent(String(center.lat))}&lon=${encodeURIComponent(String(center.lon))}&z=${encodeURIComponent(String(center.zoom))}&w=1200&h=800`;
     const data = await fetchUrlAsDataUrl(url);
-    if (!data) return;
+    if (!data) {
+      setLayoutBgError("Failed to load map. Try again or upload a screenshot.");
+      setLayoutBgBusy(false);
+      return;
+    }
     setLayoutBgFile(null);
     setLayoutBgDataUrl(data);
     setLayoutPoints([]);
+    setLayoutBgBusy(false);
   }
 
   useEffect(() => {
@@ -4349,6 +4359,7 @@ function EstimatesPageInner() {
         const dh = img.naturalHeight * fit;
         const dx = (w - dw) / 2;
         const dy = (h - dh) / 2;
+        layoutDrawTransformRef.current = { dx, dy, dw, dh, w, h };
         ctx.drawImage(img, dx, dy, dw, dh);
 
         const mapX = (p: { x: number; y: number }) => dx + p.x * dw;
@@ -4381,6 +4392,8 @@ function EstimatesPageInner() {
         return;
       }
 
+      layoutDrawTransformRef.current = null;
+
       ctx.fillStyle = "rgba(255,255,255,.55)";
       ctx.font = "600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
       ctx.textAlign = "center";
@@ -4406,7 +4419,7 @@ function EstimatesPageInner() {
       cancelled = true;
       ro.disconnect();
     };
-  }, [layoutBgDataUrl, layoutPoints]);
+  }, [layoutBgDataUrl, layoutOpen, layoutPoints]);
 
   async function saveLayoutToDraft() {
     const bg = String(layoutBgDataUrl || "");
@@ -6032,14 +6045,49 @@ function EstimatesPageInner() {
                                     if (!canvas) return;
                                     if (!layoutBgDataUrl) return;
 
-                                    const rect = canvas.getBoundingClientRect();
-                                    const x = (e.clientX - rect.left) / Math.max(1, rect.width);
-                                    const y = (e.clientY - rect.top) / Math.max(1, rect.height);
-                                    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+                                    const t = layoutDrawTransformRef.current;
+                                    if (!t) return;
 
-                                    setLayoutPoints((prev) => [...prev, { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) }]);
+                                    const rect = canvas.getBoundingClientRect();
+                                    const localX = e.clientX - rect.left;
+                                    const localY = e.clientY - rect.top;
+                                    if (!Number.isFinite(localX) || !Number.isFinite(localY)) return;
+
+                                    const nx = (localX - t.dx) / Math.max(1, t.dw);
+                                    const ny = (localY - t.dy) / Math.max(1, t.dh);
+                                    if (!Number.isFinite(nx) || !Number.isFinite(ny)) return;
+                                    if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
+
+                                    setLayoutPoints((prev) => [...prev, { x: nx, y: ny }]);
                                   }}
                                 />
+
+                                {layoutBgBusy ? (
+                                  <div className="absolute inset-0 grid place-items-center bg-[rgba(0,0,0,.35)]">
+                                    <div className="rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.70)] px-4 py-3 text-[12px] font-black">
+                                      Loading map…
+                                    </div>
+                                  </div>
+                                ) : null}
+
+                                {layoutBgError ? (
+                                  <div className="absolute left-3 right-3 bottom-3">
+                                    <div className="rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+                                      <div>{layoutBgError}</div>
+                                      {layoutCenter ? (
+                                        <div className="mt-2">
+                                          <SecondaryButton
+                                            data-no-swipe="true"
+                                            onClick={() => void loadStaticMapForCenter(layoutCenter)}
+                                            className="w-full"
+                                          >
+                                            Retry map
+                                          </SecondaryButton>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
                           </div>
