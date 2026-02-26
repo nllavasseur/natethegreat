@@ -347,6 +347,10 @@ function EstimatesPageInner() {
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
   const [projectPhotoPath, setProjectPhotoPath] = useState<string | null>(null);
   const [projectPhotoDataUrl, setProjectPhotoDataUrl] = useState<string | null>(null);
+  const [layoutBgFile, setLayoutBgFile] = useState<File | null>(null);
+  const [layoutBgDataUrl, setLayoutBgDataUrl] = useState<string | null>(null);
+  const [layoutPoints, setLayoutPoints] = useState<Array<{ x: number; y: number }>>([]);
+  const layoutCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
   const [photoViewerScale, setPhotoViewerScale] = useState(1);
   const [photoViewerX, setPhotoViewerX] = useState(0);
@@ -4258,6 +4262,167 @@ function EstimatesPageInner() {
     };
   }, [draftId, projectPhoto, projectPhotoDataUrl]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const canvas = layoutCanvasRef.current;
+    if (!canvas) return;
+
+    let cancelled = false;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const draw = (img: HTMLImageElement | null) => {
+      if (cancelled) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width || 0));
+      const h = Math.max(1, Math.round(rect.height || 0));
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(255,255,255,.04)";
+      ctx.fillRect(0, 0, w, h);
+
+      if (img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        const fit = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+        const dw = img.naturalWidth * fit;
+        const dh = img.naturalHeight * fit;
+        const dx = (w - dw) / 2;
+        const dy = (h - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+
+        const mapX = (p: { x: number; y: number }) => dx + p.x * dw;
+        const mapY = (p: { x: number; y: number }) => dy + p.y * dh;
+
+        if (layoutPoints.length) {
+          ctx.lineJoin = "round";
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "rgba(255,214,10,.95)";
+          ctx.lineWidth = Math.max(2, Math.min(6, Math.round(Math.max(2, w * 0.004))));
+          ctx.beginPath();
+          ctx.moveTo(mapX(layoutPoints[0]), mapY(layoutPoints[0]));
+          for (let i = 1; i < layoutPoints.length; i++) {
+            ctx.lineTo(mapX(layoutPoints[i]), mapY(layoutPoints[i]));
+          }
+          ctx.stroke();
+
+          for (let i = 0; i < layoutPoints.length; i++) {
+            ctx.fillStyle = "rgba(0,0,0,.55)";
+            ctx.beginPath();
+            ctx.arc(mapX(layoutPoints[i]), mapY(layoutPoints[i]), 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255,214,10,.95)";
+            ctx.beginPath();
+            ctx.arc(mapX(layoutPoints[i]), mapY(layoutPoints[i]), 3.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        return;
+      }
+
+      ctx.fillStyle = "rgba(255,255,255,.55)";
+      ctx.font = "600 12px system-ui, -apple-system, Segoe UI, Roboto, Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Upload a background image to start", w / 2, h / 2);
+    };
+
+    if (!layoutBgDataUrl) {
+      draw(null);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => draw(img);
+    img.onerror = () => draw(null);
+    img.src = layoutBgDataUrl;
+
+    const ro = new ResizeObserver(() => {
+      draw(img);
+    });
+    ro.observe(canvas);
+
+    return () => {
+      cancelled = true;
+      ro.disconnect();
+    };
+  }, [layoutBgDataUrl, layoutPoints]);
+
+  async function saveLayoutToDraft() {
+    const bg = String(layoutBgDataUrl || "");
+    if (!bg) return;
+    if (layoutPoints.length < 2) return;
+
+    const idForPhoto = draftId || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    if (!draftId) setDraftId(idForPhoto);
+
+    const img = await new Promise<HTMLImageElement | null>((resolve) => {
+      try {
+        const el = new Image();
+        el.onload = () => resolve(el);
+        el.onerror = () => resolve(null);
+        el.src = bg;
+      } catch {
+        resolve(null);
+      }
+    });
+    if (!img || !img.naturalWidth || !img.naturalHeight) return;
+
+    const outW = img.naturalWidth;
+    const outH = img.naturalHeight;
+    const canvas = document.createElement("canvas");
+    canvas.width = outW;
+    canvas.height = outH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(img, 0, 0, outW, outH);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(255,214,10,.95)";
+    ctx.lineWidth = Math.max(3, Math.round(outW * 0.006));
+    ctx.beginPath();
+    ctx.moveTo(layoutPoints[0].x * outW, layoutPoints[0].y * outH);
+    for (let i = 1; i < layoutPoints.length; i++) {
+      ctx.lineTo(layoutPoints[i].x * outW, layoutPoints[i].y * outH);
+    }
+    ctx.stroke();
+
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
+    if (typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
+      setProjectPhoto(null);
+      setProjectPhotoPath(null);
+      setProjectPhotoDataUrl(dataUrl);
+      setProjectPhotoUrl(dataUrl);
+    }
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      try {
+        canvas.toBlob((b) => resolve(b ?? null), "image/jpeg", 0.86);
+      } catch {
+        resolve(null);
+      }
+    });
+
+    if (!blob) return;
+    try {
+      const uploaded = await uploadDraftPhoto({
+        draftId: idForPhoto,
+        file: blob,
+        filename: "fence-layout.jpg",
+        kind: "project"
+      });
+      if (uploaded.ok) {
+        setProjectPhotoPath(uploaded.path);
+        setProjectPhotoUrl(uploaded.url);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   const lastPersistedProjectPhotoRef = useRef<string>("");
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -5657,25 +5822,25 @@ function EstimatesPageInner() {
         </div>
       </GlassCard>
 
-      <SectionTitle title="Project photo & measurements" />
+      <SectionTitle title="Fence layout" />
       <GlassCard className="p-4">
         <div className="grid md:grid-cols-12 gap-3">
           <div className="md:col-span-5">
-            <div className="text-[11px] text-[var(--muted)] mb-1">Upload photo</div>
+            <div className="text-[11px] text-[var(--muted)] mb-1">Background image</div>
             <input
               type="file"
               accept="image/*"
               onChange={(e) => {
                 const file = e.target.files?.[0] ?? null;
-                setProjectPhoto(file);
-                // Immediately create a small local preview so the image fills the preview box
-                // and can be persisted even if the remote upload is still in progress.
+                setLayoutBgFile(file);
+                setLayoutPoints([]);
                 if (file) {
-                  fileToCompressedDataUrl(file, 1280, 0.72).then((data) => {
+                  fileToCompressedDataUrl(file, 1600, 0.8).then((data) => {
                     if (!data) return;
-                    setProjectPhotoDataUrl(data);
-                    setProjectPhotoUrl(data);
+                    setLayoutBgDataUrl(data);
                   });
+                } else {
+                  setLayoutBgDataUrl(null);
                 }
               }}
               className="block w-full text-sm text-[rgba(255,255,255,.85)] file:mr-3 file:rounded-xl file:border file:border-[rgba(255,255,255,.16)] file:bg-[rgba(255,255,255,.10)] file:px-3 file:py-2 file:text-sm file:font-extrabold file:text-white"
@@ -5684,47 +5849,98 @@ function EstimatesPageInner() {
             <div className="mt-2 flex items-center gap-2">
               <SecondaryButton
                 onClick={() => {
+                  setLayoutBgFile(null);
+                  setLayoutBgDataUrl(null);
+                  setLayoutPoints([]);
+                }}
+                disabled={!layoutBgFile && !layoutBgDataUrl}
+              >
+                Clear
+              </SecondaryButton>
+              <SecondaryButton
+                onClick={() => setLayoutPoints((prev) => prev.slice(0, -1))}
+                disabled={layoutPoints.length === 0}
+                data-no-swipe="true"
+              >
+                Undo
+              </SecondaryButton>
+              <SecondaryButton
+                onClick={() => setLayoutPoints([])}
+                disabled={layoutPoints.length === 0}
+                data-no-swipe="true"
+              >
+                Clear fence
+              </SecondaryButton>
+            </div>
+            <div className="mt-2 text-[11px] text-[var(--muted)]">
+              Tip: use a satellite screenshot or plat map. Tap to place fence points.
+            </div>
+          </div>
+
+          <div className="md:col-span-7">
+            <div className="text-[11px] text-[var(--muted)] mb-1">Layout</div>
+            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
+              <div className="relative w-full h-[260px]">
+                <canvas
+                  ref={layoutCanvasRef}
+                  className="absolute inset-0 w-full h-full"
+                  onPointerDown={(e) => {
+                    const canvas = layoutCanvasRef.current;
+                    if (!canvas) return;
+                    if (!layoutBgDataUrl) return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / Math.max(1, rect.width);
+                    const y = (e.clientY - rect.top) / Math.max(1, rect.height);
+                    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+                    setLayoutPoints((prev) => {
+                      const next = [...prev, { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) }];
+                      return next;
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <SecondaryButton
+                onClick={() => {
+                  const src = projectPhotoUrl || projectPhotoDataUrl;
+                  if (!src) return;
+                  setPhotoViewerSrc(src);
+                }}
+                disabled={!projectPhotoUrl && !projectPhotoDataUrl}
+                data-no-swipe="true"
+              >
+                View saved layout
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={() => {
+                  void saveLayoutToDraft();
+                }}
+                disabled={!layoutBgDataUrl || layoutPoints.length < 2}
+                data-no-swipe="true"
+              >
+                Save layout
+              </PrimaryButton>
+            </div>
+
+            <div className="mt-2">
+              <SecondaryButton
+                onClick={() => {
                   setProjectPhoto(null);
                   setProjectPhotoDataUrl(null);
                   setProjectPhotoUrl(null);
                   setProjectPhotoPath(null);
                 }}
                 disabled={!projectPhoto && !projectPhotoUrl && !projectPhotoDataUrl}
+                data-no-swipe="true"
+                className="w-full"
               >
-                Clear
+                Clear saved layout
               </SecondaryButton>
             </div>
-            <div className="mt-2 text-[11px] text-[var(--muted)]">
-              Tip: include a known-size reference in the photo (tape measure, 2x4, marker) for accurate scaling.
-            </div>
-          </div>
-
-          <div className="md:col-span-7">
-            <div className="text-[11px] text-[var(--muted)] mb-1">Preview</div>
-            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
-              {projectPhotoUrl ? (
-                <button
-                  type="button"
-                  data-no-swipe="true"
-                  onClick={() => setPhotoViewerSrc(projectPhotoUrl)}
-                  className="block w-full text-left"
-                >
-                  <img src={projectPhotoUrl ?? undefined} alt="Project photo" className="w-full h-[220px] object-cover" />
-                </button>
-              ) : (
-                <div className="h-[220px] flex items-center justify-center text-sm text-[var(--muted)]">
-                  No photo uploaded yet
-                </div>
-              )}
-            </div>
-
-            {projectPhotoUrl ? (
-              <div className="mt-2">
-                <SecondaryButton onClick={() => setMeasureOpen(true)} data-no-swipe="true" className="w-full">
-                  Measure from photo
-                </SecondaryButton>
-              </div>
-            ) : null}
           </div>
         </div>
 
