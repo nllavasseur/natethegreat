@@ -1541,7 +1541,7 @@ export default function CalendarPage() {
                           : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]")
                       }
                     >
-                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+                      <div className="flex flex-col gap-2">
                         <div className="min-w-0">
                           <div className="text-[13px] font-black truncate min-w-0">
                             {j.customerName || j.title || j.projectAddress || j.selectedStyle?.name || "Job"}
@@ -1557,7 +1557,7 @@ export default function CalendarPage() {
                             {hold ? ` · Hold ${hold}` : ""}
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                        <div className="w-full flex flex-wrap items-center gap-2 justify-between">
                           <div
                             className="h-3.5 w-3.5 rounded-full shrink-0"
                             style={{ background: dotColor }}
