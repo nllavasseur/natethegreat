@@ -9024,18 +9024,6 @@ function EstimatesPageInner() {
             <span className="font-black">{money(laborBaseTotal)}</span>
           </div>
 
-          {additionalFeeItems.length ? (
-            <div className="mt-1 grid gap-1">
-              <div className="text-[11px] font-extrabold text-[var(--muted)]">Included in additional fees</div>
-              {additionalFeeItems.map((f) => (
-                <div key={f.name} className="flex justify-between gap-2">
-                  <span className="text-[var(--muted)] truncate">{f.name}</span>
-                  <span className="font-black">{money(f.lineTotal)}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
           {sharedLf > 0 ? (
             <div className="mt-1 grid gap-1">
               <div className="text-[11px] font-extrabold text-[var(--muted)]">Shared portion</div>

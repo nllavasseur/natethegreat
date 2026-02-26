@@ -423,18 +423,6 @@ export default function QuoteDetailPage() {
             <div className="font-extrabold">{money(laborBaseTotal)}</div>
           </div>
 
-          {additionalFeeItems.length ? (
-            <div className="mt-1 grid gap-1">
-              <div className="text-[11px] font-extrabold text-[var(--muted)]">Included in additional fees</div>
-              {additionalFeeItems.map((f) => (
-                <div key={f.name} className="flex justify-between gap-3">
-                  <div className="text-[var(--muted)] truncate">{f.name}</div>
-                  <div className="font-extrabold">{money(f.lineTotal)}</div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
           <div className="h-px bg-[rgba(255,255,255,.12)] my-1" />
           <div className="flex justify-between gap-3">
             <div className="font-black">TOTAL</div>
