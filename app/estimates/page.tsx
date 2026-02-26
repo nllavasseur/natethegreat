@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import NextImage from "next/image";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
@@ -351,6 +351,11 @@ function EstimatesPageInner() {
   const [layoutBgDataUrl, setLayoutBgDataUrl] = useState<string | null>(null);
   const [layoutPoints, setLayoutPoints] = useState<Array<{ x: number; y: number }>>([]);
   const layoutCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  const [layoutSearchQuery, setLayoutSearchQuery] = useState("");
+  const [layoutSearchBusy, setLayoutSearchBusy] = useState(false);
+  const [layoutSearchResults, setLayoutSearchResults] = useState<Array<{ displayName: string; lat: number; lon: number }>>([]);
+  const [layoutCenter, setLayoutCenter] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
   const [photoViewerSrc, setPhotoViewerSrc] = useState<string | null>(null);
   const [photoViewerScale, setPhotoViewerScale] = useState(1);
   const [photoViewerX, setPhotoViewerX] = useState(0);
@@ -4262,6 +4267,60 @@ function EstimatesPageInner() {
     };
   }, [draftId, projectPhoto, projectPhotoDataUrl]);
 
+  async function fetchUrlAsDataUrl(url: string) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const data = await new Promise<string | null>((resolve) => {
+        try {
+          const reader = new FileReader();
+          reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        } catch {
+          resolve(null);
+        }
+      });
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  async function runLayoutSearch(q: string) {
+    const query = String(q || "").trim();
+    if (!query) {
+      setLayoutSearchResults([]);
+      return;
+    }
+
+    setLayoutSearchBusy(true);
+    try {
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+      const data = res.ok ? await res.json() : null;
+      const results = Array.isArray((data as any)?.results) ? (data as any).results : [];
+      setLayoutSearchResults(
+        results
+          .map((r: any) => ({ displayName: String(r?.displayName || ""), lat: Number(r?.lat), lon: Number(r?.lon) }))
+          .filter((r: any) => r.displayName && Number.isFinite(r.lat) && Number.isFinite(r.lon))
+      );
+    } catch {
+      setLayoutSearchResults([]);
+    } finally {
+      setLayoutSearchBusy(false);
+    }
+  }
+
+  async function loadStaticMapForCenter(center: { lat: number; lon: number; zoom: number }) {
+    const url = `/api/staticmap?lat=${encodeURIComponent(String(center.lat))}&lon=${encodeURIComponent(String(center.lon))}&z=${encodeURIComponent(String(center.zoom))}&w=1200&h=800`;
+    const data = await fetchUrlAsDataUrl(url);
+    if (!data) return;
+    setLayoutBgFile(null);
+    setLayoutBgDataUrl(data);
+    setLayoutPoints([]);
+  }
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const canvas = layoutCanvasRef.current;
@@ -5823,83 +5882,217 @@ function EstimatesPageInner() {
 
       <SectionTitle title="Fence layout" />
       <GlassCard className="p-4">
+        {portalReady
+          ? createPortal(
+              layoutOpen ? (
+                <div className="fixed inset-0 z-[80]" data-no-swipe="true">
+                  <div
+                    className="absolute inset-0 bg-[rgba(0,0,0,.70)]"
+                    onClick={() => setLayoutOpen(false)}
+                  />
+                  <div
+                    className="absolute inset-0 p-3"
+                    style={{ paddingTop: "calc(var(--vf-header-h, 0px) + 8px)" }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <GlassCard className="w-full h-full max-w-[980px] mx-auto p-3 overflow-hidden flex flex-col">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-black truncate">Fence layout</div>
+                        <div className="flex items-center gap-2">
+                          <SecondaryButton data-no-swipe="true" onClick={() => setLayoutOpen(false)}>
+                            Close
+                          </SecondaryButton>
+                          <PrimaryButton
+                            data-no-swipe="true"
+                            onClick={() => {
+                              void saveLayoutToDraft();
+                            }}
+                            disabled={!layoutBgDataUrl || layoutPoints.length < 2}
+                          >
+                            Save
+                          </PrimaryButton>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 grid gap-2">
+                        <div className="grid sm:grid-cols-[minmax(0,1fr)_auto] gap-2 items-end">
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Search address</div>
+                            <Input
+                              value={layoutSearchQuery}
+                              onChange={(e) => setLayoutSearchQuery(e.target.value)}
+                              placeholder="123 Main St, City"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <SecondaryButton
+                              data-no-swipe="true"
+                              onClick={() => void runLayoutSearch(layoutSearchQuery)}
+                              disabled={layoutSearchBusy || !String(layoutSearchQuery || "").trim()}
+                            >
+                              {layoutSearchBusy ? "Searching…" : "Search"}
+                            </SecondaryButton>
+                            <Select
+                              value={String(layoutCenter?.zoom ?? 18)}
+                              onChange={(e) => {
+                                const z = Math.max(1, Math.min(20, Math.floor(Number(e.target.value) || 18)));
+                                if (!layoutCenter) return;
+                                const next = { ...layoutCenter, zoom: z };
+                                setLayoutCenter(next);
+                                void loadStaticMapForCenter(next);
+                              }}
+                              disabled={!layoutCenter}
+                            >
+                              {[16, 17, 18, 19].map((z) => (
+                                <option key={z} value={String(z)}>{`Zoom ${z}`}</option>
+                              ))}
+                            </Select>
+                          </div>
+                        </div>
+
+                        {layoutSearchResults.length ? (
+                          <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2 max-h-[140px] overflow-auto">
+                            <div className="grid gap-1">
+                              {layoutSearchResults.map((r, idx) => (
+                                <button
+                                  key={`${r.lat}:${r.lon}:${idx}`}
+                                  type="button"
+                                  data-no-swipe="true"
+                                  onClick={() => {
+                                    const center = { lat: r.lat, lon: r.lon, zoom: layoutCenter?.zoom ?? 18 };
+                                    setLayoutCenter(center);
+                                    setLayoutSearchResults([]);
+                                    void loadStaticMapForCenter(center);
+                                  }}
+                                  className="w-full text-left rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.04)] hover:bg-[rgba(255,255,255,.08)] px-3 py-2 text-[12px] font-extrabold"
+                                >
+                                  <div className="truncate">{r.displayName}</div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="grid md:grid-cols-12 gap-3">
+                          <div className="md:col-span-4">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Or upload background</div>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] ?? null;
+                                setLayoutBgFile(file);
+                                setLayoutCenter(null);
+                                setLayoutPoints([]);
+                                if (file) {
+                                  fileToCompressedDataUrl(file, 1600, 0.8).then((data) => {
+                                    if (!data) return;
+                                    setLayoutBgDataUrl(data);
+                                  });
+                                } else {
+                                  setLayoutBgDataUrl(null);
+                                }
+                              }}
+                              className="block w-full text-sm text-[rgba(255,255,255,.85)] file:mr-3 file:rounded-xl file:border file:border-[rgba(255,255,255,.16)] file:bg-[rgba(255,255,255,.10)] file:px-3 file:py-2 file:text-sm file:font-extrabold file:text-white"
+                            />
+
+                            <div className="mt-2 grid grid-cols-3 gap-2">
+                              <SecondaryButton onClick={() => setLayoutPoints((p) => p.slice(0, -1))} disabled={layoutPoints.length === 0} data-no-swipe="true">
+                                Undo
+                              </SecondaryButton>
+                              <SecondaryButton onClick={() => setLayoutPoints([])} disabled={layoutPoints.length === 0} data-no-swipe="true">
+                                Clear
+                              </SecondaryButton>
+                              <SecondaryButton
+                                onClick={() => {
+                                  setLayoutBgFile(null);
+                                  setLayoutBgDataUrl(null);
+                                  setLayoutCenter(null);
+                                  setLayoutPoints([]);
+                                }}
+                                disabled={!layoutBgFile && !layoutBgDataUrl}
+                                data-no-swipe="true"
+                              >
+                                Reset
+                              </SecondaryButton>
+                            </div>
+
+                            <div className="mt-2 text-[11px] text-[var(--muted)]">
+                              Tap on the map to place fence points.
+                            </div>
+                          </div>
+
+                          <div className="md:col-span-8">
+                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
+                              <div className="relative w-full h-[60vh] min-h-[360px]">
+                                <canvas
+                                  ref={layoutCanvasRef}
+                                  className="absolute inset-0 w-full h-full"
+                                  onPointerDown={(e) => {
+                                    const canvas = layoutCanvasRef.current;
+                                    if (!canvas) return;
+                                    if (!layoutBgDataUrl) return;
+
+                                    const rect = canvas.getBoundingClientRect();
+                                    const x = (e.clientX - rect.left) / Math.max(1, rect.width);
+                                    const y = (e.clientY - rect.top) / Math.max(1, rect.height);
+                                    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+                                    setLayoutPoints((prev) => [...prev, { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) }]);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </div>
+                </div>
+              ) : null,
+              document.body
+            )
+          : null}
+
         <div className="grid md:grid-cols-12 gap-3">
           <div className="md:col-span-5">
-            <div className="text-[11px] text-[var(--muted)] mb-1">Background image</div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0] ?? null;
-                setLayoutBgFile(file);
-                setLayoutPoints([]);
-                if (file) {
-                  fileToCompressedDataUrl(file, 1600, 0.8).then((data) => {
-                    if (!data) return;
-                    setLayoutBgDataUrl(data);
-                  });
-                } else {
-                  setLayoutBgDataUrl(null);
-                }
-              }}
-              className="block w-full text-sm text-[rgba(255,255,255,.85)] file:mr-3 file:rounded-xl file:border file:border-[rgba(255,255,255,.16)] file:bg-[rgba(255,255,255,.10)] file:px-3 file:py-2 file:text-sm file:font-extrabold file:text-white"
-            />
+            <div className="text-[11px] text-[var(--muted)] mb-2">Editor</div>
+            <PrimaryButton data-no-swipe="true" className="w-full" onClick={() => setLayoutOpen(true)}>
+              Open fullscreen layout editor
+            </PrimaryButton>
 
-            <div className="mt-2 flex items-center gap-2">
-              <SecondaryButton
-                onClick={() => {
-                  setLayoutBgFile(null);
-                  setLayoutBgDataUrl(null);
-                  setLayoutPoints([]);
-                }}
-                disabled={!layoutBgFile && !layoutBgDataUrl}
-              >
-                Clear
-              </SecondaryButton>
-              <SecondaryButton
-                onClick={() => setLayoutPoints((prev) => prev.slice(0, -1))}
-                disabled={layoutPoints.length === 0}
-                data-no-swipe="true"
-              >
-                Undo
-              </SecondaryButton>
-              <SecondaryButton
-                onClick={() => setLayoutPoints([])}
-                disabled={layoutPoints.length === 0}
-                data-no-swipe="true"
-              >
-                Clear fence
-              </SecondaryButton>
-            </div>
             <div className="mt-2 text-[11px] text-[var(--muted)]">
-              Tip: use a satellite screenshot or plat map. Tap to place fence points.
+              Search an address and draw, or upload a screenshot.
             </div>
           </div>
 
           <div className="md:col-span-7">
             <div className="text-[11px] text-[var(--muted)] mb-1">Layout</div>
             <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] overflow-hidden">
-              <div className="relative w-full h-[260px]">
-                <canvas
-                  ref={layoutCanvasRef}
-                  className="absolute inset-0 w-full h-full"
-                  onPointerDown={(e) => {
-                    const canvas = layoutCanvasRef.current;
-                    if (!canvas) return;
-                    if (!layoutBgDataUrl) return;
-
-                    const rect = canvas.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) / Math.max(1, rect.width);
-                    const y = (e.clientY - rect.top) / Math.max(1, rect.height);
-                    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-
-                    setLayoutPoints((prev) => {
-                      const next = [...prev, { x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) }];
-                      return next;
-                    });
-                  }}
-                />
-              </div>
+              {projectPhotoUrl || projectPhotoDataUrl ? (
+                <button
+                  type="button"
+                  data-no-swipe="true"
+                  onClick={() => setPhotoViewerSrc(String(projectPhotoUrl || projectPhotoDataUrl || ""))}
+                  className="block w-full text-left"
+                >
+                  <img
+                    src={String(projectPhotoUrl || projectPhotoDataUrl || "")}
+                    alt="Fence layout"
+                    className="w-full h-[260px] object-cover"
+                  />
+                </button>
+              ) : (
+                <div className="h-[260px] flex items-center justify-center text-sm text-[var(--muted)]">
+                  No saved layout yet
+                </div>
+              )}
             </div>
 
             <div className="mt-2 grid grid-cols-2 gap-2">
@@ -5916,12 +6109,11 @@ function EstimatesPageInner() {
               </SecondaryButton>
               <PrimaryButton
                 onClick={() => {
-                  void saveLayoutToDraft();
+                  setLayoutOpen(true);
                 }}
-                disabled={!layoutBgDataUrl || layoutPoints.length < 2}
                 data-no-swipe="true"
               >
-                Save layout
+                Edit
               </PrimaryButton>
             </div>
 
