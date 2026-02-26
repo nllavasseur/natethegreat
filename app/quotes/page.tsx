@@ -89,7 +89,7 @@ export default function QuotesPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
-  const [suppressNavUntil, setSuppressNavUntil] = useState(0);
+  const suppressNavUntilRef = useRef(0);
   const [scheduleForId, setScheduleForId] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState<string>("");
   const [scheduleTime, setScheduleTime] = useState<string>("");
@@ -498,6 +498,10 @@ export default function QuotesPage() {
     return statusPillClass(s);
   }
 
+  function bumpSuppressNav(ms = 700) {
+    suppressNavUntilRef.current = Date.now() + ms;
+  }
+
   const cards = useMemo(() => {
     return drafts.map((d) => {
       const items = Array.isArray(d.items) ? d.items : [];
@@ -872,7 +876,7 @@ export default function QuotesPage() {
                       key={q.id}
                       href={`/quotes/${encodeURIComponent(q.id)}`}
                       onClick={(e) => {
-                        if (Date.now() < suppressNavUntil) {
+                        if (Date.now() < suppressNavUntilRef.current) {
                           e.preventDefault();
                           e.stopPropagation();
                         }
@@ -894,16 +898,16 @@ export default function QuotesPage() {
                     onPointerDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setSuppressNavUntil(Date.now() + 600);
+                      bumpSuppressNav();
                     }}
                     onMouseDown={(e) => {
                       e.stopPropagation();
-                      setSuppressNavUntil(Date.now() + 600);
+                      bumpSuppressNav();
                     }}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setSuppressNavUntil(Date.now() + 600);
+                      bumpSuppressNav();
                       setConfirmDeleteId(null);
                       setOpenStatusId((cur) => (cur === q.id ? null : q.id));
                     }}
@@ -923,7 +927,7 @@ export default function QuotesPage() {
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setSuppressNavUntil(Date.now() + 600);
+                        bumpSuppressNav();
                       }}
                       onClick={(e) => {
                         e.preventDefault();
@@ -943,7 +947,7 @@ export default function QuotesPage() {
                           onPointerDown={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            setSuppressNavUntil(Date.now() + 600);
+                            bumpSuppressNav();
                             setDraftStatus(q.id, s);
                             setOpenStatusId(null);
                           }}
@@ -973,12 +977,12 @@ export default function QuotesPage() {
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setSuppressNavUntil(Date.now() + 600);
+                        bumpSuppressNav();
                       }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setSuppressNavUntil(Date.now() + 600);
+                        bumpSuppressNav();
                         setOpenStatusId(null);
                         setConfirmDeleteId(null);
                         const store = readDraftStore();
@@ -1013,12 +1017,12 @@ export default function QuotesPage() {
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setSuppressNavUntil(Date.now() + 600);
+                        bumpSuppressNav();
                       }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setSuppressNavUntil(Date.now() + 600);
+                        bumpSuppressNav();
                         const tel = normalizePhone((q as any).phoneNumber || "");
                         if (!tel) return;
                         window.location.href = `tel:${tel}`;
@@ -1050,12 +1054,12 @@ export default function QuotesPage() {
                   onPointerDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setSuppressNavUntil(Date.now() + 600);
+                    bumpSuppressNav();
                   }}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setSuppressNavUntil(Date.now() + 600);
+                    bumpSuppressNav();
                     setOpenStatusId(null);
                     setConfirmDeleteId(null);
                     window.location.href = `/estimates/contract?draft=${encodeURIComponent(q.id)}`;
@@ -1072,12 +1076,12 @@ export default function QuotesPage() {
                   onPointerDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setSuppressNavUntil(Date.now() + 600);
+                    bumpSuppressNav();
                   }}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setSuppressNavUntil(Date.now() + 600);
+                    bumpSuppressNav();
                     setOpenStatusId(null);
                     if (confirmDeleteId === q.id) {
                       setConfirmDeleteId(null);
@@ -1111,12 +1115,12 @@ export default function QuotesPage() {
                     onPointerDown={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setSuppressNavUntil(Date.now() + 600);
+                      bumpSuppressNav();
                     }}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setSuppressNavUntil(Date.now() + 600);
+                      bumpSuppressNav();
                       setLayoutViewerSrc(String((q as any).layoutSrc || ""));
                     }}
                     className={
