@@ -1607,9 +1607,9 @@ export default function CalendarPage() {
                       </div>
 
                       <div className="mt-1.5 grid gap-2">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-[11px] text-[var(--muted)] font-extrabold">Labor days</div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
                             <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
                               <button
                                 type="button"
@@ -1656,9 +1656,9 @@ export default function CalendarPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-[11px] text-[var(--muted)] font-extrabold">Weekend</div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
                             <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] overflow-hidden">
                               <button
                                 type="button"
