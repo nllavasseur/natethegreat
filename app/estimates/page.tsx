@@ -4661,7 +4661,7 @@ function EstimatesPageInner() {
 
   const removalTotal = useMemo(() => {
     const lf = segments
-      .filter((s: any) => Boolean((s as any).removal))
+      .filter((s: any) => Boolean((s as any).removal) || Boolean((s as any).removed))
       .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
     const v = lf > 0 ? lf * 6 : 0;
     return Math.round(v * 100) / 100;
@@ -4669,7 +4669,7 @@ function EstimatesPageInner() {
 
   const removalLf = useMemo(() => {
     const lf = segments
-      .filter((s: any) => Boolean((s as any).removal))
+      .filter((s: any) => Boolean((s as any).removal) || Boolean((s as any).removed))
       .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
     return Math.round(lf * 100) / 100;
   }, [segments]);
@@ -4697,25 +4697,18 @@ function EstimatesPageInner() {
   }, [items, laborFeeItems]);
 
   const additionalFeesTotal = useMemo(() => {
-    const v = items
-      .filter((i) => i.section === "additional")
-      .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+    const v = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
-  }, [items]);
-
-  const laborFeesTotal = useMemo(() => {
-    const v = laborFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-    return Math.round(v * 100) / 100;
-  }, [laborFeeItems]);
+  }, [additionalFeeItems]);
 
   const grandTotal = useMemo(() => {
     const v =
       (Number(materialsDepositTotal) || 0) +
       (Number(laborBaseTotal) || 0) +
-      (Number(laborFeesTotal) || 0) +
+      (Number(additionalFeesTotal) || 0) +
       (Number(removalTotal) || 0);
     return Math.round(v * 100) / 100;
-  }, [laborBaseTotal, laborFeesTotal, materialsDepositTotal, removalTotal]);
+  }, [additionalFeesTotal, laborBaseTotal, materialsDepositTotal, removalTotal]);
 
   const sharedTotal = useMemo(() => {
     const lf = Number(totalLf) || 0;
@@ -8972,7 +8965,7 @@ function EstimatesPageInner() {
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Additional fees</span>
-            <span className="font-black">{money(laborFeesTotal)}</span>
+            <span className="font-black">{money(additionalFeesTotal)}</span>
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Fence removal</span>
