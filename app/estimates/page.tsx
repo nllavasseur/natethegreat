@@ -3671,6 +3671,7 @@ function EstimatesPageInner() {
       preInstallPhotos: preInstallForStorage,
       segments,
       items,
+      takeoffMaterials: Array.isArray(takeoffMaterialsStable) ? takeoffMaterialsStable : [],
       status,
       scheduledAt,
       installDate,

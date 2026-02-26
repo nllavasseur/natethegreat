@@ -514,13 +514,17 @@ export default function QuotesPage() {
           const v = Number((i as any)?.lineTotal);
           return sum + (Number.isFinite(v) ? v : 0);
         }, 0);
-      const materialsAndExpensesTotal = round2(computeMaterialsAndExpensesTotal(items));
+
+      const takeoffMaterials = Array.isArray((d as any).takeoffMaterials) ? ((d as any).takeoffMaterials as QuoteItem[]) : [];
+      const materialsAndExpensesTotal = round2(
+        computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items)
+      );
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments
         .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
         .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
-      const removalTotal = round2(removalLf * 6);
+      const removalTotal = round2(removalLf > 0 ? removalLf * 6 : 0);
 
       const laborBaseTotal = items
         .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
