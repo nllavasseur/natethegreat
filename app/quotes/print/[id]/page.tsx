@@ -1,5 +1,6 @@
 import React from "react";
 import { money } from "@/lib/money";
+import QuotePrintClient from "./QuotePrintClient";
 
 /**
  * This is the print-to-PDF page.
@@ -87,127 +88,7 @@ function Table({
 }
 
 export default async function QuotePrintPage({ params }: { params: { id: string } }) {
-  const data = await getQuoteForPrint(params.id);
-  const { company, estimate, sections, totals } = data;
-  const subtotal = totals.materialsSubtotal + totals.laborSubtotal + totals.additionalSubtotal;
-  const removalTotal = Number((totals as any).removalTotal ?? 0);
-  const effectiveTotal = (() => {
-    const base = Number(totals.total) || 0;
-    const candidate = Math.round((Number(totals.materialsSubtotal || 0) + Number(totals.laborSubtotal || 0) + Number(totals.additionalSubtotal || 0) + removalTotal) * 100) / 100;
-    const baseRounded = Math.round(base * 100) / 100;
-    if (Math.abs(candidate - baseRounded) <= 0.01) return baseRounded;
-    if (removalTotal > 0 && Math.abs((candidate - removalTotal) - baseRounded) <= 0.01) return candidate;
-    return baseRounded;
-  })();
-  const remainingBalance = Math.max(0, Math.round((effectiveTotal - Number(estimate.depositTotal)) * 100) / 100);
-  const estimateIncludesText =
-    "Estimate Includes all labor, materials, taxes, 811 miss dig ticket, and a 12 month workmanship warranty.\n" +
-    `-The \"Materials & Expences\" ${money(estimate.depositTotal)} must be paid prior to ordering materials.\n` +
-    `-The remaining Balance of ${money(remainingBalance)} is due upon completion of the fence.`;
-
-  return (
-    <html>
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>{company.name} - Estimate</title>
-        <style>{PRINT_CSS}</style>
-      </head>
-      <body>
-        <div className="noPrint controls">
-          <button onClick={() => window.print()} className="btn">Print / Save as PDF</button>
-        </div>
-
-        <main className="page">
-          <header className="headerRow">
-            <div className="headerLeft">
-              <div className="logo placeholder" />
-              <div>
-                <div className="companyName">{company.name}</div>
-                {company.tagline ? <div className="tagline">{company.tagline}</div> : null}
-              </div>
-            </div>
-
-            <div className="headerRight">
-              {company.salespersonName ? <div className="rightBold">{company.salespersonName}</div> : null}
-              {company.addressLines.map((l: string, i: number) => <div key={i}>{l}</div>)}
-              <div>{company.email}</div>
-              <div>{company.phone}</div>
-            </div>
-          </header>
-
-          <div className="divider" />
-          <div className="estimateTitle">ESTIMATE</div>
-
-          <section className="infoGrid">
-            <div className="infoBox">
-              <div className="infoLabel">Submitted on</div>
-              <div className="infoValue">{estimate.submittedOn}</div>
-            </div>
-            <div className="infoBox">
-              <div className="infoLabel">Estimate for</div>
-              <div className="infoValue">{estimate.customer.name}</div>
-              <div className="muted">{estimate.customer.phone}</div>
-              <div className="muted">{estimate.customer.email}</div>
-            </div>
-            <div className="infoBox">
-              <div className="infoLabel">Project address</div>
-              <div className="infoValue">{estimate.projectAddress}</div>
-            </div>
-          </section>
-
-          <div className="styleBar">
-            <div className="styleBarText">{estimate.styleTitle}</div>
-          </div>
-
-          <Table title="Materials & Expenses" rows={sections.materials} />
-          <div className="depositWrap">
-            <div className="depositBox">
-              <div className="depositLine">
-                <div className="depositLabel">Deposit total</div>
-                <div className="depositValue">{money(estimate.depositTotal)}</div>
-              </div>
-            </div>
-          </div>
-          <Table title="Fence Installation / Labor" rows={sections.labor} />
-          <Table title="Additional Services" rows={sections.additional} />
-
-          {estimate.notes ? (
-            <section className="notesBox">
-              <div className="notesTitle">Notes</div>
-              <div className="notesText">{estimate.notes}</div>
-            </section>
-          ) : null}
-
-          <section className="bottomRow">
-            <div className="disclaimerBox">
-              <div className="notesTitle">Disclaimer / Terms</div>
-              <div className="finePrint">{estimate.disclaimer}</div>
-            </div>
-
-            <div className="totalsBox">
-              <div className="totLine"><div className="totLabel">Materials</div><div className="totValue">{money(totals.materialsSubtotal)}</div></div>
-              <div className="totLine"><div className="totLabel">Labor</div><div className="totValue">{money(totals.laborSubtotal)}</div></div>
-              <div className="totLine"><div className="totLabel">Additional</div><div className="totValue">{money(totals.additionalSubtotal)}</div></div>
-              <div className="totLine"><div className="totLabel">Subtotal</div><div className="totValue">{money(subtotal)}</div></div>
-              <div className="totalBig"><div className="totalBigLabel">TOTAL</div><div className="totalBigValue">{money(totals.total)}</div></div>
-              <div className="totalTerms" style={{ whiteSpace: "pre-wrap" }}>{estimateIncludesText}</div>
-            </div>
-          </section>
-
-          <div className="contractBar">HOMEOWNER CONTRACT</div>
-          <section className="signatureBlock">
-            <div className="finePrint">{estimate.contractText}</div>
-            <div className="sigRow">
-              <div className="sigField"><div className="sigLine" /><div className="sigLabel">Homeowner Signature</div></div>
-              <div className="sigField"><div className="sigLine" /><div className="sigLabel">Printed Name</div></div>
-              <div className="sigField"><div className="sigLine" /><div className="sigLabel">Date</div></div>
-            </div>
-          </section>
-        </main>
-      </body>
-    </html>
-  );
+  return <QuotePrintClient id={params.id} printCss={PRINT_CSS} />;
 }
 
 const PRINT_CSS = `
