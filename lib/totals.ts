@@ -2,7 +2,11 @@ import { QuoteItem, QuoteTotals } from "./types";
 
 export function computeMaterialsAndExpensesTotal(materialItems: QuoteItem[]): number {
   const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
-  const sum = (arr: QuoteItem[]) => arr.reduce((a, b) => a + (Number.isFinite(b.lineTotal) ? b.lineTotal : 0), 0);
+  const sum = (arr: QuoteItem[]) =>
+    arr.reduce((a, b) => {
+      const v = Number((b as any)?.lineTotal);
+      return a + (Number.isFinite(v) ? v : 0);
+    }, 0);
 
   const safeItems = Array.isArray(materialItems) ? materialItems : [];
   const feesTotal = sum(safeItems.filter((i) => i.section === "materials" && feeNames.has(String(i.name || ""))));
@@ -13,7 +17,11 @@ export function computeMaterialsAndExpensesTotal(materialItems: QuoteItem[]): nu
 }
 
 export function computeTotals(items: QuoteItem[], discount: number, tax: number, depositTotal: number): QuoteTotals {
-  const sum = (arr: QuoteItem[]) => arr.reduce((a, b) => a + (Number.isFinite(b.lineTotal) ? b.lineTotal : 0), 0);
+  const sum = (arr: QuoteItem[]) =>
+    arr.reduce((a, b) => {
+      const v = Number((b as any)?.lineTotal);
+      return a + (Number.isFinite(v) ? v : 0);
+    }, 0);
 
   const materialsSubtotal = sum(items.filter(i => i.section === "materials"));
   const laborSubtotal = sum(items.filter(i => i.section === "labor"));
