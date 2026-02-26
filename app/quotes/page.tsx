@@ -285,7 +285,9 @@ export default function QuotesPage() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const getTs = (d: any) => Number(d?.updatedAt ?? d?.createdAt) || 0;
+
+    const load = async () => {
       const localStore = readDraftStore();
       const localList = Object.values(localStore).map((d) => ({ ...d }));
 
@@ -293,16 +295,26 @@ export default function QuotesPage() {
       const remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
 
       const byId = new Map<string, DraftEntry>();
-      for (const d of localList) byId.set(String(d.id), d);
-      for (const d of remoteList) byId.set(String(d.id), d);
+      for (const d of [...localList, ...remoteList]) {
+        const id = String((d as any)?.id || "");
+        if (!id) continue;
+        const prev = byId.get(id);
+        if (!prev || getTs(d) >= getTs(prev)) byId.set(id, d);
+      }
 
-      const merged = Array.from(byId.values()).sort(
-        (a, b) => (Number(b.updatedAt ?? b.createdAt) || 0) - (Number(a.updatedAt ?? a.createdAt) || 0)
-      );
+      const merged = Array.from(byId.values()).sort((a, b) => getTs(b) - getTs(a));
       if (!cancelled) setDrafts(merged);
-    })();
+    };
+
+    void load();
+
+    const onChanged = () => {
+      void load();
+    };
+    window.addEventListener("vf-drafts-changed", onChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener("vf-drafts-changed", onChanged);
     };
   }, []);
 
