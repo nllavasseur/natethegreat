@@ -8560,16 +8560,20 @@ function EstimatesPageInner() {
         </div>
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-2">
-            <span className="text-[var(--muted)]">Materials &amp; expenses · Deposit</span>
+            <span className="text-[var(--muted)]">Materials &amp; expenses</span>
             <span className="font-black">{money(takeoffMaterialsAndExpensesTotal)}</span>
           </div>
           <div className="flex justify-between gap-2">
-            <span className="text-[var(--muted)]">Labor</span>
-            <span className="font-black">{money(laborBaseTotal)}</span>
+            <span className="text-[var(--muted)]">Additional fees</span>
+            <span className="font-black">{money(laborFeesTotal)}</span>
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Fence removal</span>
             <span className="font-black">{money(removalTotal)}</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-[var(--muted)]">Labor</span>
+            <span className="font-black">{money(laborBaseTotal)}</span>
           </div>
 
           {additionalFeeItems.length ? (
