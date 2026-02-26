@@ -515,10 +515,11 @@ export default function QuotesPage() {
           return sum + (Number.isFinite(v) ? v : 0);
         }, 0);
 
-      const takeoffMaterials = Array.isArray((d as any).takeoffMaterials) ? ((d as any).takeoffMaterials as QuoteItem[]) : [];
-      const materialsAndExpensesTotal = round2(
-        computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items)
+      const takeoffMaterialsRaw = Array.isArray((d as any).takeoffMaterials) ? ((d as any).takeoffMaterials as QuoteItem[]) : [];
+      const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
+        (i) => i && (i as any).section === "materials"
       );
+      const materialsAndExpensesTotal = round2(computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items));
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments
@@ -546,9 +547,9 @@ export default function QuotesPage() {
 
       const total = round2(
         (Number(materialsAndExpensesTotal) || 0) +
-          (Number(laborBaseTotalRounded) || 0) +
           (Number(additionalFeesTotal) || 0) +
-          (Number(removalTotal) || 0)
+          (Number(removalTotal) || 0) +
+          (Number(laborBaseTotalRounded) || 0)
       );
       const depositTotal = round2(Number(materialsAndExpensesTotal) || 0);
       const due = round2(Math.max(0, total - depositTotal));
