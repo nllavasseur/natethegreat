@@ -489,6 +489,8 @@ export default function QuotesPage() {
     return drafts.map((d) => {
       const items = Array.isArray(d.items) ? d.items : [];
 
+      const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+
       const sumLineTotals = (arr: QuoteItem[]) =>
         (Array.isArray(arr) ? arr : []).reduce((a, b) => {
           const v = Number((b as any)?.lineTotal);
@@ -512,13 +514,13 @@ export default function QuotesPage() {
           const v = Number((i as any)?.lineTotal);
           return sum + (Number.isFinite(v) ? v : 0);
         }, 0);
-      const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
+      const materialsAndExpensesTotal = round2(computeMaterialsAndExpensesTotal(items));
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments
         .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
         .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
-      const removalTotal = Math.round(removalLf * 6 * 100) / 100;
+      const removalTotal = round2(removalLf * 6);
 
       const laborBaseTotal = items
         .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
@@ -526,6 +528,7 @@ export default function QuotesPage() {
           const v = Number((i as any)?.lineTotal);
           return sum + (Number.isFinite(v) ? v : 0);
         }, 0);
+      const laborBaseTotalRounded = round2(laborBaseTotal);
       const laborFeeItems = items
         .filter((i) => i.section === "labor" && String(i.name || "") !== "Days labor")
         .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number((i as any).lineTotal) || 0) * 100) / 100 }))
@@ -535,17 +538,16 @@ export default function QuotesPage() {
         .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number((i as any).lineTotal) || 0) * 100) / 100 }))
         .filter((i) => i.lineTotal !== 0);
       const additionalFeeItems = [...laborFeeItems, ...additionalSectionFeeItems];
-      const additionalFeesTotal = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+      const additionalFeesTotal = round2(additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0));
 
-      const total = Math.round(
-        ((Number(materialsAndExpensesTotal) || 0) +
-          (Number(laborBaseTotal) || 0) +
+      const total = round2(
+        (Number(materialsAndExpensesTotal) || 0) +
+          (Number(laborBaseTotalRounded) || 0) +
           (Number(additionalFeesTotal) || 0) +
-          (Number(removalTotal) || 0)) *
-          100
-      ) / 100;
-      const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
-      const due = Math.max(0, Math.round((total - depositTotal) * 100) / 100);
+          (Number(removalTotal) || 0)
+      );
+      const depositTotal = round2(Number(materialsAndExpensesTotal) || 0);
+      const due = round2(Math.max(0, total - depositTotal));
 
       const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
       const style = String(d.selectedStyle?.name || "");
@@ -585,7 +587,7 @@ export default function QuotesPage() {
         materialsAndExpensesTotal,
         additionalFeesTotal,
         removalTotal,
-        laborBaseTotal,
+        laborBaseTotal: laborBaseTotalRounded,
         total,
         due,
         scheduledAt: String((d as any).scheduledAt || ""),
