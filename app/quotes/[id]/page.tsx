@@ -226,7 +226,7 @@ export default function QuoteDetailPage() {
     ((Number(materialsAndExpensesTotal) || 0) + (Number(laborBaseTotal) || 0) + (Number(laborFeesTotal) || 0) + (Number(removalTotal) || 0)) *
       100
   ) / 100;
-  const depositTotal = Math.round(((Number(materialsAndExpensesTotal) || 0) + (Number(removalTotal) || 0)) * 100) / 100;
+  const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
 
   const phoneDigits = String(draft?.phoneNumber || "").replace(/[^0-9+]/g, "");
   const canCall = phoneDigits.length >= 7;
@@ -407,16 +407,20 @@ export default function QuoteDetailPage() {
       <GlassCard className="p-4">
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-3">
-            <div className="text-[var(--muted)]">Materials &amp; expenses · Deposit</div>
+            <div className="text-[var(--muted)]">Materials &amp; expenses</div>
             <div className="font-extrabold">{money(materialsAndExpensesTotal)}</div>
           </div>
           <div className="flex justify-between gap-3">
-            <div className="text-[var(--muted)]">Labor</div>
-            <div className="font-extrabold">{money(laborBaseTotal)}</div>
+            <div className="text-[var(--muted)]">Additional fees</div>
+            <div className="font-extrabold">{money(laborFeesTotal)}</div>
           </div>
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Fence removal</div>
             <div className="font-extrabold">{money(removalTotal)}</div>
+          </div>
+          <div className="flex justify-between gap-3">
+            <div className="text-[var(--muted)]">Labor</div>
+            <div className="font-extrabold">{money(laborBaseTotal)}</div>
           </div>
 
           {additionalFeeItems.length ? (

@@ -541,7 +541,7 @@ export default function QuotesPage() {
           (Number(removalTotal) || 0)) *
           100
       ) / 100;
-      const depositTotal = Math.round(((Number(materialsAndExpensesTotal) || 0) + (Number(removalTotal) || 0)) * 100) / 100;
+      const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
       const due = Math.max(0, Math.round((total - depositTotal) * 100) / 100);
 
       const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
@@ -562,16 +562,19 @@ export default function QuotesPage() {
       const preInstallPhotoCount = normalizePreInstallPhotos((d as any).preInstallPhotos).length;
 
       return {
-        id: d.id,
-        customerName: String((d as any).customerName || ""),
+        id: String(d.id),
+        status: (d.status ?? "estimate") as DraftEntry["status"],
         title,
         style,
         material,
-        status,
         startDate,
         endDate,
         roundedHalfDays,
         spanDays,
+        materialsAndExpensesTotal,
+        additionalFeesTotal,
+        removalTotal,
+        laborBaseTotal,
         total,
         due,
         scheduledAt: String((d as any).scheduledAt || ""),
@@ -1063,7 +1066,11 @@ export default function QuotesPage() {
                 </div>
               ) : null}
               <div className="text-[11px] text-[var(--muted)]">
-                Total {money(q.total)}
+                Materials &amp; expenses {money((q as any).materialsAndExpensesTotal)}
+                {` · Additional fees ${money((q as any).additionalFeesTotal)}`}
+                {` · Fence removal ${money((q as any).removalTotal)}`}
+                {` · Labor ${money((q as any).laborBaseTotal)}`}
+                {` · Total ${money(q.total)}`}
                 {typeof (q as any).roundedHalfDays === "number" && typeof (q as any).spanDays === "number"
                   ? (Number((q as any).spanDays) > 0
                       ? ` · Install ${(q as any).roundedHalfDays}d (${(q as any).spanDays} day${(q as any).spanDays === 1 ? "" : "s"})`
