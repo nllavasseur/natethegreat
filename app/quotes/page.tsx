@@ -811,7 +811,7 @@ export default function QuotesPage() {
                         {expanded ? " · Tap to collapse" : " · Tap to expand"}
                       </div>
                     </div>
-                    {hasScheduled ? (
+                    {hasScheduled && stackStatus !== "pending" ? (
                       <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
                         Scheduled
                       </div>
@@ -1077,7 +1077,7 @@ export default function QuotesPage() {
                       : "")
                   : ""}
               </div>
-              {String((q as any).scheduledAt || "") ? (
+              {q.status !== "pending" && String((q as any).scheduledAt || "") ? (
                 <div className="text-[11px] text-[var(--muted)]">Scheduled {toDateLocalValue(String((q as any).scheduledAt || ""))}</div>
               ) : null}
                     </Link>
