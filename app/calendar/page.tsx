@@ -1450,7 +1450,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="w-full max-w-[440px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col">
+            <GlassCard className="w-full max-w-[440px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col max-h-[calc(100dvh-var(--vf-header-h,0px)-24px)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
               </div>
@@ -1574,7 +1574,7 @@ export default function CalendarPage() {
                                 if (!ok) return;
                                 markDraftComplete(j.id);
                               }}
-                              className="rounded-xl border px-2 py-1.5 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              className="rounded-xl border px-2 py-1 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
                               aria-label="Complete"
                               title="Complete"
                             >
@@ -1593,7 +1593,7 @@ export default function CalendarPage() {
                               setMovePreviewPos(idx + 1);
                             }}
                             className={
-                              "rounded-xl border px-2 py-1.5 text-[10px] font-black leading-none " +
+                              "rounded-xl border px-2 py-1 text-[10px] font-black leading-none " +
                               (hold
                                 ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
                                 : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
@@ -1606,7 +1606,7 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <div className="mt-2 grid gap-2">
+                      <div className="mt-1.5 grid gap-2">
                         <div className="flex items-center justify-between gap-2">
                           <div className="text-[11px] text-[var(--muted)] font-extrabold">Labor days</div>
                           <div className="flex items-center gap-2">
@@ -1619,12 +1619,12 @@ export default function CalendarPage() {
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, -1);
                                 }}
-                                className="px-3 py-2 text-[12px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Decrease labor days"
                               >
                                 -
                               </button>
-                              <div className="px-3 py-2 text-[12px] font-black leading-none min-w-[40px] text-center">
+                              <div className="px-2 py-1.5 text-[11px] font-black leading-none min-w-[34px] text-center">
                                 {labor}
                               </div>
                               <button
@@ -1635,7 +1635,7 @@ export default function CalendarPage() {
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, 1);
                                 }}
-                                className="px-3 py-2 text-[12px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Increase labor days"
                               >
                                 +
@@ -1649,7 +1649,7 @@ export default function CalendarPage() {
                                 e.stopPropagation();
                                 resetLaborDays(j.id);
                               }}
-                              className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                              className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
                             >
                               Reset
                             </button>
@@ -1669,7 +1669,7 @@ export default function CalendarPage() {
                                   toggleWeekendAllowed(j.id, "sat");
                                 }}
                                 className={
-                                  "px-3 py-2 text-[12px] font-black transition-colors " +
+                                  "px-2 py-1.5 text-[11px] font-black transition-colors " +
                                   (usedWeekend.sat
                                     ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
                                     : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
@@ -1687,7 +1687,7 @@ export default function CalendarPage() {
                                   toggleWeekendAllowed(j.id, "sun");
                                 }}
                                 className={
-                                  "px-3 py-2 text-[12px] font-black transition-colors " +
+                                  "px-2 py-1.5 text-[11px] font-black transition-colors " +
                                   (usedWeekend.sun
                                     ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
                                     : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
@@ -1702,7 +1702,7 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <div className="mt-2">
+                      <div className="mt-1.5">
                         <button
                           type="button"
                           data-no-swipe="true"
@@ -1718,7 +1718,7 @@ export default function CalendarPage() {
                           }}
                           aria-pressed={Boolean(hold)}
                           className={
-                            "w-full min-w-0 truncate rounded-xl border px-3 py-2 text-[12px] font-black text-left transition " +
+                            "w-full min-w-0 truncate rounded-xl border px-2 py-1.5 text-[11px] font-black text-left transition " +
                             (hold
                               ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)] ring-1 ring-[rgba(255,214,10,.28)] shadow-[0_0_0_2px_rgba(255,214,10,.10)]"
                               : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
@@ -1742,7 +1742,7 @@ export default function CalendarPage() {
                               type="date"
                               value={holdDraftIso}
                               onChange={(e) => setHoldDraftIso(e.currentTarget.value)}
-                              className="w-full max-w-full min-w-0 rounded-xl px-3 py-2 text-[12px] font-black bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.14)] outline-none"
+                              className="w-full max-w-full min-w-0 rounded-xl px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.14)] outline-none"
                             />
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <button
@@ -1755,7 +1755,7 @@ export default function CalendarPage() {
                                   setHoldOpenId(null);
                                   setHoldDraftIso("");
                                 }}
-                                className="w-full rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                                className="w-full rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
                               >
                                 Clear
                               </button>
@@ -1767,7 +1767,7 @@ export default function CalendarPage() {
                                   e.stopPropagation();
                                   setHoldOpenId(null);
                                 }}
-                                className="w-full rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                                className="w-full rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
                               >
                                 Cancel
                               </button>
@@ -1780,7 +1780,7 @@ export default function CalendarPage() {
                                   setHoldDate(j.id, holdDraftIso || undefined);
                                   setHoldOpenId(null);
                                 }}
-                                className="w-full rounded-xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-3 py-2 text-[12px] font-black"
+                                className="w-full rounded-xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-2 py-1.5 text-[11px] font-black"
                               >
                                 Save
                               </button>
