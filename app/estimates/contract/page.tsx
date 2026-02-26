@@ -19,6 +19,7 @@ function readDraftStore(): Record<string, any> {
 
 function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const items: QuoteItem[] = Array.isArray(draft?.items) ? (draft.items as QuoteItem[]) : [];
+  const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
   const segments = (() => {
     try {
@@ -100,12 +101,17 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     .filter((r) => String(r.name || "") !== "Days labor")
     .reduce((a, b) => a + (Number(b.price) || 0), 0);
 
-  const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
-  const additionalFeesTotal = Math.round((Number(additionalServicesTotal) + Number(laborFeeTotal)) * 100) / 100;
-  const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
-  const grandTotal = Math.round(
-    ((Number(materialsAndExpensesTotal) || 0) + (Number(additionalFeesTotal) || 0) + (Number(removalTotal) || 0) + (Number(laborBaseTotal) || 0)) * 100
-  ) / 100;
+  const takeoffMaterialsRaw: QuoteItem[] = Array.isArray(draft?.takeoffMaterials) ? (draft.takeoffMaterials as QuoteItem[]) : [];
+  const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
+    (i) => i && (i as any).section === "materials"
+  );
+
+  const materialsAndExpensesTotal = round2(computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items));
+  const additionalFeesTotal = round2((Number(additionalServicesTotal) || 0) + (Number(laborFeeTotal) || 0));
+  const laborBaseTotalRounded = round2(laborBaseTotal);
+  const removalTotalRounded = round2(removalTotal);
+  const depositTotal = round2(materialsAndExpensesTotal);
+  const grandTotal = round2(materialsAndExpensesTotal + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
 
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
@@ -145,9 +151,9 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     },
     totals: {
       materialsSubtotal: depositTotal,
-      laborSubtotal: laborBaseTotal,
+      laborSubtotal: laborBaseTotalRounded,
       additionalSubtotal: additionalFeesTotal,
-      removalTotal,
+      removalTotal: removalTotalRounded,
       discount: 0,
       tax: 0,
       total: grandTotal
