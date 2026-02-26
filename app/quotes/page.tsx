@@ -855,7 +855,9 @@ export default function QuotesPage() {
                   <button
                     type="button"
                     data-no-swipe="true"
+                    data-keep-open="true"
                     onPointerDown={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       setSuppressNavUntil(Date.now() + 600);
                     }}
@@ -871,7 +873,7 @@ export default function QuotesPage() {
                       setOpenStatusId((cur) => (cur === q.id ? null : q.id));
                     }}
                     className={
-                      "rounded-full border px-2 py-1 text-[11px] font-extrabold text-white " +
+                      "relative z-30 rounded-full border px-2 py-1 text-[11px] font-extrabold text-white " +
                       statusPillClass(q.status)
                     }
                   >
@@ -880,10 +882,13 @@ export default function QuotesPage() {
 
                   {openStatusId === q.id ? (
                     <div
-                      className="absolute left-0 top-[calc(100%+8px)] z-20 rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.85)] shadow-glass backdrop-blur-ios p-2 grid gap-2 min-w-[160px]"
+                      className="absolute left-0 top-[calc(100%+8px)] z-40 rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.85)] shadow-glass backdrop-blur-ios p-2 grid gap-2 min-w-[160px]"
                       data-no-swipe="true"
+                      data-keep-open="true"
                       onPointerDown={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
+                        setSuppressNavUntil(Date.now() + 600);
                       }}
                       onClick={(e) => {
                         e.preventDefault();
@@ -1079,7 +1084,10 @@ export default function QuotesPage() {
                       setSuppressNavUntil(Date.now() + 600);
                       setLayoutViewerSrc(String((q as any).layoutSrc || ""));
                     }}
-                    className="block w-full text-left"
+                    className={
+                      "block w-full text-left " +
+                      (openStatusId === q.id ? "pointer-events-none" : "")
+                    }
                     aria-label="Open fence layout"
                     title="Fence layout"
                   >
