@@ -519,7 +519,10 @@ export default function QuotesPage() {
       const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
         (i) => i && (i as any).section === "materials"
       );
-      const materialsAndExpensesTotal = round2(computeMaterialsAndExpensesTotal(takeoffMaterials));
+      const persistedMaterialsAndExpensesTotal = Number((d as any)?.totals?.materialsSubtotal);
+      const materialsAndExpensesTotal = Number.isFinite(persistedMaterialsAndExpensesTotal)
+        ? round2(persistedMaterialsAndExpensesTotal)
+        : round2(computeMaterialsAndExpensesTotal(takeoffMaterials));
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments
