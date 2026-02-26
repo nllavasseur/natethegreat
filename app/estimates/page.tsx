@@ -3480,6 +3480,11 @@ function EstimatesPageInner() {
   function writeDraftStore(store: Record<string, any>) {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(storageKey, JSON.stringify(store));
+    try {
+      window.dispatchEvent(new Event("vf-drafts-changed"));
+    } catch {
+      // ignore
+    }
   }
 
   function clearUnsavedSnapshot() {
