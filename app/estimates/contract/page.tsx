@@ -97,21 +97,40 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const laborBaseTotal = laborRows
     .filter((r) => String(r.name || "") === "Days labor")
     .reduce((a, b) => a + (Number(b.price) || 0), 0);
-  const laborFeeTotal = laborRows
+  const laborFeeTotal = items
+    .filter((i) => i.section === "labor")
     .filter((r) => String(r.name || "") !== "Days labor")
-    .reduce((a, b) => a + (Number(b.price) || 0), 0);
+    .reduce((a, b) => a + (Number(b.lineTotal) || 0), 0);
+
+  const persisted = (draft as any)?.totals as any;
+  const persistedMaterialsSubtotal = Number(persisted?.materialsSubtotal);
+  const persistedLaborSubtotal = Number(persisted?.laborSubtotal);
+  const persistedAdditionalSubtotal = Number(persisted?.additionalSubtotal);
+  const persistedRemovalTotal = Number(persisted?.removalTotal);
+  const persistedTotal = Number(persisted?.total);
+  const persistedDepositTotal = Number(persisted?.depositTotal);
+
+  const hasPersistedTotals =
+    Number.isFinite(persistedMaterialsSubtotal) &&
+    Number.isFinite(persistedLaborSubtotal) &&
+    Number.isFinite(persistedAdditionalSubtotal) &&
+    Number.isFinite(persistedTotal);
 
   const takeoffMaterialsRaw: QuoteItem[] = Array.isArray(draft?.takeoffMaterials) ? (draft.takeoffMaterials as QuoteItem[]) : [];
   const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
     (i) => i && (i as any).section === "materials"
   );
 
-  const materialsAndExpensesTotal = round2(computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items));
-  const additionalFeesTotal = round2((Number(additionalServicesTotal) || 0) + (Number(laborFeeTotal) || 0));
-  const laborBaseTotalRounded = round2(laborBaseTotal);
-  const removalTotalRounded = round2(removalTotal);
-  const depositTotal = round2(materialsAndExpensesTotal);
-  const grandTotal = round2(materialsAndExpensesTotal + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
+  const materialsAndExpensesTotal = hasPersistedTotals
+    ? round2(persistedMaterialsSubtotal)
+    : round2(computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items));
+  const additionalFeesTotal = hasPersistedTotals
+    ? round2(persistedAdditionalSubtotal)
+    : round2((Number(additionalServicesTotal) || 0) + (Number(laborFeeTotal) || 0));
+  const laborBaseTotalRounded = hasPersistedTotals ? round2(persistedLaborSubtotal) : round2(laborBaseTotal);
+  const removalTotalRounded = Number.isFinite(persistedRemovalTotal) ? round2(persistedRemovalTotal) : round2(removalTotal);
+  const depositTotal = Number.isFinite(persistedDepositTotal) ? round2(persistedDepositTotal) : round2(materialsAndExpensesTotal);
+  const grandTotal = hasPersistedTotals ? round2(persistedTotal) : round2(materialsAndExpensesTotal + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
 
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");

@@ -3679,6 +3679,16 @@ function EstimatesPageInner() {
       takeoffMaterials: ((generatedMaterials?.length || 0) > 0
         ? generatedMaterials
         : (Array.isArray(takeoffMaterialsStable) ? takeoffMaterialsStable : [])),
+      totals: {
+        materialsSubtotal: Number(takeoffMaterialsAndExpensesTotal) || 0,
+        laborSubtotal: Number(laborBaseTotal) || 0,
+        additionalSubtotal: Number(additionalFeesTotal) || 0,
+        removalTotal: Number(removalTotal) || 0,
+        discount: 0,
+        tax: 0,
+        total: Number(grandTotal) || 0,
+        depositTotal: Number(materialsDepositTotal) || 0
+      },
       status,
       scheduledAt,
       installDate,

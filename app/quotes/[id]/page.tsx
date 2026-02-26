@@ -197,7 +197,7 @@ export default function QuoteDetailPage() {
   const removalLf = segments
     .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
     .reduce((sum, s) => sum + (Number((s as any).length) || 0), 0);
-  const removalTotal = Math.round(removalLf * 6 * 100) / 100;
+  const removalTotalComputed = Math.round(removalLf * 6 * 100) / 100;
 
   const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
   const materialsSubtotal = items.filter((i) => i.section === "materials").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
@@ -206,7 +206,10 @@ export default function QuoteDetailPage() {
     .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
   const materialsUsed = (Number(materialsSubtotal) || 0) - materialsFees;
   const additionalServicesSubtotal = items.filter((i) => i.section === "additional").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
-  const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
+  const persistedMaterialsAndExpensesTotal = Number((draft as any)?.totals?.materialsSubtotal);
+  const materialsAndExpensesTotal = Number.isFinite(persistedMaterialsAndExpensesTotal)
+    ? persistedMaterialsAndExpensesTotal
+    : computeMaterialsAndExpensesTotal(items);
 
   const laborBaseTotal = items
     .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
@@ -222,11 +225,26 @@ export default function QuoteDetailPage() {
   const additionalFeeItems = [...laborFeeItems, ...additionalSectionFeeItems];
   const laborFeesTotal = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
 
-  const total = Math.round(
-    ((Number(materialsAndExpensesTotal) || 0) + (Number(laborBaseTotal) || 0) + (Number(laborFeesTotal) || 0) + (Number(removalTotal) || 0)) *
+  const persistedLaborSubtotal = Number((draft as any)?.totals?.laborSubtotal);
+  const laborBaseTotalForView = Number.isFinite(persistedLaborSubtotal) ? persistedLaborSubtotal : laborBaseTotal;
+
+  const persistedAdditionalSubtotal = Number((draft as any)?.totals?.additionalSubtotal);
+  const laborFeesTotalForView = Number.isFinite(persistedAdditionalSubtotal) ? persistedAdditionalSubtotal : laborFeesTotal;
+
+  const persistedRemovalTotal = Number((draft as any)?.totals?.removalTotal);
+  const removalTotal = Number.isFinite(persistedRemovalTotal) ? persistedRemovalTotal : removalTotalComputed;
+
+  const persistedTotal = Number((draft as any)?.totals?.total);
+
+  const totalComputed = Math.round(
+    ((Number(materialsAndExpensesTotal) || 0) + (Number(laborBaseTotalForView) || 0) + (Number(laborFeesTotalForView) || 0) + (Number(removalTotal) || 0)) *
       100
   ) / 100;
-  const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
+  const total = Number.isFinite(persistedTotal) ? Math.round(persistedTotal * 100) / 100 : totalComputed;
+  const persistedDepositTotal = Number((draft as any)?.totals?.depositTotal);
+  const depositTotal = Number.isFinite(persistedDepositTotal)
+    ? Math.round(persistedDepositTotal * 100) / 100
+    : Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
 
   const phoneDigits = String(draft?.phoneNumber || "").replace(/[^0-9+]/g, "");
   const canCall = phoneDigits.length >= 7;

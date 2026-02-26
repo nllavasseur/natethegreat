@@ -558,14 +558,26 @@ export default function QuotesPage() {
         .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number((i as any).lineTotal) || 0) * 100) / 100 }))
         .filter((i) => i.lineTotal !== 0);
       const additionalFeeItems = [...laborFeeItems, ...additionalSectionFeeItems];
-      const additionalFeesTotal = round2(additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0));
+      const persistedAdditionalSubtotal = Number((d as any)?.totals?.additionalSubtotal);
+      const additionalFeesTotal = Number.isFinite(persistedAdditionalSubtotal)
+        ? round2(persistedAdditionalSubtotal)
+        : round2(additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0));
 
-      const total = round2(
+      const persistedRemovalTotal = Number((d as any)?.totals?.removalTotal);
+      const removalTotalForCard = Number.isFinite(persistedRemovalTotal) ? round2(persistedRemovalTotal) : removalTotal;
+
+      const persistedLaborSubtotal = Number((d as any)?.totals?.laborSubtotal);
+      const laborBaseTotalForCard = Number.isFinite(persistedLaborSubtotal) ? round2(persistedLaborSubtotal) : laborBaseTotalRounded;
+
+      const persistedTotal = Number((d as any)?.totals?.total);
+
+      const computedTotal = round2(
         (Number(materialsAndExpensesTotal) || 0) +
           (Number(additionalFeesTotal) || 0) +
-          (Number(removalTotal) || 0) +
-          (Number(laborBaseTotalRounded) || 0)
+          (Number(removalTotalForCard) || 0) +
+          (Number(laborBaseTotalForCard) || 0)
       );
+      const total = Number.isFinite(persistedTotal) ? round2(persistedTotal) : computedTotal;
       const depositTotal = round2(Number(materialsAndExpensesTotal) || 0);
       const due = round2(Math.max(0, total - depositTotal));
 
@@ -606,8 +618,8 @@ export default function QuotesPage() {
         spanDays,
         materialsAndExpensesTotal,
         additionalFeesTotal,
-        removalTotal,
-        laborBaseTotal: laborBaseTotalRounded,
+        removalTotal: removalTotalForCard,
+        laborBaseTotal: laborBaseTotalForCard,
         total,
         due,
         scheduledAt: String((d as any).scheduledAt || ""),
