@@ -18,6 +18,8 @@ type DraftEntry = {
   phoneNumber?: string;
   projectAddress?: string;
   selectedStyle?: { name: string } | null;
+  projectPhotoUrl?: string | null;
+  projectPhotoDataUrl?: string | null;
   materialsDetails?: {
     woodType?: string;
     horizontalCedarBoardMaterial?: string;
@@ -93,6 +95,7 @@ export default function QuotesPage() {
   const [scheduleTime, setScheduleTime] = useState<string>("");
   const [portalReady, setPortalReady] = useState(false);
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
+  const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
@@ -561,6 +564,14 @@ export default function QuotesPage() {
       const endDate = startDate && spanDays > 0 ? addDaysIso(startDate, spanDays - 1) : "";
       const preInstallPhotoCount = normalizePreInstallPhotos((d as any).preInstallPhotos).length;
 
+      const layoutSrc = (() => {
+        const url = (d as any).projectPhotoUrl;
+        if (typeof url === "string" && url) return url;
+        const data = (d as any).projectPhotoDataUrl;
+        if (typeof data === "string" && data) return data;
+        return "";
+      })();
+
       return {
         id: String(d.id),
         status: (d.status ?? "estimate") as DraftEntry["status"],
@@ -579,7 +590,8 @@ export default function QuotesPage() {
         due,
         scheduledAt: String((d as any).scheduledAt || ""),
         phoneNumber,
-        preInstallPhotoCount
+        preInstallPhotoCount,
+        layoutSrc
       };
     });
   }, [drafts]);
@@ -1051,6 +1063,32 @@ export default function QuotesPage() {
                 <div className="text-sm font-extrabold truncate">{q.title}</div>
                 <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
               </div>
+              {String((q as any).layoutSrc || "") ? (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSuppressNavUntil(Date.now() + 600);
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSuppressNavUntil(Date.now() + 600);
+                      setLayoutViewerSrc(String((q as any).layoutSrc || ""));
+                    }}
+                    className="block w-full text-left"
+                    aria-label="Open fence layout"
+                    title="Fence layout"
+                  >
+                    <div className="relative w-full h-[120px] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                      <img src={String((q as any).layoutSrc || "")} alt="Fence layout" className="absolute inset-0 w-full h-full object-cover" />
+                    </div>
+                  </button>
+                </div>
+              ) : null}
               {q.style || (q as any).material ? (
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   {q.style ? (
@@ -1088,6 +1126,37 @@ export default function QuotesPage() {
           })}
         </div>
       </GlassCard>
+
+      {portalReady
+        ? createPortal(
+            layoutViewerSrc ? (
+              <div className="fixed inset-0 z-[80] grid place-items-center p-3" data-no-swipe="true">
+                <div
+                  className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
+                  onClick={() => setLayoutViewerSrc(null)}
+                />
+                <div
+                  className="relative w-full max-w-[980px]"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <GlassCard className="p-3 overflow-hidden">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-black truncate">Fence layout</div>
+                      <SecondaryButton data-no-swipe="true" onClick={() => setLayoutViewerSrc(null)}>
+                        Close
+                      </SecondaryButton>
+                    </div>
+                    <div className="mt-2 relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
+                      <img src={layoutViewerSrc} alt="Fence layout" className="absolute inset-0 w-full h-full object-contain" />
+                    </div>
+                  </GlassCard>
+                </div>
+              </div>
+            ) : null,
+            document.body
+          )
+        : null}
 
       {portalReady
         ? createPortal(
