@@ -299,7 +299,8 @@ export default function QuotesPage() {
         const id = String((d as any)?.id || "");
         if (!id) continue;
         const prev = byId.get(id);
-        if (!prev || getTs(d) >= getTs(prev)) byId.set(id, d);
+        // Prefer local on timestamp ties by only replacing when strictly newer.
+        if (!prev || getTs(d) > getTs(prev)) byId.set(id, d);
       }
 
       const merged = Array.from(byId.values()).sort((a, b) => getTs(b) - getTs(a));
