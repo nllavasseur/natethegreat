@@ -194,7 +194,9 @@ export default function QuoteDetailPage() {
   const segments = Array.isArray(draft?.segments) ? draft!.segments! : [];
   const totalLf = segments.reduce((sum, s) => sum + (Number(s.length) || 0), 0);
 
-  const removalLf = segments.filter((s) => Boolean(s.removed)).reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+  const removalLf = segments
+    .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
+    .reduce((sum, s) => sum + (Number((s as any).length) || 0), 0);
   const removalTotal = Math.round(removalLf * 6 * 100) / 100;
 
   const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
@@ -224,7 +226,7 @@ export default function QuoteDetailPage() {
     ((Number(materialsAndExpensesTotal) || 0) + (Number(laborBaseTotal) || 0) + (Number(laborFeesTotal) || 0) + (Number(removalTotal) || 0)) *
       100
   ) / 100;
-  const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
+  const depositTotal = Math.round(((Number(materialsAndExpensesTotal) || 0) + (Number(removalTotal) || 0)) * 100) / 100;
 
   const phoneDigits = String(draft?.phoneNumber || "").replace(/[^0-9+]/g, "");
   const canCall = phoneDigits.length >= 7;

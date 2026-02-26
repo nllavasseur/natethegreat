@@ -486,33 +486,50 @@ export default function QuotesPage() {
     return drafts.map((d) => {
       const items = Array.isArray(d.items) ? d.items : [];
 
+      const sumLineTotals = (arr: QuoteItem[]) =>
+        (Array.isArray(arr) ? arr : []).reduce((a, b) => {
+          const v = Number((b as any)?.lineTotal);
+          return a + (Number.isFinite(v) ? v : 0);
+        }, 0);
+
       const totals = computeTotals(items, 0, 0, 0);
 
       const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
-      const materialsSubtotal = items.filter((i) => i.section === "materials").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+      const materialsSubtotal = sumLineTotals(items.filter((i) => i.section === "materials"));
       const materialsFees = items
         .filter((i) => i.section === "materials" && feeNames.has(i.name))
-        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+        .reduce((sum, i) => {
+          const v = Number((i as any)?.lineTotal);
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
       const materialsUsed = (Number(materialsSubtotal) || 0) - materialsFees;
       const additionalServicesSubtotal = items
         .filter((i) => i.section === "additional")
-        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+        .reduce((sum, i) => {
+          const v = Number((i as any)?.lineTotal);
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
       const materialsAndExpensesTotal = computeMaterialsAndExpensesTotal(items);
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
-      const removalLf = segments.filter((s) => Boolean(s.removed)).reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+      const removalLf = segments
+        .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
+        .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
       const removalTotal = Math.round(removalLf * 6 * 100) / 100;
 
       const laborBaseTotal = items
         .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")
-        .reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
+        .reduce((sum, i) => {
+          const v = Number((i as any)?.lineTotal);
+          return sum + (Number.isFinite(v) ? v : 0);
+        }, 0);
       const laborFeeItems = items
         .filter((i) => i.section === "labor" && String(i.name || "") !== "Days labor")
-        .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+        .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number((i as any).lineTotal) || 0) * 100) / 100 }))
         .filter((i) => i.lineTotal !== 0);
       const additionalSectionFeeItems = items
         .filter((i) => i.section === "additional")
-        .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number(i.lineTotal) || 0) * 100) / 100 }))
+        .map((i) => ({ name: String(i.name || ""), lineTotal: Math.round((Number((i as any).lineTotal) || 0) * 100) / 100 }))
         .filter((i) => i.lineTotal !== 0);
       const additionalFeeItems = [...laborFeeItems, ...additionalSectionFeeItems];
       const additionalFeesTotal = additionalFeeItems.reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
@@ -524,7 +541,7 @@ export default function QuotesPage() {
           (Number(removalTotal) || 0)) *
           100
       ) / 100;
-      const depositTotal = Math.round((Number(materialsAndExpensesTotal) || 0) * 100) / 100;
+      const depositTotal = Math.round(((Number(materialsAndExpensesTotal) || 0) + (Number(removalTotal) || 0)) * 100) / 100;
       const due = Math.max(0, Math.round((total - depositTotal) * 100) / 100);
 
       const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
