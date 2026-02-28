@@ -229,6 +229,8 @@ type MaterialsDetails = {
   shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
   fiveQuarterTwoRailMeshVerticals: boolean;
   fiveQuarterTwoRailMeshCorners: boolean;
+  wireMeshCornerBoardsOverride: number;
+  wireMeshVerticalBoardsOverride: number;
   postDim: "4x4" | "6x6";
   postSize: 8 | 10 | 12 | 14;
   postType: "Pressure treated" | "Cedar" | "Cedar tone";
@@ -284,6 +286,8 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   shadowboxBoardMaterial: "Pressure Treated",
   fiveQuarterTwoRailMeshVerticals: true,
   fiveQuarterTwoRailMeshCorners: true,
+  wireMeshCornerBoardsOverride: -1,
+  wireMeshVerticalBoardsOverride: -1,
   postDim: "4x4",
   postSize: 8,
   postType: "Pressure treated",
@@ -1030,6 +1034,8 @@ function EstimatesPageInner() {
       String(materialsDetails.shadowboxBoardMaterial || "Pressure Treated") !== "Pressure Treated" ||
       Boolean(materialsDetails.fiveQuarterTwoRailMeshVerticals) !== true ||
       Boolean(materialsDetails.fiveQuarterTwoRailMeshCorners) !== true ||
+      (Number(materialsDetails.wireMeshCornerBoardsOverride) || -1) !== -1 ||
+      (Number(materialsDetails.wireMeshVerticalBoardsOverride) || -1) !== -1 ||
       (Number(materialsDetails.splitRailRails) || 3) !== 3 ||
       Boolean(materialsDetails.splitRailWireMesh) ||
       String(materialsDetails.splitRailMaterial || "Pressure treated") !== "Pressure treated" ||
@@ -2083,14 +2089,18 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0)
         : (lf > 0 ? Math.ceil(lf / 5.5) : 0);
 
-      const cornerCount = Math.max(0, segmentLengths.length - 1);
+      const cornerDefault = Math.max(0, segmentLengths.length - 1);
+      const cornerOverride = Number(materialsDetails.wireMeshCornerBoardsOverride);
+      const cornerCount = Number.isFinite(cornerOverride) && cornerOverride >= 0 ? Math.floor(cornerOverride) : cornerDefault;
 
       // Boards: (segmentLength/12) * 4 + 1/3 board per post + 1 per corner
       const boardsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 4), 0)
         : (lf > 0 ? Math.ceil((lf / 12) * 4) : 0);
 
-      const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+      const verticalDefault = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+      const verticalOverride = Number(materialsDetails.wireMeshVerticalBoardsOverride);
+      const verticalBoards = Number.isFinite(verticalOverride) && verticalOverride >= 0 ? Math.floor(verticalOverride) : verticalDefault;
       const boards = boardsBase + verticalBoards + cornerCount;
 
       // Wire mesh: total lf / 50 rolls, round up
@@ -5243,6 +5253,13 @@ function EstimatesPageInner() {
         ? dd.shadowboxBoardMaterial
         : "Pressure Treated";
 
+      const wireMeshCornerBoardsOverride = Number.isFinite(Number(dd.wireMeshCornerBoardsOverride))
+        ? Math.max(-1, Math.floor(Number(dd.wireMeshCornerBoardsOverride)))
+        : -1;
+      const wireMeshVerticalBoardsOverride = Number.isFinite(Number(dd.wireMeshVerticalBoardsOverride))
+        ? Math.max(-1, Math.floor(Number(dd.wireMeshVerticalBoardsOverride)))
+        : -1;
+
       const railMaterial = (dd.railMaterial === "Cedar" || dd.railMaterial === "Cedar tone" || dd.railMaterial === "Pressure treated")
         ? dd.railMaterial
         : woodType;
@@ -5367,6 +5384,8 @@ function EstimatesPageInner() {
         horizontalCedarBoardProfile,
         horizontalCedarBoardMaterial,
         shadowboxBoardMaterial,
+        wireMeshCornerBoardsOverride,
+        wireMeshVerticalBoardsOverride,
         postType,
         postCaps,
         topCaps,
@@ -8111,6 +8130,121 @@ function EstimatesPageInner() {
                               <div className="flex items-center justify-between">
                                 <div className="font-extrabold">{materialsDetails.fiveQuarterTwoRailMeshCorners ? "On" : "Off"}</div>
                                 <div className="text-[11px] text-[var(--muted)]">Adds corners</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                  {selectedStyleKind === "wood_wire_mesh" && String(selectedStyle?.name || "")
+                    .trim()
+                    .toLowerCase()
+                    .replaceAll("/", ":")
+                    .replaceAll("-", " ")
+                    .replace(/\s+/g, " ") !== "5:4 2 rail mesh" ? (
+                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Wire mesh</div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Corners</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    wireMeshCornerBoardsOverride: Math.max(
+                                      -1,
+                                      Math.floor((Number(p.wireMeshCornerBoardsOverride) || -1) - 1)
+                                    )
+                                  }))
+                                }
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {(Number(materialsDetails.wireMeshCornerBoardsOverride) || -1) < 0
+                                  ? "Auto"
+                                  : String(Math.max(0, Math.floor(Number(materialsDetails.wireMeshCornerBoardsOverride) || 0)))}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    wireMeshCornerBoardsOverride: Math.max(0, Math.floor((Number(p.wireMeshCornerBoardsOverride) || -1) + 1))
+                                  }))
+                                }
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, wireMeshCornerBoardsOverride: -1 }))}
+                              className="mt-2 w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-extrabold">Auto</div>
+                                <div className="text-[11px] text-[var(--muted)]">Reset</div>
+                              </div>
+                            </button>
+                          </div>
+
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    wireMeshVerticalBoardsOverride: Math.max(
+                                      -1,
+                                      Math.floor((Number(p.wireMeshVerticalBoardsOverride) || -1) - 1)
+                                    )
+                                  }))
+                                }
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                {(Number(materialsDetails.wireMeshVerticalBoardsOverride) || -1) < 0
+                                  ? "Auto"
+                                  : String(Math.max(0, Math.floor(Number(materialsDetails.wireMeshVerticalBoardsOverride) || 0)))}
+                              </div>
+                              <PrimaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() =>
+                                  setMaterialsDetails((p) => ({
+                                    ...p,
+                                    wireMeshVerticalBoardsOverride: Math.max(0, Math.floor((Number(p.wireMeshVerticalBoardsOverride) || -1) + 1))
+                                  }))
+                                }
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, wireMeshVerticalBoardsOverride: -1 }))}
+                              className="mt-2 w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="font-extrabold">Auto</div>
+                                <div className="text-[11px] text-[var(--muted)]">Reset</div>
                               </div>
                             </button>
                           </div>
