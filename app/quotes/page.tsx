@@ -880,6 +880,16 @@ export default function QuotesPage() {
                   ? "estimate"
                   : (stack.cards[0] as any)?.status;
 
+            const soldTopCard = stack.cards.find((c) => (c as any).status === "sold");
+            const stackStartDateRaw = String((soldTopCard as any)?.startDate || (soldTopCard as any)?.installDate || "");
+            const stackStartDate = (() => {
+              if (!stackStartDateRaw) return "";
+              const dt = new Date(stackStartDateRaw);
+              if (!Number.isFinite(dt.getTime())) return "";
+              const pad = (n: number) => String(n).padStart(2, "0");
+              return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+            })();
+
             return (
               <div key={stack.key} className="grid gap-2">
                 <button
@@ -908,6 +918,11 @@ export default function QuotesPage() {
                       {stackStatus === "sold" && hasIncompleteTasks ? (
                         <div className="relative" aria-label="Incomplete tasks" title="Incomplete tasks">
                           <span className="h-3 w-3 rounded-full bg-[rgba(255,80,80,.95)] animate-pulse block" />
+                        </div>
+                      ) : null}
+                      {statusFilter === "sold" && stackStatus === "sold" && stackStartDate ? (
+                        <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
+                          {stackStartDate}
                         </div>
                       ) : null}
                       {hasScheduled && stackStatus !== "pending" ? (
