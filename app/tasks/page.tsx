@@ -167,13 +167,22 @@ export default function TasksPage() {
 
     const withRank = list.map((d, idx) => ({ d, idx }));
     withRank.sort((a, b) => {
+      const asIso = String((a.d as any).scheduledAt || "");
+      const bsIso = String((b.d as any).scheduledAt || "");
+      const asMsRaw = asIso ? Date.parse(asIso) : Number.POSITIVE_INFINITY;
+      const bsMsRaw = bsIso ? Date.parse(bsIso) : Number.POSITIVE_INFINITY;
+      const asMs = Number.isFinite(asMsRaw) ? asMsRaw : Number.POSITIVE_INFINITY;
+      const bsMs = Number.isFinite(bsMsRaw) ? bsMsRaw : Number.POSITIVE_INFINITY;
+      if (asMs !== bsMs) return asMs - bsMs;
+
       const ar = Number((a.d as any).queueRank);
       const br = Number((b.d as any).queueRank);
       const aHas = Number.isFinite(ar) && ar > 0;
       const bHas = Number.isFinite(br) && br > 0;
-      if (aHas && bHas) return ar - br;
-      if (aHas) return -1;
-      if (bHas) return 1;
+      if (aHas && bHas && ar !== br) return ar - br;
+      if (aHas && !bHas) return -1;
+      if (!aHas && bHas) return 1;
+
       return a.idx - b.idx;
     });
 
