@@ -616,6 +616,7 @@ export default function QuotesPage() {
       const endDate = startDate && spanDays > 0 ? addDaysIso(startDate, spanDays - 1) : "";
       const preInstallPhotoCount = normalizePreInstallPhotos((d as any).preInstallPhotos).length;
       const hasIncompleteTasks = soldJobHasIncompleteTasks(d as any);
+      const queueRank = Number((d as any).queueRank);
 
       const layoutSrc = (() => {
         const url = (d as any).projectPhotoUrl;
@@ -645,7 +646,8 @@ export default function QuotesPage() {
         phoneNumber,
         preInstallPhotoCount,
         layoutSrc,
-        hasIncompleteTasks
+        hasIncompleteTasks,
+        queueRank
       };
     });
   }, [drafts]);
@@ -676,6 +678,28 @@ export default function QuotesPage() {
         return hay.includes(q);
       });
     })();
+
+    if (statusFilter === "sold") {
+      const indexed = withSearch.map((c, idx) => ({ c, idx }));
+      indexed.sort((a, b) => {
+        const ar = Number((a.c as any).queueRank);
+        const br = Number((b.c as any).queueRank);
+        const aHas = Number.isFinite(ar) && ar > 0;
+        const bHas = Number.isFinite(br) && br > 0;
+        if (aHas && bHas && ar !== br) return ar - br;
+        if (aHas && !bHas) return -1;
+        if (!aHas && bHas) return 1;
+
+        const au = Date.parse(String((a.c as any).scheduledAt || ""));
+        const bu = Date.parse(String((b.c as any).scheduledAt || ""));
+        const am = Number.isFinite(au) ? au : Number.POSITIVE_INFINITY;
+        const bm = Number.isFinite(bu) ? bu : Number.POSITIVE_INFINITY;
+        if (am !== bm) return am - bm;
+
+        return a.idx - b.idx;
+      });
+      return indexed.map((x) => x.c);
+    }
 
     if (statusFilter !== "estimate") return withSearch;
 
