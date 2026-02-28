@@ -617,6 +617,8 @@ export default function QuotesPage() {
       const preInstallPhotoCount = normalizePreInstallPhotos((d as any).preInstallPhotos).length;
       const hasIncompleteTasks = soldJobHasIncompleteTasks(d as any);
       const queueRank = Number((d as any).queueRank);
+      const updatedAt = Number((d as any).updatedAt);
+      const createdAt = Number((d as any).createdAt);
 
       const layoutSrc = (() => {
         const url = (d as any).projectPhotoUrl;
@@ -647,7 +649,9 @@ export default function QuotesPage() {
         preInstallPhotoCount,
         layoutSrc,
         hasIncompleteTasks,
-        queueRank
+        queueRank,
+        updatedAt,
+        createdAt
       };
     });
   }, [drafts]);
@@ -682,19 +686,17 @@ export default function QuotesPage() {
     if (statusFilter === "sold") {
       const indexed = withSearch.map((c, idx) => ({ c, idx }));
       indexed.sort((a, b) => {
-        const ar = Number((a.c as any).queueRank);
-        const br = Number((b.c as any).queueRank);
-        const aHas = Number.isFinite(ar) && ar > 0;
-        const bHas = Number.isFinite(br) && br > 0;
-        if (aHas && bHas && ar !== br) return ar - br;
-        if (aHas && !bHas) return -1;
-        if (!aHas && bHas) return 1;
+        const ar = Number((a.c as any).queueRank ?? Number.POSITIVE_INFINITY);
+        const br = Number((b.c as any).queueRank ?? Number.POSITIVE_INFINITY);
+        const aRank = Number.isFinite(ar) ? ar : Number.POSITIVE_INFINITY;
+        const bRank = Number.isFinite(br) ? br : Number.POSITIVE_INFINITY;
+        if (aRank !== bRank) return aRank - bRank;
 
-        const au = Date.parse(String((a.c as any).scheduledAt || ""));
-        const bu = Date.parse(String((b.c as any).scheduledAt || ""));
-        const am = Number.isFinite(au) ? au : Number.POSITIVE_INFINITY;
-        const bm = Number.isFinite(bu) ? bu : Number.POSITIVE_INFINITY;
-        if (am !== bm) return am - bm;
+        const au = Number((a.c as any).updatedAt ?? (a.c as any).createdAt ?? 0);
+        const bu = Number((b.c as any).updatedAt ?? (b.c as any).createdAt ?? 0);
+        const aTime = Number.isFinite(au) ? au : 0;
+        const bTime = Number.isFinite(bu) ? bu : 0;
+        if (aTime !== bTime) return aTime - bTime;
 
         return a.idx - b.idx;
       });
