@@ -502,6 +502,19 @@ export default function QuotesPage() {
     suppressNavUntilRef.current = Date.now() + ms;
   }
 
+  function soldJobHasIncompleteTasks(d: any) {
+    const status = String((d as any)?.status || "estimate");
+    if (status !== "sold") return false;
+    const tasks = ((d as any)?.jobTasks || {}) as any;
+    const keys: Array<keyof NonNullable<DraftEntry["jobTasks"]>> = [
+      "collectDeposit",
+      "orderMaterials",
+      "scheduleDelivery",
+      "call811"
+    ];
+    return keys.some((k) => !Boolean(tasks?.[k]));
+  }
+
   const cards = useMemo(() => {
     return drafts.map((d) => {
       const items = Array.isArray(d.items) ? d.items : [];
@@ -602,6 +615,7 @@ export default function QuotesPage() {
       const spanDays = computeSpanDays(laborDays);
       const endDate = startDate && spanDays > 0 ? addDaysIso(startDate, spanDays - 1) : "";
       const preInstallPhotoCount = normalizePreInstallPhotos((d as any).preInstallPhotos).length;
+      const hasIncompleteTasks = soldJobHasIncompleteTasks(d as any);
 
       const layoutSrc = (() => {
         const url = (d as any).projectPhotoUrl;
@@ -630,7 +644,8 @@ export default function QuotesPage() {
         scheduledAt: String((d as any).scheduledAt || ""),
         phoneNumber,
         preInstallPhotoCount,
-        layoutSrc
+        layoutSrc,
+        hasIncompleteTasks
       };
     });
   }, [drafts]);
@@ -830,6 +845,7 @@ export default function QuotesPage() {
           {customerStacks.map((stack) => {
             const expanded = Boolean(expandedCustomerStacks[stack.key]);
             const hasScheduled = stack.cards.some((c) => Boolean(String((c as any).scheduledAt || "").trim()));
+            const hasIncompleteTasks = stack.cards.some((c) => Boolean((c as any).hasIncompleteTasks));
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"
               : stack.cards.some((c) => (c as any).status === "pending")
@@ -862,11 +878,18 @@ export default function QuotesPage() {
                         {expanded ? " · Tap to collapse" : " · Tap to expand"}
                       </div>
                     </div>
-                    {hasScheduled && stackStatus !== "pending" ? (
-                      <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
-                        Scheduled
-                      </div>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                      {stackStatus === "sold" && hasIncompleteTasks ? (
+                        <div className="relative" aria-label="Incomplete tasks" title="Incomplete tasks">
+                          <span className="h-3 w-3 rounded-full bg-[rgba(255,80,80,.95)] animate-pulse block" />
+                        </div>
+                      ) : null}
+                      {hasScheduled && stackStatus !== "pending" ? (
+                        <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
+                          Scheduled
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </button>
 

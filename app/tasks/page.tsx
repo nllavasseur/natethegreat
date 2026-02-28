@@ -351,8 +351,8 @@ export default function TasksPage() {
                                 : urgent
                                   ? "bg-[rgba(255,80,80,.18)] border-[rgba(255,80,80,.55)] text-white animate-pulse"
                                   : warn
-                                    ? "bg-[rgba(255,214,10,.12)] border-[rgba(255,214,10,.45)] text-white"
-                                    : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                    ? "bg-[rgba(255,80,80,.14)] border-[rgba(255,80,80,.45)] text-white"
+                                    : "bg-[rgba(255,80,80,.10)] border-[rgba(255,80,80,.35)] text-white")
                           }
                           style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "pan-y" }}
                           aria-disabled={false}
