@@ -13,6 +13,7 @@ type JobTasks = {
 };
 
 type JobTaskLabels = Partial<Record<keyof JobTasks, string>>;
+type JobTaskHidden = Partial<Record<keyof JobTasks, boolean>>;
 
 type JobTaskSnooze = {
   collectDeposit?: number;
@@ -42,6 +43,7 @@ type DraftEntry = {
   jobTasks?: JobTasks;
   jobTaskSnooze?: JobTaskSnooze;
   jobTaskLabels?: JobTaskLabels;
+  jobTaskHidden?: JobTaskHidden;
   jobCustomTasks?: CustomJobTask[];
 };
 
@@ -244,6 +246,19 @@ export default function TasksPage() {
     persistDraftPatch(jobId, { jobTaskLabels: nextLabels });
   }
 
+  function hideJobTask(jobId: string, key: keyof JobTasks, hidden: boolean) {
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevHidden = (existing as any)?.jobTaskHidden && typeof (existing as any).jobTaskHidden === "object"
+      ? (((existing as any).jobTaskHidden as any) as JobTaskHidden)
+      : {};
+    const nextHidden: JobTaskHidden = { ...prevHidden, [key]: hidden };
+    persistDraftPatch(jobId, { jobTaskHidden: nextHidden });
+  }
+
+  function restoreAllJobTasks(jobId: string) {
+    persistDraftPatch(jobId, { jobTaskHidden: {} });
+  }
+
   function snoozeJobTask(jobId: string, key: keyof JobTasks, untilMs: number) {
     try {
       const store = readDraftStore();
@@ -394,6 +409,8 @@ export default function TasksPage() {
             const doneCount = TASKS.filter((t) => Boolean((tasks as any)[t.key])).length;
             const isAdding = addingCustomTaskJobId === job.id;
             const newDraft = String((newCustomTaskDraftByJob as any)[job.id] ?? "");
+            const hiddenMap = (((job as any).jobTaskHidden && typeof (job as any).jobTaskHidden === "object") ? (job as any).jobTaskHidden : {}) as JobTaskHidden;
+            const anyHidden = TASKS.some((t) => Boolean((hiddenMap as any)[t.key]));
 
             return (
               <div
@@ -408,6 +425,21 @@ export default function TasksPage() {
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {anyHidden ? (
+                      <SecondaryButton
+                        type="button"
+                        data-no-swipe="true"
+                        data-keep-open="true"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          restoreAllJobTasks(job.id);
+                        }}
+                        className="px-3"
+                      >
+                        Restore
+                      </SecondaryButton>
+                    ) : null}
                     {isAdding ? (
                       <div className="flex items-center gap-2" data-keep-open="true">
                         <Input
@@ -483,7 +515,7 @@ export default function TasksPage() {
                 </div>
 
                 <div className="mt-3 grid gap-2">
-                  {TASKS.map((t) => {
+                  {TASKS.filter((t) => !Boolean((hiddenMap as any)[t.key])).map((t) => {
                     const done = Boolean((tasks as any)[t.key]);
                     const keyStr = `${job.id}:${String(t.key)}`;
                     const isConfirm = confirmKey === keyStr;
@@ -498,6 +530,7 @@ export default function TasksPage() {
                     const showHold = holdKey === keyStr;
                     const showUndo = showHold && holdMode === "undo" && done;
                     const showSnooze = showHold && holdMode === "snooze" && !done && (urgent || warn);
+                    const showCustom = showHold && holdMode === "custom" && !done;
                     return (
                       <div key={keyStr} className="grid gap-2">
                         <button
@@ -579,8 +612,8 @@ export default function TasksPage() {
                           </div>
                         </button>
 
-                        {showHold && !done ? (
-                          <div className="flex justify-end" data-keep-open="true">
+                        {showCustom ? (
+                          <div className="flex justify-end gap-2" data-keep-open="true">
                             <SecondaryButton
                               type="button"
                               data-no-swipe="true"
@@ -592,6 +625,20 @@ export default function TasksPage() {
                               }}
                             >
                               Edit
+                            </SecondaryButton>
+                            <SecondaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setHoldKey(null);
+                                setHoldMode(null);
+                                setEditingJobTaskKey(null);
+                                hideJobTask(job.id, t.key, true);
+                              }}
+                            >
+                              Delete
                             </SecondaryButton>
                           </div>
                         ) : null}
@@ -623,6 +670,20 @@ export default function TasksPage() {
                             >
                               Edit
                             </SecondaryButton>
+                            <SecondaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setHoldKey(null);
+                                setHoldMode(null);
+                                setEditingJobTaskKey(null);
+                                hideJobTask(job.id, t.key, true);
+                              }}
+                            >
+                              Delete
+                            </SecondaryButton>
                           </div>
                         ) : null}
 
@@ -652,6 +713,20 @@ export default function TasksPage() {
                               }}
                             >
                               Edit
+                            </SecondaryButton>
+                            <SecondaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setHoldKey(null);
+                                setHoldMode(null);
+                                setEditingJobTaskKey(null);
+                                hideJobTask(job.id, t.key, true);
+                              }}
+                            >
+                              Delete
                             </SecondaryButton>
                           </div>
                         ) : null}
