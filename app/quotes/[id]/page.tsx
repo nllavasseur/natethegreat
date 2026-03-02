@@ -72,8 +72,24 @@ export default function QuoteDetailPage() {
   const [draft, setDraft] = React.useState<DraftEntry | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
   const [viewerIdx, setViewerIdx] = React.useState<number | null>(null);
+  const [photoViewerScale, setPhotoViewerScale] = React.useState(1);
+  const [photoViewerX, setPhotoViewerX] = React.useState(0);
+  const [photoViewerY, setPhotoViewerY] = React.useState(0);
   const contractFrameRef = React.useRef<HTMLDivElement | null>(null);
   const [contractScale, setContractScale] = React.useState(1);
+
+  const viewerPointersRef = React.useRef(new Map<number, { x: number; y: number }>());
+  const viewerGestureRef = React.useRef<{
+    startScale: number;
+    startX: number;
+    startY: number;
+    startDist: number;
+    startCenter: { x: number; y: number };
+  } | null>(null);
+
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+  const centerOf = (a: { x: number; y: number }, b: { x: number; y: number }) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
   React.useEffect(() => {
     let cancelled = false;
@@ -95,6 +111,15 @@ export default function QuoteDetailPage() {
   React.useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  React.useEffect(() => {
+    if (typeof viewerIdx !== "number") return;
+    setPhotoViewerScale(1);
+    setPhotoViewerX(0);
+    setPhotoViewerY(0);
+    viewerPointersRef.current.clear();
+    viewerGestureRef.current = null;
+  }, [viewerIdx]);
 
   React.useEffect(() => {
     const el = contractFrameRef.current;
@@ -379,13 +404,98 @@ export default function QuoteDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-2 relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
-                <NextImage
+              <div
+                className="mt-2 relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] touch-none"
+                style={{ touchAction: "none" }}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+                  viewerPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                  const pts = Array.from(viewerPointersRef.current.values());
+                  if (pts.length === 1) {
+                    viewerGestureRef.current = {
+                      startScale: photoViewerScale,
+                      startX: photoViewerX,
+                      startY: photoViewerY,
+                      startDist: 0,
+                      startCenter: { x: pts[0].x, y: pts[0].y }
+                    };
+                    return;
+                  }
+                  if (pts.length >= 2) {
+                    const a = pts[0];
+                    const b = pts[1];
+                    viewerGestureRef.current = {
+                      startScale: photoViewerScale,
+                      startX: photoViewerX,
+                      startY: photoViewerY,
+                      startDist: dist(a, b) || 1,
+                      startCenter: centerOf(a, b)
+                    };
+                  }
+                }}
+                onPointerMove={(e) => {
+                  if (!viewerPointersRef.current.has(e.pointerId)) return;
+                  viewerPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                  const g = viewerGestureRef.current;
+                  if (!g) return;
+                  const pts = Array.from(viewerPointersRef.current.values());
+                  if (pts.length >= 2) {
+                    const a = pts[0];
+                    const b = pts[1];
+                    const center = centerOf(a, b);
+                    const dNow = dist(a, b) || 1;
+                    const nextScale = clamp(g.startScale * (dNow / (g.startDist || 1)), 1, 5);
+                    const dx = center.x - g.startCenter.x;
+                    const dy = center.y - g.startCenter.y;
+                    setPhotoViewerScale(nextScale);
+                    setPhotoViewerX(g.startX + dx);
+                    setPhotoViewerY(g.startY + dy);
+                    return;
+                  }
+                  if (pts.length === 1) {
+                    const p = pts[0];
+                    const dx = p.x - g.startCenter.x;
+                    const dy = p.y - g.startCenter.y;
+                    setPhotoViewerX(g.startX + dx);
+                    setPhotoViewerY(g.startY + dy);
+                  }
+                }}
+                onPointerUp={(e) => {
+                  viewerPointersRef.current.delete(e.pointerId);
+                  const pts = Array.from(viewerPointersRef.current.values());
+                  if (pts.length === 1) {
+                    viewerGestureRef.current = {
+                      startScale: photoViewerScale,
+                      startX: photoViewerX,
+                      startY: photoViewerY,
+                      startDist: 0,
+                      startCenter: { x: pts[0].x, y: pts[0].y }
+                    };
+                  }
+                  if (viewerPointersRef.current.size === 0) viewerGestureRef.current = null;
+                }}
+                onPointerCancel={(e) => {
+                  viewerPointersRef.current.delete(e.pointerId);
+                  if (viewerPointersRef.current.size === 0) viewerGestureRef.current = null;
+                }}
+                onDoubleClick={() => {
+                  setPhotoViewerScale(1);
+                  setPhotoViewerX(0);
+                  setPhotoViewerY(0);
+                }}
+              >
+                <img
                   src={curViewer.src}
                   alt=""
-                  fill
-                  sizes="(max-width: 980px) 92vw, 980px"
-                  className="object-contain"
+                  className="block w-full h-full object-contain"
+                  style={{
+                    transform: `translate3d(${photoViewerX}px, ${photoViewerY}px, 0) scale(${photoViewerScale})`,
+                    transformOrigin: "center center",
+                    willChange: "transform"
+                  }}
+                  draggable={false}
                 />
               </div>
 
