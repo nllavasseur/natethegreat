@@ -156,7 +156,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col vf-app-bg">
+    <div className="min-h-dvh flex flex-col vf-app-bg overflow-x-hidden max-w-full">
       {hideChrome ? null : (
         <div ref={headerRef} className="sticky top-0 z-[59] isolate transform-gpu">
           <TopBar />
@@ -216,7 +216,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
           mainRef.current = el;
         }}
         className={clsx(
-          "flex-1 max-w-[980px] w-full mx-auto",
+          "flex-1 max-w-[980px] w-full mx-auto max-w-full overflow-x-hidden",
           hideChrome ? "px-0 pb-0 pt-0" : "px-4 pb-6 pt-3"
         )}
       >
