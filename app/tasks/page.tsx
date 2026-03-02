@@ -390,15 +390,15 @@ export default function TasksPage() {
   }
 
   return (
-    <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 88px)" }}>
-      <div className="flex items-center justify-between">
+    <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 88px)" }} className="max-w-full overflow-x-hidden">
+      <div className="flex items-center justify-between max-w-full">
         <SectionTitle title="Tasks" />
         <Link href="/quotes">
           <SecondaryButton>Back</SecondaryButton>
         </Link>
       </div>
 
-      <GlassCard className="p-4">
+      <GlassCard className="p-4 max-w-full overflow-x-hidden">
         {soldJobs.length === 0 ? <div className="text-sm text-[var(--muted)]">No sold jobs.</div> : null}
 
         <div className="mt-2 grid gap-3">
@@ -414,7 +414,7 @@ export default function TasksPage() {
             return (
               <div
                 key={job.id}
-                className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3"
+                className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 max-w-full overflow-x-hidden"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -423,7 +423,7 @@ export default function TasksPage() {
                       <div className="text-[11px] text-[var(--muted)] truncate">{String(job.projectAddress)}</div>
                     ) : null}
                   </div>
-                  <div className="flex items-center justify-end gap-2 shrink-0 flex-wrap">
+                  <div className="flex items-center justify-end gap-2 flex-wrap min-w-0 max-w-full overflow-hidden">
                     {isAdding ? (
                       <div className="flex items-center gap-2" data-keep-open="true">
                         <Input
