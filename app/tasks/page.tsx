@@ -19,6 +19,13 @@ type JobTaskSnooze = {
   call811?: number;
 };
 
+type CustomJobTask = {
+  id: string;
+  label: string;
+  done?: boolean;
+  createdAt?: number;
+};
+
 type DraftEntry = {
   id: string;
   createdAt?: number;
@@ -32,6 +39,7 @@ type DraftEntry = {
   scheduledAt?: string;
   jobTasks?: JobTasks;
   jobTaskSnooze?: JobTaskSnooze;
+  jobCustomTasks?: CustomJobTask[];
 };
 
 function readDraftStore(): Record<string, DraftEntry> {
@@ -245,6 +253,52 @@ export default function TasksPage() {
     }
   }
 
+  function persistDraftPatch(jobId: string, patch: Partial<DraftEntry>) {
+    try {
+      const store = readDraftStore();
+      const existing = store[jobId] ?? drafts.find((d) => d.id === jobId);
+      if (!existing) return;
+
+      const next: DraftEntry = {
+        ...existing,
+        ...patch,
+        createdAt: Number((existing as any).createdAt) || Date.now(),
+        updatedAt: Date.now()
+      };
+
+      store[jobId] = next;
+      writeDraftStore(store);
+      setDrafts((prev) => prev.map((d) => (d.id === jobId ? { ...d, ...next } : d)));
+      try {
+        void upsertDraft({ id: jobId, data: next });
+      } catch {
+      }
+    } catch {
+    }
+  }
+
+  function addCustomJobTask(jobId: string) {
+    const id =
+      typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+        ? (crypto as any).randomUUID()
+        : `t-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const nextTask: CustomJobTask = { id, label: "New task", done: false, createdAt: Date.now() };
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevTasks = Array.isArray((existing as any)?.jobCustomTasks)
+      ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
+      : [];
+    persistDraftPatch(jobId, { jobCustomTasks: [...prevTasks, nextTask] });
+  }
+
+  function toggleCustomJobTask(jobId: string, taskId: string) {
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevTasks = Array.isArray((existing as any)?.jobCustomTasks)
+      ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
+      : [];
+    const nextTasks = prevTasks.map((t) => (t.id === taskId ? { ...t, done: !Boolean(t.done) } : t));
+    persistDraftPatch(jobId, { jobCustomTasks: nextTasks });
+  }
+
   return (
     <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 88px)" }}>
       <div className="flex items-center justify-between">
@@ -261,6 +315,7 @@ export default function TasksPage() {
           {soldJobs.map((job) => {
             const tasks = (job as any).jobTasks || {};
             const snooze = (job as any).jobTaskSnooze || {};
+            const customTasks = Array.isArray((job as any).jobCustomTasks) ? ((job as any).jobCustomTasks as CustomJobTask[]) : [];
             const doneCount = TASKS.filter((t) => Boolean((tasks as any)[t.key])).length;
 
             return (
@@ -275,8 +330,22 @@ export default function TasksPage() {
                       <div className="text-[11px] text-[var(--muted)] truncate">{String(job.projectAddress)}</div>
                     ) : null}
                   </div>
-                  <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] shrink-0">
-                    {doneCount}/{TASKS.length}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <SecondaryButton
+                      type="button"
+                      data-no-swipe="true"
+                      data-keep-open="true"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        addCustomJobTask(job.id);
+                      }}
+                    >
+                      Add task
+                    </SecondaryButton>
+                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
+                      {doneCount}/{TASKS.length}
+                    </div>
                   </div>
                 </div>
 
@@ -413,6 +482,40 @@ export default function TasksPage() {
                     );
                   })}
                 </div>
+
+                {customTasks.length ? (
+                  <div className="mt-3 grid gap-2">
+                    {customTasks.map((t) => {
+                      const done = Boolean(t.done);
+                      const keyStr = `${job.id}:custom:${t.id}`;
+                      return (
+                        <button
+                          key={keyStr}
+                          type="button"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleCustomJobTask(job.id, t.id);
+                          }}
+                          className={
+                            "w-full rounded-xl border px-3 py-2 text-left transition-none font-extrabold select-none " +
+                            (done
+                              ? "bg-[rgba(31,200,120,.16)] border-[rgba(31,200,120,.35)] text-white opacity-80"
+                              : "bg-[rgba(255,80,80,.10)] border-[rgba(255,80,80,.35)] text-white")
+                          }
+                          style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "pan-y" }}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="truncate">{String(t.label || "Task")}</div>
+                            <div className="text-[11px] text-[var(--muted)] shrink-0">{done ? "Done" : "Tap"}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             );
           })}
