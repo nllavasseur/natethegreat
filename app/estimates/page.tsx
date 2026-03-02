@@ -3765,11 +3765,24 @@ function EstimatesPageInner() {
         writeDraftStore(store);
       } catch (e) {
         if (!isQuotaError(e)) throw e;
+        const quotaSanitized = sanitizePhotosForStorage({
+          projectPhotoDataUrl:
+            typeof (payload as any)?.projectPhotoDataUrl === "string" && String((payload as any).projectPhotoDataUrl).startsWith("data:")
+              ? String((payload as any).projectPhotoDataUrl)
+              : null,
+          preInstallPhotos: normalizePreInstallPhotos((payload as any)?.preInstallPhotos)
+        });
         const lite = {
           ...payload,
-          projectPhotoDataUrl: null,
-          projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
-          preInstallPhotos: stripDataUrlsFromPreInstall(Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : [])
+          projectPhotoDataUrl: quotaSanitized.projectPhotoDataUrl,
+          projectPhotoUrl:
+            typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:")
+              ? quotaSanitized.projectPhotoDataUrl
+              : payload.projectPhotoUrl,
+          preInstallPhotos: mergePreInstallForStorage(
+            stripDataUrlsFromPreInstall(Array.isArray((payload as any).preInstallPhotos) ? (payload as any).preInstallPhotos : []),
+            quotaSanitized.preInstallPhotos
+          )
         };
         store[id] = lite;
         try {
@@ -3868,11 +3881,24 @@ function EstimatesPageInner() {
         tryWrite(store);
       } catch (e) {
         if (!isQuotaError(e)) throw e;
+        const quotaSanitized = sanitizePhotosForStorage({
+          projectPhotoDataUrl:
+            typeof (payload as any)?.projectPhotoDataUrl === "string" && String((payload as any).projectPhotoDataUrl).startsWith("data:")
+              ? String((payload as any).projectPhotoDataUrl)
+              : null,
+          preInstallPhotos: normalizePreInstallPhotos((payload as any)?.preInstallPhotos)
+        });
         const lite = {
           ...payload,
-          projectPhotoDataUrl: null,
-          projectPhotoUrl: typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:") ? null : payload.projectPhotoUrl,
-          preInstallPhotos: stripDataUrlsFromPreInstall(Array.isArray(payload.preInstallPhotos) ? payload.preInstallPhotos : [])
+          projectPhotoDataUrl: quotaSanitized.projectPhotoDataUrl,
+          projectPhotoUrl:
+            typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:")
+              ? quotaSanitized.projectPhotoDataUrl
+              : payload.projectPhotoUrl,
+          preInstallPhotos: mergePreInstallForStorage(
+            stripDataUrlsFromPreInstall(Array.isArray((payload as any).preInstallPhotos) ? (payload as any).preInstallPhotos : []),
+            quotaSanitized.preInstallPhotos
+          )
         };
         store[id] = lite;
         try {
