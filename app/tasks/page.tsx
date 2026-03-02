@@ -121,6 +121,8 @@ export default function TasksPage() {
   const holdTimerRef = useRef<any>(null);
   const [customTaskDrafts, setCustomTaskDrafts] = useState<Record<string, string>>({});
   const [editingCustomTaskKey, setEditingCustomTaskKey] = useState<string | null>(null);
+  const [newCustomTaskDraftByJob, setNewCustomTaskDraftByJob] = useState<Record<string, string>>({});
+  const [addingCustomTaskJobId, setAddingCustomTaskJobId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setInterval(() => setNowMs(Date.now()), 60_000);
@@ -279,18 +281,42 @@ export default function TasksPage() {
     }
   }
 
-  function addCustomJobTask(jobId: string) {
+  function beginAddCustomJobTask(jobId: string) {
+    setAddingCustomTaskJobId(jobId);
+    setNewCustomTaskDraftByJob((prev) => ({ ...prev, [jobId]: String(prev[jobId] ?? "") }));
+  }
+
+  function cancelAddCustomJobTask(jobId: string) {
+    setAddingCustomTaskJobId((prev) => (prev === jobId ? null : prev));
+    setNewCustomTaskDraftByJob((prev) => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
+  }
+
+  function commitAddCustomJobTask(jobId: string) {
+    const raw = String((newCustomTaskDraftByJob as any)[jobId] ?? "");
+    const label = raw.trim();
+    if (!label) return;
+
     const id =
       typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
         ? (crypto as any).randomUUID()
         : `t-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const nextTask: CustomJobTask = { id, label: "New task", done: false, createdAt: Date.now() };
+    const nextTask: CustomJobTask = { id, label, done: false, createdAt: Date.now() };
     const existing = drafts.find((d) => d.id === jobId);
     const prevTasks = Array.isArray((existing as any)?.jobCustomTasks)
       ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
       : [];
     persistDraftPatch(jobId, { jobCustomTasks: [...prevTasks, nextTask] });
-    setCustomTaskDrafts((prev) => ({ ...prev, [`${jobId}:${id}`]: nextTask.label }));
+
+    setAddingCustomTaskJobId((prev) => (prev === jobId ? null : prev));
+    setNewCustomTaskDraftByJob((prev) => {
+      const next = { ...prev };
+      delete next[jobId];
+      return next;
+    });
   }
 
   function toggleCustomJobTask(jobId: string, taskId: string) {
@@ -352,6 +378,8 @@ export default function TasksPage() {
             const snooze = (job as any).jobTaskSnooze || {};
             const customTasks = Array.isArray((job as any).jobCustomTasks) ? ((job as any).jobCustomTasks as CustomJobTask[]) : [];
             const doneCount = TASKS.filter((t) => Boolean((tasks as any)[t.key])).length;
+            const isAdding = addingCustomTaskJobId === job.id;
+            const newDraft = String((newCustomTaskDraftByJob as any)[job.id] ?? "");
 
             return (
               <div
@@ -366,18 +394,74 @@ export default function TasksPage() {
                     ) : null}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <SecondaryButton
-                      type="button"
-                      data-no-swipe="true"
-                      data-keep-open="true"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        addCustomJobTask(job.id);
-                      }}
-                    >
-                      Add task
-                    </SecondaryButton>
+                    {isAdding ? (
+                      <div className="flex items-center gap-2" data-keep-open="true">
+                        <Input
+                          value={newDraft}
+                          placeholder="New task"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          onChange={(e) =>
+                            setNewCustomTaskDraftByJob((prev) => ({
+                              ...prev,
+                              [job.id]: e.target.value
+                            }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              commitAddCustomJobTask(job.id);
+                            }
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              cancelAddCustomJobTask(job.id);
+                            }
+                          }}
+                          className="w-[180px]"
+                        />
+                        <SecondaryButton
+                          type="button"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            commitAddCustomJobTask(job.id);
+                          }}
+                          className="px-3"
+                        >
+                          Add
+                        </SecondaryButton>
+                        <SecondaryButton
+                          type="button"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            cancelAddCustomJobTask(job.id);
+                          }}
+                          className="px-3"
+                        >
+                          Cancel
+                        </SecondaryButton>
+                      </div>
+                    ) : (
+                      <SecondaryButton
+                        type="button"
+                        data-no-swipe="true"
+                        data-keep-open="true"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          beginAddCustomJobTask(job.id);
+                        }}
+                      >
+                        Add task
+                      </SecondaryButton>
+                    )}
                     <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
                       {doneCount}/{TASKS.length}
                     </div>
