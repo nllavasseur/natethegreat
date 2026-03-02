@@ -410,7 +410,6 @@ export default function TasksPage() {
             const isAdding = addingCustomTaskJobId === job.id;
             const newDraft = String((newCustomTaskDraftByJob as any)[job.id] ?? "");
             const hiddenMap = (((job as any).jobTaskHidden && typeof (job as any).jobTaskHidden === "object") ? (job as any).jobTaskHidden : {}) as JobTaskHidden;
-            const anyHidden = TASKS.some((t) => Boolean((hiddenMap as any)[t.key]));
 
             return (
               <div
@@ -418,28 +417,13 @@ export default function TasksPage() {
                 className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-sm font-extrabold truncate">{jobTitle(job)}</div>
                     {job.projectAddress ? (
                       <div className="text-[11px] text-[var(--muted)] truncate">{String(job.projectAddress)}</div>
                     ) : null}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {anyHidden ? (
-                      <SecondaryButton
-                        type="button"
-                        data-no-swipe="true"
-                        data-keep-open="true"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          restoreAllJobTasks(job.id);
-                        }}
-                        className="px-3"
-                      >
-                        Restore
-                      </SecondaryButton>
-                    ) : null}
+                  <div className="flex items-center justify-end gap-2 shrink-0 flex-wrap">
                     {isAdding ? (
                       <div className="flex items-center gap-2" data-keep-open="true">
                         <Input
@@ -465,7 +449,7 @@ export default function TasksPage() {
                               cancelAddCustomJobTask(job.id);
                             }
                           }}
-                          className="w-[180px]"
+                          className="w-[120px]"
                         />
                         <SecondaryButton
                           type="button"
@@ -476,7 +460,7 @@ export default function TasksPage() {
                             e.stopPropagation();
                             commitAddCustomJobTask(job.id);
                           }}
-                          className="px-3"
+                          className="px-3 py-1 text-xs"
                         >
                           Add
                         </SecondaryButton>
@@ -489,7 +473,7 @@ export default function TasksPage() {
                             e.stopPropagation();
                             cancelAddCustomJobTask(job.id);
                           }}
-                          className="px-3"
+                          className="px-3 py-1 text-xs"
                         >
                           Cancel
                         </SecondaryButton>
@@ -504,6 +488,7 @@ export default function TasksPage() {
                           e.stopPropagation();
                           beginAddCustomJobTask(job.id);
                         }}
+                        className="px-3 py-1 text-xs"
                       >
                         Add task
                       </SecondaryButton>
