@@ -12,6 +12,8 @@ type JobTasks = {
   call811?: boolean;
 };
 
+type JobTaskLabels = Partial<Record<keyof JobTasks, string>>;
+
 type JobTaskSnooze = {
   collectDeposit?: number;
   orderMaterials?: number;
@@ -39,6 +41,7 @@ type DraftEntry = {
   scheduledAt?: string;
   jobTasks?: JobTasks;
   jobTaskSnooze?: JobTaskSnooze;
+  jobTaskLabels?: JobTaskLabels;
   jobCustomTasks?: CustomJobTask[];
 };
 
@@ -123,6 +126,8 @@ export default function TasksPage() {
   const [editingCustomTaskKey, setEditingCustomTaskKey] = useState<string | null>(null);
   const [newCustomTaskDraftByJob, setNewCustomTaskDraftByJob] = useState<Record<string, string>>({});
   const [addingCustomTaskJobId, setAddingCustomTaskJobId] = useState<string | null>(null);
+  const [jobTaskLabelDrafts, setJobTaskLabelDrafts] = useState<Record<string, string>>({});
+  const [editingJobTaskKey, setEditingJobTaskKey] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setInterval(() => setNowMs(Date.now()), 60_000);
@@ -228,6 +233,15 @@ export default function TasksPage() {
       }
     } catch {
     }
+  }
+
+  function updateJobTaskLabel(jobId: string, key: keyof JobTasks, label: string) {
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevLabels = (existing as any)?.jobTaskLabels && typeof (existing as any).jobTaskLabels === "object"
+      ? (((existing as any).jobTaskLabels as any) as JobTaskLabels)
+      : {};
+    const nextLabels: JobTaskLabels = { ...prevLabels, [key]: label };
+    persistDraftPatch(jobId, { jobTaskLabels: nextLabels });
   }
 
   function snoozeJobTask(jobId: string, key: keyof JobTasks, untilMs: number) {
@@ -473,6 +487,11 @@ export default function TasksPage() {
                     const done = Boolean((tasks as any)[t.key]);
                     const keyStr = `${job.id}:${String(t.key)}`;
                     const isConfirm = confirmKey === keyStr;
+                    const isEditing = editingJobTaskKey === keyStr;
+                    const labelKey = `${job.id}:${String(t.key)}`;
+                    const overrideLabelRaw = String(((job as any)?.jobTaskLabels as any)?.[t.key] ?? "");
+                    const shownLabel = (overrideLabelRaw || t.label);
+                    const editDraftValue = jobTaskLabelDrafts[labelKey];
                     const dueLevel = dueLevelForTask({ taskKey: t.key, scheduledAt: (job as any).scheduledAt, tasks, snooze, nowMs });
                     const urgent = dueLevel === "urgent";
                     const warn = dueLevel === "warn";
@@ -491,8 +510,7 @@ export default function TasksPage() {
                           onTouchStart={(e) => {
                             e.stopPropagation();
                             if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
-                            const mode = done ? "undo" : (urgent || warn ? "snooze" : null);
-                            if (!mode) return;
+                            const mode = done ? "undo" : (urgent || warn ? "snooze" : "custom");
                             holdTimerRef.current = window.setTimeout(() => {
                               setHoldKey(keyStr);
                               setHoldMode(mode);
@@ -510,8 +528,7 @@ export default function TasksPage() {
                           onPointerDown={(e) => {
                             e.stopPropagation();
                             if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
-                            const mode = done ? "undo" : (urgent || warn ? "snooze" : null);
-                            if (!mode) return;
+                            const mode = done ? "undo" : (urgent || warn ? "snooze" : "custom");
                             holdTimerRef.current = window.setTimeout(() => {
                               setHoldKey(keyStr);
                               setHoldMode(mode);
@@ -555,15 +572,32 @@ export default function TasksPage() {
                           aria-disabled={false}
                         >
                           <div className="flex items-center justify-between gap-3">
-                            <div className="truncate">{t.label}</div>
+                            <div className="truncate">{shownLabel}</div>
                             <div className="text-[11px] text-[var(--muted)] shrink-0">
                               {done ? "Done" : isConfirm ? "Confirm" : urgent || warn ? "Hold" : "Tap"}
                             </div>
                           </div>
                         </button>
 
-                        {showUndo ? (
+                        {showHold && !done ? (
                           <div className="flex justify-end" data-keep-open="true">
+                            <SecondaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingJobTaskKey(keyStr);
+                                setJobTaskLabelDrafts((prev) => ({ ...prev, [labelKey]: shownLabel }));
+                              }}
+                            >
+                              Edit
+                            </SecondaryButton>
+                          </div>
+                        ) : null}
+
+                        {showUndo ? (
+                          <div className="flex justify-end gap-2" data-keep-open="true">
                             <SecondaryButton
                               type="button"
                               data-no-swipe="true"
@@ -577,11 +611,23 @@ export default function TasksPage() {
                             >
                               Undo
                             </SecondaryButton>
+                            <SecondaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingJobTaskKey(keyStr);
+                                setJobTaskLabelDrafts((prev) => ({ ...prev, [labelKey]: shownLabel }));
+                              }}
+                            >
+                              Edit
+                            </SecondaryButton>
                           </div>
                         ) : null}
 
                         {showSnooze ? (
-                          <div className="flex justify-end" data-keep-open="true">
+                          <div className="flex justify-end gap-2" data-keep-open="true">
                             <SecondaryButton
                               type="button"
                               data-no-swipe="true"
@@ -595,6 +641,48 @@ export default function TasksPage() {
                             >
                               Snooze 4h
                             </SecondaryButton>
+                            <SecondaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingJobTaskKey(keyStr);
+                                setJobTaskLabelDrafts((prev) => ({ ...prev, [labelKey]: shownLabel }));
+                              }}
+                            >
+                              Edit
+                            </SecondaryButton>
+                          </div>
+                        ) : null}
+
+                        {isEditing ? (
+                          <div className="grid gap-2" data-keep-open="true">
+                            <Input
+                              value={editDraftValue ?? shownLabel}
+                              placeholder="Task"
+                              data-no-swipe="true"
+                              data-keep-open="true"
+                              onChange={(e) =>
+                                setJobTaskLabelDrafts((prev) => ({
+                                  ...prev,
+                                  [labelKey]: e.target.value
+                                }))
+                              }
+                              onBlur={() => {
+                                const raw = String((jobTaskLabelDrafts as any)[labelKey] ?? "");
+                                const nextLabel = raw.trim();
+                                updateJobTaskLabel(job.id, t.key, nextLabel);
+                                setJobTaskLabelDrafts((prev) => {
+                                  const next = { ...prev };
+                                  delete next[labelKey];
+                                  return next;
+                                });
+                                setEditingJobTaskKey(null);
+                                setHoldKey(null);
+                                setHoldMode(null);
+                              }}
+                            />
                           </div>
                         ) : null}
                       </div>
