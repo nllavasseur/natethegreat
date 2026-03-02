@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
+import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
 
 type JobTasks = {
@@ -119,6 +119,7 @@ export default function TasksPage() {
   const [holdMode, setHoldMode] = useState<"undo" | "snooze" | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const holdTimerRef = useRef<any>(null);
+  const [customTaskDrafts, setCustomTaskDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const t = window.setInterval(() => setNowMs(Date.now()), 60_000);
@@ -288,6 +289,7 @@ export default function TasksPage() {
       ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
       : [];
     persistDraftPatch(jobId, { jobCustomTasks: [...prevTasks, nextTask] });
+    setCustomTaskDrafts((prev) => ({ ...prev, [`${jobId}:${id}`]: nextTask.label }));
   }
 
   function toggleCustomJobTask(jobId: string, taskId: string) {
@@ -297,6 +299,29 @@ export default function TasksPage() {
       : [];
     const nextTasks = prevTasks.map((t) => (t.id === taskId ? { ...t, done: !Boolean(t.done) } : t));
     persistDraftPatch(jobId, { jobCustomTasks: nextTasks });
+  }
+
+  function updateCustomJobTaskLabel(jobId: string, taskId: string, label: string) {
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevTasks = Array.isArray((existing as any)?.jobCustomTasks)
+      ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
+      : [];
+    const nextTasks = prevTasks.map((t) => (t.id === taskId ? { ...t, label } : t));
+    persistDraftPatch(jobId, { jobCustomTasks: nextTasks });
+  }
+
+  function deleteCustomJobTask(jobId: string, taskId: string) {
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevTasks = Array.isArray((existing as any)?.jobCustomTasks)
+      ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
+      : [];
+    const nextTasks = prevTasks.filter((t) => t.id !== taskId);
+    persistDraftPatch(jobId, { jobCustomTasks: nextTasks });
+    setCustomTaskDrafts((prev) => {
+      const next = { ...prev };
+      delete next[`${jobId}:${taskId}`];
+      return next;
+    });
   }
 
   return (
@@ -488,30 +513,74 @@ export default function TasksPage() {
                     {customTasks.map((t) => {
                       const done = Boolean(t.done);
                       const keyStr = `${job.id}:custom:${t.id}`;
+                      const draftKey = `${job.id}:${t.id}`;
+                      const draftValue = customTaskDrafts[draftKey];
+                      const label = draftValue ?? String(t.label || "");
                       return (
-                        <button
-                          key={keyStr}
-                          type="button"
-                          data-no-swipe="true"
-                          data-keep-open="true"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleCustomJobTask(job.id, t.id);
-                          }}
-                          className={
-                            "w-full rounded-xl border px-3 py-2 text-left transition-none font-extrabold select-none " +
-                            (done
-                              ? "bg-[rgba(31,200,120,.16)] border-[rgba(31,200,120,.35)] text-white opacity-80"
-                              : "bg-[rgba(255,80,80,.10)] border-[rgba(255,80,80,.35)] text-white")
-                          }
-                          style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "pan-y" }}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="truncate">{String(t.label || "Task")}</div>
-                            <div className="text-[11px] text-[var(--muted)] shrink-0">{done ? "Done" : "Tap"}</div>
-                          </div>
-                        </button>
+                        <div key={keyStr} className="flex items-center gap-2" data-keep-open="true">
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            data-keep-open="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleCustomJobTask(job.id, t.id);
+                            }}
+                            className={
+                              "rounded-xl border px-3 py-2 text-left transition-none font-extrabold select-none shrink-0 " +
+                              (done
+                                ? "bg-[rgba(31,200,120,.16)] border-[rgba(31,200,120,.35)] text-white opacity-80"
+                                : "bg-[rgba(255,80,80,.10)] border-[rgba(255,80,80,.35)] text-white")
+                            }
+                            style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "pan-y" }}
+                          >
+                            {done ? "Done" : "Tap"}
+                          </button>
+
+                          <Input
+                            value={label}
+                            placeholder="Task"
+                            data-no-swipe="true"
+                            data-keep-open="true"
+                            onChange={(e) =>
+                              setCustomTaskDrafts((prev) => ({
+                                ...prev,
+                                [draftKey]: e.target.value
+                              }))
+                            }
+                            onBlur={() => {
+                              const raw = String((customTaskDrafts as any)[draftKey] ?? "");
+                              const nextLabel = raw.trim();
+                              updateCustomJobTaskLabel(job.id, t.id, nextLabel);
+                              setCustomTaskDrafts((prev) => {
+                                const next = { ...prev };
+                                delete next[draftKey];
+                                return next;
+                              });
+                            }}
+                            className={
+                              "min-w-0 " +
+                              (done
+                                ? "opacity-80"
+                                : "")
+                            }
+                          />
+
+                          <SecondaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            data-keep-open="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteCustomJobTask(job.id, t.id);
+                            }}
+                            className="px-3"
+                          >
+                            Delete
+                          </SecondaryButton>
+                        </div>
                       );
                     })}
                   </div>
