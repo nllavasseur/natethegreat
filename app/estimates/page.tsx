@@ -5884,7 +5884,7 @@ function EstimatesPageInner() {
                 const file = e.target.files?.[0] ?? null;
                 setProjectPhoto(file);
                 if (file) {
-                  fileToCompressedDataUrl(file, 1600, 0.8).then((data) => {
+                  fileToCompressedDataUrl(file, 1280, 0.72).then((data) => {
                     if (!data) return;
                     setProjectPhotoDataUrl(data);
                     setProjectPhotoUrl(data);
