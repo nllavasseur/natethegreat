@@ -608,7 +608,7 @@ export default function TasksPage() {
                           </button>
 
                           {showUndo ? (
-                            <div className="flex justify-end" data-keep-open="true">
+                            <div className="flex justify-end gap-2" data-keep-open="true">
                               <SecondaryButton
                                 type="button"
                                 data-no-swipe="true"
@@ -621,6 +621,20 @@ export default function TasksPage() {
                                 }}
                               >
                                 Undo
+                              </SecondaryButton>
+                              <SecondaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setHoldKey(null);
+                                  setHoldMode(null);
+                                  setEditingCustomTaskKey(null);
+                                  deleteCustomJobTask(job.id, t.id);
+                                }}
+                              >
+                                Delete
                               </SecondaryButton>
                             </div>
                           ) : null}
