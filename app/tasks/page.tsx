@@ -116,10 +116,11 @@ export default function TasksPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [confirmKey, setConfirmKey] = useState<string | null>(null);
   const [holdKey, setHoldKey] = useState<string | null>(null);
-  const [holdMode, setHoldMode] = useState<"undo" | "snooze" | null>(null);
+  const [holdMode, setHoldMode] = useState<"undo" | "snooze" | "custom" | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const holdTimerRef = useRef<any>(null);
   const [customTaskDrafts, setCustomTaskDrafts] = useState<Record<string, string>>({});
+  const [editingCustomTaskKey, setEditingCustomTaskKey] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setInterval(() => setNowMs(Date.now()), 60_000);
@@ -298,6 +299,15 @@ export default function TasksPage() {
       ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
       : [];
     const nextTasks = prevTasks.map((t) => (t.id === taskId ? { ...t, done: !Boolean(t.done) } : t));
+    persistDraftPatch(jobId, { jobCustomTasks: nextTasks });
+  }
+
+  function setCustomJobTaskDone(jobId: string, taskId: string, done: boolean) {
+    const existing = drafts.find((d) => d.id === jobId);
+    const prevTasks = Array.isArray((existing as any)?.jobCustomTasks)
+      ? (((existing as any).jobCustomTasks as any[]) as CustomJobTask[])
+      : [];
+    const nextTasks = prevTasks.map((t) => (t.id === taskId ? { ...t, done } : t));
     persistDraftPatch(jobId, { jobCustomTasks: nextTasks });
   }
 
@@ -515,71 +525,166 @@ export default function TasksPage() {
                       const keyStr = `${job.id}:custom:${t.id}`;
                       const draftKey = `${job.id}:${t.id}`;
                       const draftValue = customTaskDrafts[draftKey];
-                      const label = draftValue ?? String(t.label || "");
+                      const label = String(t.label || "Task");
+                      const isConfirm = confirmKey === keyStr;
+                      const showHold = holdKey === keyStr;
+                      const showUndo = showHold && holdMode === "undo" && done;
+                      const showCustomActions = showHold && holdMode === "custom" && !done;
+                      const isEditing = editingCustomTaskKey === keyStr;
                       return (
-                        <div key={keyStr} className="flex items-center gap-2" data-keep-open="true">
+                        <div key={keyStr} className="grid gap-2" data-keep-open="true">
                           <button
                             type="button"
                             data-no-swipe="true"
                             data-keep-open="true"
+                            onContextMenu={(e) => {
+                              e.preventDefault();
+                            }}
+                            onTouchStart={(e) => {
+                              e.stopPropagation();
+                              if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                              const mode = done ? "undo" : "custom";
+                              holdTimerRef.current = window.setTimeout(() => {
+                                setHoldKey(keyStr);
+                                setHoldMode(mode);
+                                setConfirmKey(null);
+                              }, 3000);
+                            }}
+                            onTouchEnd={() => {
+                              if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                              holdTimerRef.current = null;
+                            }}
+                            onTouchCancel={() => {
+                              if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                              holdTimerRef.current = null;
+                            }}
+                            onPointerDown={(e) => {
+                              e.stopPropagation();
+                              if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                              const mode = done ? "undo" : "custom";
+                              holdTimerRef.current = window.setTimeout(() => {
+                                setHoldKey(keyStr);
+                                setHoldMode(mode);
+                                setConfirmKey(null);
+                              }, 3000);
+                            }}
+                            onPointerUp={() => {
+                              if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                              holdTimerRef.current = null;
+                            }}
+                            onPointerCancel={() => {
+                              if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+                              holdTimerRef.current = null;
+                            }}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              toggleCustomJobTask(job.id, t.id);
+                              if (done) return;
+                              if (!isConfirm) {
+                                setConfirmKey(keyStr);
+                                setHoldKey(null);
+                                setHoldMode(null);
+                                return;
+                              }
+                              setConfirmKey(null);
+                              setCustomJobTaskDone(job.id, t.id, true);
                             }}
                             className={
-                              "rounded-xl border px-3 py-2 text-left transition-none font-extrabold select-none shrink-0 " +
+                              "w-full rounded-xl border px-3 py-2 text-left transition-none font-extrabold select-none " +
                               (done
                                 ? "bg-[rgba(31,200,120,.16)] border-[rgba(31,200,120,.35)] text-white opacity-80"
-                                : "bg-[rgba(255,80,80,.10)] border-[rgba(255,80,80,.35)] text-white")
+                                : isConfirm
+                                  ? "bg-[rgba(255,80,80,.22)] border-[rgba(255,80,80,.45)] text-white"
+                                  : "bg-[rgba(255,80,80,.10)] border-[rgba(255,80,80,.35)] text-white")
                             }
                             style={{ WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none", touchAction: "pan-y" }}
                           >
-                            {done ? "Done" : "Tap"}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="truncate">{label}</div>
+                              <div className="text-[11px] text-[var(--muted)] shrink-0">
+                                {done ? "Done" : isConfirm ? "Confirm" : "Hold"}
+                              </div>
+                            </div>
                           </button>
 
-                          <Input
-                            value={label}
-                            placeholder="Task"
-                            data-no-swipe="true"
-                            data-keep-open="true"
-                            onChange={(e) =>
-                              setCustomTaskDrafts((prev) => ({
-                                ...prev,
-                                [draftKey]: e.target.value
-                              }))
-                            }
-                            onBlur={() => {
-                              const raw = String((customTaskDrafts as any)[draftKey] ?? "");
-                              const nextLabel = raw.trim();
-                              updateCustomJobTaskLabel(job.id, t.id, nextLabel);
-                              setCustomTaskDrafts((prev) => {
-                                const next = { ...prev };
-                                delete next[draftKey];
-                                return next;
-                              });
-                            }}
-                            className={
-                              "min-w-0 " +
-                              (done
-                                ? "opacity-80"
-                                : "")
-                            }
-                          />
+                          {showUndo ? (
+                            <div className="flex justify-end" data-keep-open="true">
+                              <SecondaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setHoldKey(null);
+                                  setHoldMode(null);
+                                  setCustomJobTaskDone(job.id, t.id, false);
+                                }}
+                              >
+                                Undo
+                              </SecondaryButton>
+                            </div>
+                          ) : null}
 
-                          <SecondaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            data-keep-open="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              deleteCustomJobTask(job.id, t.id);
-                            }}
-                            className="px-3"
-                          >
-                            Delete
-                          </SecondaryButton>
+                          {showCustomActions ? (
+                            <div className="flex justify-end gap-2" data-keep-open="true">
+                              <SecondaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setEditingCustomTaskKey(keyStr);
+                                  setCustomTaskDrafts((prev) => ({ ...prev, [draftKey]: label }));
+                                }}
+                              >
+                                Edit
+                              </SecondaryButton>
+                              <SecondaryButton
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setHoldKey(null);
+                                  setHoldMode(null);
+                                  setEditingCustomTaskKey(null);
+                                  deleteCustomJobTask(job.id, t.id);
+                                }}
+                              >
+                                Delete
+                              </SecondaryButton>
+                            </div>
+                          ) : null}
+
+                          {isEditing ? (
+                            <div className="grid gap-2" data-keep-open="true">
+                              <Input
+                                value={draftValue ?? label}
+                                placeholder="Task"
+                                data-no-swipe="true"
+                                data-keep-open="true"
+                                onChange={(e) =>
+                                  setCustomTaskDrafts((prev) => ({
+                                    ...prev,
+                                    [draftKey]: e.target.value
+                                  }))
+                                }
+                                onBlur={() => {
+                                  const raw = String((customTaskDrafts as any)[draftKey] ?? "");
+                                  const nextLabel = raw.trim();
+                                  updateCustomJobTaskLabel(job.id, t.id, nextLabel);
+                                  setCustomTaskDrafts((prev) => {
+                                    const next = { ...prev };
+                                    delete next[draftKey];
+                                    return next;
+                                  });
+                                  setEditingCustomTaskKey(null);
+                                  setHoldKey(null);
+                                  setHoldMode(null);
+                                }}
+                              />
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
