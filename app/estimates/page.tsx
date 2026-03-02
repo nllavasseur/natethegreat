@@ -1014,6 +1014,17 @@ function EstimatesPageInner() {
     return Object.keys(materialUnitPriceDrafts).length > 0;
   }, [materialUnitPriceDrafts]);
 
+  const [takeoffUnitPriceOverrides, setTakeoffUnitPriceOverrides] = useState<Record<string, number>>({});
+  const [takeoffUnitPriceOverrideDrafts, setTakeoffUnitPriceOverrideDrafts] = useState<Record<string, string>>({});
+
+  function takeoffLineKeyForItem(m: any) {
+    const name = String((m as any)?.name || "");
+    const unit = String((m as any)?.unit || "");
+    const priceKey = typeof (m as any)?.priceKey === "string" ? String((m as any).priceKey) : "";
+    const core = priceKey || canonicalMaterialsMergeKey(name);
+    return `${core}__${unit}`;
+  }
+
   const [itemNumberDrafts, setItemNumberDrafts] = useState<Record<string, string>>({});
 
   const materialsDetailsActive = useMemo(() => {
@@ -3351,6 +3362,19 @@ function EstimatesPageInner() {
         return acc;
       }, new Map<string, QuoteItem>());
 
+      const applyTakeoffOverrides = (rows: QuoteItem[]) => {
+        const indexed = (Array.isArray(rows) ? rows : []).map((r) => ({ r, idx: 0 }));
+        return indexed.map(({ r }) => {
+          const lk = takeoffLineKeyForItem(r as any);
+          const override = Number((takeoffUnitPriceOverrides as any)[lk]);
+          if (!Number.isFinite(override)) return r;
+          const unitPrice = override;
+          const qty = Number((r as any).qty) || 0;
+          const lineTotal = Math.round(qty * unitPrice * 100) / 100;
+          return { ...(r as any), unitPrice, lineTotal } as QuoteItem;
+        });
+      };
+
       // Gate accessories (hinges/kits/framing) are wood-only and should reflect estimate-level wood gate count,
       // not multiply per card/run.
       const baseIdResolved = baseComboCardId || null;
@@ -3395,7 +3419,7 @@ function EstimatesPageInner() {
       ensureQty("Delivery", "ea", 1);
       ensureQty("Equipment Fees", "ea", 1);
 
-      const out = Array.from(merged.values());
+      const out = applyTakeoffOverrides(Array.from(merged.values()));
       const feeOrder: Record<string, number> = { Disposal: 0, Delivery: 1, "Equipment Fees": 2 };
       const indexed = out.map((r, idx) => ({ r, idx }));
       indexed.sort((a, b) => {
@@ -3432,7 +3456,7 @@ function EstimatesPageInner() {
       }
       return [] as QuoteItem[];
     }
-  }, [baseComboCardId, comboCards, materialUnitPrices, segments]);
+  }, [baseComboCardId, comboCards, materialUnitPrices, segments, takeoffUnitPriceOverrides]);
 
   useEffect(() => {
     if ((generatedMaterials?.length || 0) > 0) {
@@ -3529,6 +3553,7 @@ function EstimatesPageInner() {
         extraPosts,
         ...comboPayload,
         materialUnitPrices,
+        takeoffUnitPriceOverrides,
         laborDays,
         laborManualDays,
         laborManualCost,
@@ -3587,6 +3612,7 @@ function EstimatesPageInner() {
     comboCards,
     activeComboCardId,
     materialUnitPrices,
+    takeoffUnitPriceOverrides,
     laborDays,
     laborManualDays,
     laborManualCost,
@@ -3672,6 +3698,7 @@ function EstimatesPageInner() {
       comboCards,
       activeComboCardId,
       materialUnitPrices,
+      takeoffUnitPriceOverrides,
       laborDays,
       laborManualDays,
       laborManualCost,
@@ -5002,7 +5029,7 @@ function EstimatesPageInner() {
     setItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function reset() {
+  function resetEstimate() {
     clearUnsavedSnapshot();
 
     const nextComboCardId =
@@ -5044,6 +5071,9 @@ function EstimatesPageInner() {
       }
     ]);
     setActiveComboCardId(nextComboCardId);
+
+    setTakeoffUnitPriceOverrides({});
+    setTakeoffUnitPriceOverrideDrafts({});
   }
 
 // ...
@@ -5114,6 +5144,9 @@ function EstimatesPageInner() {
       }
     ]);
     setActiveComboCardId(nextComboCardId);
+
+    setTakeoffUnitPriceOverrides({});
+    setTakeoffUnitPriceOverrideDrafts({});
 
     const additionalItems = Array.isArray(d.items)
       ? (d.items as any[]).filter((it) => it && typeof it === "object" && (it as any).section === "additional")
@@ -5437,6 +5470,22 @@ function EstimatesPageInner() {
         return { ...prev, ...patch };
       });
     }
+
+    if ((d as any).takeoffUnitPriceOverrides && typeof (d as any).takeoffUnitPriceOverrides === "object") {
+      setTakeoffUnitPriceOverrides(() => {
+        const incoming = (d as any).takeoffUnitPriceOverrides as Record<string, any>;
+        const out: Record<string, number> = {};
+        for (const [k, v] of Object.entries(incoming)) {
+          const n = Number(v);
+          if (!Number.isFinite(n)) continue;
+          out[String(k)] = n;
+        }
+        return out;
+      });
+    } else {
+      setTakeoffUnitPriceOverrides({});
+    }
+    setTakeoffUnitPriceOverrideDrafts({});
     setLaborDays(Number(d.laborDays ?? 0));
     setLaborManualDays(String((d as any).laborManualDays ?? ""));
     setLaborManualCost(String((d as any).laborManualCost ?? ""));
@@ -6398,26 +6447,46 @@ function EstimatesPageInner() {
                                       <Input
                                         inputMode="decimal"
                                         value={
-                                          materialUnitPriceDrafts[normalizeUnitPriceKey(m.name)] ??
-                                          String(getUnitPriceFromMap({ materialUnitPrices, name: m.name }) ?? m.unitPrice ?? 0)
+                                          takeoffUnitPriceOverrideDrafts[takeoffLineKeyForItem(m)] ??
+                                          (() => {
+                                            const k = takeoffLineKeyForItem(m);
+                                            const override = Number((takeoffUnitPriceOverrides as any)[k]);
+                                            if (Number.isFinite(override)) return String(override);
+                                            return String(m.unitPrice ?? 0);
+                                          })()
                                         }
                                         onChange={(e) =>
-                                          setMaterialUnitPriceDrafts((prev) => ({
+                                          setTakeoffUnitPriceOverrideDrafts((prev) => ({
                                             ...prev,
-                                            [normalizeUnitPriceKey(m.name)]: e.target.value
+                                            [takeoffLineKeyForItem(m)]: e.target.value
                                           }))
                                         }
                                         onBlur={() => {
-                                          const k = normalizeUnitPriceKey(m.name);
-                                          const raw = materialUnitPriceDrafts[k];
+                                          const k = takeoffLineKeyForItem(m);
+                                          const raw = takeoffUnitPriceOverrideDrafts[k];
                                           if (raw === undefined) return;
-                                          const n = Number(raw);
-                                          touchedMaterialUnitPricesRef.current.add(k);
-                                          setMaterialUnitPrices((prev) => ({
-                                            ...prev,
-                                            [k]: Number.isFinite(n) ? n : 0
-                                          }));
-                                          setMaterialUnitPriceDrafts((prev) => {
+                                          const trimmed = String(raw || "").trim();
+                                          const parsed = trimmed === "" ? NaN : Number(trimmed);
+                                          setTakeoffUnitPriceOverrides((prev) => {
+                                            const next = { ...prev };
+                                            if (trimmed === "") {
+                                              delete next[k];
+                                            } else {
+                                              next[k] = Number.isFinite(parsed) ? parsed : 0;
+                                            }
+                                            return next;
+                                          });
+                                          setTakeoffMaterialsStable((prev) =>
+                                            (Array.isArray(prev) ? prev : []).map((row) => {
+                                              const rk = takeoffLineKeyForItem(row);
+                                              if (rk !== k) return row;
+                                              const unitPrice = trimmed === "" ? Number((row as any).unitPrice) || 0 : (Number.isFinite(parsed) ? parsed : 0);
+                                              const qty = Number((row as any).qty) || 0;
+                                              const lineTotal = Math.round(qty * unitPrice * 100) / 100;
+                                              return { ...(row as any), unitPrice, lineTotal } as QuoteItem;
+                                            })
+                                          );
+                                          setTakeoffUnitPriceOverrideDrafts((prev) => {
                                             const next = { ...prev };
                                             delete next[k];
                                             return next;
@@ -8865,7 +8934,7 @@ function EstimatesPageInner() {
                 <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
                   {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                 </SecondaryButton>
-                <SecondaryButton onClick={reset} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
               </div>
             </div>
           </nav>,
