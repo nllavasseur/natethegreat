@@ -4400,6 +4400,58 @@ function EstimatesPageInner() {
     }
   }, [draftId, projectPhotoUrl, projectPhotoPath, projectPhotoDataUrl]);
 
+  const lastPersistedPreInstallRef = useRef<string>("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!draftId) return;
+    if (restoringRef.current) return;
+
+    // Don't persist placeholder rows while uploads/compression are still running.
+    if (preInstallPendingCount > 0) return;
+    if (preInstallPhotos.some((p) => !String((p as any)?.src || "").trim())) return;
+
+    const key = JSON.stringify(preInstallPhotos);
+    if (lastPersistedPreInstallRef.current === key) return;
+    lastPersistedPreInstallRef.current = key;
+
+    const t = window.setTimeout(() => {
+      try {
+        const sanitized = sanitizePhotosForStorage({
+          projectPhotoDataUrl: null,
+          preInstallPhotos: (Array.isArray(preInstallPhotos) ? preInstallPhotos : []).map((p: any) => ({
+            src: String(p?.src || ""),
+            note: String(p?.note || ""),
+            createdAt: Number(p?.createdAt) || Date.now()
+          }))
+        });
+        const preInstallForStorage = mergePreInstallForStorage(preInstallPhotos, sanitized.preInstallPhotos);
+
+        const store = readDraftStore();
+        const prev = (store as any)[draftId] ?? {};
+        const next = {
+          ...prev,
+          preInstallPhotos: preInstallForStorage,
+          updatedAt: Date.now()
+        };
+        (store as any)[draftId] = next;
+        try {
+          writeDraftStore(store);
+        } catch {
+          // ignore
+        }
+        try {
+          void upsertDraft({ id: draftId, data: next });
+        } catch {
+          // ignore
+        }
+      } catch {
+        // ignore
+      }
+    }, 250);
+
+    return () => window.clearTimeout(t);
+  }, [draftId, preInstallPhotos, preInstallPendingCount]);
+
   useEffect(() => {
     const read = () => {
       if (typeof window === "undefined") return;
