@@ -3537,6 +3537,12 @@ function EstimatesPageInner() {
         comboCards,
         activeComboCardId
       };
+
+      const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
+      const projectDataBackup = sanitized.projectPhotoDataUrl;
+      const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
+      const preInstallForStorage = mergePreInstallForStorage(preInstallPhotos, sanitized.preInstallPhotos);
+
       const payload = {
         draftId,
         draftParam,
@@ -3544,9 +3550,11 @@ function EstimatesPageInner() {
         projectAddress,
         phoneNumber,
         email,
-        projectPhotoUrl: typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl,
+        // Keep photo state in the snapshot so navigating away/back doesn't wipe in-progress photo edits.
+        // Prefer remote URL if available; otherwise keep a small local data backup.
+        projectPhotoUrl: projectUrlSafe || projectDataBackup,
         projectPhotoPath,
-        projectPhotoDataUrl: null,
+        projectPhotoDataUrl: projectDataBackup,
         selectedFenceType,
         selectedStyle,
         materialsDetails,
@@ -3565,7 +3573,7 @@ function EstimatesPageInner() {
         doubleGateCount: effectiveDoubleGateCount,
         referenceLength,
         notes,
-        preInstallPhotos: stripDataUrlsFromPreInstall(preInstallPhotos),
+        preInstallPhotos: preInstallForStorage,
         segments,
         items
       };
