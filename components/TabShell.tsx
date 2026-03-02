@@ -158,7 +158,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh flex flex-col vf-app-bg overflow-x-hidden max-w-full">
       {hideChrome ? null : (
-        <div ref={headerRef} className="sticky top-0 z-[59] isolate transform-gpu">
+        <div ref={headerRef} className="sticky top-0 z-[59] isolate w-full max-w-full">
           <TopBar />
           <nav aria-label="Top navigation">
             <div className="mx-auto max-w-[980px] px-4 pb-3 pt-3">
