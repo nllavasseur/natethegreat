@@ -188,6 +188,10 @@ function woodGateFramingName(railMaterial: "Pressure treated" | "Cedar" | "Cedar
   return railMaterial === "Rough sawn cedar" ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
 }
 
+function woodGateFramingPriceKey(railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  return railMaterial === "Rough sawn cedar" ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
+}
+
 function woodTwoByTwoName(twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   if (isCedarLike(twoByTwoMaterial)) return "2x2 8' Cedar S4S";
   if (twoByTwoMaterial === "Cedar tone") return "2x2 8' CedarTone";
@@ -3350,7 +3354,10 @@ function EstimatesPageInner() {
 
       const merged = allRows.reduce((acc, r) => {
         const priceKey = typeof (r as any)?.priceKey === "string" ? String((r as any).priceKey) : "";
-        const core = priceKey ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(r.name);
+        const isGateFramingKey = priceKey === "Cedar S4S Gate Framing" || priceKey === "Rough Sawn Cedar Gate Framing";
+        const core = isGateFramingKey
+          ? canonicalMaterialsMergeKey("Gate Framing")
+          : (priceKey ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(r.name));
         const key = `${core}__${r.unit}`;
         const prev = acc.get(key);
         if (prev) {
@@ -3369,6 +3376,7 @@ function EstimatesPageInner() {
           const nextIsRough = nextName.toLowerCase().includes("rough sawn");
           if (!prevIsRough && nextIsRough) {
             prev.name = r.name;
+            if (typeof (r as any)?.priceKey === "string") (prev as any).priceKey = (r as any).priceKey;
           }
           if (prevPrice <= 0 && nextPrice > 0) {
             prev.unitPrice = nextPrice;
@@ -3420,8 +3428,10 @@ function EstimatesPageInner() {
       );
       const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
-      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, priceKey?: string) => {
-        const keyCore = typeof priceKey === "string" && priceKey.trim() ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(name);
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, priceKey?: string, mergeKey?: string) => {
+        const keyCore = typeof mergeKey === "string" && mergeKey.trim()
+          ? canonicalMaterialsMergeKey(mergeKey)
+          : (typeof priceKey === "string" && priceKey.trim() ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(name));
         const k = `${keyCore}__${unit}`;
         if (qty <= 0) {
           merged.delete(k);
@@ -3433,6 +3443,7 @@ function EstimatesPageInner() {
           prev.name = name;
           prev.unit = unit;
           if (typeof priceKey === "string" && priceKey.trim()) (prev as any).priceKey = priceKey;
+          prev.unitPrice = getUnitPriceFromMap({ materialUnitPrices, name, priceKey });
           prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
           const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name, priceKey });
@@ -3447,7 +3458,8 @@ function EstimatesPageInner() {
         .filter((c) => c.fenceType === "wood")
         .some((c) => (c.materialsDetails as any)?.railMaterial === "Rough sawn cedar");
       const gateFramingName = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
-      ensureQty(gateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, "Cedar S4S Gate Framing");
+      const gateFramingPriceKey = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
+      ensureQty(gateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, gateFramingPriceKey, "Gate Framing");
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
