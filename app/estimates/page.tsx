@@ -5087,27 +5087,16 @@ function EstimatesPageInner() {
 
     const scrollY = window.scrollY || 0;
     const body = document.body;
+    const html = document.documentElement;
     const prevOverflow = body.style.overflow;
-    const prevPosition = body.style.position;
-    const prevTop = body.style.top;
-    const prevLeft = body.style.left;
-    const prevRight = body.style.right;
-    const prevWidth = body.style.width;
+    const prevHtmlOverflow = html.style.overflow;
 
     body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
+    html.style.overflow = "hidden";
 
     return () => {
       body.style.overflow = prevOverflow;
-      body.style.position = prevPosition;
-      body.style.top = prevTop;
-      body.style.left = prevLeft;
-      body.style.right = prevRight;
-      body.style.width = prevWidth;
+      html.style.overflow = prevHtmlOverflow;
       window.scrollTo(0, scrollY);
     };
   }, [materialsDetailsOpen, measureOpen, stylePickerIdx]);
@@ -9006,7 +8995,7 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <nav
-            className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
+            className="fixed left-0 right-0 z-50 px-4"
             style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
             aria-label="Estimate actions"
           >
