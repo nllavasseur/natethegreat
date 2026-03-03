@@ -2581,7 +2581,7 @@ function EstimatesPageInner() {
         .map((r) => {
           const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
     }
 
@@ -3021,7 +3021,14 @@ function EstimatesPageInner() {
       const lf = Number(totalLf) || 0;
       const style = String(selectedStyle?.name || "Aluminum");
       const hRaw = Math.max(1, Math.floor(Number(materialsDetails.aluminumPanelHeight) || 48));
-      const allowedHeights = aluminumAllowedPanelHeights;
+      const allowedHeights = (() => {
+        if (style === "Mansfield") return [48, 60];
+        if (style === "Atlantic") return [48];
+        if (style === "Pacific") return [54];
+        if (style === "Toledo") return [48, 60];
+        if (style === "Terrier") return [48];
+        return [48];
+      })();
       const h = allowedHeights.includes(hRaw) ? hRaw : Math.max(1, Math.floor(Number(allowedHeights[0]) || hRaw));
 
       const w = 6;
@@ -3033,14 +3040,23 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / w), 0)
         : (lf > 0 ? Math.ceil(lf / w) : 0);
 
-      const corner = aluminumPostsSummary.corner;
-      const end = aluminumPostsSummary.end;
-      const blank = aluminumPostsSummary.blank;
-      const gate = aluminumPostsSummary.gate;
-      const line = aluminumPostsSummary.line;
+      const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
+      const doubleGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isDoubleGateSegment(s)).length);
+      const gateDerived = (walkGates + doubleGates) * 2;
+
+      const postsBase = panels > 0 ? panels + 1 : 0;
+      const totalPosts = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
+
+      const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
+      const gate = materialsDetails.aluminumGateAuto
+        ? gateDerived
+        : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
+      const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
+      const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
+      const line = Math.max(0, totalPosts - (corner + gate + end + blank));
 
       // Concrete: 160lb per post (2x 80lb bags per post). Priced using 60lb bag line item.
-      const concrete80Bags = Math.max(0, aluminumPostsSummary.total) * 2;
+      const concrete80Bags = Math.max(0, totalPosts) * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const heightLabel = h === 54 ? "4.5'" : `${Math.round(h / 12)}'`;
@@ -3062,7 +3078,7 @@ function EstimatesPageInner() {
 
       const walkGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
         if (!selectedStyle) return [] as Array<{ name: string; qty: number; unit: string }>;
-        const walkCount = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
+        const walkCount = walkGates;
         if (walkCount <= 0) return [];
 
         if (style === "Mansfield") {
@@ -3132,7 +3148,7 @@ function EstimatesPageInner() {
       })();
 
       const doubleGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
-        const doubleCount = Math.max(0, Number(effectiveDoubleGateCount) || 0);
+        const doubleCount = doubleGates;
         if (doubleCount <= 0) return [] as Array<{ name: string; qty: number; unit: string }>;
 
         if (style === "Mansfield") {
