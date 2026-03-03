@@ -3349,7 +3349,9 @@ function EstimatesPageInner() {
       }
 
       const merged = allRows.reduce((acc, r) => {
-        const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
+        const priceKey = typeof (r as any)?.priceKey === "string" ? String((r as any).priceKey) : "";
+        const core = priceKey ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(r.name);
+        const key = `${core}__${r.unit}`;
         const prev = acc.get(key);
         if (prev) {
           const prevIds = Array.isArray((prev as any).__cardIds) ? ((prev as any).__cardIds as string[]) : [];
@@ -3361,14 +3363,19 @@ function EstimatesPageInner() {
           prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
           const prevPrice = Number(prev.unitPrice) || 0;
           const nextPrice = Number(r.unitPrice) || 0;
+          const prevName = String((prev as any).name || "");
+          const nextName = String((r as any).name || "");
+          const prevIsRough = prevName.toLowerCase().includes("rough sawn");
+          const nextIsRough = nextName.toLowerCase().includes("rough sawn");
+          if (!prevIsRough && nextIsRough) {
+            prev.name = r.name;
+          }
           if (prevPrice <= 0 && nextPrice > 0) {
             prev.unitPrice = nextPrice;
-            prev.name = r.name;
           } else if (nextPrice > prevPrice) {
             // If we canonical-merge two equivalent names, keep the higher non-zero price.
             // Also switch display name so price edits map to the priced name.
             prev.unitPrice = nextPrice;
-            prev.name = r.name;
           }
           prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
@@ -3413,8 +3420,9 @@ function EstimatesPageInner() {
       );
       const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
-      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
-        const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, priceKey?: string) => {
+        const keyCore = typeof priceKey === "string" && priceKey.trim() ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(name);
+        const k = `${keyCore}__${unit}`;
         if (qty <= 0) {
           merged.delete(k);
           return;
@@ -3424,16 +3432,22 @@ function EstimatesPageInner() {
           prev.qty = qty;
           prev.name = name;
           prev.unit = unit;
+          if (typeof priceKey === "string" && priceKey.trim()) (prev as any).priceKey = priceKey;
           prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
-          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
-          merged.set(k, { section: "materials", name, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 });
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name, priceKey });
+          merged.set(k, { section: "materials", name, priceKey, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 } as any);
         }
       };
 
       ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
       ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
-      ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
+
+      const anyWoodRoughRails = comboCards
+        .filter((c) => c.fenceType === "wood")
+        .some((c) => (c.materialsDetails as any)?.railMaterial === "Rough sawn cedar");
+      const gateFramingName = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
+      ensureQty(gateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, "Cedar S4S Gate Framing");
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
