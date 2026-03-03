@@ -133,78 +133,86 @@ function parseCsvLine(line: string): string[] {
   return out;
 }
 
-function woodMaterialLabel(m: "Pressure treated" | "Cedar" | "Cedar tone") {
-  return m === "Cedar tone" ? "CedarTone" : (m === "Cedar" ? "Cedar" : "Pressure Treated");
+function isCedarLike(m: unknown) {
+  if (m === "Cedar") return true;
+  if (typeof m === "string" && m.startsWith("Rough sawn cedar")) return true;
+  return false;
 }
 
-function woodPostItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone") {
+function woodMaterialLabel(m: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  return m === "Cedar tone" ? "CedarTone" : (isCedarLike(m) ? "Cedar" : "Pressure Treated");
+}
+
+function woodPostItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   const s = postSize === 10 ? "10" : "8";
-  if (postType === "Cedar") return `4x4 x ${s}' Cedar S4S Post`;
+  if (isCedarLike(postType)) return `4x4 x ${s}' Cedar S4S Post`;
   if (postType === "Cedar tone") return `4x4 x ${s}' CedarTone Post`;
   return `4x4 x ${s}' Post`;
 }
 
-function woodPostItemNameByDim(params: { postDim: "4x4" | "6x6"; postSize: number; postType: "Pressure treated" | "Cedar" | "Cedar tone" }) {
+function woodPostItemNameByDim(params: { postDim: "4x4" | "6x6"; postSize: number; postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" }) {
   const { postDim, postSize, postType } = params;
   return postDim === "6x6" ? woodPost6x6ItemName(postSize, postType) : woodPostItemName(postSize, postType);
 }
 
-function woodPost6x6ItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone") {
+function woodPost6x6ItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   const s = postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
-  if (postType === "Cedar") return `6x6 x ${s}' Cedar S4S Post`;
+  if (isCedarLike(postType)) return `6x6 x ${s}' Cedar S4S Post`;
   if (postType === "Cedar tone") return `6x6 x ${s}' CedarTone Post`;
   return `6x6 x ${s}' Pressure Treated Post`;
 }
 
-function woodRail2x4Name(lengthFt: 8 | 16, railMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (railMaterial === "Cedar") return `2x4 ${lengthFt}' Cedar S4S Rails`;
+function woodRail2x4Name(lengthFt: 8 | 16, railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (isCedarLike(railMaterial)) return `2x4 ${lengthFt}' Cedar S4S Rails`;
   if (railMaterial === "Cedar tone") return `2x4 ${lengthFt}' CedarTone Rails`;
   return `2x4 ${lengthFt}' Pressure Treated Rails`;
 }
 
-function woodPicketName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (picketMaterial === "Cedar") return "6' Cedar Dog Ear Pickets";
+function woodPicketName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4") {
+  if (picketMaterial === "Rough sawn cedar 5/8") return "6' Rough Sawn Cedar Dog Ear Pickets 5/8";
+  if (picketMaterial === "Rough sawn cedar 3/4") return "6' Rough Sawn Cedar Dog Ear Pickets 3/4";
+  if (isCedarLike(picketMaterial)) return "6' Cedar Dog Ear Pickets";
   if (picketMaterial === "Cedar tone") return "6' CedarTone Dog Ear Pickets";
   return "6' Pressure Treated Dog Ear Pickets";
 }
 
-function woodTrimName(trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (trimMaterial === "Cedar") return "1x4 x 8' Cedar Trim";
+function woodTrimName(trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (isCedarLike(trimMaterial)) return "1x4 x 8' Cedar Trim";
   if (trimMaterial === "Cedar tone") return "1x4 x 8' CedarTone Trim";
   return "1x4 x 8' Trim";
 }
 
-function woodTwoByTwoName(twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (twoByTwoMaterial === "Cedar") return "2x2 8' Cedar S4S";
+function woodTwoByTwoName(twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (isCedarLike(twoByTwoMaterial)) return "2x2 8' Cedar S4S";
   if (twoByTwoMaterial === "Cedar tone") return "2x2 8' CedarTone";
   return "2x2 8' Pressure Treated";
 }
 
-function woodBoard1x6x12Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (boardMaterial === "Cedar") return "1x6x12 Cedar Boards";
+function woodBoard1x6x12Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (isCedarLike(boardMaterial)) return "1x6x12 Cedar Boards";
   if (boardMaterial === "Cedar tone") return "1x6x12 CedarTone Boards";
   return "1x6x12 Pressure Treated Boards";
 }
 
-function woodBoard1x6x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (boardMaterial === "Cedar") return "1x6x8 Cedar";
+function woodBoard1x6x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (isCedarLike(boardMaterial)) return "1x6x8 Cedar";
   if (boardMaterial === "Cedar tone") return "1x6x8 CedarTone";
   return "1x6x8";
 }
 
-function woodBoard2x2x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  if (boardMaterial === "Cedar") return "2x2x8 Cedar";
+function woodBoard2x2x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (isCedarLike(boardMaterial)) return "2x2x8 Cedar";
   if (boardMaterial === "Cedar tone") return "2x2x8 CedarTone";
   return "2x2x8";
 }
 
-function woodNailsBoxQty(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
-  return picketMaterial === "Cedar" ? 1000 : 2000;
+function woodNailsBoxQty(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4") {
+  return isCedarLike(picketMaterial) ? 1000 : 2000;
 }
 
-function woodNailsItemName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone") {
+function woodNailsItemName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4") {
   const qty = woodNailsBoxQty(picketMaterial);
-  if (picketMaterial === "Cedar") return `2\" Nails ${qty}ct Stainless Steel Ring Shank Nails`;
+  if (isCedarLike(picketMaterial)) return `2\" Nails ${qty}ct Stainless Steel Ring Shank Nails`;
   return `2\" Nails ${qty}ct Hot-Dipped Galvanized Ring Shank Nails`;
 }
 
@@ -219,21 +227,21 @@ const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string
 };
 
 type MaterialsDetails = {
-  woodType: "Pressure treated" | "Cedar" | "Cedar tone";
-  railMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-  picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-  trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
-  twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  woodType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
+  railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
+  picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
+  trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
+  twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   horizontalCedarBoardProfile: "5/4" | "1x6";
   horizontalCedarBoardMaterial: "Pressure Treated" | "5/4 cedar" | "1x6 cedar" | "CedarTone";
-  shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone";
+  shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   fiveQuarterTwoRailMeshVerticals: boolean;
   fiveQuarterTwoRailMeshCorners: boolean;
   wireMeshCornerBoardsOverride: number;
   wireMeshVerticalBoardsOverride: number;
   postDim: "4x4" | "6x6";
   postSize: 8 | 10 | 12 | 14;
-  postType: "Pressure treated" | "Cedar" | "Cedar tone";
+  postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   postCaps: boolean;
   topCaps: boolean;
   arbor: boolean;
@@ -244,7 +252,7 @@ type MaterialsDetails = {
   splitRailCornerPosts: number;
   splitRailEndPosts: number;
   pictureFrameTrimPieces: 2 | 3 | 5;
-  pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone";
+  pictureFrameTrimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   takeoffPreset: "standard" | "horizontal_cedar";
   horizontalCedarVerticals: boolean;
   horizontalCedarCornerAdjust: number;
@@ -1021,7 +1029,8 @@ function EstimatesPageInner() {
     const name = String((m as any)?.name || "");
     const unit = String((m as any)?.unit || "");
     const priceKey = typeof (m as any)?.priceKey === "string" ? String((m as any).priceKey) : "";
-    const core = priceKey || canonicalMaterialsMergeKey(name);
+    const nameKey = canonicalMaterialsMergeKey(name);
+    const core = priceKey ? `${priceKey}__${nameKey}` : nameKey;
     return `${core}__${unit}`;
   }
 
@@ -1182,7 +1191,7 @@ function EstimatesPageInner() {
       selectedStyleKind === "wood_horizontal";
     if (!useHorizontalCedarTakeoff) return;
 
-    const wood = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Cedar tone";
+    const wood = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
     const desired =
       wood === "Cedar tone"
         ? "CedarTone"
@@ -1681,12 +1690,21 @@ function EstimatesPageInner() {
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.08,
     "4x4 x 10' Post": 16.88,
+    "4x4 x 8' Cedar S4S Post": 45.99,
+    "4x4 x 10' Cedar S4S Post": 57.59,
+    "6x6 x 8' Cedar S4S Post": 145.99,
+    "6x6 x 10' Cedar S4S Post": 166.79,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
+    "6' Rough Sawn Cedar Dog Ear Pickets 5/8": 4.78,
+    "6' Rough Sawn Cedar Dog Ear Pickets 3/4": 5.95,
+    "2x4 8' Cedar S4S Rails": 14.99,
+    "2x4 16' Cedar S4S Rails": 29.99,
     "2x4 16' Pressure Treated Rails": 13.78,
     "5/4x6x12 Pressure Treated Boards": 10.59,
     "5/4x6x12 Cedar S4S Rails": 29.79,
     "5/4x6x12 CedarTone Rails": 17.69,
     "Concrete 60lb Bag": 0,
+    "1x4 Cedar Boards": 9.98,
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
     "1x4 x 8' CedarTone Trim": 0,
@@ -2026,7 +2044,7 @@ function EstimatesPageInner() {
 
         // Screws: 6 per 5/4 board
         const screwCount = rails5_4 > 0 ? Math.ceil(rails5_4 * 6) : 0;
-        const useStainlessScrews = materialsDetails.railMaterial === "Cedar";
+        const useStainlessScrews = isCedarLike(materialsDetails.railMaterial);
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
 
         // Staples: 10 per post
@@ -2041,7 +2059,7 @@ function EstimatesPageInner() {
         const fiveQuarterRailName =
           materialsDetails.railMaterial === "Cedar tone"
             ? "5/4x6x12 CedarTone Rails"
-            : materialsDetails.railMaterial === "Cedar"
+            : isCedarLike(materialsDetails.railMaterial)
               ? "5/4x6x12 Cedar S4S Rails"
               : "5/4x6x12 Pressure Treated Boards";
 
@@ -2388,7 +2406,7 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 7) * 2), 0)
         : (lf > 0 ? Math.ceil(((lf * 12) / 7) * 2) : 0);
 
-      const nailsMaterial = materialsDetails.shadowboxBoardMaterial === "Cedar" ? "Cedar" : "Pressure treated";
+      const nailsMaterial = isCedarLike(materialsDetails.shadowboxBoardMaterial) ? ("Cedar" as const) : ("Pressure treated" as const);
       const nailsPerBox = woodNailsBoxQty(nailsMaterial);
       const nailsName = woodNailsItemName(nailsMaterial);
       const nailsBoxes = shadowboxBoards > 0 ? Math.ceil((shadowboxBoards * 6) / nailsPerBox) : 0;
@@ -2401,7 +2419,7 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const boardName = materialsDetails.shadowboxBoardMaterial === "Cedar"
+      const boardName = isCedarLike(materialsDetails.shadowboxBoardMaterial)
         ? "1x4 Cedar Boards"
         : materialsDetails.shadowboxBoardMaterial === "Cedar tone"
           ? "1x4 CedarTone Boards"
@@ -2468,18 +2486,16 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
-      const postName =
-        materialsDetails.postType === "Cedar tone"
-          ? "4x4 x 10' CedarTone Post"
-          : materialsDetails.postType === "Cedar"
-            ? "4x4 x 10' Cedar S4S Post"
-            : "4x4 x 10' Pressure Treated Post";
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: 10, postType: materialsDetails.postType });
+      const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+      const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(rails2x4x8 > 0 ? [{ name: "2x4 8' Pressure Treated Rails", qty: rails2x4x8, unit: "ea" }] : []),
-        ...(rails2x4x16 > 0 ? [{ name: "2x4 16' Pressure Treated Rails", qty: rails2x4x16, unit: "ea" }] : []),
-        ...(pickets > 0 ? [{ name: "6' Pressure Treated Dog Ear Pickets", qty: pickets, unit: "ea" }] : []),
+        ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
+        ...(pickets > 0 ? [{ name: picketName, qty: pickets, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
@@ -2526,12 +2542,7 @@ function EstimatesPageInner() {
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
-      const postName =
-        materialsDetails.postType === "Cedar tone"
-          ? "4x4 x 10' CedarTone Post"
-          : materialsDetails.postType === "Cedar"
-            ? "4x4 x 10' Cedar S4S Post"
-            : "4x4 x 10' Pressure Treated Post";
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
       const twoByTwoName = woodBoard2x2x8Name(materialsDetails.twoByTwoMaterial);
       const oneBySixName = woodBoard1x6x8Name(materialsDetails.railMaterial);
@@ -2730,7 +2741,7 @@ function EstimatesPageInner() {
         const lf = Number(totalLf) || 0;
         const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
         const boardProfile = materialsDetails.horizontalCedarBoardProfile === "1x6" ? "1x6" : "5/4";
-        const woodType = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Cedar tone";
+        const woodType = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
         const boardName =
           boardProfile === "1x6"
             ? (woodType === "Pressure treated"
@@ -5352,7 +5363,7 @@ function EstimatesPageInner() {
 
     if (d.materialsDetails && typeof d.materialsDetails === "object") {
       const dd = d.materialsDetails as any;
-      const woodType = (dd.woodType === "Cedar" || dd.woodType === "Cedar tone" || dd.woodType === "Pressure treated")
+      const woodType = (dd.woodType === "Cedar" || dd.woodType === "Rough sawn cedar" || dd.woodType === "Cedar tone" || dd.woodType === "Pressure treated")
         ? dd.woodType
         : "Pressure treated";
 
@@ -5368,7 +5379,7 @@ function EstimatesPageInner() {
           ? dd.horizontalCedarBoardMaterial
           : "5/4 cedar";
 
-      const shadowboxBoardMaterial = dd.shadowboxBoardMaterial === "Cedar" || dd.shadowboxBoardMaterial === "Pressure Treated"
+      const shadowboxBoardMaterial = dd.shadowboxBoardMaterial === "Cedar" || dd.shadowboxBoardMaterial === "Rough sawn cedar" || dd.shadowboxBoardMaterial === "Pressure Treated"
         ? dd.shadowboxBoardMaterial
         : "Pressure Treated";
 
@@ -5379,23 +5390,30 @@ function EstimatesPageInner() {
         ? Math.max(-1, Math.floor(Number(dd.wireMeshVerticalBoardsOverride)))
         : -1;
 
-      const railMaterial = (dd.railMaterial === "Cedar" || dd.railMaterial === "Cedar tone" || dd.railMaterial === "Pressure treated")
+      const railMaterial = (dd.railMaterial === "Cedar" || dd.railMaterial === "Rough sawn cedar" || dd.railMaterial === "Cedar tone" || dd.railMaterial === "Pressure treated")
         ? dd.railMaterial
         : woodType;
-      const picketMaterial = (dd.picketMaterial === "Cedar" || dd.picketMaterial === "Cedar tone" || dd.picketMaterial === "Pressure treated")
+      const picketMaterial = (
+        dd.picketMaterial === "Cedar" ||
+        dd.picketMaterial === "Rough sawn cedar" ||
+        dd.picketMaterial === "Rough sawn cedar 5/8" ||
+        dd.picketMaterial === "Rough sawn cedar 3/4" ||
+        dd.picketMaterial === "Cedar tone" ||
+        dd.picketMaterial === "Pressure treated"
+      )
         ? dd.picketMaterial
         : woodType;
-      const trimMaterial = (dd.trimMaterial === "Cedar" || dd.trimMaterial === "Cedar tone" || dd.trimMaterial === "Pressure treated")
+      const trimMaterial = (dd.trimMaterial === "Cedar" || dd.trimMaterial === "Rough sawn cedar" || dd.trimMaterial === "Cedar tone" || dd.trimMaterial === "Pressure treated")
         ? dd.trimMaterial
         : woodType;
-      const twoByTwoMaterial = (dd.twoByTwoMaterial === "Cedar" || dd.twoByTwoMaterial === "Cedar tone" || dd.twoByTwoMaterial === "Pressure treated")
+      const twoByTwoMaterial = (dd.twoByTwoMaterial === "Cedar" || dd.twoByTwoMaterial === "Rough sawn cedar" || dd.twoByTwoMaterial === "Cedar tone" || dd.twoByTwoMaterial === "Pressure treated")
         ? dd.twoByTwoMaterial
         : woodType;
       const splitRailMaterial = (dd.splitRailMaterial === "Cedar tone" || dd.splitRailMaterial === "Pressure treated")
         ? dd.splitRailMaterial
         : "Pressure treated";
 
-      const postType = (dd.postType === "Cedar" || dd.postType === "Cedar tone" || dd.postType === "Pressure treated")
+      const postType = (dd.postType === "Cedar" || dd.postType === "Rough sawn cedar" || dd.postType === "Cedar tone" || dd.postType === "Pressure treated")
         ? dd.postType
         : "Pressure treated";
 
@@ -5420,7 +5438,7 @@ function EstimatesPageInner() {
       const pictureFrameTrimPieces = (dd.pictureFrameTrimPieces === 2 || dd.pictureFrameTrimPieces === 3)
         ? dd.pictureFrameTrimPieces
         : 3;
-      const pictureFrameTrimMaterial = (dd.pictureFrameTrimMaterial === "Cedar" || dd.pictureFrameTrimMaterial === "Cedar tone" || dd.pictureFrameTrimMaterial === "Pressure treated")
+      const pictureFrameTrimMaterial = (dd.pictureFrameTrimMaterial === "Cedar" || dd.pictureFrameTrimMaterial === "Rough sawn cedar" || dd.pictureFrameTrimMaterial === "Cedar tone" || dd.pictureFrameTrimMaterial === "Pressure treated")
         ? dd.pictureFrameTrimMaterial
         : woodType;
       const takeoffPreset = dd.takeoffPreset === "horizontal_cedar" || dd.takeoffPreset === "standard"
@@ -8418,7 +8436,7 @@ function EstimatesPageInner() {
                               <Select
                                 value={materialsDetails.woodType}
                                 onChange={(e) => {
-                                  const next = e.target.value as "Pressure treated" | "Cedar" | "Cedar tone";
+                                  const next = e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
                                   setMaterialsDetails((p) => ({
                                     ...p,
                                     woodType: next,
@@ -8440,6 +8458,7 @@ function EstimatesPageInner() {
                               >
                                 <option value="Pressure treated">Pressure treated</option>
                                 <option value="Cedar">Cedar</option>
+                                <option value="Rough sawn cedar">Rough sawn cedar</option>
                                 <option value="Cedar tone">Cedar tone</option>
                               </Select>
                             </div>
@@ -8489,12 +8508,13 @@ function EstimatesPageInner() {
                             onChange={(e) =>
                               setMaterialsDetails((p) => ({
                                 ...p,
-                                postType: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                                postType: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
                               }))
                             }
                           >
                             <option value="Pressure treated">Pressure treated</option>
                             <option value="Cedar">Cedar</option>
+                            <option value="Rough sawn cedar">Rough sawn cedar</option>
                             <option value="Cedar tone">Cedar tone</option>
                           </Select>
                         </div>
@@ -8509,12 +8529,13 @@ function EstimatesPageInner() {
                               onChange={(e) =>
                                 setMaterialsDetails((p) => ({
                                   ...p,
-                                  railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                                  railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
                                 }))
                               }
                             >
                               <option value="Pressure treated">Pressure treated</option>
                               <option value="Cedar">Cedar</option>
+                              <option value="Rough sawn cedar">Rough sawn cedar</option>
                               <option value="Cedar tone">Cedar tone</option>
                             </Select>
                           </div>
@@ -8525,12 +8546,15 @@ function EstimatesPageInner() {
                               onChange={(e) =>
                                 setMaterialsDetails((p) => ({
                                   ...p,
-                                  picketMaterial: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                                  picketMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4" | "Cedar tone"
                                 }))
                               }
                             >
                               <option value="Pressure treated">Pressure treated</option>
                               <option value="Cedar">Cedar</option>
+                              <option value="Rough sawn cedar">Rough sawn cedar</option>
+                              <option value="Rough sawn cedar 5/8">Rough sawn cedar (5/8)</option>
+                              <option value="Rough sawn cedar 3/4">Rough sawn cedar (3/4)</option>
                               <option value="Cedar tone">Cedar tone</option>
                             </Select>
                           </div>
@@ -8835,12 +8859,15 @@ function EstimatesPageInner() {
                           onChange={(e) =>
                             setMaterialsDetails((p) => ({
                               ...p,
-                              shadowboxBoardMaterial: (e.target.value === "Cedar" ? "Cedar" : "Pressure Treated") as "Pressure Treated" | "Cedar"
+                              shadowboxBoardMaterial: (e.target.value === "Pressure Treated" || e.target.value === "Cedar" || e.target.value === "Rough sawn cedar" || e.target.value === "Cedar tone")
+                                ? (e.target.value as any)
+                                : ("Pressure Treated" as any)
                             }))
                           }
                         >
                           <option value="Pressure Treated">Pressure treated</option>
                           <option value="Cedar">Cedar</option>
+                          <option value="Rough sawn cedar">Rough sawn cedar</option>
                         </Select>
                       </div>
                     </div>
@@ -8862,12 +8889,13 @@ function EstimatesPageInner() {
                           onChange={(e) =>
                             setMaterialsDetails((p) => ({
                               ...p,
-                              pictureFrameTrimMaterial: e.target.value as "Pressure treated" | "Cedar" | "Cedar tone"
+                              pictureFrameTrimMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
                             }))
                           }
                         >
                           <option value="Pressure treated">Pressure treated</option>
                           <option value="Cedar">Cedar</option>
+                          <option value="Rough sawn cedar">Rough sawn cedar</option>
                           <option value="Cedar tone">Cedar tone</option>
                         </Select>
                       </div>
