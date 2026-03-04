@@ -9080,7 +9080,7 @@ function EstimatesPageInner() {
                 </div>
               ) : null}
 
-              <div className="border border-[var(--stroke)] shadow-glass rounded-t-2xl rounded-b-none p-3">
+              <div className="border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
                 <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
                   <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                     {saving ? "Saving…" : "Save"}
