@@ -209,6 +209,17 @@ function soldQueueFromStore(store: Record<string, QueueDraft>) {
     );
 }
 
+function normalizeSoldRanksFromSnapshot(store: Record<string, QueueDraft>, soldSnapshot: QueueDraft[]) {
+  soldSnapshot
+    .filter((d) => d && (d as any).status === "sold" && !(d as any).calendarHidden)
+    .forEach((d, idx) => {
+      const id = String((d as any).id || "");
+      if (!id) return;
+      ensureStoreEntry(store, id, d as any);
+      store[id] = { ...(store as any)[id], queueRank: idx + 1, updatedAt: now() };
+    });
+}
+
 export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; soldSnapshot?: QueueDraft[] }) {
   const sid = String(params.id);
   const store = readStore();
@@ -216,13 +227,7 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
   // If the UI has a merged/remote-enriched view of sold jobs, seed them into the local store so
   // reorder operations can't accidentally drop remote-only entries.
   if (Array.isArray(params.soldSnapshot)) {
-    params.soldSnapshot.forEach((d) => {
-      if (!d) return;
-      const id = String((d as any).id || "");
-      if (!id) return;
-      if ((d as any).status !== "sold" || (d as any).calendarHidden) return;
-      ensureStoreEntry(store, id, d as any);
-    });
+    normalizeSoldRanksFromSnapshot(store, params.soldSnapshot);
   }
 
   const sold = soldQueueFromStore(store);
@@ -242,16 +247,16 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
 
   const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
   const curFullIdx = full.findIndex((d) => String(d.id) === sid);
-  if (curFullIdx === -1) return { ok: false as const };
-  if (holdSlots.has(curFullIdx)) return { ok: false as const };
+  if (curFullIdx === -1) return { ok: false as const, reason: "NOT_FOUND" as const };
+  if (holdSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_HOLD" as const };
 
   const curMovIdx = movableSlots.indexOf(curFullIdx);
-  if (curMovIdx === -1) return { ok: false as const };
+  if (curMovIdx === -1) return { ok: false as const, reason: "NOT_MOVABLE" as const };
   const nextMovIdx = curMovIdx + params.dir;
-  if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return { ok: false as const };
+  if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return { ok: false as const, reason: "OUT_OF_RANGE" as const };
 
   const from = movable.findIndex((d) => String(d.id) === sid);
-  if (from === -1) return { ok: false as const };
+  if (from === -1) return { ok: false as const, reason: "NOT_FOUND_MOVABLE" as const };
 
   const [picked] = movable.splice(from, 1);
   movable.splice(nextMovIdx, 0, picked);
@@ -271,11 +276,11 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
   });
 
   writeStore(store);
+  notifyDraftsChanged();
   try {
-    await Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
+    void Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
   } catch {
   }
-  notifyDraftsChanged();
   return { ok: true as const };
 }
 
@@ -284,13 +289,7 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
   const store = readStore();
 
   if (Array.isArray(params.soldSnapshot)) {
-    params.soldSnapshot.forEach((d) => {
-      if (!d) return;
-      const id = String((d as any).id || "");
-      if (!id) return;
-      if ((d as any).status !== "sold" || (d as any).calendarHidden) return;
-      ensureStoreEntry(store, id, d as any);
-    });
+    normalizeSoldRanksFromSnapshot(store, params.soldSnapshot);
   }
 
   const sold = soldQueueFromStore(store);
@@ -310,15 +309,15 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
 
   const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
   const curFullIdx = full.findIndex((d) => String(d.id) === sid);
-  if (curFullIdx === -1) return { ok: false as const };
-  if (holdSlots.has(curFullIdx)) return { ok: false as const };
+  if (curFullIdx === -1) return { ok: false as const, reason: "NOT_FOUND" as const };
+  if (holdSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_HOLD" as const };
 
   const desiredFullIdx = Math.max(0, Math.min(full.length - 1, Math.round(params.targetPos) - 1));
   const desiredMovIdx = movableSlots.findIndex((idx) => idx === desiredFullIdx);
-  if (desiredMovIdx === -1) return { ok: false as const };
+  if (desiredMovIdx === -1) return { ok: false as const, reason: "TARGET_IS_HOLD" as const };
 
   const from = movable.findIndex((d) => String(d.id) === sid);
-  if (from === -1) return { ok: false as const };
+  if (from === -1) return { ok: false as const, reason: "NOT_FOUND_MOVABLE" as const };
 
   const [picked] = movable.splice(from, 1);
   movable.splice(desiredMovIdx, 0, picked);
@@ -337,10 +336,10 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
   });
 
   writeStore(store);
+  notifyDraftsChanged();
   try {
-    await Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
+    void Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
   } catch {
   }
-  notifyDraftsChanged();
   return { ok: true as const };
 }
