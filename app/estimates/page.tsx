@@ -3427,7 +3427,19 @@ function EstimatesPageInner() {
       );
       const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
-      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, priceKey?: string, mergeKey?: string) => {
+      const woodGateAccessoriesCardId = (() => {
+        const first = woodGateSegments[0] as any;
+        if (first) {
+          const cid = first.cardId ?? null;
+          const resolved = cid === null ? baseIdResolved : cid;
+          const card = comboCards.find((c) => c.id === resolved);
+          if (card?.fenceType === "wood") return resolved as string;
+        }
+        const firstWoodCard = comboCards.find((c) => c.fenceType === "wood");
+        return (firstWoodCard?.id || baseIdResolved || "") as string;
+      })();
+
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, priceKey?: string, mergeKey?: string, cardId?: string) => {
         const keyCore = typeof mergeKey === "string" && mergeKey.trim()
           ? canonicalMaterialsMergeKey(mergeKey)
           : (typeof priceKey === "string" && priceKey.trim() ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(name));
@@ -3438,6 +3450,11 @@ function EstimatesPageInner() {
         }
         const prev = merged.get(k);
         if (prev) {
+          const nextId = typeof cardId === "string" && cardId.trim() ? cardId.trim() : "";
+          if (nextId) {
+            const prevIds = Array.isArray((prev as any).__cardIds) ? ((prev as any).__cardIds as string[]) : [];
+            (prev as any).__cardIds = prevIds.includes(nextId) ? prevIds : [...prevIds, nextId];
+          }
           prev.qty = qty;
           prev.name = name;
           prev.unit = unit;
@@ -3446,19 +3463,29 @@ function EstimatesPageInner() {
           prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
           const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name, priceKey });
-          merged.set(k, { section: "materials", name, priceKey, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 } as any);
+          const nextId = typeof cardId === "string" && cardId.trim() ? cardId.trim() : "";
+          merged.set(k, {
+            section: "materials",
+            name,
+            priceKey,
+            qty,
+            unit,
+            unitPrice,
+            lineTotal: Math.round(qty * unitPrice * 100) / 100,
+            ...(nextId ? { __cardIds: [nextId], __shared: false } : {})
+          } as any);
         }
       };
 
-      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
-      ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
+      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1, undefined, undefined, woodGateAccessoriesCardId);
+      ensureQty("Double gate kit", "ea", totalDoubleGates * 1, undefined, undefined, woodGateAccessoriesCardId);
 
       const anyWoodRoughRails = comboCards
         .filter((c) => c.fenceType === "wood")
         .some((c) => (c.materialsDetails as any)?.railMaterial === "Rough sawn cedar");
       const gateFramingName = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
       const gateFramingPriceKey = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
-      ensureQty(gateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, gateFramingPriceKey, "Gate Framing");
+      ensureQty(gateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, gateFramingPriceKey, "Gate Framing", woodGateAccessoriesCardId);
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
