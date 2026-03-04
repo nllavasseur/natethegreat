@@ -7,6 +7,7 @@ import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/compo
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import { deleteDraftRemote, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import type { QuoteItem } from "@/lib/types";
 
 type DraftEntry = {
@@ -337,60 +338,9 @@ export default function QuotesPage() {
 
   function setDraftStatus(id: string, status: DraftEntry["status"]) {
     try {
-      const store = readDraftStore();
-      const existing = store[id] ?? drafts.find((d) => d.id === id);
+      const existing = readDraftStore()[id] ?? drafts.find((d) => d.id === id);
       if (!existing) return;
-      if (!store[id]) {
-        store[id] = {
-          ...(existing as any),
-          id,
-          createdAt: Number((existing as any)?.createdAt) || Date.now(),
-          updatedAt: Date.now()
-        } as any;
-      }
-      const prevStatus = (store as any)[id]?.status;
-      const hasValidQueueRank = Number.isFinite(Number((store as any)[id]?.queueRank)) && Number((store as any)[id]?.queueRank) > 0;
-      const shouldAppendToQueue = status === "sold" && (prevStatus !== "sold" || !hasValidQueueRank);
-      let nextQueueRank: number | undefined = undefined;
-      if (shouldAppendToQueue) {
-        const byId = new Map<string, any>();
-        Object.values(store).forEach((d: any) => {
-          if (!d || !d.id) return;
-          byId.set(String(d.id), d);
-        });
-        (drafts || []).forEach((d: any) => {
-          if (!d || !d.id) return;
-          if (!byId.has(String(d.id))) byId.set(String(d.id), d);
-        });
-
-        const soldRanks = Array.from(byId.values())
-          .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-          .map((d) => Number((d as any).queueRank))
-          .filter((n) => Number.isFinite(n) && n > 0);
-        const maxRank = soldRanks.length ? Math.max(...soldRanks) : 0;
-        nextQueueRank = maxRank + 1;
-      }
-      store[id] = {
-        ...store[id],
-        createdAt: Number((store as any)[id]?.createdAt) || Date.now(),
-        status,
-        calendarHidden: status === "sold" ? false : status === "void" ? true : store[id].calendarHidden,
-        startDate: status === "void" ? undefined : store[id].startDate,
-        installDate: status === "void" ? undefined : store[id].installDate,
-        updatedAt: Date.now()
-      };
-      if (shouldAppendToQueue && typeof nextQueueRank === "number") {
-        (store as any)[id] = {
-          ...(store as any)[id],
-          queueRank: nextQueueRank,
-          updatedAt: Date.now()
-        };
-      }
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-      try {
-        void upsertDraft({ id, data: store[id] });
-      } catch {
-      }
+      void setStatusFromQuotes({ id, status, draftSnapshot: existing as any });
       setDrafts((prev) =>
         prev.map((d) =>
           d.id === id
@@ -404,7 +354,6 @@ export default function QuotesPage() {
             : d
         )
       );
-      notifyDraftsChanged();
     } catch {
       // ignore
     }

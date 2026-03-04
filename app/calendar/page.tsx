@@ -4,6 +4,14 @@ import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
 import { createPortal } from "react-dom";
+import {
+  adjustLaborDays as adjustLaborDaysPipeline,
+  moveSoldJobRelative as moveSoldJobRelativePipeline,
+  moveSoldJobToPosition as moveSoldJobToPositionPipeline,
+  resetLaborDays as resetLaborDaysPipeline,
+  setHoldDate as setHoldDatePipeline,
+  toggleWeekendAllowed as toggleWeekendAllowedPipeline
+} from "@/lib/queuePipeline";
 
 const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -335,49 +343,6 @@ export default function CalendarPage() {
     setDayPreviewOpen(false);
   }, []);
 
-  const ensureQueueRanks = React.useCallback(() => {
-    const store = readDraftStore();
-    const sold = Object.values(store)
-      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-      .slice()
-      .sort((a, b) =>
-        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
-        Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
-      );
-
-    const existingRanks = sold
-      .map((d) => Number((d as any).queueRank))
-      .filter((n) => Number.isFinite(n) && n > 0);
-    let nextRank = (existingRanks.length ? Math.max(...existingRanks) : 0) + 1;
-    let changed = false;
-    sold.forEach((d) => {
-      if (typeof (d as any).queueRank !== "number") {
-        const rid = String((d as any).id);
-        if (!(store as any)[rid]) {
-          (store as any)[rid] = { ...(d as any), id: rid, createdAt: Number((d as any).createdAt) || Date.now(), updatedAt: Date.now() };
-        }
-        (store as any)[rid] = { ...(store as any)[rid], queueRank: nextRank, updatedAt: Date.now() };
-        changed = true;
-      }
-      nextRank += 1;
-    });
-
-    if (changed) {
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-      try {
-        Object.values(store).forEach((d) => {
-          if ((d as any).status === "sold" && typeof (d as any).queueRank === "number") {
-            const rid = String((d as any).id);
-            void upsertDraft({ id: rid, data: d });
-          }
-        });
-      } catch {
-      }
-      notifyDraftsChanged();
-    }
-  }, []);
-
   React.useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
@@ -397,9 +362,6 @@ export default function CalendarPage() {
       const blocks = readBlockOutStore();
       if (!cancelled) setBlockOuts(blocks);
     };
-
-    // Ensure sold jobs have stable queue ranks before first render.
-    ensureQueueRanks();
     void refresh();
 
     const onStorage = (e: StorageEvent) => {
@@ -415,7 +377,7 @@ export default function CalendarPage() {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("vf-drafts-changed", onDraftsChanged as any);
     };
-  }, [ensureQueueRanks]);
+  }, []);
 
   React.useEffect(() => {
     if (!blockOpen) return;
@@ -557,76 +519,11 @@ export default function CalendarPage() {
       queueAnchorRef.current = null;
     }
 
-    const store = readDraftStore();
-    const sold = Object.values(store)
-      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-      .slice()
-      .sort((a, b) =>
-        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
-        Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
-      );
-
-    const isHold = (d: DraftEntry) => Boolean(String((d as any).holdDate || "").slice(0, 10));
-    const full = sold.map((d) => ({ ...d }));
-    const holdSlots = new Set<number>();
-    const holds: DraftEntry[] = [];
-    const movable: DraftEntry[] = [];
-    full.forEach((d, idx) => {
-      if (isHold(d)) {
-        holdSlots.add(idx);
-        holds.push(d);
-      } else {
-        movable.push(d);
-      }
-    });
-    const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
-
-    const curFullIdx = full.findIndex((d) => String(d.id) === sid);
-    if (curFullIdx === -1) return;
-    if (holdSlots.has(curFullIdx)) return;
-    const curMovIdx = movableSlots.indexOf(curFullIdx);
-    if (curMovIdx === -1) return;
-    const nextMovIdx = curMovIdx + dir;
-    if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return;
-
-    const from = movable.findIndex((d) => String(d.id) === sid);
-    if (from === -1) return;
-    const to = nextMovIdx;
-    const [picked] = movable.splice(from, 1);
-    movable.splice(to, 0, picked);
-
-    const rebuilt: DraftEntry[] = new Array(full.length);
-    let h = 0;
-    let m = 0;
-    for (let i = 0; i < rebuilt.length; i++) {
-      if (holdSlots.has(i)) {
-        rebuilt[i] = holds[h++];
-      } else {
-        rebuilt[i] = movable[m++];
-      }
-    }
-
-    rebuilt.forEach((d, idx) => {
-      const rid = String((d as any).id);
-      if (!(store as any)[rid]) {
-        (store as any)[rid] = { ...(d as any), id: rid, createdAt: Number((d as any).createdAt) || Date.now(), updatedAt: Date.now() };
-      }
-      (store as any)[rid] = { ...(store as any)[rid], queueRank: idx + 1, updatedAt: Date.now() };
-    });
-
-    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-    try {
-      rebuilt.forEach((d) => {
-        const rid = String((d as any).id);
-        void upsertDraft({ id: rid, data: (store as any)[rid] ?? d });
-      });
-    } catch {
-    }
-    notifyDraftsChanged();
-
-    // Update in-tab state immediately (storage events don't fire in the same tab).
-    setDrafts(Object.values(store).map((d) => ({ ...d })));
+    void (async () => {
+      await moveSoldJobRelativePipeline({ id: sid, dir });
+      const store = readDraftStore();
+      setDrafts(Object.values(store).map((d) => ({ ...d })));
+    })();
 
     setHighlightQueueId(sid);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
@@ -635,187 +532,67 @@ export default function CalendarPage() {
 
   const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
     const sid = String(id);
-    const store = readDraftStore();
-    const sold = (drafts || [])
-      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-      .slice()
-      .sort((a, b) =>
-        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
-        Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
-      );
-
-    const isHold = (d: DraftEntry) => Boolean(String((d as any).holdDate || "").slice(0, 10));
-    const full = sold.map((d) => ({ ...d }));
-    const holdSlots = new Set<number>();
-    const holds: DraftEntry[] = [];
-    const movable: DraftEntry[] = [];
-    full.forEach((d, idx) => {
-      if (isHold(d)) {
-        holdSlots.add(idx);
-        holds.push(d);
-      } else {
-        movable.push(d);
-      }
-    });
-    const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
-    const curFullIdx = full.findIndex((d) => String(d.id) === sid);
-    if (curFullIdx === -1) return;
-    if (holdSlots.has(curFullIdx)) return;
-
-    const desiredFullIdx = Math.max(0, Math.min(full.length - 1, targetPos - 1));
-    const desiredMovIdx = movableSlots.findIndex((idx) => idx === desiredFullIdx);
-    if (desiredMovIdx === -1) return;
-
-    const from = movable.findIndex((d: DraftEntry) => String(d.id) === sid);
-    if (from === -1) return;
-    const [picked] = movable.splice(from, 1);
-    movable.splice(desiredMovIdx, 0, picked);
-
-    const rebuilt: DraftEntry[] = new Array(full.length);
-    let h = 0;
-    let m = 0;
-    for (let i = 0; i < rebuilt.length; i++) {
-      if (holdSlots.has(i)) rebuilt[i] = holds[h++];
-      else rebuilt[i] = movable[m++];
-    }
-
-    rebuilt.forEach((d, idx) => {
-      const rid = String((d as any).id);
-      if (!(store as any)[rid]) {
-        (store as any)[rid] = { ...(d as any), id: rid, createdAt: Number((d as any).createdAt) || Date.now(), updatedAt: Date.now() };
-      }
-      (store as any)[rid] = { ...(store as any)[rid], queueRank: idx + 1, updatedAt: Date.now() };
-    });
-
-    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-    try {
-      rebuilt.forEach((d) => {
-        const rid = String((d as any).id);
-        void upsertDraft({ id: rid, data: (store as any)[rid] ?? d });
-      });
-    } catch {
-    }
-    notifyDraftsChanged();
-    // Update in-tab state immediately (storage events don't fire in the same tab).
-    setDrafts(Object.values(store).map((d) => ({ ...d })));
+    void (async () => {
+      await moveSoldJobToPositionPipeline({ id: sid, targetPos });
+      const store = readDraftStore();
+      setDrafts(Object.values(store).map((d) => ({ ...d })));
+    })();
     setHighlightQueueId(sid);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
   }, [drafts]);
 
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
-    const store = readDraftStore();
-    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id) ?? fallback;
-    if (!existing) return;
-    if (!(store as any)[id]) {
-      (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
-    }
-    const curSat = asBool((store as any)[id].allowSaturday);
-    const curSun = asBool((store as any)[id].allowSunday);
-    const next =
-      which === "sat"
-        ? { allowSaturday: !curSat, allowSunday: curSun }
-        : { allowSaturday: curSat, allowSunday: !curSun };
-    (store as any)[id] = { ...(store as any)[id], ...next, updatedAt: Date.now() };
-    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-    try {
-      void upsertDraft({ id, data: (store as any)[id] });
-    } catch {
-    }
-    notifyDraftsChanged();
-
-    // Update in-tab state immediately without clobbering remote-only drafts.
-    setDrafts((prev) => {
-      const nextOne = { ...(store as any)[id] };
-      const idx = prev.findIndex((d) => d.id === id);
-      if (idx >= 0) {
-        return prev.map((d) => (d.id === id ? { ...(d as any), ...(nextOne as any) } : d));
-      }
-      return [...prev, nextOne as any];
-    });
+    const sid = String(id);
+    void (async () => {
+      const res = await toggleWeekendAllowedPipeline({ id: sid, which, fallback: fallback as any });
+      if (!res.ok) return;
+      setDrafts((prev) => {
+        const nextOne = { ...(res.draft as any) };
+        const idx = prev.findIndex((d) => String(d.id) === sid);
+        if (idx >= 0) return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
+        return [...prev, nextOne as any];
+      });
+    })();
 
   }, [drafts]);
 
   const resetLaborDays = React.useCallback((id: string, fallback?: DraftEntry) => {
     const sid = String(id);
-    const store = readDraftStore();
-    const existing = (store as any)[sid] ?? drafts.find((d) => String(d.id) === sid) ?? fallback;
-    if (!existing) return;
-    if (!(store as any)[sid]) {
-      (store as any)[sid] = { ...(existing as any), id: sid, updatedAt: Date.now() };
-    }
-    const orig = Number((store as any)[sid].originalLaborDays);
-    if (!Number.isFinite(orig) || orig <= 0) return;
-    (store as any)[sid] = { ...(store as any)[sid], laborDays: Math.max(1, Math.round(orig)), updatedAt: Date.now() };
-    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-    try {
-      void upsertDraft({ id: sid, data: (store as any)[sid] });
-    } catch {
-    }
-    notifyDraftsChanged();
-
-    // Update in-tab state immediately (storage events don't fire in the same tab).
-    setDrafts(Object.values(store).map((d) => ({ ...d })));
-
-    setHighlightQueueId(sid);
-    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
-    highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
+    void (async () => {
+      const res = await resetLaborDaysPipeline({ id: sid, fallback: fallback as any });
+      if (!res.ok) return;
+      const store = readDraftStore();
+      setDrafts(Object.values(store).map((d) => ({ ...d })));
+      setHighlightQueueId(sid);
+      if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
+      highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
+    })();
   }, [drafts]);
 
   const setHoldDate = React.useCallback((id: string, iso: string | undefined) => {
     const sid = String(id);
-    const store = readDraftStore();
-    if (!(store as any)[sid]) return;
-    (store as any)[sid] = { ...(store as any)[sid], holdDate: iso, updatedAt: Date.now() };
-    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-    try {
-      void upsertDraft({ id: sid, data: (store as any)[sid] });
-    } catch {
-    }
-    notifyDraftsChanged();
-
-    // Update in-tab state immediately (storage events don't fire in the same tab).
-    setDrafts(Object.values(store).map((d) => ({ ...d })));
+    void (async () => {
+      const res = await setHoldDatePipeline({ id: sid, iso, fallback: (drafts.find((d) => String(d.id) === sid) as any) });
+      if (!res.ok) return;
+      const store = readDraftStore();
+      setDrafts(Object.values(store).map((d) => ({ ...d })));
+    })();
 
   }, [drafts]);
 
   const adjustLaborDays = React.useCallback((id: string, delta: number, fallback?: DraftEntry) => {
     const sid = String(id);
-    const store = readDraftStore();
-    const existing = (store as any)[sid] ?? drafts.find((d) => String(d.id) === sid) ?? fallback;
-    if (!existing) return;
-    if (!(store as any)[sid]) {
-      (store as any)[sid] = { ...(existing as any), id: sid, updatedAt: Date.now() };
-    }
-
-    const cur = Number((store as any)[sid].laborDays);
-    const base = computeSpanDays(Number.isFinite(cur) && cur > 0 ? cur : 1);
-    const next = Math.max(1, Math.round(base + delta));
-
-    const existingOriginal = Number((store as any)[sid].originalLaborDays);
-    const originalLaborDays =
-      Number.isFinite(existingOriginal) && existingOriginal > 0
-        ? existingOriginal
-        : computeSpanDays(Number.isFinite(cur) && cur > 0 ? cur : 1);
-
-    (store as any)[sid] = { ...(store as any)[sid], laborDays: next, originalLaborDays, updatedAt: Date.now() };
-    window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-    try {
-      void upsertDraft({ id: sid, data: (store as any)[sid] });
-    } catch {
-    }
-    notifyDraftsChanged();
-
-    // Update in-tab state immediately without clobbering remote-only drafts.
-    setDrafts((prev) => {
-      const nextOne = { ...(store as any)[sid] };
-      const idx = prev.findIndex((d) => String(d.id) === sid);
-      if (idx >= 0) {
-        return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
-      }
-      return [...prev, nextOne as any];
-    });
+    void (async () => {
+      const res = await adjustLaborDaysPipeline({ id: sid, delta, fallback: fallback as any });
+      if (!res.ok) return;
+      setDrafts((prev) => {
+        const nextOne = { ...(res.draft as any) };
+        const idx = prev.findIndex((d) => String(d.id) === sid);
+        if (idx >= 0) return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
+        return [...prev, nextOne as any];
+      });
+    })();
   }, [drafts]);
 
   const soldQueue = React.useMemo(() => {
