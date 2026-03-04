@@ -2080,8 +2080,8 @@ export default function CalendarPage() {
                   (isBlocked
                     ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.22)]"
                     : c.inMonth
-                      ? "border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.09)]"
-                      : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-60") +
+                      ? "border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.22)]"
+                      : "border-[rgba(255,255,255,.10)] bg-[rgba(0,0,0,.30)] opacity-60") +
                   (isPast ? " opacity-50 grayscale" : "") +
                   (isSelected ? " ring-2 ring-[rgba(138,90,43,.55)]" : "") +
                   (isToday && !isSelected ? " ring-2 ring-[rgba(255,214,10,.55)] shadow-[0_0_0_2px_rgba(255,214,10,.18)]" : "")
@@ -2105,7 +2105,7 @@ export default function CalendarPage() {
                       <div
                         key={j.id}
                         className="h-2 w-2 rounded-full"
-                        style={{ background: j.color }}
+                        style={{ background: j.color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
                         title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                       />
                     ))}
