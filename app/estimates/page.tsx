@@ -9078,9 +9078,9 @@ function EstimatesPageInner() {
                     <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
                       {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                     </SecondaryButton>
-                    <GhostButton onClick={resetEstimate} disabled={saving || savingAsNew}>
+                    <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
                       Reset
-                    </GhostButton>
+                    </SecondaryButton>
                   </div>
                 </div>
               </div>
