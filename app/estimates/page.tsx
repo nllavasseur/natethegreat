@@ -9060,11 +9060,11 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <div
-            className="fixed left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]"
+            className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-ios bg-[rgba(20,30,24,.55)] pb-[calc(env(safe-area-inset-bottom)+12px)]"
             style={{ bottom: 0 }}
             aria-label="Estimate actions"
           >
-            <div className="mx-auto max-w-[980px]">
+            <div className="mx-auto max-w-[980px] px-4 pt-2">
               {takeoffError ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
                   {takeoffError}
