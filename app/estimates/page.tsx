@@ -9061,10 +9061,10 @@ function EstimatesPageInner() {
         ? createPortal(
           <nav
             className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: "env(safe-area-inset-bottom)" }}
+            style={{ bottom: 0 }}
             aria-label="Estimate actions"
           >
-            <div className="mx-auto max-w-[980px]">
+            <div className="mx-auto max-w-[980px]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
               {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.16)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.98)] shadow-glass">
                   <div>
