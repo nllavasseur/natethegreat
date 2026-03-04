@@ -9050,14 +9050,13 @@ function EstimatesPageInner() {
             ) : null}
 
             <nav
-              className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate"
-              style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)" }}
+              className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
+              style={{ bottom: 0 }}
               aria-label="Estimate actions"
             >
-              <div className="pointer-events-none absolute inset-0 backdrop-blur-ios bg-[rgba(20,30,24,.45)]" />
-              <div className="relative px-4">
-                <div className="mx-auto max-w-[980px]">
-                  <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+              <div className="mx-auto max-w-[980px]">
+                <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end pb-[max(calc(env(safe-area-inset-bottom) - 6px),0px)]">
+                  <div className="h-16 flex items-center justify-around">
                     <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                       {saving ? "Saving…" : "Save"}
                     </PrimaryButton>
