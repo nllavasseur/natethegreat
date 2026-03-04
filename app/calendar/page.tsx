@@ -2071,6 +2071,7 @@ export default function CalendarPage() {
             const isToday = sameDay(c.date, today);
             const isSelected = sameDay(c.date, selected);
             const isPast = startOfDay(c.date).getTime() < today0.getTime();
+            const isPastLike = isPast || !c.inMonth;
             const dayKey = toKey(c.date);
             const jobs = jobsByDay.get(dayKey) ?? [];
             const isBlocked = blockedDays.set.has(dayKey);
@@ -2087,10 +2088,8 @@ export default function CalendarPage() {
                   "rounded-2xl border p-1 text-left h-[clamp(44px,calc((100dvh-320px)/5),96px)] transition " +
                   (isBlocked
                     ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.26)]"
-                    : c.inMonth
-                      ? "border-[rgba(255,255,255,.22)] bg-[rgba(0,0,0,.22)]"
-                      : "border-[rgba(255,255,255,.16)] bg-[rgba(0,0,0,.30)] opacity-60") +
-                  (isPast ? " opacity-50 grayscale" : "") +
+                    : "border-[rgba(255,255,255,.22)] bg-[rgba(0,0,0,.22)]") +
+                  (isPastLike ? " opacity-50 grayscale" : "") +
                   (isSelected
                     ? " ring-4 ring-[rgba(255,255,255,.45)] border-[rgba(255,255,255,.45)] shadow-[0_0_0_2px_rgba(0,0,0,.25)]"
                     : "") +
