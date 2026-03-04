@@ -276,11 +276,11 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
   });
 
   writeStore(store);
+  notifyDraftsChanged();
   try {
-    await Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
+    void Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
   } catch {
   }
-  notifyDraftsChanged();
   return { ok: true as const };
 }
 
@@ -336,10 +336,10 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
   });
 
   writeStore(store);
+  notifyDraftsChanged();
   try {
-    await Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
+    void Promise.all(rebuilt.map((d) => safeUpsert(String((d as any).id), (store as any)[String((d as any).id)] ?? d)));
   } catch {
   }
-  notifyDraftsChanged();
   return { ok: true as const };
 }
