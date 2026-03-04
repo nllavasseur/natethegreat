@@ -353,7 +353,11 @@ export default function CalendarPage() {
     let changed = false;
     sold.forEach((d) => {
       if (typeof (d as any).queueRank !== "number") {
-        (store as any)[d.id] = { ...(store as any)[d.id], queueRank: nextRank, updatedAt: Date.now() };
+        const rid = String((d as any).id);
+        if (!(store as any)[rid]) {
+          (store as any)[rid] = { ...(d as any), id: rid, createdAt: Number((d as any).createdAt) || Date.now(), updatedAt: Date.now() };
+        }
+        (store as any)[rid] = { ...(store as any)[rid], queueRank: nextRank, updatedAt: Date.now() };
         changed = true;
       }
       nextRank += 1;
@@ -364,7 +368,8 @@ export default function CalendarPage() {
       try {
         Object.values(store).forEach((d) => {
           if ((d as any).status === "sold" && typeof (d as any).queueRank === "number") {
-            void upsertDraft({ id: d.id, data: d });
+            const rid = String((d as any).id);
+            void upsertDraft({ id: rid, data: d });
           }
         });
       } catch {
@@ -535,15 +540,16 @@ export default function CalendarPage() {
   );
 
   const moveQueue = React.useCallback((id: string, dir: -1 | 1) => {
+    const sid = String(id);
     // Capture the row's current top offset within the scroll container so we can keep it
     // visually anchored after the reorder + re-render.
     try {
       const root = queueListRef.current;
-      const el = root?.querySelector(`[data-queue-id="${CSS?.escape ? CSS.escape(id) : id}"]`) as HTMLElement | null;
+      const el = root?.querySelector(`[data-queue-id="${CSS?.escape ? CSS.escape(sid) : sid}"]`) as HTMLElement | null;
       if (root && el) {
         const rootRect = root.getBoundingClientRect();
         const elRect = el.getBoundingClientRect();
-        queueAnchorRef.current = { id, anchorTop: elRect.top - rootRect.top };
+        queueAnchorRef.current = { id: sid, anchorTop: elRect.top - rootRect.top };
       } else {
         queueAnchorRef.current = null;
       }
@@ -576,7 +582,7 @@ export default function CalendarPage() {
     });
     const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
 
-    const curFullIdx = full.findIndex((d) => d.id === id);
+    const curFullIdx = full.findIndex((d) => String(d.id) === sid);
     if (curFullIdx === -1) return;
     if (holdSlots.has(curFullIdx)) return;
     const curMovIdx = movableSlots.indexOf(curFullIdx);
@@ -584,7 +590,7 @@ export default function CalendarPage() {
     const nextMovIdx = curMovIdx + dir;
     if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return;
 
-    const from = movable.findIndex((d) => d.id === id);
+    const from = movable.findIndex((d) => String(d.id) === sid);
     if (from === -1) return;
     const to = nextMovIdx;
     const [picked] = movable.splice(from, 1);
@@ -602,27 +608,35 @@ export default function CalendarPage() {
     }
 
     rebuilt.forEach((d, idx) => {
-      if (!(store as any)[d.id]) return;
-      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1, updatedAt: Date.now() };
+      const rid = String((d as any).id);
+      if (!(store as any)[rid]) {
+        (store as any)[rid] = { ...(d as any), id: rid, createdAt: Number((d as any).createdAt) || Date.now(), updatedAt: Date.now() };
+      }
+      (store as any)[rid] = { ...(store as any)[rid], queueRank: idx + 1, updatedAt: Date.now() };
     });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
     try {
       rebuilt.forEach((d) => {
-        void upsertDraft({ id: d.id, data: (store as any)[d.id] ?? d });
+        const rid = String((d as any).id);
+        void upsertDraft({ id: rid, data: (store as any)[rid] ?? d });
       });
     } catch {
     }
     notifyDraftsChanged();
 
-    setHighlightQueueId(id);
+    // Update in-tab state immediately (storage events don't fire in the same tab).
+    setDrafts(Object.values(store).map((d) => ({ ...d })));
+
+    setHighlightQueueId(sid);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
-  }, []);
+  }, [drafts]);
 
   const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
+    const sid = String(id);
     const store = readDraftStore();
-    const sold = Object.values(store)
+    const sold = (drafts || [])
       .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
       .slice()
       .sort((a, b) =>
@@ -645,7 +659,7 @@ export default function CalendarPage() {
       }
     });
     const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
-    const curFullIdx = full.findIndex((d) => d.id === id);
+    const curFullIdx = full.findIndex((d) => String(d.id) === sid);
     if (curFullIdx === -1) return;
     if (holdSlots.has(curFullIdx)) return;
 
@@ -653,7 +667,7 @@ export default function CalendarPage() {
     const desiredMovIdx = movableSlots.findIndex((idx) => idx === desiredFullIdx);
     if (desiredMovIdx === -1) return;
 
-    const from = movable.findIndex((d: DraftEntry) => d.id === id);
+    const from = movable.findIndex((d: DraftEntry) => String(d.id) === sid);
     if (from === -1) return;
     const [picked] = movable.splice(from, 1);
     movable.splice(desiredMovIdx, 0, picked);
@@ -667,24 +681,28 @@ export default function CalendarPage() {
     }
 
     rebuilt.forEach((d, idx) => {
-      if (!(store as any)[d.id]) return;
-      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1, updatedAt: Date.now() };
+      const rid = String((d as any).id);
+      if (!(store as any)[rid]) {
+        (store as any)[rid] = { ...(d as any), id: rid, createdAt: Number((d as any).createdAt) || Date.now(), updatedAt: Date.now() };
+      }
+      (store as any)[rid] = { ...(store as any)[rid], queueRank: idx + 1, updatedAt: Date.now() };
     });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
     try {
       rebuilt.forEach((d) => {
-        void upsertDraft({ id: d.id, data: (store as any)[d.id] ?? d });
+        const rid = String((d as any).id);
+        void upsertDraft({ id: rid, data: (store as any)[rid] ?? d });
       });
     } catch {
     }
     notifyDraftsChanged();
     // Update in-tab state immediately (storage events don't fire in the same tab).
     setDrafts(Object.values(store).map((d) => ({ ...d })));
-    setHighlightQueueId(id);
+    setHighlightQueueId(sid);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
-  }, []);
+  }, [drafts]);
 
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
     const store = readDraftStore();
