@@ -2052,7 +2052,7 @@ export default function CalendarPage() {
 
         <div className="mt-3 grid grid-cols-7 gap-1">
           {weekday.map((w) => (
-            <div key={w} className="text-[11px] text-[var(--muted)] font-extrabold text-center">
+            <div key={w} className="text-[11px] text-[rgba(0,0,0,.62)] font-extrabold text-center">
               {w}
             </div>
           ))}
@@ -2076,12 +2076,12 @@ export default function CalendarPage() {
                   setDayPreviewOpen(true);
                 }}
                 className={
-                  "rounded-2xl border p-1 text-left h-[clamp(44px,calc((100dvh-320px)/5),96px)] transition " +
+                  "rounded-2xl border p-1 text-left h-[clamp(44px,calc((100dvh-320px)/5),96px)] transition backdrop-blur-ios " +
                   (isBlocked
                     ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.22)]"
                     : c.inMonth
-                      ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]"
-                      : "border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] opacity-60") +
+                      ? "border-[rgba(0,0,0,.10)] bg-[rgba(255,255,255,.72)]"
+                      : "border-[rgba(0,0,0,.08)] bg-[rgba(255,255,255,.50)] opacity-60") +
                   (isPast ? " opacity-50 grayscale" : "") +
                   (isSelected ? " ring-2 ring-[rgba(138,90,43,.55)]" : "") +
                   (isToday && !isSelected ? " ring-2 ring-[rgba(255,214,10,.55)] shadow-[0_0_0_2px_rgba(255,214,10,.18)]" : "")
@@ -2091,8 +2091,8 @@ export default function CalendarPage() {
                   <div
                     className={
                       "text-sm font-black leading-none " +
-                      (isToday ? "text-white" : "") +
-                      (isPast && !isToday ? " text-[rgba(255,255,255,.55)]" : "")
+                      (isToday ? "text-black" : "text-[rgba(0,0,0,.86)]") +
+                      (isPast && !isToday ? " text-[rgba(0,0,0,.40)]" : "")
                     }
                   >
                     {c.date.getDate()}
@@ -2110,7 +2110,7 @@ export default function CalendarPage() {
                       />
                     ))}
                     {jobs.length > 6 ? (
-                      <div className="text-[10px] text-[var(--muted)] font-extrabold">+{jobs.length - 6}</div>
+                      <div className="text-[10px] text-[rgba(0,0,0,.55)] font-extrabold">+{jobs.length - 6}</div>
                     ) : null}
                   </div>
                 ) : null}
