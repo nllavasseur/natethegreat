@@ -5149,6 +5149,8 @@ function EstimatesPageInner() {
     setEmail("");
     setDraftId(null);
     setProjectPhoto(null);
+    setStylePickerIdx(false);
+    setMaterialsDetailsOpen(false);
     setMeasureOpen(false);
     setTracePoints([]);
     setOcrBusy(false);
@@ -5215,6 +5217,8 @@ function EstimatesPageInner() {
       restoringRef.current = false;
     }, 0);
 
+    setStylePickerIdx(false);
+    setMaterialsDetailsOpen(false);
     setDraftId(null);
     setCustomerName(String(d.customerName ?? ""));
     setProjectAddress(String(d.projectAddress ?? ""));
@@ -5294,6 +5298,10 @@ function EstimatesPageInner() {
     setTimeout(() => {
       restoringRef.current = false;
     }, 0);
+
+    setStylePickerIdx(false);
+    setMaterialsDetailsOpen(false);
+    setMeasureOpen(false);
 
     const snapDraftId = source === "snapshot" && typeof (d as any).draftId === "string" ? String((d as any).draftId) : null;
     setDraftId(source === "snapshot" ? snapDraftId : id);
