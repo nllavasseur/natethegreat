@@ -7,11 +7,22 @@ import { createPortal } from "react-dom";
 
 const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function colorForJobId(id: string) {
+const ESTIMATE_DOT_COLOR = "hsla(210, 96%, 66%, 0.92)";
+const RESERVED_INSTALL_HUE_MIN = 195;
+const RESERVED_INSTALL_HUE_MAX = 225;
+
+function hashInt(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  const abs = Math.abs(h);
-  const hue = abs % 360;
+  return h;
+}
+
+function colorForInstallId(id: string) {
+  const abs = Math.abs(hashInt(id));
+  let hue = abs % 360;
+  if (hue >= RESERVED_INSTALL_HUE_MIN && hue <= RESERVED_INSTALL_HUE_MAX) {
+    hue = (hue + 48) % 360;
+  }
   const sat = 74 + ((abs >> 8) % 22); // 74-95
   const light = 52 + ((abs >> 16) % 18); // 52-69
   const alpha = 0.62;
@@ -1085,7 +1096,8 @@ export default function CalendarPage() {
   const jobColors = React.useMemo(() => {
     const map = new Map<string, string>();
     monthJobs.forEach((j) => {
-      map.set(j.id, colorForJobId(j.id));
+      const status = (j as any).status as DraftEntry["status"];
+      map.set(j.id, status === "estimate" ? ESTIMATE_DOT_COLOR : colorForInstallId(j.id));
     });
     return map;
   }, [monthJobs]);
@@ -1479,7 +1491,7 @@ export default function CalendarPage() {
                   const hold = String((j as any).holdDate || "").slice(0, 10);
                   const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
                   const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
-                  const dotColor = colorForJobId(j.id);
+                  const dotColor = colorForInstallId(j.id);
                   const endIso = (() => {
                     const endRaw = (j as any).end ?? (j as any).endDate;
                     if (endRaw instanceof Date && Number.isFinite(endRaw.getTime())) return endRaw.toISOString().slice(0, 10);
