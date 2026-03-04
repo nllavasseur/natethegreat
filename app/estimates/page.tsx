@@ -5824,21 +5824,6 @@ function EstimatesPageInner() {
         document.body
       ) : null}
 
-      {portalReady
-        ? createPortal(
-          <div
-            className="fixed right-4 z-30 pointer-events-none"
-            style={{ top: "calc(var(--vf-header-h, 0px) + 12px)" }}
-            aria-label="Total lineal feet"
-          >
-            <div className="rounded-full border border-[rgba(255,255,255,.14)] bg-[rgba(20,30,24,.72)] backdrop-blur-ios px-3 py-2 text-[12px] font-black shadow-glass">
-              {totalLf.toFixed(0)} LF
-            </div>
-          </div>,
-          document.body
-        )
-        : null}
-
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xl font-black tracking-tight">Estimate</div>
