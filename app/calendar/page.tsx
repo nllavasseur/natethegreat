@@ -2086,7 +2086,7 @@ export default function CalendarPage() {
                 className={
                   "rounded-2xl border p-1 text-left h-[clamp(44px,calc((100dvh-320px)/5),96px)] transition " +
                   (isBlocked
-                    ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.18)]"
+                    ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.26)]"
                     : c.inMonth
                       ? "border-[rgba(255,255,255,.22)] bg-[rgba(0,0,0,.22)]"
                       : "border-[rgba(255,255,255,.16)] bg-[rgba(0,0,0,.30)] opacity-60") +
