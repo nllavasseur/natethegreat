@@ -9104,17 +9104,23 @@ function EstimatesPageInner() {
                   {saveNotice}
                 </div>
               ) : null}
-              <div
-                className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around"
-                style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
-              >
-                <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                  {saving ? "Saving…" : "Save"}
-                </PrimaryButton>
-                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                </SecondaryButton>
-                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+              <div className="relative">
+                <div
+                  className="absolute left-0 right-0 bottom-0 backdrop-blur-ios bg-[rgba(20,30,24,.55)]"
+                  style={{ height: "env(safe-area-inset-bottom)" }}
+                />
+                <div
+                  className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around"
+                  style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
+                >
+                  <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                    {saving ? "Saving…" : "Save"}
+                  </PrimaryButton>
+                  <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                    {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                  </SecondaryButton>
+                  <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+                </div>
               </div>
             </div>
           </nav>,
