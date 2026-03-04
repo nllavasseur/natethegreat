@@ -1013,6 +1013,11 @@ export default function QuotesPage() {
                         e.stopPropagation();
                         bumpSuppressNav();
                       }}
+                      onPointerUp={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        bumpSuppressNav();
+                      }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -1035,9 +1040,19 @@ export default function QuotesPage() {
                             setDraftStatus(q.id, s);
                             setOpenStatusId(null);
                           }}
+                          onPointerUp={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                          }}
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
+                          }}
+                          onMouseUp={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
                           }}
                           className={
                             "w-full text-left rounded-xl border px-3 py-2 text-[12px] font-extrabold text-white " +
