@@ -99,17 +99,15 @@ export default function QuotesPage() {
 
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
-      const sid = String(id ?? "").trim();
-      if (!sid) return;
       const store = readDraftStore();
-      const existing = (store as any)[sid] ?? drafts.find((d) => String(d.id ?? "").trim() === sid);
+      const existing = store[id] ?? drafts.find((d) => d.id === id);
       const nextStatus =
         scheduledAt && String(scheduledAt).trim() !== ""
           ? "estimate"
           : (existing as any)?.status;
       if (!existing) {
-        (store as any)[sid] = {
-          id: sid,
+        store[id] = {
+          id,
           createdAt: Date.now(),
           updatedAt: Date.now(),
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
@@ -117,7 +115,7 @@ export default function QuotesPage() {
           ...(nextStatus ? { status: nextStatus } : {})
         };
       } else {
-        (store as any)[sid] = {
+        store[id] = {
           ...existing,
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
           updatedAt: Date.now(),
@@ -125,19 +123,19 @@ export default function QuotesPage() {
           ...(nextStatus ? { status: nextStatus } : {})
         };
       }
-      (store as any)[sid] = {
-        ...(store as any)[sid],
+      store[id] = {
+        ...store[id],
         scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
         updatedAt: Date.now()
       };
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
       try {
-        void upsertDraft({ id: sid, data: (store as any)[sid] });
+        void upsertDraft({ id, data: store[id] });
       } catch {
       }
       setDrafts((prev) =>
         prev.map((d) =>
-          String(d.id ?? "").trim() === sid
+          d.id === id
             ? {
                 ...d,
                 scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
@@ -339,20 +337,18 @@ export default function QuotesPage() {
 
   function setDraftStatus(id: string, status: DraftEntry["status"]) {
     try {
-      const sid = String(id ?? "").trim();
-      if (!sid) return;
       const store = readDraftStore();
-      const existing = (store as any)[sid] ?? drafts.find((d) => String(d.id ?? "").trim() === sid);
+      const existing = store[id] ?? drafts.find((d) => d.id === id);
       if (!existing) return;
-      if (!(store as any)[sid]) {
-        (store as any)[sid] = {
+      if (!store[id]) {
+        store[id] = {
           ...(existing as any),
-          id: sid,
+          id,
           createdAt: Number((existing as any)?.createdAt) || Date.now(),
           updatedAt: Date.now()
         } as any;
       }
-      const prevStatus = (store as any)[sid]?.status;
+      const prevStatus = (store as any)[id]?.status;
       const shouldAppendToQueue = status === "sold" && prevStatus !== "sold";
       let nextQueueRank: number | undefined = undefined;
       if (shouldAppendToQueue) {
@@ -373,30 +369,30 @@ export default function QuotesPage() {
         const maxRank = soldRanks.length ? Math.max(...soldRanks) : 0;
         nextQueueRank = maxRank + 1;
       }
-      (store as any)[sid] = {
-        ...(store as any)[sid],
-        createdAt: Number((store as any)[sid]?.createdAt) || Date.now(),
+      store[id] = {
+        ...store[id],
+        createdAt: Number((store as any)[id]?.createdAt) || Date.now(),
         status,
-        calendarHidden: status === "sold" ? false : status === "void" ? true : (store as any)[sid].calendarHidden,
-        startDate: status === "void" ? undefined : (store as any)[sid].startDate,
-        installDate: status === "void" ? undefined : (store as any)[sid].installDate,
+        calendarHidden: status === "sold" ? false : status === "void" ? true : store[id].calendarHidden,
+        startDate: status === "void" ? undefined : store[id].startDate,
+        installDate: status === "void" ? undefined : store[id].installDate,
         updatedAt: Date.now()
       };
       if (shouldAppendToQueue && typeof nextQueueRank === "number") {
-        (store as any)[sid] = {
-          ...(store as any)[sid],
+        (store as any)[id] = {
+          ...(store as any)[id],
           queueRank: nextQueueRank,
           updatedAt: Date.now()
         };
       }
       window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
       try {
-        void upsertDraft({ id: sid, data: (store as any)[sid] });
+        void upsertDraft({ id, data: store[id] });
       } catch {
       }
       setDrafts((prev) =>
         prev.map((d) =>
-          String(d.id ?? "").trim() === sid
+          d.id === id
             ? {
                 ...d,
                 status,
