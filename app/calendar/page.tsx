@@ -520,7 +520,15 @@ export default function CalendarPage() {
     }
 
     void (async () => {
-      const soldSnapshot = (drafts || []).filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden);
+      const soldSnapshot = (drafts || [])
+        .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
+        .slice()
+        .sort((a, b) => {
+          const ar = Number((a as any).queueRank) || 0;
+          const br = Number((b as any).queueRank) || 0;
+          if (ar !== br) return ar - br;
+          return String((a as any).id || "").localeCompare(String((b as any).id || ""));
+        });
       await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
       const store = readDraftStore();
       setDrafts((prev) => {
@@ -547,7 +555,15 @@ export default function CalendarPage() {
   const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
     const sid = String(id);
     void (async () => {
-      const soldSnapshot = (drafts || []).filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden);
+      const soldSnapshot = (drafts || [])
+        .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
+        .slice()
+        .sort((a, b) => {
+          const ar = Number((a as any).queueRank) || 0;
+          const br = Number((b as any).queueRank) || 0;
+          if (ar !== br) return ar - br;
+          return String((a as any).id || "").localeCompare(String((b as any).id || ""));
+        });
       await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
       const store = readDraftStore();
       setDrafts((prev) => {
@@ -1638,95 +1654,88 @@ export default function CalendarPage() {
                             Move
                           </button>
                         </div>
-                      </div>
 
-                      <div className="mt-2 grid gap-3">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="flex justify-center">
-                            <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  toggleWeekendAllowed(j.id, "sat", j);
-                                }}
-                                className={
-                                  "px-5 py-3 text-[16px] font-black transition-colors " +
-                                  (usedWeekend.sat
-                                    ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                    : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                                }
-                                aria-pressed={allowSat}
-                              >
-                                Sat
-                              </button>
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  toggleWeekendAllowed(j.id, "sun", j);
-                                }}
-                                className={
-                                  "px-5 py-3 text-[16px] font-black transition-colors " +
-                                  (usedWeekend.sun
-                                    ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                    : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                                }
-                                aria-pressed={allowSun}
-                              >
-                                Sun
-                              </button>
-                            </div>
-                          </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (holdOpenId === j.id) {
+                              setHoldOpenId(null);
+                              return;
+                            }
+                            setHoldOpenId(j.id);
+                            setHoldDraftIso(hold);
+                          }}
+                          aria-pressed={Boolean(hold)}
+                          className={
+                            "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[120px] truncate " +
+                            (hold
+                              ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
+                          }
+                        >
+                          {hold ? `Hold ${hold}` : "Set Hold"}
+                        </button>
 
-                          <div className="w-full flex items-center justify-between gap-2">
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (holdOpenId === j.id) {
-                                  setHoldOpenId(null);
-                                  return;
-                                }
-                                setHoldOpenId(j.id);
-                                setHoldDraftIso(hold);
-                              }}
-                              aria-pressed={Boolean(hold)}
-                              className={
-                                "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[55%] truncate " +
-                                (hold
-                                  ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
-                                  : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
-                              }
-                            >
-                              {hold ? `Hold ${hold}` : "Set Hold"}
-                            </button>
-
+                        <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
                           <button
                             type="button"
                             data-no-swipe="true"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              resetLaborDays(j.id);
+                              toggleWeekendAllowed(j.id, "sat", j);
                             }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
+                            className={
+                              "px-5 py-3 text-[16px] font-black transition-colors " +
+                              (usedWeekend.sat
+                                ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                            }
+                            aria-pressed={allowSat}
                           >
-                            Reset
+                            Sat
+                          </button>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleWeekendAllowed(j.id, "sun", j);
+                            }}
+                            className={
+                              "px-5 py-3 text-[16px] font-black transition-colors " +
+                              (usedWeekend.sun
+                                ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                            }
+                            aria-pressed={allowSun}
+                          >
+                            Sun
                           </button>
                         </div>
 
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            resetLaborDays(j.id);
+                          }}
+                          className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
+                        >
+                          Reset
+                        </button>
                       </div>
 
                         {holdOpenId === j.id ? (
                           <div
-                            className="mt-2 grid gap-2 min-w-0"
+                            className="mt-1 grid gap-2 min-w-0"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
