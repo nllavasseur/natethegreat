@@ -700,18 +700,19 @@ export default function CalendarPage() {
   }, [drafts]);
 
   const resetLaborDays = React.useCallback((id: string, fallback?: DraftEntry) => {
+    const sid = String(id);
     const store = readDraftStore();
-    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id) ?? fallback;
+    const existing = (store as any)[sid] ?? drafts.find((d) => String(d.id) === sid) ?? fallback;
     if (!existing) return;
-    if (!(store as any)[id]) {
-      (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
+    if (!(store as any)[sid]) {
+      (store as any)[sid] = { ...(existing as any), id: sid, updatedAt: Date.now() };
     }
-    const orig = Number((store as any)[id].originalLaborDays);
+    const orig = Number((store as any)[sid].originalLaborDays);
     if (!Number.isFinite(orig) || orig <= 0) return;
-    (store as any)[id] = { ...(store as any)[id], laborDays: Math.max(1, Math.round(orig)), updatedAt: Date.now() };
+    (store as any)[sid] = { ...(store as any)[sid], laborDays: Math.max(1, Math.round(orig)), updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
     try {
-      void upsertDraft({ id, data: (store as any)[id] });
+      void upsertDraft({ id: sid, data: (store as any)[sid] });
     } catch {
     }
     notifyDraftsChanged();
@@ -719,18 +720,19 @@ export default function CalendarPage() {
     // Update in-tab state immediately (storage events don't fire in the same tab).
     setDrafts(Object.values(store).map((d) => ({ ...d })));
 
-    setHighlightQueueId(id);
+    setHighlightQueueId(sid);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
   }, [drafts]);
 
   const setHoldDate = React.useCallback((id: string, iso: string | undefined) => {
+    const sid = String(id);
     const store = readDraftStore();
-    if (!(store as any)[id]) return;
-    (store as any)[id] = { ...(store as any)[id], holdDate: iso, updatedAt: Date.now() };
+    if (!(store as any)[sid]) return;
+    (store as any)[sid] = { ...(store as any)[sid], holdDate: iso, updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
     try {
-      void upsertDraft({ id, data: (store as any)[id] });
+      void upsertDraft({ id: sid, data: (store as any)[sid] });
     } catch {
     }
     notifyDraftsChanged();
@@ -741,37 +743,38 @@ export default function CalendarPage() {
   }, [drafts]);
 
   const adjustLaborDays = React.useCallback((id: string, delta: number, fallback?: DraftEntry) => {
+    const sid = String(id);
     const store = readDraftStore();
-    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id) ?? fallback;
+    const existing = (store as any)[sid] ?? drafts.find((d) => String(d.id) === sid) ?? fallback;
     if (!existing) return;
-    if (!(store as any)[id]) {
-      (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
+    if (!(store as any)[sid]) {
+      (store as any)[sid] = { ...(existing as any), id: sid, updatedAt: Date.now() };
     }
 
-    const cur = Number((store as any)[id].laborDays);
+    const cur = Number((store as any)[sid].laborDays);
     const base = computeSpanDays(Number.isFinite(cur) && cur > 0 ? cur : 1);
     const next = Math.max(1, Math.round(base + delta));
 
-    const existingOriginal = Number((store as any)[id].originalLaborDays);
+    const existingOriginal = Number((store as any)[sid].originalLaborDays);
     const originalLaborDays =
       Number.isFinite(existingOriginal) && existingOriginal > 0
         ? existingOriginal
         : computeSpanDays(Number.isFinite(cur) && cur > 0 ? cur : 1);
 
-    (store as any)[id] = { ...(store as any)[id], laborDays: next, originalLaborDays, updatedAt: Date.now() };
+    (store as any)[sid] = { ...(store as any)[sid], laborDays: next, originalLaborDays, updatedAt: Date.now() };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
     try {
-      void upsertDraft({ id, data: (store as any)[id] });
+      void upsertDraft({ id: sid, data: (store as any)[sid] });
     } catch {
     }
     notifyDraftsChanged();
 
     // Update in-tab state immediately without clobbering remote-only drafts.
     setDrafts((prev) => {
-      const nextOne = { ...(store as any)[id] };
-      const idx = prev.findIndex((d) => d.id === id);
+      const nextOne = { ...(store as any)[sid] };
+      const idx = prev.findIndex((d) => String(d.id) === sid);
       if (idx >= 0) {
-        return prev.map((d) => (d.id === id ? { ...(d as any), ...(nextOne as any) } : d));
+        return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
       }
       return [...prev, nextOne as any];
     });
