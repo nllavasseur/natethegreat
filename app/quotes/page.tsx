@@ -1220,6 +1220,7 @@ export default function QuotesPage() {
                       e.preventDefault();
                       e.stopPropagation();
                       bumpSuppressNav();
+                      if (Date.now() < suppressNavUntilRef.current) return;
                       setLayoutViewerSrc(String((q as any).layoutSrc || ""));
                     }}
                     className={
