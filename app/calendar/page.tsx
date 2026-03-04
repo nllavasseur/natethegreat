@@ -2179,14 +2179,29 @@ export default function CalendarPage() {
 
                 {jobs.length ? (
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {jobs.slice(0, 6).map((j) => (
-                      <div
-                        key={j.id}
-                        className="h-2 w-2 rounded-full"
-                        style={{ background: j.color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
-                        title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
-                      />
-                    ))}
+                    {(() => {
+                      const isEstimate = (j: any) => (j as any).status === "estimate";
+                      const installs = jobs.filter((j: any) => !isEstimate(j));
+                      const estimates = jobs.filter((j: any) => isEstimate(j));
+                      const hasEstimate = estimates.length > 0;
+                      const maxDots = 6;
+
+                      const visible = (() => {
+                        if (!hasEstimate) return installs.slice(0, maxDots);
+                        if (installs.length >= maxDots) return [...installs.slice(0, maxDots - 1), estimates[0]];
+                        const remaining = maxDots - installs.length - 1;
+                        return [...installs, ...estimates.slice(0, Math.max(0, remaining)), estimates[0]];
+                      })();
+
+                      return visible.map((j: any) => (
+                        <div
+                          key={j.id}
+                          className="h-2 w-2 rounded-full"
+                          style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
+                          title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
+                        />
+                      ));
+                    })()}
                     {jobs.length > 6 ? (
                       <div className="text-[10px] text-[var(--muted)] font-extrabold">+{jobs.length - 6}</div>
                     ) : null}
