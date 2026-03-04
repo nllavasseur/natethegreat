@@ -30,7 +30,10 @@ html, body{
 body{
   -webkit-text-size-adjust: 100%;
   color: var(--text);
-  background: var(--bg2);
+  background:
+    radial-gradient(1200px 800px at 10% 0%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(900px 600px at 90% 20%, rgba(31,77,58,.22), transparent 55%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
 }
 
 .vf-app-bg{
