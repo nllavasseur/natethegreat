@@ -4,6 +4,24 @@ import React from "react";
 
 export default function TopBar() {
   const [iconOk, setIconOk] = React.useState(true);
+  const [sha, setSha] = React.useState<string>("");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/version", { cache: "no-store" });
+        const json = (await res.json()) as any;
+        const s = typeof json?.sha === "string" ? json.sha : "";
+        if (!cancelled) setSha(s);
+      } catch {
+        if (!cancelled) setSha("");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <header>
@@ -37,7 +55,13 @@ export default function TopBar() {
             </div>
           </div>
 
-          <div aria-hidden className="h-10 w-10" />
+          <div className="h-10 w-10 flex items-center justify-end">
+            {sha ? (
+              <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(0,0,0,.18)] px-2 py-[2px] text-[10px] font-black leading-none text-[rgba(255,255,255,.85)]">
+                {sha.slice(0, 7)}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </header>
