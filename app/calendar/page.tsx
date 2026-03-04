@@ -1787,6 +1787,16 @@ export default function CalendarPage() {
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, -1, j);
                                 }}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, -1, j);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, -1, j);
+                                }}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -1803,6 +1813,16 @@ export default function CalendarPage() {
                                 type="button"
                                 data-no-swipe="true"
                                 onPointerDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
+                                }}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
+                                }}
+                                onMouseDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, 1, j);
