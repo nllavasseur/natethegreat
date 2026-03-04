@@ -2006,7 +2006,6 @@ function EstimatesPageInner() {
     const gatePostsAdd = walkGatePostsAdd + doubleGates;
     const gateHingeKitsAdd = walkGates * 1;
     const doubleGateKitsAdd = doubleGates;
-    const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
     if (selectedStyleKind === "wood_wire_mesh") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
@@ -2095,7 +2094,6 @@ function EstimatesPageInner() {
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-          ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
           { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
           { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
           { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2176,7 +2174,6 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2241,7 +2238,6 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
@@ -2314,7 +2310,6 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2376,7 +2371,6 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2450,7 +2444,6 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
@@ -2512,7 +2505,6 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
@@ -2570,7 +2562,6 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2632,7 +2623,6 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2675,8 +2665,6 @@ function EstimatesPageInner() {
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
-
-      const gateFramingS4S = walkGates * 5 + doubleGates * 10;
       const cedarPickets = walkGates * 10 + doubleGates * 20;
 
       const splitRailName = materialsDetails.splitRailMaterial === "Cedar tone" ? "Split rail (CedarTone)" : "Split rail";
@@ -2703,7 +2691,6 @@ function EstimatesPageInner() {
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-        ...(gateFramingS4S > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" } as any] : []),
         ...(cedarPickets > 0 ? [{ name: "Cedar pickets", qty: cedarPickets, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -2804,7 +2791,6 @@ function EstimatesPageInner() {
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
-        const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
@@ -2812,7 +2798,6 @@ function EstimatesPageInner() {
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
-          ...(gateFramingS4S > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" } as any] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -2958,7 +2943,6 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -3299,7 +3283,6 @@ function EstimatesPageInner() {
       ...(materialsDetails.arbor ? [{ name: "Arbor", qty: 1, unit: "ea" }] : []),
       ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
       ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
-      ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : [])
     ];
 
     return rows.map((r) => {
