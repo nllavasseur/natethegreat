@@ -2239,9 +2239,9 @@ export default function CalendarPage() {
 
                       const visible = (() => {
                         if (!hasEstimate) return installs.slice(0, maxDots);
-                        if (installs.length >= maxDots) return [...installs.slice(0, maxDots - 1), estimates[0]];
-                        const remaining = maxDots - installs.length - 1;
-                        return [...installs, ...estimates.slice(0, Math.max(0, remaining)), estimates[0]];
+                        const installSlots = Math.max(0, maxDots - 1);
+                        const installVisible = installs.slice(0, installSlots);
+                        return [...installVisible, estimates[0]];
                       })();
 
                       return visible.map((j: any) => (
