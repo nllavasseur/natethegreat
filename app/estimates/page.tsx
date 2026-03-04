@@ -359,6 +359,7 @@ function EstimatesPageInner() {
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
+  const [safeBottomPx, setSafeBottomPx] = useState<number>(0);
   const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
@@ -4629,6 +4630,35 @@ function EstimatesPageInner() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const compute = () => {
+      try {
+        const vv = (window as any).visualViewport as VisualViewport | undefined;
+        if (!vv) {
+          setSafeBottomPx(0);
+          return;
+        }
+        const bottomInset = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+        setSafeBottomPx(bottomInset);
+      } catch {
+        setSafeBottomPx(0);
+      }
+    };
+
+    compute();
+    window.addEventListener("resize", compute);
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    vv?.addEventListener?.("resize", compute);
+    vv?.addEventListener?.("scroll", compute);
+    return () => {
+      window.removeEventListener("resize", compute);
+      vv?.removeEventListener?.("resize", compute);
+      vv?.removeEventListener?.("scroll", compute);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!photoViewerSrc) return;
     setPhotoViewerScale(1);
     setPhotoViewerX(0);
@@ -5746,7 +5776,7 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
+    <div className="space-y-4" style={{ paddingBottom: `calc(${safeBottomPx}px + 112px)` }}>
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9077,7 +9107,7 @@ function EstimatesPageInner() {
         ? createPortal(
           <div
             className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+            style={{ bottom: `${safeBottomPx}px` }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]" data-est-footer="1">
