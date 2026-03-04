@@ -666,9 +666,9 @@ export default function CalendarPage() {
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
   }, []);
 
-  const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun") => {
+  const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
     const store = readDraftStore();
-    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id);
+    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id) ?? fallback;
     if (!existing) return;
     if (!(store as any)[id]) {
       (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
@@ -687,14 +687,25 @@ export default function CalendarPage() {
     }
     notifyDraftsChanged();
 
-    // Update in-tab state immediately (storage events don't fire in the same tab).
-    setDrafts(Object.values(store).map((d) => ({ ...d })));
+    // Update in-tab state immediately without clobbering remote-only drafts.
+    setDrafts((prev) => {
+      const nextOne = { ...(store as any)[id] };
+      const idx = prev.findIndex((d) => d.id === id);
+      if (idx >= 0) {
+        return prev.map((d) => (d.id === id ? { ...(d as any), ...(nextOne as any) } : d));
+      }
+      return [...prev, nextOne as any];
+    });
 
   }, [drafts]);
 
-  const resetLaborDays = React.useCallback((id: string) => {
+  const resetLaborDays = React.useCallback((id: string, fallback?: DraftEntry) => {
     const store = readDraftStore();
-    if (!(store as any)[id]) return;
+    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id) ?? fallback;
+    if (!existing) return;
+    if (!(store as any)[id]) {
+      (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
+    }
     const orig = Number((store as any)[id].originalLaborDays);
     if (!Number.isFinite(orig) || orig <= 0) return;
     (store as any)[id] = { ...(store as any)[id], laborDays: Math.max(1, Math.round(orig)), updatedAt: Date.now() };
@@ -729,9 +740,9 @@ export default function CalendarPage() {
 
   }, [drafts]);
 
-  const adjustLaborDays = React.useCallback((id: string, delta: number) => {
+  const adjustLaborDays = React.useCallback((id: string, delta: number, fallback?: DraftEntry) => {
     const store = readDraftStore();
-    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id);
+    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id) ?? fallback;
     if (!existing) return;
     if (!(store as any)[id]) {
       (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
@@ -755,8 +766,15 @@ export default function CalendarPage() {
     }
     notifyDraftsChanged();
 
-    // Update in-tab state immediately (storage events don't fire in the same tab).
-    setDrafts(Object.values(store).map((d) => ({ ...d })));
+    // Update in-tab state immediately without clobbering remote-only drafts.
+    setDrafts((prev) => {
+      const nextOne = { ...(store as any)[id] };
+      const idx = prev.findIndex((d) => d.id === id);
+      if (idx >= 0) {
+        return prev.map((d) => (d.id === id ? { ...(d as any), ...(nextOne as any) } : d));
+      }
+      return [...prev, nextOne as any];
+    });
   }, [drafts]);
 
   const soldQueue = React.useMemo(() => {
@@ -1764,7 +1782,7 @@ export default function CalendarPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  adjustLaborDays(j.id, -1);
+                                  adjustLaborDays(j.id, -1, j);
                                 }}
                                 className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Decrease labor days"
@@ -1780,7 +1798,7 @@ export default function CalendarPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  adjustLaborDays(j.id, 1);
+                                  adjustLaborDays(j.id, 1, j);
                                 }}
                                 className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Increase labor days"
@@ -1813,7 +1831,7 @@ export default function CalendarPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  toggleWeekendAllowed(j.id, "sat");
+                                  toggleWeekendAllowed(j.id, "sat", j);
                                 }}
                                 className={
                                   "px-2 py-1.5 text-[11px] font-black transition-colors " +
@@ -1831,7 +1849,7 @@ export default function CalendarPage() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  toggleWeekendAllowed(j.id, "sun");
+                                  toggleWeekendAllowed(j.id, "sun", j);
                                 }}
                                 className={
                                   "px-2 py-1.5 text-[11px] font-black transition-colors " +
