@@ -209,6 +209,17 @@ function soldQueueFromStore(store: Record<string, QueueDraft>) {
     );
 }
 
+function normalizeSoldRanksFromSnapshot(store: Record<string, QueueDraft>, soldSnapshot: QueueDraft[]) {
+  soldSnapshot
+    .filter((d) => d && (d as any).status === "sold" && !(d as any).calendarHidden)
+    .forEach((d, idx) => {
+      const id = String((d as any).id || "");
+      if (!id) return;
+      ensureStoreEntry(store, id, d as any);
+      store[id] = { ...(store as any)[id], queueRank: idx + 1, updatedAt: now() };
+    });
+}
+
 export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; soldSnapshot?: QueueDraft[] }) {
   const sid = String(params.id);
   const store = readStore();
@@ -216,13 +227,7 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
   // If the UI has a merged/remote-enriched view of sold jobs, seed them into the local store so
   // reorder operations can't accidentally drop remote-only entries.
   if (Array.isArray(params.soldSnapshot)) {
-    params.soldSnapshot.forEach((d) => {
-      if (!d) return;
-      const id = String((d as any).id || "");
-      if (!id) return;
-      if ((d as any).status !== "sold" || (d as any).calendarHidden) return;
-      ensureStoreEntry(store, id, d as any);
-    });
+    normalizeSoldRanksFromSnapshot(store, params.soldSnapshot);
   }
 
   const sold = soldQueueFromStore(store);
@@ -284,13 +289,7 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
   const store = readStore();
 
   if (Array.isArray(params.soldSnapshot)) {
-    params.soldSnapshot.forEach((d) => {
-      if (!d) return;
-      const id = String((d as any).id || "");
-      if (!id) return;
-      if ((d as any).status !== "sold" || (d as any).calendarHidden) return;
-      ensureStoreEntry(store, id, d as any);
-    });
+    normalizeSoldRanksFromSnapshot(store, params.soldSnapshot);
   }
 
   const sold = soldQueueFromStore(store);
