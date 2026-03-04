@@ -1709,6 +1709,7 @@ function EstimatesPageInner() {
     "2x4 16' Rough Sawn Cedar Rails": 29.99,
     "2x4 16' Pressure Treated Rails": 13.78,
     "5/4x6x12 Pressure Treated Boards": 10.59,
+    "1x6x12 Pressure Treated Boards": 8.58,
     "5/4x6x12 Cedar S4S Rails": 29.79,
     "5/4x6x12 CedarTone Rails": 17.69,
     "Concrete 60lb Bag": 0,
