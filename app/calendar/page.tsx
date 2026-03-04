@@ -2182,11 +2182,6 @@ export default function CalendarPage() {
                 <div
                   key={j.id}
                   className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-3"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openContractPreview(j);
-                  }}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-black truncate">
