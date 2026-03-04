@@ -520,9 +520,23 @@ export default function CalendarPage() {
     }
 
     void (async () => {
-      await moveSoldJobRelativePipeline({ id: sid, dir });
+      const soldSnapshot = (drafts || []).filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden);
+      await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
       const store = readDraftStore();
-      setDrafts(Object.values(store).map((d) => ({ ...d })));
+      setDrafts((prev) => {
+        const byId = new Map<string, any>();
+        prev.forEach((d) => {
+          const id = String((d as any)?.id || "");
+          if (id) byId.set(id, d);
+        });
+        Object.entries(store).forEach(([k, v]) => {
+          const id = String((v as any)?.id || k);
+          if (!id) return;
+          const prevOne = byId.get(id);
+          byId.set(id, prevOne ? { ...(prevOne as any), ...(v as any) } : (v as any));
+        });
+        return Array.from(byId.values());
+      });
     })();
 
     setHighlightQueueId(sid);
@@ -533,9 +547,23 @@ export default function CalendarPage() {
   const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
     const sid = String(id);
     void (async () => {
-      await moveSoldJobToPositionPipeline({ id: sid, targetPos });
+      const soldSnapshot = (drafts || []).filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden);
+      await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
       const store = readDraftStore();
-      setDrafts(Object.values(store).map((d) => ({ ...d })));
+      setDrafts((prev) => {
+        const byId = new Map<string, any>();
+        prev.forEach((d) => {
+          const id = String((d as any)?.id || "");
+          if (id) byId.set(id, d);
+        });
+        Object.entries(store).forEach(([k, v]) => {
+          const id = String((v as any)?.id || k);
+          if (!id) return;
+          const prevOne = byId.get(id);
+          byId.set(id, prevOne ? { ...(prevOne as any), ...(v as any) } : (v as any));
+        });
+        return Array.from(byId.values());
+      });
     })();
     setHighlightQueueId(sid);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
