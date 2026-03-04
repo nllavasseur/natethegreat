@@ -2080,11 +2080,15 @@ export default function CalendarPage() {
                   (isBlocked
                     ? "border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.22)]"
                     : c.inMonth
-                      ? "border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.22)]"
-                      : "border-[rgba(255,255,255,.10)] bg-[rgba(0,0,0,.30)] opacity-60") +
+                      ? "border-[rgba(255,255,255,.22)] bg-[rgba(0,0,0,.22)]"
+                      : "border-[rgba(255,255,255,.16)] bg-[rgba(0,0,0,.30)] opacity-60") +
                   (isPast ? " opacity-50 grayscale" : "") +
-                  (isSelected ? " ring-2 ring-[rgba(138,90,43,.55)]" : "") +
-                  (isToday && !isSelected ? " ring-2 ring-[rgba(255,214,10,.55)] shadow-[0_0_0_2px_rgba(255,214,10,.18)]" : "")
+                  (isSelected
+                    ? " ring-4 ring-[rgba(255,255,255,.45)] border-[rgba(255,255,255,.45)] shadow-[0_0_0_2px_rgba(0,0,0,.25)]"
+                    : "") +
+                  (isToday && !isSelected
+                    ? " ring-4 ring-[rgba(255,214,10,.70)] shadow-[0_0_0_2px_rgba(255,214,10,.18)]"
+                    : "")
                 }
               >
                 <div className="flex items-start justify-between">
