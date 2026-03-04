@@ -524,8 +524,10 @@ export default function CalendarPage() {
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
         .slice()
         .sort((a, b) => {
-          const ar = Number((a as any).queueRank) || 0;
-          const br = Number((b as any).queueRank) || 0;
+          const ar0 = Number((a as any).queueRank);
+          const br0 = Number((b as any).queueRank);
+          const ar = Number.isFinite(ar0) && ar0 > 0 ? ar0 : Number.POSITIVE_INFINITY;
+          const br = Number.isFinite(br0) && br0 > 0 ? br0 : Number.POSITIVE_INFINITY;
           if (ar !== br) return ar - br;
           return String((a as any).id || "").localeCompare(String((b as any).id || ""));
         });
