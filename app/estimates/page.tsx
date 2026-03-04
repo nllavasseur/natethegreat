@@ -9076,19 +9076,20 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <div className="fixed left-0 right-0 z-50 px-4" style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }} aria-label="Estimate actions">
-            <div className="mx-auto max-w-[980px]" data-est-footer="1">
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
-                <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
-                  <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                    {saving ? "Saving…" : "Save"}
-                  </PrimaryButton>
-                  <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                    {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                  </SecondaryButton>
-                  <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
-                    Reset
-                  </SecondaryButton>
-                </div>
+            <div className="mx-auto max-w-[980px] px-4" data-est-footer="1">
+              <div
+                className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around gap-2 px-2"
+                style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
+              >
+                <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                  {saving ? "Saving…" : "Save"}
+                </PrimaryButton>
+                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                </SecondaryButton>
+                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
+                  Reset
+                </SecondaryButton>
               </div>
             </div>
           </div>,
