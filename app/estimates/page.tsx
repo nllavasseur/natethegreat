@@ -359,7 +359,7 @@ function EstimatesPageInner() {
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
-  const [safeBottomPx, setSafeBottomPx] = useState<number>(0);
+  const [footerDebugText, setFooterDebugText] = useState<string>("");
   const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
@@ -4631,30 +4631,61 @@ function EstimatesPageInner() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("debug") !== "1") return;
 
-    const compute = () => {
+    const readSafeAreaBottomPx = () => {
       try {
-        const vv = (window as any).visualViewport as VisualViewport | undefined;
-        if (!vv) {
-          setSafeBottomPx(0);
-          return;
-        }
-        const bottomInset = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
-        setSafeBottomPx(bottomInset);
+        const el = document.createElement("div");
+        el.style.position = "fixed";
+        el.style.left = "0";
+        el.style.right = "0";
+        el.style.bottom = "0";
+        el.style.height = "0";
+        el.style.paddingBottom = "env(safe-area-inset-bottom)";
+        el.style.pointerEvents = "none";
+        document.body.appendChild(el);
+        const px = parseFloat(window.getComputedStyle(el).paddingBottom || "0") || 0;
+        el.remove();
+        return px;
       } catch {
-        setSafeBottomPx(0);
+        return 0;
       }
     };
 
-    compute();
-    window.addEventListener("resize", compute);
+    const update = () => {
+      try {
+        const safeB = readSafeAreaBottomPx();
+        const footer = document.querySelector('[data-est-footer="1"]') as HTMLElement | null;
+        const footerRect = footer?.getBoundingClientRect();
+        const bottomGap = footerRect ? Math.max(0, Math.round(window.innerHeight - footerRect.bottom)) : null;
+        const vv = (window as any).visualViewport as VisualViewport | undefined;
+        const vvH = vv ? Math.round(vv.height) : null;
+        const vvOT = vv ? Math.round(vv.offsetTop) : null;
+        const vvOSL = vv ? Math.round(vv.offsetLeft) : null;
+
+        setFooterDebugText(
+          `safeB=${safeB}px innerH=${Math.round(window.innerHeight)} gap=${bottomGap ?? "?"} footerB=${footerRect ? Math.round(footerRect.bottom) : "?"} vvH=${vvH ?? "?"} vvOT=${vvOT ?? "?"} vvOL=${vvOSL ?? "?"}`
+        );
+      } catch {
+        setFooterDebugText("debug error");
+      }
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
     const vv = (window as any).visualViewport as VisualViewport | undefined;
-    vv?.addEventListener?.("resize", compute);
-    vv?.addEventListener?.("scroll", compute);
+    vv?.addEventListener?.("resize", update);
+    vv?.addEventListener?.("scroll", update);
+
+    const t = window.setInterval(update, 500);
     return () => {
-      window.removeEventListener("resize", compute);
-      vv?.removeEventListener?.("resize", compute);
-      vv?.removeEventListener?.("scroll", compute);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+      vv?.removeEventListener?.("resize", update);
+      vv?.removeEventListener?.("scroll", update);
+      window.clearInterval(t);
     };
   }, []);
 
@@ -5776,7 +5807,12 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4" style={{ paddingBottom: `calc(${safeBottomPx}px + 136px)` }}>
+    <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+96px)]">
+      {footerDebugText ? (
+        <div className="fixed top-2 left-2 right-2 z-[999] rounded-xl border border-[rgba(255,255,255,.16)] bg-[rgba(0,0,0,.55)] px-3 py-2 text-[11px] font-black" data-no-swipe="true">
+          {footerDebugText}
+        </div>
+      ) : null}
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9107,7 +9143,7 @@ function EstimatesPageInner() {
         ? createPortal(
           <div
             className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: `calc(${safeBottomPx}px + 24px)` }}
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]" data-est-footer="1">
