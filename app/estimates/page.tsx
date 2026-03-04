@@ -9064,7 +9064,7 @@ function EstimatesPageInner() {
             style={{ bottom: 0 }}
             aria-label="Estimate actions"
           >
-            <div className="mx-auto max-w-[980px]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="mx-auto max-w-[980px]">
               {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.16)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.98)] shadow-glass">
                   <div>
@@ -9104,7 +9104,10 @@ function EstimatesPageInner() {
                   {saveNotice}
                 </div>
               ) : null}
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+              <div
+                className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around"
+                style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
+              >
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
