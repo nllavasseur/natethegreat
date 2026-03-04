@@ -1567,8 +1567,8 @@ export default function CalendarPage() {
                             {hold ? ` · Hold ${hold}` : ""}
                           </div>
                         </div>
-                        <div className="w-full flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-full grid grid-cols-[auto,1fr,auto] items-center gap-2">
+                          <div className="flex items-center gap-2">
                             <div
                               className="h-3.5 w-3.5 rounded-full shrink-0"
                               style={{
@@ -1579,25 +1579,42 @@ export default function CalendarPage() {
                               aria-hidden="true"
                             />
                             <div className="text-[14px] font-black text-white">#{idx + 1}</div>
-                            {canComplete ? (
+                          </div>
+
+                          <div className="flex justify-center">
+                            <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
                               <button
                                 type="button"
                                 data-no-swipe="true"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  const ok = window.confirm("Did you complete this job?");
-                                  if (!ok) return;
-                                  markDraftComplete(j.id);
+                                  adjustLaborDays(j.id, -1, j);
                                 }}
-                                className="rounded-xl border px-2 py-1 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
-                                aria-label="Complete"
-                                title="Complete"
+                                className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                aria-label="Decrease labor days"
                               >
-                                Complete
+                                -
                               </button>
-                            ) : null}
+                              <div className="px-5 py-3 text-[18px] font-black leading-none min-w-[56px] text-center">
+                                {labor}
+                              </div>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
+                                }}
+                                className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                aria-label="Increase labor days"
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
+
                           <button
                             type="button"
                             data-no-swipe="true"
@@ -1625,103 +1642,71 @@ export default function CalendarPage() {
 
                       <div className="mt-2 grid gap-3">
                         <div className="flex flex-col items-center gap-2">
-                          <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                adjustLaborDays(j.id, -1, j);
-                              }}
-                              className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
-                              aria-label="Decrease labor days"
-                            >
-                              -
-                            </button>
-                            <div className="px-5 py-3 text-[18px] font-black leading-none min-w-[56px] text-center">
-                              {labor}
+                          <div className="flex justify-center">
+                            <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWeekendAllowed(j.id, "sat", j);
+                                }}
+                                className={
+                                  "px-5 py-3 text-[16px] font-black transition-colors " +
+                                  (usedWeekend.sat
+                                    ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                    : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                }
+                                aria-pressed={allowSat}
+                              >
+                                Sat
+                              </button>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWeekendAllowed(j.id, "sun", j);
+                                }}
+                                className={
+                                  "px-5 py-3 text-[16px] font-black transition-colors " +
+                                  (usedWeekend.sun
+                                    ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                    : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                }
+                                aria-pressed={allowSun}
+                              >
+                                Sun
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                adjustLaborDays(j.id, 1, j);
-                              }}
-                              className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
-                              aria-label="Increase labor days"
-                            >
-                              +
-                            </button>
                           </div>
-                        </div>
 
-                        <div className="flex flex-col items-center gap-2">
                           <div className="w-full flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (holdOpenId === j.id) {
-                                setHoldOpenId(null);
-                                return;
-                              }
-                              setHoldOpenId(j.id);
-                              setHoldDraftIso(hold);
-                            }}
-                            aria-pressed={Boolean(hold)}
-                            className={
-                              "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[55%] truncate " +
-                              (hold
-                                ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
-                                : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
-                            }
-                          >
-                            {hold ? `Hold ${hold}` : "Set Hold"}
-                          </button>
-
-                          <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
                             <button
                               type="button"
                               data-no-swipe="true"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                toggleWeekendAllowed(j.id, "sat", j);
+                                if (holdOpenId === j.id) {
+                                  setHoldOpenId(null);
+                                  return;
+                                }
+                                setHoldOpenId(j.id);
+                                setHoldDraftIso(hold);
                               }}
+                              aria-pressed={Boolean(hold)}
                               className={
-                                "px-5 py-3 text-[16px] font-black transition-colors " +
-                                (usedWeekend.sat
-                                  ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                  : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[55%] truncate " +
+                                (hold
+                                  ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                                  : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
                               }
-                              aria-pressed={allowSat}
                             >
-                              Sat
+                              {hold ? `Hold ${hold}` : "Set Hold"}
                             </button>
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                toggleWeekendAllowed(j.id, "sun", j);
-                              }}
-                              className={
-                                "px-5 py-3 text-[16px] font-black transition-colors " +
-                                (usedWeekend.sun
-                                  ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                  : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                              }
-                              aria-pressed={allowSun}
-                            >
-                              Sun
-                            </button>
-                          </div>
 
                           <button
                             type="button"
