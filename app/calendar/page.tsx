@@ -690,10 +690,7 @@ export default function CalendarPage() {
     // Update in-tab state immediately (storage events don't fire in the same tab).
     setDrafts(Object.values(store).map((d) => ({ ...d })));
 
-    setHighlightQueueId(id);
-    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
-    highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
-  }, []);
+  }, [drafts]);
 
   const resetLaborDays = React.useCallback((id: string) => {
     const store = readDraftStore();
@@ -727,10 +724,10 @@ export default function CalendarPage() {
     }
     notifyDraftsChanged();
 
-    setHighlightQueueId(id);
-    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
-    highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
-  }, []);
+    // Update in-tab state immediately (storage events don't fire in the same tab).
+    setDrafts(Object.values(store).map((d) => ({ ...d })));
+
+  }, [drafts]);
 
   const adjustLaborDays = React.useCallback((id: string, delta: number) => {
     const store = readDraftStore();
@@ -758,10 +755,9 @@ export default function CalendarPage() {
     }
     notifyDraftsChanged();
 
-    setHighlightQueueId(id);
-    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
-    highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
-  }, []);
+    // Update in-tab state immediately (storage events don't fire in the same tab).
+    setDrafts(Object.values(store).map((d) => ({ ...d })));
+  }, [drafts]);
 
   const soldQueue = React.useMemo(() => {
     const explicitStartIso = (d: DraftEntry) => {
