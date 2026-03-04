@@ -3766,10 +3766,25 @@ function EstimatesPageInner() {
       : undefined;
 
     // Keep a stable sold ordering key so edits don't reshuffle the calendar.
+    const hasValidQueueRank = Number.isFinite(Number((existingSchedule as any)?.queueRank)) && Number((existingSchedule as any)?.queueRank) > 0;
+    const shouldAppendToQueue = status === "sold" && (existingStatus !== "sold" || !hasValidQueueRank);
     const queueRank = status === "sold"
-      ? (Number.isFinite(Number((existingSchedule as any)?.queueRank))
+      ? (hasValidQueueRank
         ? Number((existingSchedule as any).queueRank)
-        : createdAt)
+        : (() => {
+            if (!shouldAppendToQueue) return createdAt;
+            try {
+              const store = readDraftStore();
+              const soldRanks = Object.values(store)
+                .filter((d: any) => d && d.status === "sold" && !d.calendarHidden)
+                .map((d: any) => Number(d.queueRank))
+                .filter((n: number) => Number.isFinite(n) && n > 0);
+              const maxRank = soldRanks.length ? Math.max(...soldRanks) : 0;
+              return maxRank + 1;
+            } catch {
+              return createdAt;
+            }
+          })())
       : (Number.isFinite(Number((existingSchedule as any)?.queueRank)) ? Number((existingSchedule as any).queueRank) : undefined);
     const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
     const projectDataBackup = sanitized.projectPhotoDataUrl;
