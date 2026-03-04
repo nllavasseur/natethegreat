@@ -359,6 +359,7 @@ function EstimatesPageInner() {
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
+  const [footerDebugText, setFooterDebugText] = useState<string>("");
   const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
@@ -4629,6 +4630,66 @@ function EstimatesPageInner() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("debug") !== "1") return;
+
+    const readSafeAreaBottomPx = () => {
+      try {
+        const el = document.createElement("div");
+        el.style.position = "fixed";
+        el.style.left = "0";
+        el.style.right = "0";
+        el.style.bottom = "0";
+        el.style.height = "0";
+        el.style.paddingBottom = "env(safe-area-inset-bottom)";
+        el.style.pointerEvents = "none";
+        document.body.appendChild(el);
+        const px = parseFloat(window.getComputedStyle(el).paddingBottom || "0") || 0;
+        el.remove();
+        return px;
+      } catch {
+        return 0;
+      }
+    };
+
+    const update = () => {
+      try {
+        const safeB = readSafeAreaBottomPx();
+        const footer = document.querySelector('[data-est-footer="1"]') as HTMLElement | null;
+        const footerRect = footer?.getBoundingClientRect();
+        const bottomGap = footerRect ? Math.max(0, Math.round(window.innerHeight - footerRect.bottom)) : null;
+        const vv = (window as any).visualViewport as VisualViewport | undefined;
+        const vvH = vv ? Math.round(vv.height) : null;
+        const vvOT = vv ? Math.round(vv.offsetTop) : null;
+        const vvOSL = vv ? Math.round(vv.offsetLeft) : null;
+
+        setFooterDebugText(
+          `safeB=${safeB}px innerH=${Math.round(window.innerHeight)} gap=${bottomGap ?? "?"} footerB=${footerRect ? Math.round(footerRect.bottom) : "?"} vvH=${vvH ?? "?"} vvOT=${vvOT ?? "?"} vvOL=${vvOSL ?? "?"}`
+        );
+      } catch {
+        setFooterDebugText("debug error");
+      }
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
+    const vv = (window as any).visualViewport as VisualViewport | undefined;
+    vv?.addEventListener?.("resize", update);
+    vv?.addEventListener?.("scroll", update);
+
+    const t = window.setInterval(update, 500);
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+      vv?.removeEventListener?.("resize", update);
+      vv?.removeEventListener?.("scroll", update);
+      window.clearInterval(t);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!photoViewerSrc) return;
     setPhotoViewerScale(1);
     setPhotoViewerX(0);
@@ -5747,6 +5808,11 @@ function EstimatesPageInner() {
 
   return (
     <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+96px)]">
+      {footerDebugText ? (
+        <div className="fixed top-2 left-2 right-2 z-[999] rounded-xl border border-[rgba(255,255,255,.16)] bg-[rgba(0,0,0,.55)] px-3 py-2 text-[11px] font-black" data-no-swipe="true">
+          {footerDebugText}
+        </div>
+      ) : null}
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9076,7 +9142,7 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <div className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate" aria-label="Estimate actions">
-            <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+            <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" data-est-footer="1">
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around gap-2 px-2">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
