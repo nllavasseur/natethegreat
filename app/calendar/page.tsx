@@ -172,6 +172,26 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
       return;
     }
 
+    // Queue is the control center for SOLD jobs.
+    // If local says a job is sold, always keep local queue-control fields so remote refresh cannot
+    // reorder/snap-back position or duration.
+    const localIsSold = (prev as any).status === "sold" && !(prev as any).calendarHidden;
+    if (localIsSold) {
+      byId.set(id, {
+        ...d,
+        ...prev,
+        status: (prev as any).status,
+        calendarHidden: (prev as any).calendarHidden,
+        queueRank: (prev as any).queueRank,
+        laborDays: (prev as any).laborDays,
+        originalLaborDays: (prev as any).originalLaborDays,
+        holdDate: (prev as any).holdDate,
+        allowSaturday: (prev as any).allowSaturday,
+        allowSunday: (prev as any).allowSunday
+      });
+      return;
+    }
+
     const prevTs = Number((prev as any).updatedAt ?? (prev as any).createdAt ?? 0) || 0;
     const nextTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
 
@@ -323,7 +343,7 @@ export default function CalendarPage() {
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
         Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
       );
 
     const existingRanks = sold
@@ -538,7 +558,7 @@ export default function CalendarPage() {
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
         Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
       );
 
     const isHold = (d: DraftEntry) => Boolean(String((d as any).holdDate || "").slice(0, 10));
@@ -608,7 +628,7 @@ export default function CalendarPage() {
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
         Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
       );
 
     const isHold = (d: DraftEntry) => Boolean(String((d as any).holdDate || "").slice(0, 10));
@@ -831,7 +851,7 @@ export default function CalendarPage() {
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
         Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
       );
 
     const scheduledStartById = new Map<string, string>();
@@ -987,7 +1007,7 @@ export default function CalendarPage() {
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
           Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
+        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
       );
 
     const maxDate = (a: Date, b: Date) => (a.getTime() >= b.getTime() ? a : b);
@@ -1013,7 +1033,8 @@ export default function CalendarPage() {
         ? nextWorkdayForJob(addDays(lastQueuedEnd, 1), allowSat, allowSun)
         : nextWorkdayForJob(today0, allowSat, allowSun);
 
-      const requested = String((d as any).holdDate || explicitStartIso(d) || "");
+      // SOLD jobs are governed by queue order + holds only.
+      const requested = String((d as any).holdDate || "");
       const explicitMin = requested
         ? nextWorkdayForJob(new Date(requested + "T12:00:00"), allowSat, allowSun)
         : nextWorkdayForJob(today0, allowSat, allowSun);

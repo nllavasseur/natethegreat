@@ -349,7 +349,8 @@ export default function QuotesPage() {
         } as any;
       }
       const prevStatus = (store as any)[id]?.status;
-      const shouldAppendToQueue = status === "sold" && prevStatus !== "sold";
+      const hasValidQueueRank = Number.isFinite(Number((store as any)[id]?.queueRank)) && Number((store as any)[id]?.queueRank) > 0;
+      const shouldAppendToQueue = status === "sold" && (prevStatus !== "sold" || !hasValidQueueRank);
       let nextQueueRank: number | undefined = undefined;
       if (shouldAppendToQueue) {
         const byId = new Map<string, any>();
