@@ -9141,12 +9141,13 @@ function EstimatesPageInner() {
 
       {portalReady
         ? createPortal(
-          <div className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate" aria-label="Estimate actions">
-            <div className="mx-auto max-w-[980px] px-4" data-est-footer="1">
-              <div
-                className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around gap-2 px-2"
-                style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
-              >
+          <div
+            className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate backdrop-blur-ios bg-[rgba(20,30,24,.55)]"
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            aria-label="Estimate actions"
+          >
+            <div className="mx-auto max-w-[980px] px-4 py-2" data-est-footer="1">
+              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around gap-2 px-2">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
