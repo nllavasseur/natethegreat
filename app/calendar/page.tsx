@@ -1716,29 +1716,44 @@ export default function CalendarPage() {
                       </div>
 
                       <div className="mt-1.5">
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            if (holdOpenId === j.id) {
-                              setHoldOpenId(null);
-                              return;
+                        <div className="flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (holdOpenId === j.id) {
+                                setHoldOpenId(null);
+                                return;
+                              }
+                              setHoldOpenId(j.id);
+                              setHoldDraftIso(hold);
+                            }}
+                            aria-pressed={Boolean(hold)}
+                            className={
+                              "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[55%] truncate " +
+                              (hold
+                                ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                                : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
                             }
-                            setHoldOpenId(j.id);
-                            setHoldDraftIso(hold);
-                          }}
-                          aria-pressed={Boolean(hold)}
-                          className={
-                            "w-full min-w-0 truncate rounded-xl border px-2 py-1.5 text-[11px] font-black text-left transition " +
-                            (hold
-                              ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)] ring-1 ring-[rgba(255,214,10,.28)] shadow-[0_0_0_2px_rgba(255,214,10,.10)]"
-                              : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
-                          }
-                        >
-                          {hold ? `Hold: ${hold}` : "Set Hold Date"}
-                        </button>
+                          >
+                            {hold ? `Hold ${hold}` : "Set Hold"}
+                          </button>
+
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              resetLaborDays(j.id);
+                            }}
+                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
+                          >
+                            Reset
+                          </button>
+                        </div>
 
                         {holdOpenId === j.id ? (
                           <div
