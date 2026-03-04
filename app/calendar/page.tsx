@@ -326,18 +326,17 @@ export default function CalendarPage() {
         Number((a as any).updatedAt ?? (a as any).createdAt ?? 0) - Number((b as any).updatedAt ?? (b as any).createdAt ?? 0)
       );
 
-    // Queue is authoritative: ranks must be unique + sequential.
-    // If there are duplicates or missing ranks (common after merges), renumber.
+    const existingRanks = sold
+      .map((d) => Number((d as any).queueRank))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    let nextRank = (existingRanks.length ? Math.max(...existingRanks) : 0) + 1;
     let changed = false;
-    sold.forEach((d, idx) => {
-      const desired = idx + 1;
-      const cur = Number((d as any).queueRank);
-      if (!Number.isFinite(cur) || cur !== desired) {
-        if ((store as any)[d.id]) {
-          (store as any)[d.id] = { ...(store as any)[d.id], queueRank: desired, updatedAt: Date.now() };
-          changed = true;
-        }
+    sold.forEach((d) => {
+      if (typeof (d as any).queueRank !== "number") {
+        (store as any)[d.id] = { ...(store as any)[d.id], queueRank: nextRank, updatedAt: Date.now() };
+        changed = true;
       }
+      nextRank += 1;
     });
 
     if (changed) {
@@ -1790,6 +1789,16 @@ export default function CalendarPage() {
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, -1, j);
                                 }}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, -1, j);
+                                }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, -1, j);
+                                }}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -1806,6 +1815,16 @@ export default function CalendarPage() {
                                 type="button"
                                 data-no-swipe="true"
                                 onPointerDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
+                                }}
+                                onTouchStart={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
+                                }}
+                                onMouseDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, 1, j);
