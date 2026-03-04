@@ -359,8 +359,6 @@ function EstimatesPageInner() {
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
-  const [footerHeightPx, setFooterHeightPx] = useState<number>(0);
-  const footerOuterRef = useRef<HTMLDivElement | null>(null);
   const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
@@ -4631,40 +4629,6 @@ function EstimatesPageInner() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!portalReady) return;
-
-    const el = footerOuterRef.current;
-    if (!el) return;
-
-    const update = () => {
-      try {
-        const h = Math.max(0, Math.ceil(el.getBoundingClientRect().height));
-        setFooterHeightPx(h);
-      } catch {
-        setFooterHeightPx(0);
-      }
-    };
-
-    update();
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => update());
-      ro.observe(el);
-    }
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      try {
-        ro?.disconnect();
-      } catch {
-        // ignore
-      }
-    };
-  }, [portalReady]);
-
-
-  useEffect(() => {
     if (!photoViewerSrc) return;
     setPhotoViewerScale(1);
     setPhotoViewerX(0);
@@ -5782,7 +5746,7 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + 24px + ${footerHeightPx}px)` }}>
+    <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9111,25 +9075,21 @@ function EstimatesPageInner() {
 
       {portalReady
         ? createPortal(
-          <div
-            ref={footerOuterRef}
-            className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
-            aria-label="Estimate actions"
-          >
-            <div className="mx-auto max-w-[980px]" data-est-footer="1">
-              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
-                <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
-                  <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                    {saving ? "Saving…" : "Save"}
-                  </PrimaryButton>
-                  <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                    {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                  </SecondaryButton>
-                  <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
-                    Reset
-                  </SecondaryButton>
-                </div>
+          <div className="fixed left-0 right-0 z-50 px-4" style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }} aria-label="Estimate actions">
+            <div className="mx-auto max-w-[980px] px-4" data-est-footer="1">
+              <div
+                className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around gap-2 px-2"
+                style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
+              >
+                <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                  {saving ? "Saving…" : "Save"}
+                </PrimaryButton>
+                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                </SecondaryButton>
+                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
+                  Reset
+                </SecondaryButton>
               </div>
             </div>
           </div>,
