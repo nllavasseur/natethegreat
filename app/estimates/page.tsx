@@ -9066,18 +9066,22 @@ function EstimatesPageInner() {
 
             <nav
               className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
-              style={{ bottom: 0, paddingBottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
+              style={{ bottom: 0 }}
               aria-label="Estimate actions"
             >
               <div className="mx-auto max-w-[980px]">
-                <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-                  <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                    {saving ? "Saving…" : "Save"}
-                  </PrimaryButton>
-                  <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                    {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                  </SecondaryButton>
-                  <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+                <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end pb-[max(calc(env(safe-area-inset-bottom) - 6px),0px)]">
+                  <div className="h-16 flex items-center justify-around">
+                    <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                      {saving ? "Saving…" : "Save"}
+                    </PrimaryButton>
+                    <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                      {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                    </SecondaryButton>
+                    <GhostButton onClick={resetEstimate} disabled={saving || savingAsNew}>
+                      Reset
+                    </GhostButton>
+                  </div>
                 </div>
               </div>
             </nav>
