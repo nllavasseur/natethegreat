@@ -318,6 +318,8 @@ export default function CalendarPage() {
   const [queueOpen, setQueueOpen] = React.useState(false);
   const [moveOpenId, setMoveOpenId] = React.useState<string | null>(null);
   const [movePreviewPos, setMovePreviewPos] = React.useState<number | null>(null);
+  const [moveError, setMoveError] = React.useState<string>("");
+  const [moveSaving, setMoveSaving] = React.useState(false);
   const [holdOpenId, setHoldOpenId] = React.useState<string | null>(null);
   const [holdDraftIso, setHoldDraftIso] = React.useState<string>("");
   const [highlightQueueId, setHighlightQueueId] = React.useState<string | null>(null);
@@ -501,7 +503,7 @@ export default function CalendarPage() {
     [isNonWorkingDayForJob, nextWorkdayForJob]
   );
 
-  const moveQueue = React.useCallback((id: string, dir: -1 | 1) => {
+  const moveQueue = React.useCallback(async (id: string, dir: -1 | 1) => {
     const sid = String(id);
     // Capture the row's current top offset within the scroll container so we can keep it
     // visually anchored after the reorder + re-render.
@@ -519,7 +521,7 @@ export default function CalendarPage() {
       queueAnchorRef.current = null;
     }
 
-    void (async () => {
+    const res = await (async () => {
       const soldSnapshot = (drafts || [])
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
         .slice()
@@ -531,7 +533,8 @@ export default function CalendarPage() {
           if (ar !== br) return ar - br;
           return String((a as any).id || "").localeCompare(String((b as any).id || ""));
         });
-      await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
+      const res = await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
+      if (!(res as any)?.ok) return res as any;
       const store = readDraftStore();
       setDrafts((prev) => {
         const byId = new Map<string, any>();
@@ -547,16 +550,18 @@ export default function CalendarPage() {
         });
         return Array.from(byId.values());
       });
+      return res as any;
     })();
 
     setHighlightQueueId(sid);
-    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
+    if (highlightTimeoutRef.current != null) window.clearTimeout(highlightTimeoutRef.current ?? undefined);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
+    return res as any;
   }, [drafts]);
 
-  const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
+  const applyMoveToPosition = React.useCallback(async (id: string, targetPos: number) => {
     const sid = String(id);
-    void (async () => {
+    const res = await (async () => {
       const soldSnapshot = (drafts || [])
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
         .slice()
@@ -568,7 +573,8 @@ export default function CalendarPage() {
           if (ar !== br) return ar - br;
           return String((a as any).id || "").localeCompare(String((b as any).id || ""));
         });
-      await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
+      const res = await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
+      if (!(res as any)?.ok) return res as any;
       const store = readDraftStore();
       setDrafts((prev) => {
         const byId = new Map<string, any>();
@@ -584,10 +590,12 @@ export default function CalendarPage() {
         });
         return Array.from(byId.values());
       });
+      return res as any;
     })();
     setHighlightQueueId(sid);
-    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
+    if (highlightTimeoutRef.current != null) window.clearTimeout(highlightTimeoutRef.current ?? undefined);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
+    return res as any;
   }, [drafts]);
 
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
@@ -1383,6 +1391,8 @@ export default function CalendarPage() {
                 e.stopPropagation();
                 setMoveOpenId(null);
                 setMovePreviewPos(null);
+                setMoveError("");
+                setMoveSaving(false);
               }}
             >
               <div
@@ -1403,11 +1413,19 @@ export default function CalendarPage() {
                       onClick={() => {
                         setMoveOpenId(null);
                         setMovePreviewPos(null);
+                        setMoveError("");
+                        setMoveSaving(false);
                       }}
                     >
                       Close
                     </SecondaryButton>
                   </div>
+
+                  {moveError ? (
+                    <div className="mt-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-3 py-2 text-[12px] font-black text-[rgba(255,240,240,.95)]">
+                      {moveError}
+                    </div>
+                  ) : null}
 
                   <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <button
@@ -1465,22 +1483,34 @@ export default function CalendarPage() {
                       onClick={() => {
                         setMoveOpenId(null);
                         setMovePreviewPos(null);
+                        setMoveError("");
+                        setMoveSaving(false);
                       }}
                     >
                       Cancel
                     </SecondaryButton>
                     <PrimaryButton
                       data-no-swipe="true"
-                      onClick={() => {
+                      disabled={moveSaving}
+                      onClick={async () => {
                         if (!moveOpenId) return;
                         const pos = typeof movePreviewPos === "number" ? movePreviewPos : null;
                         if (!pos) return;
-                        applyMoveToPosition(moveOpenId, pos);
+                        setMoveSaving(true);
+                        setMoveError("");
+                        const res: any = await applyMoveToPosition(moveOpenId, pos);
+                        if (!res?.ok) {
+                          const reason = String(res?.reason || "MOVE_FAILED");
+                          setMoveError(reason);
+                          setMoveSaving(false);
+                          return;
+                        }
                         setMoveOpenId(null);
                         setMovePreviewPos(null);
+                        setMoveSaving(false);
                       }}
                     >
-                      Save
+                      {moveSaving ? "Saving…" : "Save"}
                     </PrimaryButton>
                   </div>
                 </GlassCard>
@@ -1664,6 +1694,8 @@ export default function CalendarPage() {
                               if (hold) return;
                               setMoveOpenId(j.id);
                               setMovePreviewPos(idx + 1);
+                              setMoveError("");
+                              setMoveSaving(false);
                             }}
                             className={
                               "rounded-2xl border px-4 py-2 text-[14px] font-black leading-none " +

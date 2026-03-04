@@ -247,16 +247,16 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
 
   const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
   const curFullIdx = full.findIndex((d) => String(d.id) === sid);
-  if (curFullIdx === -1) return { ok: false as const };
-  if (holdSlots.has(curFullIdx)) return { ok: false as const };
+  if (curFullIdx === -1) return { ok: false as const, reason: "NOT_FOUND" as const };
+  if (holdSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_HOLD" as const };
 
   const curMovIdx = movableSlots.indexOf(curFullIdx);
-  if (curMovIdx === -1) return { ok: false as const };
+  if (curMovIdx === -1) return { ok: false as const, reason: "NOT_MOVABLE" as const };
   const nextMovIdx = curMovIdx + params.dir;
-  if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return { ok: false as const };
+  if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return { ok: false as const, reason: "OUT_OF_RANGE" as const };
 
   const from = movable.findIndex((d) => String(d.id) === sid);
-  if (from === -1) return { ok: false as const };
+  if (from === -1) return { ok: false as const, reason: "NOT_FOUND_MOVABLE" as const };
 
   const [picked] = movable.splice(from, 1);
   movable.splice(nextMovIdx, 0, picked);
@@ -309,15 +309,15 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
 
   const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
   const curFullIdx = full.findIndex((d) => String(d.id) === sid);
-  if (curFullIdx === -1) return { ok: false as const };
-  if (holdSlots.has(curFullIdx)) return { ok: false as const };
+  if (curFullIdx === -1) return { ok: false as const, reason: "NOT_FOUND" as const };
+  if (holdSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_HOLD" as const };
 
   const desiredFullIdx = Math.max(0, Math.min(full.length - 1, Math.round(params.targetPos) - 1));
   const desiredMovIdx = movableSlots.findIndex((idx) => idx === desiredFullIdx);
-  if (desiredMovIdx === -1) return { ok: false as const };
+  if (desiredMovIdx === -1) return { ok: false as const, reason: "TARGET_IS_HOLD" as const };
 
   const from = movable.findIndex((d) => String(d.id) === sid);
-  if (from === -1) return { ok: false as const };
+  if (from === -1) return { ok: false as const, reason: "NOT_FOUND_MOVABLE" as const };
 
   const [picked] = movable.splice(from, 1);
   movable.splice(desiredMovIdx, 0, picked);
