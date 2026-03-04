@@ -5746,7 +5746,7 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+160px)]">
+    <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+96px)]">
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
