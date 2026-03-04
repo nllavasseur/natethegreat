@@ -276,6 +276,7 @@ export default function CalendarPage() {
   const [cursor, setCursor] = React.useState(() => new Date());
   const [selected, setSelected] = React.useState(() => new Date());
   const [dayPreviewOpen, setDayPreviewOpen] = React.useState(false);
+  const suppressDayPreviewOpenUntilRef = React.useRef(0);
   const [drafts, setDrafts] = React.useState<DraftEntry[]>([]);
   const [blockOuts, setBlockOuts] = React.useState<BlockOut[]>([]);
   const [portalReady, setPortalReady] = React.useState(false);
@@ -303,6 +304,16 @@ export default function CalendarPage() {
   const label = monthStart.toLocaleString(undefined, { month: "long", year: "numeric" });
   const today = new Date();
   const today0 = React.useMemo(() => startOfDay(today), [today]);
+
+  const requestOpenDayPreview = React.useCallback(() => {
+    if (Date.now() < suppressDayPreviewOpenUntilRef.current) return;
+    setDayPreviewOpen(true);
+  }, []);
+
+  const requestCloseDayPreview = React.useCallback(() => {
+    suppressDayPreviewOpenUntilRef.current = Date.now() + 450;
+    setDayPreviewOpen(false);
+  }, []);
 
   const ensureQueueRanks = React.useCallback(() => {
     const store = readDraftStore();
@@ -1269,12 +1280,12 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
-      {dayPreviewOpen ? (
+      {portalReady && dayPreviewOpen ? createPortal(
         <div
-          className="fixed inset-0 z-50 grid place-items-center p-3"
+          className="fixed inset-0 z-[70] grid place-items-center p-3"
           role="dialog"
           aria-modal="true"
-          style={{ touchAction: "manipulation" }}
+          style={{ touchAction: "pan-y" }}
         >
           <div
             className="absolute inset-0 bg-black/40"
@@ -1282,7 +1293,7 @@ export default function CalendarPage() {
               if (e.target !== e.currentTarget) return;
               e.preventDefault();
               e.stopPropagation();
-              window.setTimeout(() => setDayPreviewOpen(false), 0);
+              window.setTimeout(() => requestCloseDayPreview(), 0);
             }}
           />
           <div
@@ -1301,7 +1312,7 @@ export default function CalendarPage() {
               <button
                 type="button"
                 data-no-swipe="true"
-                onClick={() => setDayPreviewOpen(false)}
+                onClick={() => requestCloseDayPreview()}
                 className="rounded-2xl border px-4 py-2 text-[12px] font-black border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
               >
                 Close
@@ -1437,7 +1448,7 @@ export default function CalendarPage() {
               )}
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
 
       {portalReady && queueOpen ? createPortal(
         <div
@@ -2265,14 +2276,14 @@ export default function CalendarPage() {
       </GlassCard>
 
       <div
-        onClick={() => setDayPreviewOpen(true)}
+        onClick={() => requestOpenDayPreview()}
         className="cursor-pointer"
         role="button"
         tabIndex={0}
         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setDayPreviewOpen(true);
+            requestOpenDayPreview();
           }
         }}
       >
@@ -2280,13 +2291,13 @@ export default function CalendarPage() {
       </div>
       <div
         className="cursor-pointer"
-        onClick={() => setDayPreviewOpen(true)}
+        onClick={() => requestOpenDayPreview()}
         role="button"
         tabIndex={0}
         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setDayPreviewOpen(true);
+            requestOpenDayPreview();
           }
         }}
       >
