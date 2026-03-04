@@ -5776,7 +5776,7 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4" style={{ paddingBottom: `calc(${safeBottomPx}px + 112px)` }}>
+    <div className="space-y-4" style={{ paddingBottom: `calc(${safeBottomPx}px + 136px)` }}>
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9107,7 +9107,7 @@ function EstimatesPageInner() {
         ? createPortal(
           <div
             className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: `${safeBottomPx}px` }}
+            style={{ bottom: `calc(${safeBottomPx}px + 24px)` }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]" data-est-footer="1">
