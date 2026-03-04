@@ -318,8 +318,6 @@ export default function CalendarPage() {
   const [queueOpen, setQueueOpen] = React.useState(false);
   const [moveOpenId, setMoveOpenId] = React.useState<string | null>(null);
   const [movePreviewPos, setMovePreviewPos] = React.useState<number | null>(null);
-  const [moveError, setMoveError] = React.useState<string>("");
-  const [moveSaving, setMoveSaving] = React.useState(false);
   const [holdOpenId, setHoldOpenId] = React.useState<string | null>(null);
   const [holdDraftIso, setHoldDraftIso] = React.useState<string>("");
   const [highlightQueueId, setHighlightQueueId] = React.useState<string | null>(null);
@@ -503,7 +501,7 @@ export default function CalendarPage() {
     [isNonWorkingDayForJob, nextWorkdayForJob]
   );
 
-  const moveQueue = React.useCallback(async (id: string, dir: -1 | 1) => {
+  const moveQueue = React.useCallback((id: string, dir: -1 | 1) => {
     const sid = String(id);
     // Capture the row's current top offset within the scroll container so we can keep it
     // visually anchored after the reorder + re-render.
@@ -521,20 +519,9 @@ export default function CalendarPage() {
       queueAnchorRef.current = null;
     }
 
-    const res = await (async () => {
-      const soldSnapshot = (drafts || [])
-        .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-        .slice()
-        .sort((a, b) => {
-          const ar0 = Number((a as any).queueRank);
-          const br0 = Number((b as any).queueRank);
-          const ar = Number.isFinite(ar0) && ar0 > 0 ? ar0 : Number.POSITIVE_INFINITY;
-          const br = Number.isFinite(br0) && br0 > 0 ? br0 : Number.POSITIVE_INFINITY;
-          if (ar !== br) return ar - br;
-          return String((a as any).id || "").localeCompare(String((b as any).id || ""));
-        });
-      const res = await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
-      if (!(res as any)?.ok) return res as any;
+    void (async () => {
+      const soldSnapshot = (drafts || []).filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden);
+      await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
       const store = readDraftStore();
       setDrafts((prev) => {
         const byId = new Map<string, any>();
@@ -550,31 +537,18 @@ export default function CalendarPage() {
         });
         return Array.from(byId.values());
       });
-      return res as any;
     })();
 
     setHighlightQueueId(sid);
-    if (highlightTimeoutRef.current != null) window.clearTimeout(highlightTimeoutRef.current ?? undefined);
+    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
-    return res as any;
   }, [drafts]);
 
-  const applyMoveToPosition = React.useCallback(async (id: string, targetPos: number) => {
+  const applyMoveToPosition = React.useCallback((id: string, targetPos: number) => {
     const sid = String(id);
-    const res = await (async () => {
-      const soldSnapshot = (drafts || [])
-        .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-        .slice()
-        .sort((a, b) => {
-          const ar0 = Number((a as any).queueRank);
-          const br0 = Number((b as any).queueRank);
-          const ar = Number.isFinite(ar0) && ar0 > 0 ? ar0 : Number.POSITIVE_INFINITY;
-          const br = Number.isFinite(br0) && br0 > 0 ? br0 : Number.POSITIVE_INFINITY;
-          if (ar !== br) return ar - br;
-          return String((a as any).id || "").localeCompare(String((b as any).id || ""));
-        });
-      const res = await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
-      if (!(res as any)?.ok) return res as any;
+    void (async () => {
+      const soldSnapshot = (drafts || []).filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden);
+      await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
       const store = readDraftStore();
       setDrafts((prev) => {
         const byId = new Map<string, any>();
@@ -590,12 +564,10 @@ export default function CalendarPage() {
         });
         return Array.from(byId.values());
       });
-      return res as any;
     })();
     setHighlightQueueId(sid);
-    if (highlightTimeoutRef.current != null) window.clearTimeout(highlightTimeoutRef.current ?? undefined);
+    if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 1200);
-    return res as any;
   }, [drafts]);
 
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
@@ -619,20 +591,7 @@ export default function CalendarPage() {
       const res = await resetLaborDaysPipeline({ id: sid, fallback: fallback as any });
       if (!res.ok) return;
       const store = readDraftStore();
-      setDrafts((prev) => {
-        const byId = new Map<string, any>();
-        prev.forEach((d) => {
-          const id = String((d as any)?.id || "");
-          if (id) byId.set(id, d);
-        });
-        Object.entries(store).forEach(([k, v]) => {
-          const id = String((v as any)?.id || k);
-          if (!id) return;
-          const prevOne = byId.get(id);
-          byId.set(id, prevOne ? { ...(prevOne as any), ...(v as any) } : (v as any));
-        });
-        return Array.from(byId.values());
-      });
+      setDrafts(Object.values(store).map((d) => ({ ...d })));
       setHighlightQueueId(sid);
       if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
       highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
@@ -1391,8 +1350,6 @@ export default function CalendarPage() {
                 e.stopPropagation();
                 setMoveOpenId(null);
                 setMovePreviewPos(null);
-                setMoveError("");
-                setMoveSaving(false);
               }}
             >
               <div
@@ -1410,23 +1367,14 @@ export default function CalendarPage() {
                     <div className="text-sm font-black">Move job</div>
                     <SecondaryButton
                       data-no-swipe="true"
-                      type="button"
                       onClick={() => {
                         setMoveOpenId(null);
                         setMovePreviewPos(null);
-                        setMoveError("");
-                        setMoveSaving(false);
                       }}
                     >
                       Close
                     </SecondaryButton>
                   </div>
-
-                  {moveError ? (
-                    <div className="mt-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-3 py-2 text-[12px] font-black text-[rgba(255,240,240,.95)]">
-                      {moveError}
-                    </div>
-                  ) : null}
 
                   <div className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <button
@@ -1438,10 +1386,7 @@ export default function CalendarPage() {
                         const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
                         let next = cur - 1;
                         while (next >= 1 && holds[next - 1]) next -= 1;
-                        if (next >= 1) {
-                          setMovePreviewPos(next);
-                          moveQueue(moveOpenId, -1);
-                        }
+                        if (next >= 1) setMovePreviewPos(next);
                       }}
                       className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
                       aria-label="Move up"
@@ -1466,10 +1411,7 @@ export default function CalendarPage() {
                         const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
                         let next = cur + 1;
                         while (next <= holds.length && holds[next - 1]) next += 1;
-                        if (next <= holds.length) {
-                          setMovePreviewPos(next);
-                          moveQueue(moveOpenId, 1);
-                        }
+                        if (next <= holds.length) setMovePreviewPos(next);
                       }}
                       className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
                       aria-label="Move down"
@@ -1484,43 +1426,22 @@ export default function CalendarPage() {
                       onClick={() => {
                         setMoveOpenId(null);
                         setMovePreviewPos(null);
-                        setMoveError("");
-                        setMoveSaving(false);
                       }}
                     >
                       Cancel
                     </SecondaryButton>
                     <PrimaryButton
                       data-no-swipe="true"
-                      type="button"
-                      disabled={moveSaving}
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onClick={() => {
                         if (!moveOpenId) return;
                         const pos = typeof movePreviewPos === "number" ? movePreviewPos : null;
                         if (!pos) return;
-                        if (moveSaving) return;
-                        setMoveSaving(true);
-                        setMoveError("");
-                        try {
-                          const res: any = await applyMoveToPosition(moveOpenId, pos);
-                          if (!res?.ok) {
-                            const reason = String(res?.reason || "MOVE_FAILED");
-                            setMoveError(reason);
-                            setMoveSaving(false);
-                            return;
-                          }
-                          setMoveOpenId(null);
-                          setMovePreviewPos(null);
-                          setMoveSaving(false);
-                        } catch {
-                          setMoveError("MOVE_EXCEPTION");
-                          setMoveSaving(false);
-                        }
+                        applyMoveToPosition(moveOpenId, pos);
+                        setMoveOpenId(null);
+                        setMovePreviewPos(null);
                       }}
                     >
-                      {moveSaving ? "Saving…" : "Save"}
+                      Save
                     </PrimaryButton>
                   </div>
                 </GlassCard>
@@ -1646,54 +1567,34 @@ export default function CalendarPage() {
                             {hold ? ` · Hold ${hold}` : ""}
                           </div>
                         </div>
-                        <div className="w-full grid grid-cols-[auto,1fr,auto] items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="h-3.5 w-3.5 rounded-full shrink-0"
-                              style={{
-                                background: dotColor,
-                                filter: "saturate(1.8) contrast(1.2)",
-                                boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
+                        <div className="w-full flex flex-wrap items-center gap-2 justify-between">
+                          <div
+                            className="h-3.5 w-3.5 rounded-full shrink-0"
+                            style={{
+                              background: dotColor,
+                              filter: "saturate(1.8) contrast(1.2)",
+                              boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
+                            }}
+                            aria-hidden="true"
+                          />
+                          {canComplete ? (
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const ok = window.confirm("Did you complete this job?");
+                                if (!ok) return;
+                                markDraftComplete(j.id);
                               }}
-                              aria-hidden="true"
-                            />
-                            <div className="text-[14px] font-black text-white">#{idx + 1}</div>
-                          </div>
-
-                          <div className="flex justify-center">
-                            <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, -1, j);
-                                }}
-                                className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
-                                aria-label="Decrease labor days"
-                              >
-                                -
-                              </button>
-                              <div className="px-5 py-3 text-[18px] font-black leading-none min-w-[56px] text-center">
-                                {labor}
-                              </div>
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, 1, j);
-                                }}
-                                className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
-                                aria-label="Increase labor days"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-
+                              className="rounded-xl border px-2 py-1 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              aria-label="Complete"
+                              title="Complete"
+                            >
+                              Complete
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             data-no-swipe="true"
@@ -1704,11 +1605,9 @@ export default function CalendarPage() {
                               if (hold) return;
                               setMoveOpenId(j.id);
                               setMovePreviewPos(idx + 1);
-                              setMoveError("");
-                              setMoveSaving(false);
                             }}
                             className={
-                              "rounded-2xl border px-4 py-2 text-[14px] font-black leading-none " +
+                              "rounded-xl border px-2 py-1 text-[10px] font-black leading-none " +
                               (hold
                                 ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
                                 : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
@@ -1719,8 +1618,105 @@ export default function CalendarPage() {
                             Move
                           </button>
                         </div>
+                      </div>
 
-                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                      <div className="mt-1.5 grid gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[11px] text-[var(--muted)] font-extrabold">Labor days</div>
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, -1, j);
+                                }}
+                                className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                aria-label="Decrease labor days"
+                              >
+                                -
+                              </button>
+                              <div className="px-2 py-1.5 text-[11px] font-black leading-none min-w-[34px] text-center">
+                                {labor}
+                              </div>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
+                                }}
+                                className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                                aria-label="Increase labor days"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                resetLaborDays(j.id);
+                              }}
+                              className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[11px] text-[var(--muted)] font-extrabold">Weekend</div>
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] overflow-hidden">
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWeekendAllowed(j.id, "sat", j);
+                                }}
+                                className={
+                                  "px-2 py-1.5 text-[11px] font-black transition-colors " +
+                                  (usedWeekend.sat
+                                    ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                    : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                }
+                                aria-pressed={allowSat}
+                              >
+                                Sat
+                              </button>
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWeekendAllowed(j.id, "sun", j);
+                                }}
+                                className={
+                                  "px-2 py-1.5 text-[11px] font-black transition-colors " +
+                                  (usedWeekend.sun
+                                    ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                    : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                                }
+                                aria-pressed={allowSun}
+                              >
+                                Sun
+                              </button>
+                            </div>
+                            <div className="text-[14px] font-black text-white">#{idx + 1}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-1.5">
                         <button
                           type="button"
                           data-no-swipe="true"
@@ -1736,71 +1732,18 @@ export default function CalendarPage() {
                           }}
                           aria-pressed={Boolean(hold)}
                           className={
-                            "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[120px] truncate " +
+                            "w-full min-w-0 truncate rounded-xl border px-2 py-1.5 text-[11px] font-black text-left transition " +
                             (hold
-                              ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)] ring-1 ring-[rgba(255,214,10,.28)] shadow-[0_0_0_2px_rgba(255,214,10,.10)]"
                               : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
                           }
                         >
-                          {hold ? `Hold ${hold}` : "Set Hold"}
+                          {hold ? `Hold: ${hold}` : "Set Hold Date"}
                         </button>
-
-                        <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleWeekendAllowed(j.id, "sat", j);
-                            }}
-                            className={
-                              "px-5 py-3 text-[16px] font-black transition-colors " +
-                              (usedWeekend.sat
-                                ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                            }
-                            aria-pressed={allowSat}
-                          >
-                            Sat
-                          </button>
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleWeekendAllowed(j.id, "sun", j);
-                            }}
-                            className={
-                              "px-5 py-3 text-[16px] font-black transition-colors " +
-                              (usedWeekend.sun
-                                ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                            }
-                            aria-pressed={allowSun}
-                          >
-                            Sun
-                          </button>
-                        </div>
-
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            resetLaborDays(j.id);
-                          }}
-                          className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
-                        >
-                          Reset
-                        </button>
-                      </div>
 
                         {holdOpenId === j.id ? (
                           <div
-                            className="mt-1 grid gap-2 min-w-0"
+                            className="mt-2 grid gap-2 min-w-0"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
