@@ -308,7 +308,7 @@ export default function CalendarPage() {
   const requestOpenDayPreview = React.useCallback(() => {
     if (Date.now() < suppressDayPreviewOpenUntilRef.current) return;
     setDayPreviewOpen(true);
-  }, []);
+  }, [drafts]);
 
   const requestCloseDayPreview = React.useCallback(() => {
     suppressDayPreviewOpenUntilRef.current = Date.now() + 450;
@@ -668,7 +668,11 @@ export default function CalendarPage() {
 
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun") => {
     const store = readDraftStore();
-    if (!(store as any)[id]) return;
+    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id);
+    if (!existing) return;
+    if (!(store as any)[id]) {
+      (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
+    }
     const curSat = asBool((store as any)[id].allowSaturday);
     const curSun = asBool((store as any)[id].allowSunday);
     const next =
