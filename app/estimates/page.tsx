@@ -9059,36 +9059,12 @@ function EstimatesPageInner() {
 
       {portalReady
         ? createPortal(
-          <nav
-            className="fixed left-0 right-0 z-50 px-4 backdrop-blur-ios bg-[rgba(20,30,24,.55)]"
-            style={{ bottom: 0, paddingBottom: 0 }}
+          <div
+            className="fixed left-0 right-0 z-50 px-4"
+            style={{ bottom: 0 }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
-              {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) ? (
-                <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.16)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.98)] shadow-glass">
-                  <div>
-                    {(() => {
-                      if (!takeoffDiagnostics.hasStyledCards) return "No takeoff yet: pick a style.";
-                      if (!takeoffDiagnostics.hasEligibleSegments) return "No takeoff yet: enter at least one segment length.";
-                      if (!takeoffDiagnostics.hasAnyAssignedToStyled) return "No takeoff: your measured segments are not assigned to a styled card. Assign segments to Card 1 (or pick a style on the card they’re assigned to).";
-                      return "No takeoff yet.";
-                    })()}
-                  </div>
-                  <div className="mt-1 text-[11px] font-extrabold text-[rgba(255,244,200,.92)]">
-                    {`segments=${takeoffDiagnostics.eligibleSegments} styledCards=${takeoffDiagnostics.perCard.filter((p) => p.hasStyle).length} active=${takeoffDiagnostics.activeId.slice(0, 6)}`}
-                  </div>
-                  <div className="mt-1 text-[11px] font-extrabold text-[rgba(255,244,200,.92)]">
-                    {takeoffDiagnostics.perCard
-                      .map((p, idx) => {
-                        const active = p.id === takeoffDiagnostics.activeId ? "*" : "";
-                        const style = p.hasStyle ? "style" : "no-style";
-                        return `C${idx + 1}${active}(${style},seg=${p.assignedSegments})`;
-                      })
-                      .join(" ")}
-                  </div>
-                </div>
-              ) : null}
               {takeoffError ? (
                 <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
                   {takeoffError}
@@ -9104,17 +9080,22 @@ function EstimatesPageInner() {
                   {saveNotice}
                 </div>
               ) : null}
-              <div className="border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
-                <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                  {saving ? "Saving…" : "Save"}
-                </PrimaryButton>
-                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                </SecondaryButton>
-                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
+
+              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
+                <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
+                  <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                    {saving ? "Saving…" : "Save"}
+                  </PrimaryButton>
+                  <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                    {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                  </SecondaryButton>
+                  <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
+                    Reset
+                  </SecondaryButton>
+                </div>
               </div>
             </div>
-          </nav>,
+          </div>,
           document.body
         )
         : null}
