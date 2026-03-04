@@ -3504,12 +3504,22 @@ function EstimatesPageInner() {
         const aIsSharedMaterial = aCardIds.length > 1;
         const bIsSharedMaterial = bCardIds.length > 1;
 
+        const cardIdx = (id: string) => {
+          const idx = comboCards.findIndex((c) => c.id === id);
+          return idx >= 0 ? idx : Number.MAX_SAFE_INTEGER;
+        };
+
         const group = (isSharedMaterial: boolean, isFee: boolean) => (isFee ? 2 : isSharedMaterial ? 1 : 0);
         const ag = group(aIsSharedMaterial, aIsFee);
         const bg = group(bIsSharedMaterial, bIsFee);
         if (ag !== bg) return ag - bg;
 
         if (aIsFee && bIsFee) return ai - bi;
+
+        // Keep card-scoped materials grouped by combo card order.
+        const aSingleCard = aCardIds.length === 1 ? cardIdx(aCardIds[0]) : Number.MAX_SAFE_INTEGER;
+        const bSingleCard = bCardIds.length === 1 ? cardIdx(bCardIds[0]) : Number.MAX_SAFE_INTEGER;
+        if (aSingleCard !== bSingleCard) return aSingleCard - bSingleCard;
         return a.idx - b.idx;
       });
       return indexed.map((x) => x.r);
