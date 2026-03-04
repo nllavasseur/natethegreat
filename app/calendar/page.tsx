@@ -1779,10 +1779,14 @@ export default function CalendarPage() {
                               <button
                                 type="button"
                                 data-no-swipe="true"
-                                onClick={(e) => {
+                                onPointerDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, -1, j);
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                 }}
                                 className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Decrease labor days"
@@ -1795,10 +1799,14 @@ export default function CalendarPage() {
                               <button
                                 type="button"
                                 data-no-swipe="true"
-                                onClick={(e) => {
+                                onPointerDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   adjustLaborDays(j.id, 1, j);
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
                                 }}
                                 className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Increase labor days"
