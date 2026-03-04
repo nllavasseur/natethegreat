@@ -9142,7 +9142,7 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <div className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate" aria-label="Estimate actions">
-            <div className="mx-auto max-w-[980px] px-4" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} data-est-footer="1">
+            <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]" data-est-footer="1">
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around gap-2 px-2">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
