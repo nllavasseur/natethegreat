@@ -1410,6 +1410,7 @@ export default function CalendarPage() {
                     <div className="text-sm font-black">Move job</div>
                     <SecondaryButton
                       data-no-swipe="true"
+                      type="button"
                       onClick={() => {
                         setMoveOpenId(null);
                         setMovePreviewPos(null);
@@ -1491,23 +1492,32 @@ export default function CalendarPage() {
                     </SecondaryButton>
                     <PrimaryButton
                       data-no-swipe="true"
+                      type="button"
                       disabled={moveSaving}
-                      onClick={async () => {
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (!moveOpenId) return;
                         const pos = typeof movePreviewPos === "number" ? movePreviewPos : null;
                         if (!pos) return;
+                        if (moveSaving) return;
                         setMoveSaving(true);
                         setMoveError("");
-                        const res: any = await applyMoveToPosition(moveOpenId, pos);
-                        if (!res?.ok) {
-                          const reason = String(res?.reason || "MOVE_FAILED");
-                          setMoveError(reason);
+                        try {
+                          const res: any = await applyMoveToPosition(moveOpenId, pos);
+                          if (!res?.ok) {
+                            const reason = String(res?.reason || "MOVE_FAILED");
+                            setMoveError(reason);
+                            setMoveSaving(false);
+                            return;
+                          }
+                          setMoveOpenId(null);
+                          setMovePreviewPos(null);
                           setMoveSaving(false);
-                          return;
+                        } catch {
+                          setMoveError("MOVE_EXCEPTION");
+                          setMoveSaving(false);
                         }
-                        setMoveOpenId(null);
-                        setMovePreviewPos(null);
-                        setMoveSaving(false);
                       }}
                     >
                       {moveSaving ? "Saving…" : "Save"}
