@@ -9061,7 +9061,7 @@ function EstimatesPageInner() {
         ? createPortal(
           <div
             className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: 0 }}
+            style={{ bottom: "calc(-1 * env(safe-area-inset-bottom))" }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
