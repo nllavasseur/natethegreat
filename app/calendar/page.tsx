@@ -1567,34 +1567,37 @@ export default function CalendarPage() {
                             {hold ? ` · Hold ${hold}` : ""}
                           </div>
                         </div>
-                        <div className="w-full flex flex-wrap items-center gap-2 justify-between">
-                          <div
-                            className="h-3.5 w-3.5 rounded-full shrink-0"
-                            style={{
-                              background: dotColor,
-                              filter: "saturate(1.8) contrast(1.2)",
-                              boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
-                            }}
-                            aria-hidden="true"
-                          />
-                          {canComplete ? (
-                            <button
-                              type="button"
-                              data-no-swipe="true"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const ok = window.confirm("Did you complete this job?");
-                                if (!ok) return;
-                                markDraftComplete(j.id);
+                        <div className="w-full flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="h-3.5 w-3.5 rounded-full shrink-0"
+                              style={{
+                                background: dotColor,
+                                filter: "saturate(1.8) contrast(1.2)",
+                                boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
                               }}
-                              className="rounded-xl border px-2 py-1 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
-                              aria-label="Complete"
-                              title="Complete"
-                            >
-                              Complete
-                            </button>
-                          ) : null}
+                              aria-hidden="true"
+                            />
+                            <div className="text-[14px] font-black text-white">#{idx + 1}</div>
+                            {canComplete ? (
+                              <button
+                                type="button"
+                                data-no-swipe="true"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const ok = window.confirm("Did you complete this job?");
+                                  if (!ok) return;
+                                  markDraftComplete(j.id);
+                                }}
+                                className="rounded-xl border px-2 py-1 text-[10px] font-black leading-none border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                                aria-label="Complete"
+                                title="Complete"
+                              >
+                                Complete
+                              </button>
+                            ) : null}
+                          </div>
                           <button
                             type="button"
                             data-no-swipe="true"
@@ -1607,7 +1610,7 @@ export default function CalendarPage() {
                               setMovePreviewPos(idx + 1);
                             }}
                             className={
-                              "rounded-xl border px-2 py-1 text-[10px] font-black leading-none " +
+                              "rounded-2xl border px-4 py-2 text-[14px] font-black leading-none " +
                               (hold
                                 ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
                                 : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
@@ -1620,40 +1623,24 @@ export default function CalendarPage() {
                         </div>
                       </div>
 
-                      <div className="mt-1.5 grid gap-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-[11px] text-[var(--muted)] font-extrabold">Labor days</div>
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, -1, j);
-                                }}
-                                className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
-                                aria-label="Decrease labor days"
-                              >
-                                -
-                              </button>
-                              <div className="px-2 py-1.5 text-[11px] font-black leading-none min-w-[34px] text-center">
-                                {labor}
-                              </div>
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, 1, j);
-                                }}
-                                className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
-                                aria-label="Increase labor days"
-                              >
-                                +
-                              </button>
+                      <div className="mt-2 grid gap-3">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(0,0,0,.18)] overflow-hidden">
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                adjustLaborDays(j.id, -1, j);
+                              }}
+                              className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                              aria-label="Decrease labor days"
+                            >
+                              -
+                            </button>
+                            <div className="px-5 py-3 text-[18px] font-black leading-none min-w-[56px] text-center">
+                              {labor}
                             </div>
                             <button
                               type="button"
@@ -1661,58 +1648,70 @@ export default function CalendarPage() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                resetLaborDays(j.id);
+                                adjustLaborDays(j.id, 1, j);
                               }}
-                              className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
+                              className="px-5 py-3 text-[18px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
+                              aria-label="Increase labor days"
                             >
-                              Reset
+                              +
                             </button>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-[11px] text-[var(--muted)] font-extrabold">Weekend</div>
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            <div className="inline-flex rounded-xl border border-[rgba(255,255,255,.14)] overflow-hidden">
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  toggleWeekendAllowed(j.id, "sat", j);
-                                }}
-                                className={
-                                  "px-2 py-1.5 text-[11px] font-black transition-colors " +
-                                  (usedWeekend.sat
-                                    ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                    : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                                }
-                                aria-pressed={allowSat}
-                              >
-                                Sat
-                              </button>
-                              <button
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  toggleWeekendAllowed(j.id, "sun", j);
-                                }}
-                                className={
-                                  "px-2 py-1.5 text-[11px] font-black transition-colors " +
-                                  (usedWeekend.sun
-                                    ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
-                                    : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
-                                }
-                                aria-pressed={allowSun}
-                              >
-                                Sun
-                              </button>
-                            </div>
-                            <div className="text-[14px] font-black text-white">#{idx + 1}</div>
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleWeekendAllowed(j.id, "sat", j);
+                              }}
+                              className={
+                                "px-5 py-3 text-[16px] font-black transition-colors " +
+                                (usedWeekend.sat
+                                  ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                  : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                              }
+                              aria-pressed={allowSat}
+                            >
+                              Sat
+                            </button>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleWeekendAllowed(j.id, "sun", j);
+                              }}
+                              className={
+                                "px-5 py-3 text-[16px] font-black transition-colors " +
+                                (usedWeekend.sun
+                                  ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
+                                  : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
+                              }
+                              aria-pressed={allowSun}
+                            >
+                              Sun
+                            </button>
                           </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              resetLaborDays(j.id);
+                            }}
+                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
+                          >
+                            Reset
+                          </button>
                         </div>
                       </div>
 
