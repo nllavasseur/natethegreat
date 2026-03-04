@@ -338,7 +338,16 @@ export default function QuotesPage() {
   function setDraftStatus(id: string, status: DraftEntry["status"]) {
     try {
       const store = readDraftStore();
-      if (!store[id]) return;
+      const existing = store[id] ?? drafts.find((d) => d.id === id);
+      if (!existing) return;
+      if (!store[id]) {
+        store[id] = {
+          ...(existing as any),
+          id,
+          createdAt: Number((existing as any)?.createdAt) || Date.now(),
+          updatedAt: Date.now()
+        } as any;
+      }
       const prevStatus = (store as any)[id]?.status;
       const shouldAppendToQueue = status === "sold" && prevStatus !== "sold";
       let nextQueueRank: number | undefined = undefined;
@@ -940,6 +949,12 @@ export default function QuotesPage() {
                       key={q.id}
                       href={`/quotes/${encodeURIComponent(q.id)}`}
                       onClick={(e) => {
+                        const t = e.target as HTMLElement | null;
+                        if (t && typeof (t as any).closest === "function" && t.closest("[data-keep-open='true']")) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
                         if (openStatusId === q.id || confirmDeleteId === q.id || openStatusId != null || confirmDeleteId != null) {
                           e.preventDefault();
                           e.stopPropagation();
