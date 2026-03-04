@@ -9057,26 +9057,26 @@ function EstimatesPageInner() {
         <SecondaryButton onClick={generateContract}>Generate Contract</SecondaryButton>
       </div>
 
+      {takeoffError ? (
+        <div className="rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+          {takeoffError}
+        </div>
+      ) : null}
+      {saveError ? (
+        <div className="rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+          {saveError}
+        </div>
+      ) : null}
+      {saveNotice ? (
+        <div className="rounded-2xl border border-[rgba(255,214,10,.45)] bg-[rgba(255,214,10,.10)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.95)] shadow-glass">
+          {saveNotice}
+        </div>
+      ) : null}
+
       {portalReady
         ? createPortal(
           <div className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate" aria-label="Estimate actions">
             <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-              {takeoffError ? (
-                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-                  {takeoffError}
-                </div>
-              ) : null}
-              {saveError ? (
-                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-                  {saveError}
-                </div>
-              ) : null}
-              {saveNotice ? (
-                <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.45)] bg-[rgba(255,214,10,.10)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.95)] shadow-glass">
-                  {saveNotice}
-                </div>
-              ) : null}
-
               <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around gap-2 px-2">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
