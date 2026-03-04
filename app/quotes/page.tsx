@@ -940,6 +940,11 @@ export default function QuotesPage() {
                       key={q.id}
                       href={`/quotes/${encodeURIComponent(q.id)}`}
                       onClick={(e) => {
+                        if (openStatusId === q.id || confirmDeleteId === q.id || openStatusId != null || confirmDeleteId != null) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
                         if (Date.now() < suppressNavUntilRef.current) {
                           e.preventDefault();
                           e.stopPropagation();
