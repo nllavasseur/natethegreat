@@ -333,7 +333,7 @@ export default function CalendarPage() {
     let changed = false;
     sold.forEach((d) => {
       if (typeof (d as any).queueRank !== "number") {
-        (store as any)[d.id] = { ...(store as any)[d.id], queueRank: nextRank };
+        (store as any)[d.id] = { ...(store as any)[d.id], queueRank: nextRank, updatedAt: Date.now() };
         changed = true;
       }
       nextRank += 1;
@@ -583,7 +583,7 @@ export default function CalendarPage() {
 
     rebuilt.forEach((d, idx) => {
       if (!(store as any)[d.id]) return;
-      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1 };
+      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1, updatedAt: Date.now() };
     });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
@@ -648,7 +648,7 @@ export default function CalendarPage() {
 
     rebuilt.forEach((d, idx) => {
       if (!(store as any)[d.id]) return;
-      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1 };
+      (store as any)[d.id] = { ...(store as any)[d.id], queueRank: idx + 1, updatedAt: Date.now() };
     });
 
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
@@ -844,7 +844,9 @@ export default function CalendarPage() {
       const allowSat = asBool((d as any).allowSaturday);
       const allowSun = asBool((d as any).allowSunday);
 
-      const requested = String((d as any).holdDate || explicitStartIso(d) || "");
+      // For SOLD jobs, queue is the control center. Only an explicit hold date
+      // is allowed to constrain scheduling; prior estimate scheduling should not.
+      const requested = String((d as any).holdDate || "");
       const explicitMin = requested
         ? nextWorkdayForJob(new Date(requested + "T12:00:00"), allowSat, allowSun)
         : nextWorkdayForJob(today0, allowSat, allowSun);
