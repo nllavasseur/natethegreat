@@ -1245,7 +1245,11 @@ export default function CalendarPage() {
                             {pos >= 0 ? <div className="text-[14px] font-black text-white">#{pos + 1}</div> : null}
                             <div
                               className="h-3 w-3 rounded-full"
-                              style={{ background: (j as any).color ?? "rgba(255,255,255,.25)" }}
+                              style={{
+                                background: (j as any).color ?? "rgba(255,255,255,.25)",
+                                filter: "saturate(1.8) contrast(1.2)",
+                                boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
+                              }}
                             />
                           </div>
                         </div>
@@ -1561,7 +1565,11 @@ export default function CalendarPage() {
                         <div className="w-full flex flex-wrap items-center gap-2 justify-between">
                           <div
                             className="h-3.5 w-3.5 rounded-full shrink-0"
-                            style={{ background: dotColor }}
+                            style={{
+                              background: dotColor,
+                              filter: "saturate(1.8) contrast(1.2)",
+                              boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
+                            }}
                             aria-hidden="true"
                           />
                           {canComplete ? (
@@ -2161,7 +2169,14 @@ export default function CalendarPage() {
                   <div className="text-sm font-black truncate">
                     {j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                   </div>
-                  <div className="h-3 w-3 rounded-full" style={{ background: (j as any).color ?? "rgba(255,255,255,.25)" }} />
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{
+                      background: (j as any).color ?? "rgba(255,255,255,.25)",
+                      filter: "saturate(1.8) contrast(1.2)",
+                      boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
+                    }}
+                  />
                 </div>
                 {(j as any).status === "estimate" && String((j as any).scheduledAt || "") ? (
                   <div className="text-[11px] text-[var(--muted)] mt-1">Scheduled {formatTimeLocal(String((j as any).scheduledAt))}</div>
