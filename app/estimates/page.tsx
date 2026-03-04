@@ -5700,7 +5700,7 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+136px)]">
+    <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+160px)]">
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9015,7 +9015,7 @@ function EstimatesPageInner() {
         ? createPortal(
           <nav
             className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+            style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
