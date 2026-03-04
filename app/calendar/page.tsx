@@ -559,8 +559,10 @@ export default function CalendarPage() {
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
         .slice()
         .sort((a, b) => {
-          const ar = Number((a as any).queueRank) || 0;
-          const br = Number((b as any).queueRank) || 0;
+          const ar0 = Number((a as any).queueRank);
+          const br0 = Number((b as any).queueRank);
+          const ar = Number.isFinite(ar0) && ar0 > 0 ? ar0 : Number.POSITIVE_INFINITY;
+          const br = Number.isFinite(br0) && br0 > 0 ? br0 : Number.POSITIVE_INFINITY;
           if (ar !== br) return ar - br;
           return String((a as any).id || "").localeCompare(String((b as any).id || ""));
         });
@@ -607,7 +609,20 @@ export default function CalendarPage() {
       const res = await resetLaborDaysPipeline({ id: sid, fallback: fallback as any });
       if (!res.ok) return;
       const store = readDraftStore();
-      setDrafts(Object.values(store).map((d) => ({ ...d })));
+      setDrafts((prev) => {
+        const byId = new Map<string, any>();
+        prev.forEach((d) => {
+          const id = String((d as any)?.id || "");
+          if (id) byId.set(id, d);
+        });
+        Object.entries(store).forEach(([k, v]) => {
+          const id = String((v as any)?.id || k);
+          if (!id) return;
+          const prevOne = byId.get(id);
+          byId.set(id, prevOne ? { ...(prevOne as any), ...(v as any) } : (v as any));
+        });
+        return Array.from(byId.values());
+      });
       setHighlightQueueId(sid);
       if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
       highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
@@ -1402,7 +1417,10 @@ export default function CalendarPage() {
                         const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
                         let next = cur - 1;
                         while (next >= 1 && holds[next - 1]) next -= 1;
-                        if (next >= 1) setMovePreviewPos(next);
+                        if (next >= 1) {
+                          setMovePreviewPos(next);
+                          moveQueue(moveOpenId, -1);
+                        }
                       }}
                       className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
                       aria-label="Move up"
@@ -1427,7 +1445,10 @@ export default function CalendarPage() {
                         const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
                         let next = cur + 1;
                         while (next <= holds.length && holds[next - 1]) next += 1;
-                        if (next <= holds.length) setMovePreviewPos(next);
+                        if (next <= holds.length) {
+                          setMovePreviewPos(next);
+                          moveQueue(moveOpenId, 1);
+                        }
                       }}
                       className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
                       aria-label="Move down"
