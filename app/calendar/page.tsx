@@ -10,10 +10,11 @@ const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 function colorForJobId(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  const hue = Math.abs(h) % 360;
-  const sat = 82;
-  const light = 62;
-  const alpha = 0.55;
+  const abs = Math.abs(h);
+  const hue = abs % 360;
+  const sat = 74 + ((abs >> 8) % 22); // 74-95
+  const light = 52 + ((abs >> 16) % 18); // 52-69
+  const alpha = 0.62;
   return `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
 }
 
