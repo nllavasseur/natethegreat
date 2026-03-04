@@ -708,10 +708,13 @@ export default function CalendarPage() {
     }
     notifyDraftsChanged();
 
+    // Update in-tab state immediately (storage events don't fire in the same tab).
+    setDrafts(Object.values(store).map((d) => ({ ...d })));
+
     setHighlightQueueId(id);
     if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
     highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
-  }, []);
+  }, [drafts]);
 
   const setHoldDate = React.useCallback((id: string, iso: string | undefined) => {
     const store = readDraftStore();
@@ -731,7 +734,12 @@ export default function CalendarPage() {
 
   const adjustLaborDays = React.useCallback((id: string, delta: number) => {
     const store = readDraftStore();
-    if (!(store as any)[id]) return;
+    const existing = (store as any)[id] ?? drafts.find((d) => d.id === id);
+    if (!existing) return;
+    if (!(store as any)[id]) {
+      (store as any)[id] = { ...(existing as any), id, updatedAt: Date.now() };
+    }
+
     const cur = Number((store as any)[id].laborDays);
     const base = computeSpanDays(Number.isFinite(cur) && cur > 0 ? cur : 1);
     const next = Math.max(1, Math.round(base + delta));
