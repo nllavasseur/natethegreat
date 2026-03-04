@@ -9060,8 +9060,8 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <div
-            className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: "calc(-1 * env(safe-area-inset-bottom))" }}
+            className="fixed left-0 right-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]"
+            style={{ bottom: 0 }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
