@@ -5868,7 +5868,7 @@ function EstimatesPageInner() {
           </div>
         </div>
 
-        <div className="sticky bottom-0 border-t border-[rgba(255,255,255,.12)] bg-[rgba(20,30,24,.55)] backdrop-blur-ios">
+        <div className="border-t border-[rgba(255,255,255,.12)] bg-[rgba(20,30,24,.55)] backdrop-blur-ios">
           <div className="p-3">
             <div className="grid grid-cols-3 gap-2">
               <SecondaryButton
