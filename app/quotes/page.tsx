@@ -362,17 +362,18 @@ export default function QuotesPage() {
   function deleteDraft(id: string) {
     try {
       const store = readDraftStore();
-      if (!store[id]) return;
-      const next = { ...store };
-      delete next[id];
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(next));
+      if (store[id]) {
+        const next = { ...store };
+        delete next[id];
+        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(next));
+      }
       try {
         void deleteDraftRemote({ id });
       } catch {
       }
       setDrafts((prev) => prev.filter((d) => d.id !== id));
-      setConfirmDeleteId((cur) => (cur === id ? null : cur));
-      setDeletingId((cur) => (cur === id ? null : cur));
+      setConfirmDeleteId(null);
+      setDeletingId(null);
       notifyDraftsChanged();
     } catch {
       // ignore
