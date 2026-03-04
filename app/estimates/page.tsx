@@ -188,10 +188,6 @@ function woodGateFramingName(railMaterial: "Pressure treated" | "Cedar" | "Cedar
   return railMaterial === "Rough sawn cedar" ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
 }
 
-function woodGateFramingPriceKey(railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
-  return railMaterial === "Rough sawn cedar" ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
-}
-
 function woodTwoByTwoName(twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   if (isCedarLike(twoByTwoMaterial)) return "2x2 8' Cedar S4S";
   if (twoByTwoMaterial === "Cedar tone") return "2x2 8' CedarTone";
@@ -2006,6 +2002,7 @@ function EstimatesPageInner() {
     const gatePostsAdd = walkGatePostsAdd + doubleGates;
     const gateHingeKitsAdd = walkGates * 1;
     const doubleGateKitsAdd = doubleGates;
+    const gateFramingAdd = walkGates * 5 + doubleGates * 10;
 
     if (selectedStyleKind === "wood_wire_mesh") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
@@ -2094,6 +2091,7 @@ function EstimatesPageInner() {
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+          ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
           { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
           { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
           { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2174,6 +2172,7 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2238,6 +2237,7 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
@@ -2310,6 +2310,7 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2371,6 +2372,7 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2444,6 +2446,7 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
@@ -2505,6 +2508,7 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
@@ -2562,6 +2566,7 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2572,7 +2577,7 @@ function EstimatesPageInner() {
         .map((r) => {
           const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
           const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
-          return { section: "materials" as const, name: r.name, priceKey: (r as any).priceKey, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
         });
     }
 
@@ -2623,6 +2628,7 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -2665,6 +2671,8 @@ function EstimatesPageInner() {
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const gateFramingS4S = walkGates * 5 + doubleGates * 10;
       const cedarPickets = walkGates * 10 + doubleGates * 20;
 
       const splitRailName = materialsDetails.splitRailMaterial === "Cedar tone" ? "Split rail (CedarTone)" : "Split rail";
@@ -2691,6 +2699,7 @@ function EstimatesPageInner() {
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(gateFramingS4S > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" } as any] : []),
         ...(cedarPickets > 0 ? [{ name: "Cedar pickets", qty: cedarPickets, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -2791,6 +2800,7 @@ function EstimatesPageInner() {
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+        const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
           { name: postName, qty: posts, unit: "ea" },
@@ -2798,6 +2808,7 @@ function EstimatesPageInner() {
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+          ...(gateFramingS4S > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" } as any] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -2943,6 +2954,7 @@ function EstimatesPageInner() {
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -3005,14 +3017,7 @@ function EstimatesPageInner() {
       const lf = Number(totalLf) || 0;
       const style = String(selectedStyle?.name || "Aluminum");
       const hRaw = Math.max(1, Math.floor(Number(materialsDetails.aluminumPanelHeight) || 48));
-      const allowedHeights = (() => {
-        if (style === "Mansfield") return [48, 60];
-        if (style === "Atlantic") return [48];
-        if (style === "Pacific") return [54];
-        if (style === "Toledo") return [48, 60];
-        if (style === "Terrier") return [48];
-        return [48];
-      })();
+      const allowedHeights = aluminumAllowedPanelHeights;
       const h = allowedHeights.includes(hRaw) ? hRaw : Math.max(1, Math.floor(Number(allowedHeights[0]) || hRaw));
 
       const w = 6;
@@ -3024,23 +3029,14 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / w), 0)
         : (lf > 0 ? Math.ceil(lf / w) : 0);
 
-      const walkGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
-      const doubleGates = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isDoubleGateSegment(s)).length);
-      const gateDerived = (walkGates + doubleGates) * 2;
-
-      const postsBase = panels > 0 ? panels + 1 : 0;
-      const totalPosts = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
-
-      const corner = Math.max(0, Math.floor(Number(materialsDetails.aluminumCornerPosts) || 0));
-      const gate = materialsDetails.aluminumGateAuto
-        ? gateDerived
-        : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
-      const end = Math.max(0, Math.floor(Number(materialsDetails.aluminumEndPosts) || 0));
-      const blank = Math.max(0, Math.floor(Number(materialsDetails.aluminumBlankPosts) || 0));
-      const line = Math.max(0, totalPosts - (corner + gate + end + blank));
+      const corner = aluminumPostsSummary.corner;
+      const end = aluminumPostsSummary.end;
+      const blank = aluminumPostsSummary.blank;
+      const gate = aluminumPostsSummary.gate;
+      const line = aluminumPostsSummary.line;
 
       // Concrete: 160lb per post (2x 80lb bags per post). Priced using 60lb bag line item.
-      const concrete80Bags = Math.max(0, totalPosts) * 2;
+      const concrete80Bags = Math.max(0, aluminumPostsSummary.total) * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const heightLabel = h === 54 ? "4.5'" : `${Math.round(h / 12)}'`;
@@ -3062,7 +3058,7 @@ function EstimatesPageInner() {
 
       const walkGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
         if (!selectedStyle) return [] as Array<{ name: string; qty: number; unit: string }>;
-        const walkCount = walkGates;
+        const walkCount = Math.max(0, segments.filter((s) => !s.removed).filter((s) => isWalkGateSegment(s)).length);
         if (walkCount <= 0) return [];
 
         if (style === "Mansfield") {
@@ -3132,7 +3128,7 @@ function EstimatesPageInner() {
       })();
 
       const doubleGateItems: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = (() => {
-        const doubleCount = doubleGates;
+        const doubleCount = Math.max(0, Number(effectiveDoubleGateCount) || 0);
         if (doubleCount <= 0) return [] as Array<{ name: string; qty: number; unit: string }>;
 
         if (style === "Mansfield") {
@@ -3283,6 +3279,7 @@ function EstimatesPageInner() {
       ...(materialsDetails.arbor ? [{ name: "Arbor", qty: 1, unit: "ea" }] : []),
       ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
       ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+      ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : [])
     ];
 
     return rows.map((r) => {
@@ -3352,12 +3349,7 @@ function EstimatesPageInner() {
       }
 
       const merged = allRows.reduce((acc, r) => {
-        const priceKey = typeof (r as any)?.priceKey === "string" ? String((r as any).priceKey) : "";
-        const isGateFramingKey = priceKey === "Cedar S4S Gate Framing" || priceKey === "Rough Sawn Cedar Gate Framing";
-        const core = isGateFramingKey
-          ? canonicalMaterialsMergeKey("Gate Framing")
-          : (priceKey ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(r.name));
-        const key = `${core}__${r.unit}`;
+        const key = `${canonicalMaterialsMergeKey(r.name)}__${r.unit}`;
         const prev = acc.get(key);
         if (prev) {
           const prevIds = Array.isArray((prev as any).__cardIds) ? ((prev as any).__cardIds as string[]) : [];
@@ -3369,20 +3361,14 @@ function EstimatesPageInner() {
           prev.qty = (Number(prev.qty) || 0) + (Number(r.qty) || 0);
           const prevPrice = Number(prev.unitPrice) || 0;
           const nextPrice = Number(r.unitPrice) || 0;
-          const prevName = String((prev as any).name || "");
-          const nextName = String((r as any).name || "");
-          const prevIsRough = prevName.toLowerCase().includes("rough sawn");
-          const nextIsRough = nextName.toLowerCase().includes("rough sawn");
-          if (!prevIsRough && nextIsRough) {
-            prev.name = r.name;
-            if (typeof (r as any)?.priceKey === "string") (prev as any).priceKey = (r as any).priceKey;
-          }
           if (prevPrice <= 0 && nextPrice > 0) {
             prev.unitPrice = nextPrice;
+            prev.name = r.name;
           } else if (nextPrice > prevPrice) {
             // If we canonical-merge two equivalent names, keep the higher non-zero price.
             // Also switch display name so price edits map to the priced name.
             prev.unitPrice = nextPrice;
+            prev.name = r.name;
           }
           prev.lineTotal = Math.round((Number(prev.qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
@@ -3427,65 +3413,27 @@ function EstimatesPageInner() {
       );
       const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
-      const woodGateAccessoriesCardId = (() => {
-        const first = woodGateSegments[0] as any;
-        if (first) {
-          const cid = first.cardId ?? null;
-          const resolved = cid === null ? baseIdResolved : cid;
-          const card = comboCards.find((c) => c.id === resolved);
-          if (card?.fenceType === "wood") return resolved as string;
-        }
-        const firstWoodCard = comboCards.find((c) => c.fenceType === "wood");
-        return (firstWoodCard?.id || baseIdResolved || "") as string;
-      })();
-
-      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, priceKey?: string, mergeKey?: string, cardId?: string) => {
-        const keyCore = typeof mergeKey === "string" && mergeKey.trim()
-          ? canonicalMaterialsMergeKey(mergeKey)
-          : (typeof priceKey === "string" && priceKey.trim() ? canonicalMaterialsMergeKey(priceKey) : canonicalMaterialsMergeKey(name));
-        const k = `${keyCore}__${unit}`;
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
+        const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
         if (qty <= 0) {
           merged.delete(k);
           return;
         }
         const prev = merged.get(k);
         if (prev) {
-          const nextId = typeof cardId === "string" && cardId.trim() ? cardId.trim() : "";
-          if (nextId) {
-            const prevIds = Array.isArray((prev as any).__cardIds) ? ((prev as any).__cardIds as string[]) : [];
-            (prev as any).__cardIds = prevIds.includes(nextId) ? prevIds : [...prevIds, nextId];
-          }
           prev.qty = qty;
           prev.name = name;
           prev.unit = unit;
-          if (typeof priceKey === "string" && priceKey.trim()) (prev as any).priceKey = priceKey;
-          prev.unitPrice = getUnitPriceFromMap({ materialUnitPrices, name, priceKey });
           prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
-          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name, priceKey });
-          const nextId = typeof cardId === "string" && cardId.trim() ? cardId.trim() : "";
-          merged.set(k, {
-            section: "materials",
-            name,
-            priceKey,
-            qty,
-            unit,
-            unitPrice,
-            lineTotal: Math.round(qty * unitPrice * 100) / 100,
-            ...(nextId ? { __cardIds: [nextId], __shared: false } : {})
-          } as any);
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
+          merged.set(k, { section: "materials", name, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 });
         }
       };
 
-      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1, undefined, undefined, woodGateAccessoriesCardId);
-      ensureQty("Double gate kit", "ea", totalDoubleGates * 1, undefined, undefined, woodGateAccessoriesCardId);
-
-      const anyWoodRoughRails = comboCards
-        .filter((c) => c.fenceType === "wood")
-        .some((c) => (c.materialsDetails as any)?.railMaterial === "Rough sawn cedar");
-      const gateFramingName = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
-      const gateFramingPriceKey = anyWoodRoughRails ? "Rough Sawn Cedar Gate Framing" : "Cedar S4S Gate Framing";
-      ensureQty(gateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, gateFramingPriceKey, "Gate Framing", woodGateAccessoriesCardId);
+      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
+      ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
+      ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
@@ -3504,22 +3452,12 @@ function EstimatesPageInner() {
         const aIsSharedMaterial = aCardIds.length > 1;
         const bIsSharedMaterial = bCardIds.length > 1;
 
-        const cardIdx = (id: string) => {
-          const idx = comboCards.findIndex((c) => c.id === id);
-          return idx >= 0 ? idx : Number.MAX_SAFE_INTEGER;
-        };
-
         const group = (isSharedMaterial: boolean, isFee: boolean) => (isFee ? 2 : isSharedMaterial ? 1 : 0);
         const ag = group(aIsSharedMaterial, aIsFee);
         const bg = group(bIsSharedMaterial, bIsFee);
         if (ag !== bg) return ag - bg;
 
         if (aIsFee && bIsFee) return ai - bi;
-
-        // Keep card-scoped materials grouped by combo card order.
-        const aSingleCard = aCardIds.length === 1 ? cardIdx(aCardIds[0]) : Number.MAX_SAFE_INTEGER;
-        const bSingleCard = bCardIds.length === 1 ? cardIdx(bCardIds[0]) : Number.MAX_SAFE_INTEGER;
-        if (aSingleCard !== bSingleCard) return aSingleCard - bSingleCard;
         return a.idx - b.idx;
       });
       return indexed.map((x) => x.r);
@@ -3745,29 +3683,26 @@ function EstimatesPageInner() {
       ? (existingStatus as any)
       : (hasRealMaterials ? "pending" : "estimate");
 
-    const hideFromCalendar = status === "pending" && existingStatus !== "pending";
-
     // Calendar scheduling fields live on the draft object and should not be blown away by an edit-save.
     // This is especially important for SOLD jobs whose calendar position is queue-based.
     const createdAt = Number((existingSchedule as any)?.createdAt) || Date.now();
-    const scheduledAt = hideFromCalendar
-      ? undefined
-      : (typeof (existingSchedule as any)?.scheduledAt === "string" ? (existingSchedule as any).scheduledAt : undefined);
+    const scheduledAt = typeof (existingSchedule as any)?.scheduledAt === "string" ? (existingSchedule as any).scheduledAt : undefined;
     const installDate = typeof (existingSchedule as any)?.installDate === "string" ? (existingSchedule as any).installDate : undefined;
     const startDate = typeof (existingSchedule as any)?.startDate === "string" ? (existingSchedule as any).startDate : undefined;
     const holdDate = typeof (existingSchedule as any)?.holdDate === "string" ? (existingSchedule as any).holdDate : undefined;
     const allowSaturday = typeof (existingSchedule as any)?.allowSaturday === "boolean" ? (existingSchedule as any).allowSaturday : undefined;
     const allowSunday = typeof (existingSchedule as any)?.allowSunday === "boolean" ? (existingSchedule as any).allowSunday : undefined;
-    const calendarHidden = hideFromCalendar
-      ? true
-      : (typeof (existingSchedule as any)?.calendarHidden === "boolean" ? (existingSchedule as any).calendarHidden : undefined);
+    const calendarHidden = typeof (existingSchedule as any)?.calendarHidden === "boolean" ? (existingSchedule as any).calendarHidden : undefined;
     const originalLaborDays = Number.isFinite(Number((existingSchedule as any)?.originalLaborDays))
       ? Number((existingSchedule as any).originalLaborDays)
       : undefined;
 
-    // Estimates page is not allowed to enqueue or change sold ordering.
-    // Preserve any existing queueRank if present, but never create/append a new one here.
-    const queueRank = Number.isFinite(Number((existingSchedule as any)?.queueRank)) ? Number((existingSchedule as any).queueRank) : undefined;
+    // Keep a stable sold ordering key so edits don't reshuffle the calendar.
+    const queueRank = status === "sold"
+      ? (Number.isFinite(Number((existingSchedule as any)?.queueRank))
+        ? Number((existingSchedule as any).queueRank)
+        : createdAt)
+      : (Number.isFinite(Number((existingSchedule as any)?.queueRank)) ? Number((existingSchedule as any).queueRank) : undefined);
     const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
     const projectDataBackup = sanitized.projectPhotoDataUrl;
     const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
@@ -5152,16 +5087,27 @@ function EstimatesPageInner() {
 
     const scrollY = window.scrollY || 0;
     const body = document.body;
-    const html = document.documentElement;
     const prevOverflow = body.style.overflow;
-    const prevHtmlOverflow = html.style.overflow;
+    const prevPosition = body.style.position;
+    const prevTop = body.style.top;
+    const prevLeft = body.style.left;
+    const prevRight = body.style.right;
+    const prevWidth = body.style.width;
 
     body.style.overflow = "hidden";
-    html.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
 
     return () => {
       body.style.overflow = prevOverflow;
-      html.style.overflow = prevHtmlOverflow;
+      body.style.position = prevPosition;
+      body.style.top = prevTop;
+      body.style.left = prevLeft;
+      body.style.right = prevRight;
+      body.style.width = prevWidth;
       window.scrollTo(0, scrollY);
     };
   }, [materialsDetailsOpen, measureOpen, stylePickerIdx]);
@@ -5746,7 +5692,7 @@ function EstimatesPageInner() {
   const canNavigate = String(projectAddress || "").trim().length > 0;
 
   return (
-    <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
+    <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+160px)]">
       {portalReady && photoViewerSrc ? createPortal(
         <div className="fixed inset-0 z-[90] grid place-items-center p-3" data-no-swipe="true">
           <div
@@ -9057,42 +9003,64 @@ function EstimatesPageInner() {
         <SecondaryButton onClick={generateContract}>Generate Contract</SecondaryButton>
       </div>
 
-      {takeoffError ? (
-        <div className="rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-          {takeoffError}
-        </div>
-      ) : null}
-      {saveError ? (
-        <div className="rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
-          {saveError}
-        </div>
-      ) : null}
-      {saveNotice ? (
-        <div className="rounded-2xl border border-[rgba(255,214,10,.45)] bg-[rgba(255,214,10,.10)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.95)] shadow-glass">
-          {saveNotice}
-        </div>
-      ) : null}
-
       {portalReady
         ? createPortal(
-          <div className="fixed left-0 right-0 z-50 px-4" style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }} aria-label="Estimate actions">
-            <div className="mx-auto max-w-[980px] px-4" data-est-footer="1">
-              <div
-                className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around gap-2 px-2"
-                style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
-              >
+          <nav
+            className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
+            style={{ bottom: "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
+            aria-label="Estimate actions"
+          >
+            <div className="mx-auto max-w-[980px]">
+              {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.16)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.98)] shadow-glass">
+                  <div>
+                    {(() => {
+                      if (!takeoffDiagnostics.hasStyledCards) return "No takeoff yet: pick a style.";
+                      if (!takeoffDiagnostics.hasEligibleSegments) return "No takeoff yet: enter at least one segment length.";
+                      if (!takeoffDiagnostics.hasAnyAssignedToStyled) return "No takeoff: your measured segments are not assigned to a styled card. Assign segments to Card 1 (or pick a style on the card they’re assigned to).";
+                      return "No takeoff yet.";
+                    })()}
+                  </div>
+                  <div className="mt-1 text-[11px] font-extrabold text-[rgba(255,244,200,.92)]">
+                    {`segments=${takeoffDiagnostics.eligibleSegments} styledCards=${takeoffDiagnostics.perCard.filter((p) => p.hasStyle).length} active=${takeoffDiagnostics.activeId.slice(0, 6)}`}
+                  </div>
+                  <div className="mt-1 text-[11px] font-extrabold text-[rgba(255,244,200,.92)]">
+                    {takeoffDiagnostics.perCard
+                      .map((p, idx) => {
+                        const active = p.id === takeoffDiagnostics.activeId ? "*" : "";
+                        const style = p.hasStyle ? "style" : "no-style";
+                        return `C${idx + 1}${active}(${style},seg=${p.assignedSegments})`;
+                      })
+                      .join(" ")}
+                  </div>
+                </div>
+              ) : null}
+              {takeoffError ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+                  {takeoffError}
+                </div>
+              ) : null}
+              {saveError ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,80,80,.45)] bg-[rgba(255,80,80,.14)] px-4 py-3 text-[12px] font-black text-[rgba(255,240,240,.95)] shadow-glass">
+                  {saveError}
+                </div>
+              ) : null}
+              {saveNotice ? (
+                <div className="mb-2 rounded-2xl border border-[rgba(255,214,10,.45)] bg-[rgba(255,214,10,.10)] px-4 py-3 text-[12px] font-black text-[rgba(255,244,200,.95)] shadow-glass">
+                  {saveNotice}
+                </div>
+              ) : null}
+              <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
                 <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
                   {saving ? "Saving…" : "Save"}
                 </PrimaryButton>
                 <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
                   {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                 </SecondaryButton>
-                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
-                  Reset
-                </SecondaryButton>
+                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
               </div>
             </div>
-          </div>,
+          </nav>,
           document.body
         )
         : null}
