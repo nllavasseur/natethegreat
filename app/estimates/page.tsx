@@ -3745,16 +3745,22 @@ function EstimatesPageInner() {
       ? (existingStatus as any)
       : (hasRealMaterials ? "pending" : "estimate");
 
+    const hideFromCalendar = status === "pending" && existingStatus !== "pending";
+
     // Calendar scheduling fields live on the draft object and should not be blown away by an edit-save.
     // This is especially important for SOLD jobs whose calendar position is queue-based.
     const createdAt = Number((existingSchedule as any)?.createdAt) || Date.now();
-    const scheduledAt = typeof (existingSchedule as any)?.scheduledAt === "string" ? (existingSchedule as any).scheduledAt : undefined;
+    const scheduledAt = hideFromCalendar
+      ? undefined
+      : (typeof (existingSchedule as any)?.scheduledAt === "string" ? (existingSchedule as any).scheduledAt : undefined);
     const installDate = typeof (existingSchedule as any)?.installDate === "string" ? (existingSchedule as any).installDate : undefined;
     const startDate = typeof (existingSchedule as any)?.startDate === "string" ? (existingSchedule as any).startDate : undefined;
     const holdDate = typeof (existingSchedule as any)?.holdDate === "string" ? (existingSchedule as any).holdDate : undefined;
     const allowSaturday = typeof (existingSchedule as any)?.allowSaturday === "boolean" ? (existingSchedule as any).allowSaturday : undefined;
     const allowSunday = typeof (existingSchedule as any)?.allowSunday === "boolean" ? (existingSchedule as any).allowSunday : undefined;
-    const calendarHidden = typeof (existingSchedule as any)?.calendarHidden === "boolean" ? (existingSchedule as any).calendarHidden : undefined;
+    const calendarHidden = hideFromCalendar
+      ? true
+      : (typeof (existingSchedule as any)?.calendarHidden === "boolean" ? (existingSchedule as any).calendarHidden : undefined);
     const originalLaborDays = Number.isFinite(Number((existingSchedule as any)?.originalLaborDays))
       ? Number((existingSchedule as any).originalLaborDays)
       : undefined;
