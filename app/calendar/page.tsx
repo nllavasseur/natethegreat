@@ -1659,6 +1659,31 @@ export default function CalendarPage() {
                         </div>
 
                         <div className="flex flex-col items-center gap-2">
+                          <div className="w-full flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (holdOpenId === j.id) {
+                                setHoldOpenId(null);
+                                return;
+                              }
+                              setHoldOpenId(j.id);
+                              setHoldDraftIso(hold);
+                            }}
+                            aria-pressed={Boolean(hold)}
+                            className={
+                              "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[55%] truncate " +
+                              (hold
+                                ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                                : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
+                            }
+                          >
+                            {hold ? `Hold ${hold}` : "Set Hold"}
+                          </button>
+
                           <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
                             <button
                               type="button"
@@ -1697,9 +1722,7 @@ export default function CalendarPage() {
                               Sun
                             </button>
                           </div>
-                        </div>
 
-                        <div className="flex justify-end">
                           <button
                             type="button"
                             data-no-swipe="true"
@@ -1713,47 +1736,8 @@ export default function CalendarPage() {
                             Reset
                           </button>
                         </div>
+
                       </div>
-
-                      <div className="mt-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (holdOpenId === j.id) {
-                                setHoldOpenId(null);
-                                return;
-                              }
-                              setHoldOpenId(j.id);
-                              setHoldDraftIso(hold);
-                            }}
-                            aria-pressed={Boolean(hold)}
-                            className={
-                              "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[55%] truncate " +
-                              (hold
-                                ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
-                                : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
-                            }
-                          >
-                            {hold ? `Hold ${hold}` : "Set Hold"}
-                          </button>
-
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              resetLaborDays(j.id);
-                            }}
-                            className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-2 py-1.5 text-[11px] font-black"
-                          >
-                            Reset
-                          </button>
-                        </div>
 
                         {holdOpenId === j.id ? (
                           <div
