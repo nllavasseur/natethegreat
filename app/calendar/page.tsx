@@ -1628,24 +1628,10 @@ export default function CalendarPage() {
                               <button
                                 type="button"
                                 data-no-swipe="true"
-                                onPointerDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, -1, j);
-                                }}
-                                onTouchStart={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, -1, j);
-                                }}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, -1, j);
-                                }}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
+                                  adjustLaborDays(j.id, -1, j);
                                 }}
                                 className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Decrease labor days"
@@ -1658,24 +1644,10 @@ export default function CalendarPage() {
                               <button
                                 type="button"
                                 data-no-swipe="true"
-                                onPointerDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, 1, j);
-                                }}
-                                onTouchStart={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, 1, j);
-                                }}
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  adjustLaborDays(j.id, 1, j);
-                                }}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
+                                  adjustLaborDays(j.id, 1, j);
                                 }}
                                 className="px-2 py-1.5 text-[11px] font-black bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]"
                                 aria-label="Increase labor days"
