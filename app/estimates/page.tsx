@@ -9060,8 +9060,8 @@ function EstimatesPageInner() {
       {portalReady
         ? createPortal(
           <nav
-            className="fixed left-0 right-0 z-50 px-4"
-            style={{ bottom: 0 }}
+            className="fixed left-0 right-0 z-50 px-4 backdrop-blur-ios bg-[rgba(20,30,24,.55)]"
+            style={{ bottom: 0, paddingBottom: "env(safe-area-inset-bottom)", paddingTop: 8 }}
             aria-label="Estimate actions"
           >
             <div className="mx-auto max-w-[980px]">
@@ -9104,23 +9104,14 @@ function EstimatesPageInner() {
                   {saveNotice}
                 </div>
               ) : null}
-              <div className="relative">
-                <div
-                  className="absolute left-0 right-0 bottom-0 backdrop-blur-ios bg-[rgba(20,30,24,.55)]"
-                  style={{ height: "env(safe-area-inset-bottom)" }}
-                />
-                <div
-                  className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex items-center justify-around"
-                  style={{ paddingBottom: "env(safe-area-inset-bottom)", height: "calc(4rem + env(safe-area-inset-bottom))" }}
-                >
-                  <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
-                    {saving ? "Saving…" : "Save"}
-                  </PrimaryButton>
-                  <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
-                    {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
-                  </SecondaryButton>
-                  <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
-                </div>
+              <div className="border border-[var(--stroke)] shadow-glass rounded-2xl h-16 flex items-center justify-around">
+                <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                  {saving ? "Saving…" : "Save"}
+                </PrimaryButton>
+                <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                  {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
+                </SecondaryButton>
+                <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>Reset</SecondaryButton>
               </div>
             </div>
           </nav>,
