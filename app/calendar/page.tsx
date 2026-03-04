@@ -1051,6 +1051,7 @@ export default function CalendarPage() {
         if ((d as any).calendarHidden) return false;
         if (!(d as any).install || !(d as any).end) return false;
         if ((d as any).status === "void") return false;
+        if ((d as any).status === "pending") return false;
         return true;
       }
     );
