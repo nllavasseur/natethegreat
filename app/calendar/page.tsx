@@ -11,6 +11,24 @@ const ESTIMATE_DOT_COLOR = "hsla(210, 96%, 66%, 0.92)";
 const RESERVED_INSTALL_HUE_MIN = 195;
 const RESERVED_INSTALL_HUE_MAX = 225;
 
+const INSTALL_DOT_PALETTE: string[] = [
+  "hsla(10, 92%, 62%, 0.80)",
+  "hsla(28, 92%, 60%, 0.80)",
+  "hsla(45, 92%, 58%, 0.80)",
+  "hsla(70, 84%, 55%, 0.80)",
+  "hsla(105, 78%, 50%, 0.80)",
+  "hsla(140, 78%, 48%, 0.80)",
+  "hsla(165, 86%, 48%, 0.80)",
+  "hsla(185, 92%, 50%, 0.80)",
+  "hsla(235, 92%, 66%, 0.80)",
+  "hsla(255, 92%, 68%, 0.80)",
+  "hsla(275, 90%, 66%, 0.80)",
+  "hsla(295, 90%, 64%, 0.80)",
+  "hsla(315, 92%, 62%, 0.80)",
+  "hsla(335, 92%, 60%, 0.80)",
+  "hsla(350, 92%, 60%, 0.80)"
+];
+
 function hashInt(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
@@ -1102,10 +1120,47 @@ export default function CalendarPage() {
     return map;
   }, [monthJobs]);
 
+  const installColorMap = React.useMemo(() => {
+    const ids = new Set<string>();
+
+    monthJobs.forEach((j) => {
+      const status = (j as any).status as DraftEntry["status"];
+      if (status === "estimate") return;
+      ids.add(String(j.id));
+    });
+
+    soldQueue.forEach((j) => {
+      ids.add(String(j.id));
+    });
+
+    const list = Array.from(ids);
+    list.sort((a, b) => a.localeCompare(b));
+
+    const out = new Map<string, string>();
+    list.forEach((id, idx) => {
+      // Deterministic palette assignment prevents collisions within the visible data set.
+      out.set(id, INSTALL_DOT_PALETTE[idx % INSTALL_DOT_PALETTE.length]);
+    });
+    return out;
+  }, [monthJobs, soldQueue]);
+
+  const effectiveJobColors = React.useMemo(() => {
+    const map = new Map<string, string>();
+    monthJobs.forEach((j) => {
+      const status = (j as any).status as DraftEntry["status"];
+      if (status === "estimate") {
+        map.set(j.id, ESTIMATE_DOT_COLOR);
+      } else {
+        map.set(j.id, installColorMap.get(j.id) ?? colorForInstallId(j.id));
+      }
+    });
+    return map;
+  }, [installColorMap, monthJobs]);
+
   const jobsByDay = React.useMemo(() => {
     const map = new Map<string, Array<DraftEntry & { color: string }>>();
     monthJobs.forEach((j) => {
-      const color = jobColors.get(j.id) ?? "rgba(255,255,255,.25)";
+      const color = effectiveJobColors.get(j.id) ?? "rgba(255,255,255,.25)";
       const start = (j as any).install instanceof Date ? ((j as any).install as Date) : new Date(j.installDate + "T12:00:00");
       const status = (j as any).status as DraftEntry["status"];
       const span = status === "estimate" ? 1 : computeSpanDays((j as any).laborDays);
@@ -1120,7 +1175,7 @@ export default function CalendarPage() {
       });
     });
     return map;
-  }, [jobColors, monthJobs, workdaySequenceForJob]);
+  }, [effectiveJobColors, monthJobs, workdaySequenceForJob]);
 
   const grid = React.useMemo(() => {
     const prevMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0);
@@ -1491,7 +1546,7 @@ export default function CalendarPage() {
                   const hold = String((j as any).holdDate || "").slice(0, 10);
                   const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
                   const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
-                  const dotColor = colorForInstallId(j.id);
+                  const dotColor = installColorMap.get(j.id) ?? colorForInstallId(j.id);
                   const endIso = (() => {
                     const endRaw = (j as any).end ?? (j as any).endDate;
                     if (endRaw instanceof Date && Number.isFinite(endRaw.getTime())) return endRaw.toISOString().slice(0, 10);
