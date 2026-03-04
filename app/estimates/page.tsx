@@ -1694,7 +1694,7 @@ function EstimatesPageInner() {
   }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, useHorizontalCedarTakeoff]);
 
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
-    "4x4 x 8' Post": 11.08,
+    "4x4 x 8' Post": 11.28,
     "4x4 x 10' Post": 16.88,
     "4x4 x 8' Cedar S4S Post": 45.99,
     "4x4 x 10' Cedar S4S Post": 57.59,
