@@ -12,22 +12,37 @@ const RESERVED_INSTALL_HUE_MIN = 195;
 const RESERVED_INSTALL_HUE_MAX = 225;
 
 const INSTALL_DOT_PALETTE: string[] = [
-  "hsla(10, 92%, 62%, 0.80)",
-  "hsla(28, 92%, 60%, 0.80)",
-  "hsla(45, 92%, 58%, 0.80)",
-  "hsla(70, 84%, 55%, 0.80)",
-  "hsla(105, 78%, 50%, 0.80)",
-  "hsla(140, 78%, 48%, 0.80)",
-  "hsla(165, 86%, 48%, 0.80)",
   "hsla(185, 92%, 50%, 0.80)",
-  "hsla(235, 92%, 66%, 0.80)",
-  "hsla(255, 92%, 68%, 0.80)",
   "hsla(275, 90%, 66%, 0.80)",
-  "hsla(295, 90%, 64%, 0.80)",
+  "hsla(105, 78%, 50%, 0.80)",
+  "hsla(235, 92%, 66%, 0.80)",
+  "hsla(10, 92%, 62%, 0.80)",
+  "hsla(255, 92%, 68%, 0.80)",
+  "hsla(140, 78%, 48%, 0.80)",
   "hsla(315, 92%, 62%, 0.80)",
+  "hsla(70, 84%, 55%, 0.80)",
   "hsla(335, 92%, 60%, 0.80)",
+  "hsla(165, 86%, 48%, 0.80)",
+  "hsla(45, 92%, 58%, 0.80)",
+  "hsla(295, 90%, 64%, 0.80)",
+  "hsla(28, 92%, 60%, 0.80)",
   "hsla(350, 92%, 60%, 0.80)"
 ];
+
+function parseHueFromHsla(hsla: string) {
+  const m = String(hsla).match(/hsla\((\s*[-\d.]+)/i);
+  const hue = m ? Number(m[1]) : NaN;
+  return Number.isFinite(hue) ? ((hue % 360) + 360) % 360 : NaN;
+}
+
+function isGreenHue(h: number) {
+  return h >= 70 && h <= 170;
+}
+
+function isWarmHue(h: number) {
+  // red/orange family
+  return h >= 0 && h <= 55;
+}
 
 function hashInt(id: string) {
   let h = 0;
@@ -1121,25 +1136,61 @@ export default function CalendarPage() {
   }, [monthJobs]);
 
   const installColorMap = React.useMemo(() => {
-    const ids = new Set<string>();
+    const ordered: string[] = [];
+    const seen = new Set<string>();
 
-    monthJobs.forEach((j) => {
-      const status = (j as any).status as DraftEntry["status"];
-      if (status === "estimate") return;
-      ids.add(String(j.id));
-    });
-
+    // 1) Preserve sold queue order so adjacent queue items avoid similar hues.
     soldQueue.forEach((j) => {
-      ids.add(String(j.id));
+      const id = String(j.id);
+      if (seen.has(id)) return;
+      seen.add(id);
+      ordered.push(id);
     });
 
-    const list = Array.from(ids);
-    list.sort((a, b) => a.localeCompare(b));
+    // 2) Then append other non-estimate jobs in chronological order.
+    const other = monthJobs
+      .filter((j) => {
+        const status = (j as any).status as DraftEntry["status"];
+        if (status === "estimate") return false;
+        const id = String(j.id);
+        return !seen.has(id);
+      })
+      .slice()
+      .sort((a, b) => {
+        const ad = String((a as any).installDate || (a as any).startDate || (a as any).scheduledAt || "");
+        const bd = String((b as any).installDate || (b as any).startDate || (b as any).scheduledAt || "");
+        if (ad !== bd) return ad.localeCompare(bd);
+        return String(a.id).localeCompare(String(b.id));
+      })
+      .map((j) => String(j.id));
+
+    other.forEach((id) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      ordered.push(id);
+    });
 
     const out = new Map<string, string>();
-    list.forEach((id, idx) => {
-      // Deterministic palette assignment prevents collisions within the visible data set.
-      out.set(id, INSTALL_DOT_PALETTE[idx % INSTALL_DOT_PALETTE.length]);
+    let paletteCursor = 0;
+    let prevHue: number | null = null;
+    ordered.forEach((id) => {
+      for (let guard = 0; guard < INSTALL_DOT_PALETTE.length; guard++) {
+        const candidate = INSTALL_DOT_PALETTE[paletteCursor % INSTALL_DOT_PALETTE.length];
+        paletteCursor += 1;
+        const h = parseHueFromHsla(candidate);
+        const ok = prevHue == null
+          ? true
+          : (!((isGreenHue(prevHue) && isGreenHue(h)) || (isWarmHue(prevHue) && (isWarmHue(h) || (h >= 20 && h <= 85)))));
+        if (ok) {
+          out.set(id, candidate);
+          prevHue = h;
+          return;
+        }
+      }
+      // Fallback if we somehow couldn't find a good candidate.
+      const fallback = INSTALL_DOT_PALETTE[Math.abs(hashInt(id)) % INSTALL_DOT_PALETTE.length];
+      out.set(id, fallback);
+      prevHue = parseHueFromHsla(fallback);
     });
     return out;
   }, [monthJobs, soldQueue]);
