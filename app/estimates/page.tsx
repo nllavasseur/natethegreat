@@ -2605,9 +2605,6 @@ function EstimatesPageInner() {
       const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
       const panels = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
-        : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
-
       const cornerCount = Math.max(0, segmentLengths.length - 1);
 
       // Rails: ceil((segment/15)*railCount)
@@ -2616,8 +2613,8 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * railCount), 0)
         : (lf > 0 ? Math.ceil((lf / 15) * railCount) : 0);
 
-      // +5 for every 100'
-      const railsWaste = lf > 0 ? Math.ceil(lf / 100) * 5 : 0;
+      // +5 for every 200'
+      const railsWaste = lf > 0 ? Math.ceil(lf / 200) * 5 : 0;
       const rails = railsBase + railsWaste;
 
       // Verticles = 0.25 per post + 0.5 per corner
@@ -2643,6 +2640,72 @@ function EstimatesPageInner() {
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.fourRailPoplarPostCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
+        ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
+        ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
+        ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
+        { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
+        { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
+      ];
+
+      return rows
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name: r.name, priceKey: (r as any).priceKey });
+          const lineTotal = Math.round((r.qty * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
+
+    if (selectedStyleKind === "wood_4_rail_wire_mesh") {
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
+
+      // 5.5' centers.
+      const postsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0) + 1
+        : (lf > 0 ? Math.max(2, Math.ceil(lf / 5.5) + 1) : 0);
+      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const cornerCount = Math.max(0, segmentLengths.length - 1);
+
+      // Rails: ceil((segment/11) * railCount)
+      const railCount = materialsDetails.fourRailWireMeshThreeRail ? 3 : 4;
+      const railsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 11) * railCount), 0)
+        : (lf > 0 ? Math.ceil((lf / 11) * railCount) : 0);
+
+      // +5 for every 200'
+      const railsWaste = lf > 0 ? Math.ceil(lf / 200) * 5 : 0;
+      const rails = railsBase + railsWaste;
+
+      // Verticles = 1/3 per post + 1 per corner
+      const verticalAdders = posts > 0
+        ? Math.ceil((posts * (1 / 3)) + (cornerCount * 1))
+        : 0;
+
+      const railBoardName = woodBoard1x6x12Name(materialsDetails.railMaterial);
+
+      // Optional wire mesh
+      const meshRolls = materialsDetails.fourRailWireMeshWireMesh && lf > 0 ? Math.ceil(lf / 50) : 0;
+      const staples = materialsDetails.fourRailWireMeshWireMesh && posts > 0 ? Math.ceil(posts * 10) : 0;
+      const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
+
+      const concrete80Bags = posts * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+
+      const rows: Array<{ name: string; qty: number; unit: string }> = [
+        { name: postName, qty: posts, unit: "ea" },
+        ...(rails > 0 ? [{ name: railBoardName, qty: rails, unit: "ea" }] : []),
+        ...(verticalAdders > 0 ? [{ name: railBoardName, qty: verticalAdders, unit: "ea" }] : []),
+        ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
+        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
+        ...(materialsDetails.fourRailWireMeshPostCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
