@@ -1168,6 +1168,7 @@ function EstimatesPageInner() {
     if (n === "mary jane") return "wood_picture_framed";
     if (n === "picture framed caps") return "wood_picture_framed";
     if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
+    if ((n.includes("4 rail") || n.includes("four rail")) && n.includes("wire") && n.includes("mesh")) return "wood_4_rail_wire_mesh";
     if (n === "4 rail wire mesh" || n.includes("4 rail wire mesh")) return "wood_4_rail_wire_mesh";
     if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
@@ -1935,6 +1936,7 @@ function EstimatesPageInner() {
       if (n === "mary jane") return "wood_picture_framed";
       if (n === "picture framed caps") return "wood_picture_framed";
       if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
+      if ((n.includes("4 rail") || n.includes("four rail")) && n.includes("wire") && n.includes("mesh")) return "wood_4_rail_wire_mesh";
       if (n === "4 rail wire mesh" || n.includes("4 rail wire mesh")) return "wood_4_rail_wire_mesh";
       if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
       if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
