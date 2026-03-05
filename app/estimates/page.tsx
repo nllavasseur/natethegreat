@@ -2598,10 +2598,13 @@ function EstimatesPageInner() {
 
       const cornerCount = Math.max(0, segmentLengths.length - 1);
 
-      // Rails: (segmentLength/15)*4
+      // Rails/boards (per segment): ((segmentLength/5.5)/2)*4  => segmentLength/2.75
+      // Round per-segment.
       const railsBase = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 4), 0)
-        : (lf > 0 ? Math.ceil((lf / 15) * 4) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 2.75), 0)
+        : (lf > 0 ? Math.ceil(lf / 2.75) : 0);
+
+      const railBoardName = woodBoard1x6x12Name(materialsDetails.railMaterial);
 
       // Verticals: +1/3 per post +1 per corner
       const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
@@ -2619,7 +2622,7 @@ function EstimatesPageInner() {
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(railsBase > 0 ? [{ name: "1x6x16 Poplar Rails", qty: railsBase, unit: "ea" }] : []),
+        ...(railsBase > 0 ? [{ name: railBoardName, qty: railsBase, unit: "ea" }] : []),
         ...(verticalAdders > 0 ? [{ name: "1x6x16 Poplar Verticals", qty: verticalAdders, unit: "ea" }] : []),
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
