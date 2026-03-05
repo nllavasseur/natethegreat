@@ -255,6 +255,11 @@ type MaterialsDetails = {
   splitRailWireMesh: boolean;
   splitRailMaterial: "Pressure treated" | "Cedar tone";
   fourRailPoplarWireMesh: boolean;
+  fourRailPoplarPostCaps: boolean;
+  fourRailPoplarThreeRail: boolean;
+  fourRailWireMeshWireMesh: boolean;
+  fourRailWireMeshPostCaps: boolean;
+  fourRailWireMeshThreeRail: boolean;
   splitRailCornerPosts: number;
   splitRailEndPosts: number;
   pictureFrameTrimPieces: 2 | 3 | 5;
@@ -312,6 +317,11 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   splitRailWireMesh: false,
   splitRailMaterial: "Pressure treated",
   fourRailPoplarWireMesh: false,
+  fourRailPoplarPostCaps: false,
+  fourRailPoplarThreeRail: false,
+  fourRailWireMeshWireMesh: false,
+  fourRailWireMeshPostCaps: false,
+  fourRailWireMeshThreeRail: false,
   splitRailCornerPosts: 0,
   splitRailEndPosts: 0,
   pictureFrameTrimPieces: 3,
@@ -1158,6 +1168,7 @@ function EstimatesPageInner() {
     if (n === "mary jane") return "wood_picture_framed";
     if (n === "picture framed caps") return "wood_picture_framed";
     if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
+    if (n === "4 rail wire mesh" || n.includes("4 rail wire mesh")) return "wood_4_rail_wire_mesh";
     if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
     if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
     if (n === "shadowbox top cap" || n.includes("shadowbox top cap")) return "wood_shadowbox_top_cap";
@@ -1923,6 +1934,7 @@ function EstimatesPageInner() {
       if (n === "mary jane") return "wood_picture_framed";
       if (n === "picture framed caps") return "wood_picture_framed";
       if (n === "hog wire" || n === "hog-wire" || n.includes("hog wire") || n.includes("hog-wire")) return "wood_hog_wire";
+      if (n === "4 rail wire mesh" || n.includes("4 rail wire mesh")) return "wood_4_rail_wire_mesh";
       if (n === "3 rail w/ wire mesh" || n.includes("wire mesh") || n.includes("hog-wire") || n.includes("hog wire") || n.includes("mesh")) return "wood_wire_mesh";
       if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
       if (n === "shadowbox top cap" || n.includes("shadowbox top cap")) return "wood_shadowbox_top_cap";
@@ -1931,7 +1943,6 @@ function EstimatesPageInner() {
       if (n.includes("shadowbox")) return "wood_shadowbox_pickets";
       if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
       if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
-      if (n === "four rail poplar" || n.includes("four rail poplar")) return "wood_four_rail_poplar";
       if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
       return n;
     })();
@@ -2598,17 +2609,20 @@ function EstimatesPageInner() {
 
       const cornerCount = Math.max(0, segmentLengths.length - 1);
 
-      // Rails/boards (per segment): ((segmentLength/5.5)/2)*4  => segmentLength/2.75
-      // Round per-segment.
+      // Rails: ceil((segment/15)*railCount)
+      const railCount = materialsDetails.fourRailPoplarThreeRail ? 3 : 4;
       const railsBase = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 2.75), 0)
-        : (lf > 0 ? Math.ceil(lf / 2.75) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * railCount), 0)
+        : (lf > 0 ? Math.ceil((lf / 15) * railCount) : 0);
 
-      const railBoardName = woodBoard1x6x12Name(materialsDetails.railMaterial);
+      // +5 for every 100'
+      const railsWaste = lf > 0 ? Math.ceil(lf / 100) * 5 : 0;
+      const rails = railsBase + railsWaste;
 
-      // Verticals: +1/3 per post +1 per corner
-      const verticalBoards = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
-      const verticalAdders = verticalBoards + cornerCount;
+      // Verticles = 0.25 per post + 0.5 per corner
+      const verticalAdders = posts > 0
+        ? Math.ceil((posts * 0.25) + (cornerCount * 0.5))
+        : 0;
 
       // Optional wire mesh
       const meshRolls = materialsDetails.fourRailPoplarWireMesh && lf > 0 ? Math.ceil(lf / 50) : 0;
@@ -2622,12 +2636,12 @@ function EstimatesPageInner() {
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
-        ...(railsBase > 0 ? [{ name: railBoardName, qty: railsBase, unit: "ea" }] : []),
+        ...(rails > 0 ? [{ name: "1x6x16 Poplar Rails", qty: rails, unit: "ea" }] : []),
         ...(verticalAdders > 0 ? [{ name: "1x6x16 Poplar Verticals", qty: verticalAdders, unit: "ea" }] : []),
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
-        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.fourRailPoplarPostCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
@@ -5006,10 +5020,27 @@ function EstimatesPageInner() {
     } else if (styleName === "four rail poplar") {
       overrides = {
         woodType: "Pressure treated",
+        postDim: "6x6",
+        railMaterial: "Pressure treated",
         postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
         fourRailPoplarWireMesh: false,
+        fourRailPoplarPostCaps: false,
+        fourRailPoplarThreeRail: false,
+        topCaps: false
+      };
+    } else if (styleName === "4 rail wire mesh") {
+      overrides = {
+        woodType: "Pressure treated",
+        railMaterial: "Pressure treated",
+        postDim: "4x4",
+        postSize: 8,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        fourRailWireMeshWireMesh: false,
+        fourRailWireMeshPostCaps: false,
+        fourRailWireMeshThreeRail: false,
         topCaps: false
       };
     } else if (styleName === "hog wire") {
@@ -5449,6 +5480,11 @@ function EstimatesPageInner() {
         : 3;
       const splitRailWireMesh = typeof dd.splitRailWireMesh === "boolean" ? dd.splitRailWireMesh : false;
       const fourRailPoplarWireMesh = typeof dd.fourRailPoplarWireMesh === "boolean" ? dd.fourRailPoplarWireMesh : false;
+      const fourRailPoplarPostCaps = typeof dd.fourRailPoplarPostCaps === "boolean" ? dd.fourRailPoplarPostCaps : false;
+      const fourRailPoplarThreeRail = typeof dd.fourRailPoplarThreeRail === "boolean" ? dd.fourRailPoplarThreeRail : false;
+      const fourRailWireMeshWireMesh = typeof dd.fourRailWireMeshWireMesh === "boolean" ? dd.fourRailWireMeshWireMesh : false;
+      const fourRailWireMeshPostCaps = typeof dd.fourRailWireMeshPostCaps === "boolean" ? dd.fourRailWireMeshPostCaps : false;
+      const fourRailWireMeshThreeRail = typeof dd.fourRailWireMeshThreeRail === "boolean" ? dd.fourRailWireMeshThreeRail : false;
       const splitRailCornerPosts = Number.isFinite(Number(dd.splitRailCornerPosts))
         ? Math.max(0, Math.floor(Number(dd.splitRailCornerPosts)))
         : 0;
@@ -5551,6 +5587,11 @@ function EstimatesPageInner() {
         splitRailWireMesh,
         splitRailMaterial,
         fourRailPoplarWireMesh,
+        fourRailPoplarPostCaps,
+        fourRailPoplarThreeRail,
+        fourRailWireMeshWireMesh,
+        fourRailWireMeshPostCaps,
+        fourRailWireMeshThreeRail,
         splitRailCornerPosts,
         splitRailEndPosts,
         pictureFrameTrimPieces,
@@ -8134,6 +8175,117 @@ function EstimatesPageInner() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="font-extrabold">{materialsDetails.fourRailPoplarWireMesh ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, fourRailPoplarPostCaps: !p.fourRailPoplarPostCaps }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.fourRailPoplarPostCaps
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.fourRailPoplarPostCaps}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.fourRailPoplarPostCaps ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">3 rail</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, fourRailPoplarThreeRail: !p.fourRailPoplarThreeRail }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.fourRailPoplarThreeRail
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.fourRailPoplarThreeRail}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.fourRailPoplarThreeRail ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedStyleKind === "wood_4_rail_wire_mesh" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">4 rail wire mesh</div>
+
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Wire mesh</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, fourRailWireMeshWireMesh: !p.fourRailWireMeshWireMesh }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.fourRailWireMeshWireMesh
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.fourRailWireMeshWireMesh}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.fourRailWireMeshWireMesh ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, fourRailWireMeshPostCaps: !p.fourRailWireMeshPostCaps }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.fourRailWireMeshPostCaps
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.fourRailWireMeshPostCaps}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.fourRailWireMeshPostCaps ? "On" : "Off"}</div>
+                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      <div className="mt-2">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">3 rail</div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, fourRailWireMeshThreeRail: !p.fourRailWireMeshThreeRail }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                            (materialsDetails.fourRailWireMeshThreeRail
+                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                          aria-pressed={materialsDetails.fourRailWireMeshThreeRail}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-extrabold">{materialsDetails.fourRailWireMeshThreeRail ? "On" : "Off"}</div>
                             <div className="text-[11px] text-[var(--muted)]">Tap</div>
                           </div>
                         </button>
