@@ -512,7 +512,11 @@ export default function QuotesPage() {
       const persistedMaterialsAndExpensesTotal = Number((d as any)?.totals?.materialsSubtotal);
       const materialsAndExpensesTotal = Number.isFinite(persistedMaterialsAndExpensesTotal)
         ? round2(persistedMaterialsAndExpensesTotal)
-        : round2(computeMaterialsAndExpensesTotal(takeoffMaterials));
+        : round2(
+            computeMaterialsAndExpensesTotal(
+              (Array.isArray(items) && items.length > 0 ? items : takeoffMaterials) as QuoteItem[]
+            )
+          );
 
       const segments = Array.isArray(d.segments) ? d.segments : [];
       const removalLf = segments
