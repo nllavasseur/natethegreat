@@ -4685,9 +4685,9 @@ function EstimatesPageInner() {
   }, [items]);
 
   const takeoffMaterialsTotal = useMemo(() => {
-    const v = takeoffMaterialsStable.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
+    const v = takeoffMaterialsWithAdditional.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
-  }, [takeoffMaterialsStable]);
+  }, [takeoffMaterialsWithAdditional]);
 
   const additionalServicesSubtotal = useMemo(() => {
     const v = items
@@ -4717,8 +4717,8 @@ function EstimatesPageInner() {
   }, [additionalServicesAsMaterials, takeoffMaterialsStable]);
 
   const takeoffMaterialsAndExpensesBaseTotal = useMemo(() => {
-    return computeMaterialsAndExpensesTotal(takeoffMaterialsStable);
-  }, [takeoffMaterialsStable]);
+    return computeMaterialsAndExpensesTotal(takeoffMaterialsWithAdditional);
+  }, [takeoffMaterialsWithAdditional]);
 
   const takeoffMaterialsAndExpensesTotal = useMemo(() => {
     const v = Number(takeoffMaterialsAndExpensesBaseTotal) || 0;
