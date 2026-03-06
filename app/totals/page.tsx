@@ -167,6 +167,11 @@ function workingDaysInMonth(y: number, m0: number) {
   return Math.max(1, count);
 }
 
+function daysInMonth(y: number, m0: number) {
+  const last = new Date(y, m0 + 1, 0);
+  return Math.max(1, last.getDate());
+}
+
 function computeBreakdown(items: QuoteItem[]) {
   const safeItems = Array.isArray(items) ? items : [];
 
@@ -376,6 +381,29 @@ export default function TotalsPage() {
     return out.filter(Boolean) as Array<{ key: string; dt: Date; monthKey: string; week: number; row: TotalsRow }>;
   }, [dayBuckets]);
 
+  const selectedMonthDays = useMemo(() => {
+    if (!monthKey) return [] as Array<{ key: string; dt: Date; monthKey: string; week: number; row: TotalsRow }>;
+    const [yRaw, mRaw] = monthKey.split("-");
+    const y = Number(yRaw);
+    const m0 = Number(mRaw) - 1;
+    if (!Number.isFinite(y) || !Number.isFinite(m0)) return [];
+
+    const count = daysInMonth(y, m0);
+    const out: Array<{ key: string; dt: Date; monthKey: string; week: number; row: TotalsRow }> = [];
+    for (let day = 1; day <= count; day += 1) {
+      const dt = new Date(y, m0, day);
+      const key = toIsoDayKey(dt);
+      out.push({
+        key,
+        dt,
+        monthKey,
+        week: weekBucketForDate(dt),
+        row: dayBuckets.get(key) ?? emptyRow()
+      });
+    }
+    return out;
+  }, [dayBuckets, monthKey]);
+
   const months = useMemo(() => {
     const set = new Set<string>();
     for (const j of days) set.add(j.monthKey);
@@ -388,9 +416,8 @@ export default function TotalsPage() {
   }, [monthKey, months]);
 
   const selected = useMemo(() => {
-    if (!monthKey) return [];
-    return days.filter((j) => j.monthKey === monthKey);
-  }, [days, monthKey]);
+    return selectedMonthDays;
+  }, [selectedMonthDays]);
 
   const monthTotals = useMemo(() => {
     return selected.reduce((sum, j) => {
@@ -455,7 +482,7 @@ export default function TotalsPage() {
               </option>
             ))}
           </select>
-          <div className="text-[11px] text-[var(--muted)]">Workdays in month: {selected.length}</div>
+          <div className="text-[11px] text-[var(--muted)]">Days in month: {selected.length}</div>
           <div className="text-[11px] text-[var(--muted)]">
             Customers: {includedCustomerNames.length > 0 ? includedCustomerNames.join(", ") : "(none)"}
           </div>
