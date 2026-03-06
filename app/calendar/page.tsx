@@ -1370,29 +1370,6 @@ export default function CalendarPage() {
                 </div>
               ) : null}
 
-              {dayTasks.length ? (
-                <div className="mt-3 grid gap-2">
-                  {dayTasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-sm font-black truncate">{t.description || "Task"}</div>
-                          <div className="text-[11px] text-[var(--muted)] mt-1">
-                            {String((t as any).atIso || "").slice(11, 16)}
-                          </div>
-                        </div>
-                        <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
-                          <span className="text-[14px] leading-none">★</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
               {dayJobs.length ? (
                 <div className="mt-3 grid gap-2">
                   {dayJobs.map((j) => {
@@ -1502,6 +1479,29 @@ export default function CalendarPage() {
               ) : (
                 <div className="mt-3 text-sm text-[var(--muted)]">No jobs scheduled.</div>
               )}
+
+              {dayTasks.length ? (
+                <div className="mt-3 grid gap-2">
+                  {dayTasks.map((t) => (
+                    <div
+                      key={t.id}
+                      className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-black truncate">{t.description || "Task"}</div>
+                          <div className="text-[11px] text-[var(--muted)] mt-1">
+                            {String((t as any).atIso || "").slice(11, 16)}
+                          </div>
+                        </div>
+                        <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
+                          <span className="text-[14px] leading-none">★</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
           </div>
         </div>
       , document.body) : null}
@@ -2401,12 +2401,22 @@ export default function CalendarPage() {
                       const installs = jobs.filter((j: any) => !isEstimate(j));
                       const estimates = jobs.filter((j: any) => isEstimate(j));
                       const maxDots = 6;
-                      const taskBudget = Math.min(dayTasks.length, 2);
-                      const visible = [...installs, ...estimates].slice(0, Math.max(0, maxDots - taskBudget));
+
+                      const visibleJobs = [...installs, ...estimates].slice(0, maxDots);
+                      const remainingSlots = Math.max(0, maxDots - visibleJobs.length);
+                      const visibleTasks = dayTasks.slice(0, remainingSlots);
 
                       return (
                         <>
-                          {dayTasks.slice(0, taskBudget).map((t) => (
+                          {visibleJobs.map((j: any) => (
+                            <div
+                              key={j.id}
+                              className={"h-2 w-2 " + (isEstimate(j) ? "rounded-none" : "rounded-full")}
+                              style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
+                              title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
+                            />
+                          ))}
+                          {visibleTasks.map((t) => (
                             <div
                               key={t.id}
                               className="h-2 w-2 grid place-items-center"
@@ -2415,14 +2425,6 @@ export default function CalendarPage() {
                             >
                               <span className="text-[10px] leading-none">★</span>
                             </div>
-                          ))}
-                          {visible.map((j: any) => (
-                            <div
-                              key={j.id}
-                              className={"h-2 w-2 " + (isEstimate(j) ? "rounded-none" : "rounded-full")}
-                              style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
-                              title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
-                            />
                           ))}
                         </>
                       );
@@ -2600,29 +2602,6 @@ export default function CalendarPage() {
               ))}
             </div>
           ) : null}
-          {dayTasks.length ? (
-            <div className="mb-3 grid gap-2">
-              {dayTasks.map((t) => (
-                <div
-                  key={t.id}
-                  className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-2"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-black truncate">{t.description || "Task"}</div>
-                      <div className="text-[11px] text-[var(--muted)] mt-1">
-                        {String((t as any).atIso || "").slice(11, 16)}
-                      </div>
-                    </div>
-                    <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
-                      <span className="text-[14px] leading-none">★</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
           {dayJobs.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">No installs scheduled.</div>
           ) : (
@@ -2657,6 +2636,29 @@ export default function CalendarPage() {
               ))}
             </div>
           )}
+
+          {dayTasks.length ? (
+            <div className="mt-3 grid gap-2">
+              {dayTasks.map((t) => (
+                <div
+                  key={t.id}
+                  className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-black truncate">{t.description || "Task"}</div>
+                      <div className="text-[11px] text-[var(--muted)] mt-1">
+                        {String((t as any).atIso || "").slice(11, 16)}
+                      </div>
+                    </div>
+                    <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
+                      <span className="text-[14px] leading-none">★</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </GlassCard>
       </div>
     </div>
