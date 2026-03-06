@@ -156,9 +156,17 @@ function formatMonthLabel(key: string) {
   return dt.toLocaleString(undefined, { month: "long", year: "numeric" });
 }
 
-function weekBucketForDate(dt: Date) {
-  const day = dt.getDate();
-  const raw = Math.floor((day - 1) / 7) + 1;
+function firstMondayOfMonth(y: number, m0: number) {
+  const d = new Date(y, m0, 1);
+  while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+  return startOfDay(d);
+}
+
+function weekBucketForDateInMonth(dt: Date, y: number, m0: number) {
+  const firstMon = firstMondayOfMonth(y, m0);
+  const day = startOfDay(dt);
+  const diffDays = Math.floor((day.getTime() - firstMon.getTime()) / (24 * 60 * 60 * 1000));
+  const raw = diffDays < 0 ? 1 : Math.floor(diffDays / 7) + 1;
   return Math.min(4, Math.max(1, raw));
 }
 
@@ -302,6 +310,7 @@ function SummaryCard({ title, row }: { title: string; row: TotalsRow }) {
 export default function TotalsPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [monthKey, setMonthKey] = useState<string>("");
+  const [year, setYear] = useState<number>(() => new Date().getFullYear());
 
   useEffect(() => {
     let cancelled = false;
@@ -349,6 +358,46 @@ export default function TotalsPage() {
     return byDay;
   }, [drafts]);
 
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+
+    for (const d of drafts) {
+      const status = String((d as any)?.status || "estimate");
+      if (status === "void" || status === "estimate") continue;
+      const dt = parseJobStartDate(d);
+      if (!dt) continue;
+      years.add(dt.getFullYear());
+    }
+
+    const cur = new Date().getFullYear();
+    years.add(cur);
+
+    return Array.from(years.values()).sort((a, b) => b - a);
+  }, [drafts]);
+
+  useEffect(() => {
+    if (availableYears.length === 0) return;
+    if (availableYears.includes(year)) return;
+    setYear(availableYears[0]);
+  }, [availableYears, year]);
+
+  const months = useMemo(() => {
+    const out: string[] = [];
+    for (let m = 1; m <= 12; m += 1) {
+      out.push(`${year}-${String(m).padStart(2, "0")}`);
+    }
+    return out;
+  }, [year]);
+
+  useEffect(() => {
+    if (!monthKey) {
+      setMonthKey(`${year}-${String(new Date().getMonth() + 1).padStart(2, "0")}`);
+      return;
+    }
+    const y = Number(monthKey.split("-")[0]);
+    if (Number.isFinite(y) && y !== year) setMonthKey(`${year}-${monthKey.split("-")[1]}`);
+  }, [monthKey, year]);
+
   const includedCustomerNames = useMemo(() => {
     if (!monthKey) return [] as string[];
 
@@ -382,7 +431,7 @@ export default function TotalsPage() {
       const ms = Date.parse(key + "T12:00:00");
       const dt = Number.isFinite(ms) ? new Date(ms) : null;
       if (!dt) return null;
-      return { key, dt, monthKey: monthKeyFromDate(dt), week: weekBucketForDate(dt), row };
+      return { key, dt, monthKey: monthKeyFromDate(dt), week: 1, row };
     });
     return out.filter(Boolean) as Array<{ key: string; dt: Date; monthKey: string; week: number; row: TotalsRow }>;
   }, [dayBuckets]);
@@ -403,23 +452,12 @@ export default function TotalsPage() {
         key,
         dt,
         monthKey,
-        week: weekBucketForDate(dt),
+        week: weekBucketForDateInMonth(dt, y, m0),
         row: dayBuckets.get(key) ?? emptyRow()
       });
     }
     return out;
   }, [dayBuckets, monthKey]);
-
-  const months = useMemo(() => {
-    const set = new Set<string>();
-    for (const j of days) set.add(j.monthKey);
-    return Array.from(set.values()).sort().reverse();
-  }, [days]);
-
-  useEffect(() => {
-    if (monthKey) return;
-    if (months.length > 0) setMonthKey(months[0]);
-  }, [monthKey, months]);
 
   const selected = useMemo(() => {
     return selectedMonthDays;
@@ -479,12 +517,23 @@ export default function TotalsPage() {
           <div className="text-[11px] text-[var(--muted)]">Month</div>
           <select
             className="w-full rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.14)] outline-none"
+            value={String(year)}
+            onChange={(e) => setYear(Number(e.target.value))}
+          >
+            {availableYears.map((y) => (
+              <option key={y} value={String(y)}>
+                {String(y)}
+              </option>
+            ))}
+          </select>
+          <select
+            className="w-full rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.14)] outline-none"
             value={monthKey}
             onChange={(e) => setMonthKey(e.target.value)}
           >
             {months.map((k) => (
               <option key={k} value={k}>
-                {formatMonthLabel(k)}
+                {new Date(Number(k.split("-")[0]), Number(k.split("-")[1]) - 1, 1).toLocaleString(undefined, { month: "long" })}
               </option>
             ))}
           </select>
