@@ -1396,6 +1396,79 @@ export default function CalendarPage() {
     return out;
   }, [monthJobs, soldQueue]);
 
+  const soldQueueComputed = React.useMemo(() => {
+    return soldQueue.map((j, idx) => {
+      const allowSat = asBool((j as any).allowSaturday);
+      const allowSun = asBool((j as any).allowSunday);
+      const style = String(j.selectedStyle?.name || "");
+      const lf = totalLfFromDraft(j);
+      const labor = computeSpanDays((j as any).laborDays) || 0;
+      const hold = String((j as any).holdDate || "").slice(0, 10);
+      const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
+      const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
+      const hasStarted = (() => {
+        if (!startIso) return false;
+        try {
+          return startOfDay(new Date(startIso + "T12:00:00")).getTime() <= today0.getTime();
+        } catch {
+          return false;
+        }
+      })();
+      const locked = (j as any).queueLocked !== false;
+      const dotColor = installColorMap.get(j.id) ?? colorForInstallId(j.id);
+
+      const seqInfo = (() => {
+        if (!startIso) return { endIso: "", usedWeekend: { sat: false, sun: false } };
+        try {
+          const start = new Date(startIso + "T12:00:00");
+          const seq = workdaySequenceForJob(start, Math.max(1, labor || 0), allowSat, allowSun);
+          const last = seq[seq.length - 1];
+          const endIso = last instanceof Date && Number.isFinite(last.getTime()) ? last.toISOString().slice(0, 10) : "";
+          let sat = false;
+          let sun = false;
+          seq.forEach((d) => {
+            const day = d.getDay();
+            if (day === 6) sat = true;
+            if (day === 0) sun = true;
+          });
+          return { endIso, usedWeekend: { sat, sun } };
+        } catch {
+          return { endIso: "", usedWeekend: { sat: false, sun: false } };
+        }
+      })();
+
+      const isLastDay = Boolean(seqInfo.endIso) && seqInfo.endIso === toKey(today0);
+      const canComplete = (() => {
+        if (!seqInfo.endIso) return false;
+        try {
+          const end = new Date(seqInfo.endIso + "T00:00:00");
+          return today0.getTime() >= end.getTime();
+        } catch {
+          return false;
+        }
+      })();
+
+      return {
+        j,
+        idx,
+        allowSat,
+        allowSun,
+        style,
+        lf,
+        labor,
+        hold,
+        startIso,
+        hasStarted,
+        locked,
+        dotColor,
+        endIso: seqInfo.endIso,
+        usedWeekend: seqInfo.usedWeekend,
+        isLastDay,
+        canComplete
+      };
+    });
+  }, [installColorMap, soldQueue, today0, workdaySequenceForJob]);
+
   const effectiveJobColors = React.useMemo(() => {
     const map = new Map<string, string>();
     monthJobs.forEach((j) => {
@@ -1883,83 +1956,9 @@ export default function CalendarPage() {
                 {soldQueue.length === 0 ? (
                   <div className="text-sm text-[var(--muted)]">No sold jobs in queue.</div>
                 ) : null}
-                {soldQueue.map((j, idx) => {
+                {soldQueueComputed.map((row) => {
+                  const { j, idx, allowSat, allowSun, style, lf, labor, hold, startIso, hasStarted, locked, dotColor, endIso, usedWeekend, isLastDay, canComplete } = row;
                   const isHi = highlightQueueId === j.id;
-                  const allowSat = asBool((j as any).allowSaturday);
-                  const allowSun = asBool((j as any).allowSunday);
-                  const style = String(j.selectedStyle?.name || "");
-                  const lf = totalLfFromDraft(j);
-                  const labor = computeSpanDays((j as any).laborDays) || 0;
-                  const hold = String((j as any).holdDate || "").slice(0, 10);
-                  const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
-                  const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
-                  const hasStarted = (() => {
-                    if (!startIso) return false;
-                    try {
-                      return startOfDay(new Date(startIso + "T12:00:00")).getTime() <= today0.getTime();
-                    } catch {
-                      return false;
-                    }
-                  })();
-                  const locked = (j as any).queueLocked !== false;
-                  const dotColor = installColorMap.get(j.id) ?? colorForInstallId(j.id);
-                  const endIso = (() => {
-                    const endRaw = (j as any).end ?? (j as any).endDate;
-                    if (endRaw instanceof Date && Number.isFinite(endRaw.getTime())) return endRaw.toISOString().slice(0, 10);
-                    if (typeof endRaw === "number" && Number.isFinite(endRaw) && endRaw > 0) {
-                      try {
-                        const d = new Date(endRaw);
-                        if (d instanceof Date && Number.isFinite(d.getTime())) return d.toISOString().slice(0, 10);
-                      } catch {
-                      }
-                    }
-                    if (typeof endRaw === "string" && endRaw) {
-                      try {
-                        const d = new Date(endRaw);
-                        if (d instanceof Date && Number.isFinite(d.getTime())) return d.toISOString().slice(0, 10);
-                      } catch {
-                      }
-                    }
-
-                    const effLabor = startIso ? Math.max(1, labor || 0) : 0;
-                    if (startIso && effLabor > 0) {
-                      try {
-                        const start = new Date(startIso + "T12:00:00");
-                        const seq = workdaySequenceForJob(start, effLabor, allowSat, allowSun);
-                        const last = seq[seq.length - 1];
-                        if (last instanceof Date && Number.isFinite(last.getTime())) return last.toISOString().slice(0, 10);
-                      } catch {
-                      }
-                    }
-                    return "";
-                  })();
-                  const isLastDay = Boolean(endIso) && endIso === toKey(today0);
-                  const canComplete = (() => {
-                    if (!endIso) return false;
-                    try {
-                      const end = new Date(endIso + "T00:00:00");
-                      return today0.getTime() >= end.getTime();
-                    } catch {
-                      return false;
-                    }
-                  })();
-                  const usedWeekend = (() => {
-                    if (!startIso) return { sat: false, sun: false };
-                    try {
-                      const start = new Date(startIso + "T12:00:00");
-                      const seq = workdaySequenceForJob(start, labor, allowSat, allowSun);
-                      let sat = false;
-                      let sun = false;
-                      seq.forEach((d) => {
-                        const day = d.getDay();
-                        if (day === 6) sat = true;
-                        if (day === 0) sun = true;
-                      });
-                      return { sat, sun };
-                    } catch {
-                      return { sat: false, sun: false };
-                    }
-                  })();
                   return (
                     <div
                       key={j.id}
@@ -2151,7 +2150,7 @@ export default function CalendarPage() {
                             }}
                             className={
                               "px-5 py-3 text-[16px] font-black transition-colors " +
-                              (usedWeekend.sat
+                              (allowSat
                                 ? "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
                                 : "border-r border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
                             }
@@ -2169,7 +2168,7 @@ export default function CalendarPage() {
                             }}
                             className={
                               "px-5 py-3 text-[16px] font-black transition-colors " +
-                              (usedWeekend.sun
+                              (allowSun
                                 ? "bg-[rgba(255,80,80,.18)] hover:bg-[rgba(255,80,80,.24)]"
                                 : "bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] opacity-80")
                             }
