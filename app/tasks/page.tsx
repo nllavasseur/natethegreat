@@ -393,9 +393,14 @@ export default function TasksPage() {
     <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 88px)" }} className="max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between max-w-full">
         <SectionTitle title="Tasks" />
-        <Link href="/quotes">
-          <SecondaryButton>Back</SecondaryButton>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/totals">
+            <PrimaryButton>Running Totals</PrimaryButton>
+          </Link>
+          <Link href="/quotes">
+            <SecondaryButton>Back</SecondaryButton>
+          </Link>
+        </div>
       </div>
 
       <GlassCard className="p-4 max-w-full overflow-x-hidden">
