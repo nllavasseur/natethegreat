@@ -2602,7 +2602,7 @@ export default function CalendarPage() {
                               <div
                                 key={j.id}
                                 className="h-full flex-1"
-                                style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)" }}
+                                style={{ background: isPastLike ? "rgba(255,255,255,.18)" : (j as any).color, filter: isPastLike ? "none" : "saturate(1.8) contrast(1.2)" }}
                                 title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                               />
                             ))}
@@ -2636,7 +2636,7 @@ export default function CalendarPage() {
                                 <div
                                   key={j.id}
                                   className="h-2.5 w-2.5 rounded-sm"
-                                  style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.12)" }}
+                                  style={{ background: isPastLike ? "rgba(255,255,255,.20)" : (j as any).color, filter: isPastLike ? "none" : "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.12)" }}
                                   title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Estimate"}
                                 />
                               ))}
@@ -2652,7 +2652,7 @@ export default function CalendarPage() {
                                   key={t.id}
                                   className="h-4 w-4 grid place-items-center"
                                   title={t.description || "Task"}
-                                  style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
+                                  style={{ color: isPastLike ? "rgba(255,255,255,.35)" : "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
                                 >
                                   <span className="text-[13px] leading-none">★</span>
                                 </div>
