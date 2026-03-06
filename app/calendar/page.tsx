@@ -107,6 +107,13 @@ type BlockOut = {
   createdAt: number;
 };
 
+type CalendarTask = {
+  id: string;
+  atIso: string;
+  description: string;
+  createdAt: number;
+};
+
 type DraftEntry = {
   id: string;
   createdAt?: number;
@@ -155,6 +162,25 @@ function readBlockOutStore(): BlockOut[] {
 function writeBlockOutStore(list: BlockOut[]) {
   try {
     window.localStorage.setItem("vf_calendar_blockouts_v1", JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+function readTaskStore(): CalendarTask[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem("vf_calendar_tasks_v1");
+    const parsed = raw ? (JSON.parse(raw) as any) : [];
+    return Array.isArray(parsed) ? (parsed as CalendarTask[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeTaskStore(list: CalendarTask[]) {
+  try {
+    window.localStorage.setItem("vf_calendar_tasks_v1", JSON.stringify(list));
   } catch {
     // ignore
   }
@@ -315,6 +341,11 @@ export default function CalendarPage() {
   const [blockStart, setBlockStart] = React.useState("");
   const [blockEnd, setBlockEnd] = React.useState("");
   const [blockDesc, setBlockDesc] = React.useState("");
+  const [taskOpen, setTaskOpen] = React.useState(false);
+  const [taskDate, setTaskDate] = React.useState("");
+  const [taskTime, setTaskTime] = React.useState("");
+  const [taskDesc, setTaskDesc] = React.useState("");
+  const [tasks, setTasks] = React.useState<CalendarTask[]>([]);
   const blockStartInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockEndInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockDescInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -380,11 +411,14 @@ export default function CalendarPage() {
 
       const blocks = readBlockOutStore();
       if (!cancelled) setBlockOuts(blocks);
+
+      const tasks = readTaskStore();
+      if (!cancelled) setTasks(tasks);
     };
     void refresh();
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1") return;
+      if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1" && e.key !== "vf_calendar_tasks_v1") return;
       void refresh();
     };
     const onDraftsChanged = () => void refresh();
@@ -1255,6 +1289,28 @@ export default function CalendarPage() {
     return blockedDays.byKey.get(key) ?? [];
   }, [blockedDays.byKey, selected]);
 
+  const tasksByDay = React.useMemo(() => {
+    const map = new Map<string, CalendarTask[]>();
+    (tasks || []).forEach((t) => {
+      const iso = String((t as any).atIso || "");
+      if (!iso) return;
+      const key = iso.slice(0, 10);
+      const arr = map.get(key) ?? [];
+      arr.push(t);
+      map.set(key, arr);
+    });
+    map.forEach((arr, k) => {
+      arr.sort((a, b) => String((a as any).atIso || "").localeCompare(String((b as any).atIso || "")));
+      map.set(k, arr);
+    });
+    return map;
+  }, [tasks]);
+
+  const dayTasks = React.useMemo(() => {
+    const key = toKey(selected);
+    return (tasksByDay.get(key) ?? []).slice();
+  }, [selected, tasksByDay]);
+
   return (
     <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
       {portalReady && dayPreviewOpen ? createPortal(
@@ -1307,6 +1363,29 @@ export default function CalendarPage() {
                       <div className="mt-1">
                         <div className="inline-flex max-w-full rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] truncate">
                           {b.description}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {dayTasks.length ? (
+                <div className="mt-3 grid gap-2">
+                  {dayTasks.map((t) => (
+                    <div
+                      key={t.id}
+                      className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-black truncate">{t.description || "Task"}</div>
+                          <div className="text-[11px] text-[var(--muted)] mt-1">
+                            {String((t as any).atIso || "").slice(11, 16)}
+                          </div>
+                        </div>
+                        <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
+                          <span className="text-[14px] leading-none">★</span>
                         </div>
                       </div>
                     </div>
@@ -2235,15 +2314,32 @@ export default function CalendarPage() {
             Prev
           </SecondaryButton>
           <div className="text-sm font-extrabold">{label}</div>
-          <SecondaryButton
-            onClick={() => {
-              const d = new Date(cursor);
-              d.setMonth(d.getMonth() + 1);
-              setCursor(d);
-            }}
-          >
-            Next
-          </SecondaryButton>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              data-no-swipe="true"
+              onClick={() => {
+                setTaskOpen(true);
+                setTaskDate(toKey(selected));
+                setTaskTime("09:00");
+                setTaskDesc("");
+              }}
+              className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.12)] hover:bg-[rgba(255,214,10,.18)]"
+              aria-label="Add task"
+              title="Add task"
+            >
+              +
+            </button>
+            <SecondaryButton
+              onClick={() => {
+                const d = new Date(cursor);
+                d.setMonth(d.getMonth() + 1);
+                setCursor(d);
+              }}
+            >
+              Next
+            </SecondaryButton>
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-7 gap-1">
@@ -2262,6 +2358,7 @@ export default function CalendarPage() {
             const isPastLike = isPast || !c.inMonth;
             const dayKey = toKey(c.date);
             const jobs = jobsByDay.get(dayKey) ?? [];
+            const dayTasks = tasksByDay.get(dayKey) ?? [];
             const isBlocked = blockedDays.set.has(dayKey);
             return (
               <button
@@ -2297,27 +2394,41 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                {jobs.length ? (
+                {jobs.length || dayTasks.length ? (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {(() => {
                       const isEstimate = (j: any) => (j as any).status === "estimate";
                       const installs = jobs.filter((j: any) => !isEstimate(j));
                       const estimates = jobs.filter((j: any) => isEstimate(j));
                       const maxDots = 6;
+                      const taskBudget = Math.min(dayTasks.length, 2);
+                      const visible = [...installs, ...estimates].slice(0, Math.max(0, maxDots - taskBudget));
 
-                      const visible = [...installs, ...estimates].slice(0, maxDots);
-
-                      return visible.map((j: any) => (
-                        <div
-                          key={j.id}
-                          className={"h-2 w-2 " + (isEstimate(j) ? "rounded-none" : "rounded-full")}
-                          style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
-                          title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
-                        />
-                      ));
+                      return (
+                        <>
+                          {dayTasks.slice(0, taskBudget).map((t) => (
+                            <div
+                              key={t.id}
+                              className="h-2 w-2 grid place-items-center"
+                              title={t.description || "Task"}
+                              style={{ color: "rgba(255,214,10,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
+                            >
+                              <span className="text-[10px] leading-none">★</span>
+                            </div>
+                          ))}
+                          {visible.map((j: any) => (
+                            <div
+                              key={j.id}
+                              className={"h-2 w-2 " + (isEstimate(j) ? "rounded-none" : "rounded-full")}
+                              style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
+                              title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
+                            />
+                          ))}
+                        </>
+                      );
                     })()}
-                    {jobs.length > 6 ? (
-                      <div className="text-[10px] text-[var(--muted)] font-extrabold">+{jobs.length - 6}</div>
+                    {jobs.length + dayTasks.length > 6 ? (
+                      <div className="text-[10px] text-[var(--muted)] font-extrabold">+{jobs.length + dayTasks.length - 6}</div>
                     ) : null}
                   </div>
                 ) : null}
@@ -2326,6 +2437,124 @@ export default function CalendarPage() {
           })}
         </div>
       </GlassCard>
+
+      {taskOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center p-4"
+          data-no-swipe="true"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          <div
+            className="absolute inset-0 bg-[rgba(0,0,0,.45)]"
+            onClick={() => {
+              setTaskOpen(false);
+              setTaskDate("");
+              setTaskTime("");
+              setTaskDesc("");
+            }}
+          />
+          <div
+            className="relative w-full max-w-[420px]"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <GlassCard className="p-4 overflow-hidden">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-black">Add task</div>
+                <SecondaryButton
+                  onClick={() => {
+                    setTaskOpen(false);
+                    setTaskDate("");
+                    setTaskTime("");
+                    setTaskDesc("");
+                  }}
+                >
+                  Close
+                </SecondaryButton>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <div className="text-[11px] text-[var(--muted)]">Date &amp; time</div>
+                <div className="grid gap-2 sm:grid-cols-2 items-end">
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[var(--muted)] mb-1">Date</div>
+                    <input
+                      type="date"
+                      value={taskDate}
+                      onChange={(e) => setTaskDate(e.target.value)}
+                      className="block box-border w-full max-w-full min-w-0 rounded-full px-2.5 py-1.5 text-[12px] bg-[rgba(255,255,255,.10)] border border-[rgba(255,255,255,.16)] outline-none"
+                      style={{ minWidth: 0, WebkitAppearance: "none", appearance: "none" }}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[var(--muted)] mb-1">Time</div>
+                    <input
+                      type="time"
+                      value={taskTime}
+                      onChange={(e) => setTaskTime(e.target.value)}
+                      className="block box-border w-full max-w-full min-w-0 rounded-full px-2.5 py-1.5 text-[12px] bg-[rgba(255,255,255,.10)] border border-[rgba(255,255,255,.16)] outline-none"
+                      style={{ minWidth: 0, WebkitAppearance: "none", appearance: "none" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <div className="text-[11px] text-[var(--muted)]">Description</div>
+                <input
+                  type="text"
+                  value={taskDesc}
+                  onChange={(e) => setTaskDesc(e.target.value)}
+                  placeholder="Task description"
+                  className="block box-border w-full max-w-full min-w-0 rounded-full px-3 py-2 text-[13px] bg-[rgba(255,255,255,.10)] border border-[rgba(255,255,255,.16)] outline-none"
+                  style={{ minWidth: 0, WebkitAppearance: "none", appearance: "none" }}
+                />
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-2">
+                <SecondaryButton
+                  onClick={() => {
+                    setTaskOpen(false);
+                    setTaskDate("");
+                    setTaskTime("");
+                    setTaskDesc("");
+                  }}
+                >
+                  Cancel
+                </SecondaryButton>
+                <SecondaryButton
+                  onClick={() => {
+                    const d = String(taskDate || "").trim();
+                    const t = String(taskTime || "").trim();
+                    const desc = String(taskDesc || "").trim().slice(0, 120);
+                    if (!d || !t || !desc) return;
+                    const dt = new Date(`${d}T${t}`);
+                    if (!Number.isFinite(dt.getTime())) return;
+                    const atIso = dt.toISOString();
+                    const id = `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+                    const next: CalendarTask = { id, atIso, description: desc, createdAt: Date.now() };
+                    const list = [...readTaskStore(), next];
+                    writeTaskStore(list);
+                    setTasks(list);
+                    setTaskOpen(false);
+                    setTaskDate("");
+                    setTaskTime("");
+                    setTaskDesc("");
+                  }}
+                >
+                  Add
+                </SecondaryButton>
+              </div>
+            </GlassCard>
+          </div>
+        </div>
+      ) : null}
 
       <div
         onClick={() => requestOpenDayPreview()}
@@ -2371,6 +2600,29 @@ export default function CalendarPage() {
               ))}
             </div>
           ) : null}
+          {dayTasks.length ? (
+            <div className="mb-3 grid gap-2">
+              {dayTasks.map((t) => (
+                <div
+                  key={t.id}
+                  className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-black truncate">{t.description || "Task"}</div>
+                      <div className="text-[11px] text-[var(--muted)] mt-1">
+                        {String((t as any).atIso || "").slice(11, 16)}
+                      </div>
+                    </div>
+                    <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
+                      <span className="text-[14px] leading-none">★</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           {dayJobs.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">No installs scheduled.</div>
           ) : (
@@ -2378,7 +2630,7 @@ export default function CalendarPage() {
               {dayJobs.map((j) => (
                 <div
                   key={j.id}
-                  className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-3"
+                  className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-3 py-2"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-black truncate">
