@@ -338,6 +338,34 @@ export default function TotalsPage() {
     return byDay;
   }, [drafts]);
 
+  const includedCustomerNames = useMemo(() => {
+    if (!monthKey) return [] as string[];
+
+    const names = new Set<string>();
+    const includedDrafts = drafts.filter((d) => {
+      const status = String((d as any)?.status || "estimate");
+      return status === "sold" || status === "complete";
+    });
+
+    for (const d of includedDrafts) {
+      const start = parseJobStartDate(d);
+      if (!start) continue;
+
+      const span = computeSpanDays((d as any).laborDays);
+      const allowSat = asBool((d as any).allowSaturday);
+      const allowSun = asBool((d as any).allowSunday);
+      const seq = workdaySequenceForJob(start, span, allowSat, allowSun);
+
+      const hitsMonth = seq.some((day) => monthKeyFromDate(day) === monthKey);
+      if (!hitsMonth) continue;
+
+      const name = String((d as any).customerName || (d as any).title || (d as any).projectAddress || "").trim();
+      if (name) names.add(name);
+    }
+
+    return Array.from(names.values()).sort((a, b) => a.localeCompare(b));
+  }, [drafts, monthKey]);
+
   const days = useMemo(() => {
     const out = Array.from(dayBuckets.entries()).map(([key, row]) => {
       const ms = Date.parse(key + "T12:00:00");
@@ -406,7 +434,7 @@ export default function TotalsPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xl font-black tracking-tight">Running Totals</div>
-          <div className="text-sm text-[var(--muted)]">Sold jobs only (spread across calendar workdays)</div>
+          <div className="text-sm text-[var(--muted)]">Sold + complete jobs (spread across calendar workdays)</div>
         </div>
         <Link href="/tasks">
           <SecondaryButton>Back</SecondaryButton>
@@ -428,6 +456,9 @@ export default function TotalsPage() {
             ))}
           </select>
           <div className="text-[11px] text-[var(--muted)]">Workdays in month: {selected.length}</div>
+          <div className="text-[11px] text-[var(--muted)]">
+            Customers: {includedCustomerNames.length > 0 ? includedCustomerNames.join(", ") : "(none)"}
+          </div>
         </div>
       </GlassCard>
 
