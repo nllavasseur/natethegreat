@@ -9280,7 +9280,7 @@ function EstimatesPageInner() {
             ) : null}
 
             <div
-              className="fixed left-0 right-0 z-40 pointer-events-auto"
+              className="fixed left-0 right-0 z-10 pointer-events-auto"
               style={{ bottom: 0, height: "92px" }}
               onPointerDown={(e) => {
                 e.stopPropagation();
@@ -9292,7 +9292,7 @@ function EstimatesPageInner() {
             />
 
             <nav
-              className="fixed left-0 right-0 z-50 isolate px-4 pointer-events-auto"
+              className="fixed left-0 right-0 z-[9999] px-4 pointer-events-auto"
               style={{ bottom: 0, touchAction: "manipulation" }}
               aria-label="Estimate actions"
               onPointerDown={(e) => {
