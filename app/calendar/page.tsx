@@ -1426,9 +1426,7 @@ export default function CalendarPage() {
       const allowSat = asBool((j as any).allowSaturday);
       const allowSun = asBool((j as any).allowSunday);
       const seqRaw = status === "estimate" ? [start] : workdaySequenceForJob(start, span, allowSat, allowSun);
-      const seq = status === "estimate"
-        ? seqRaw
-        : seqRaw.filter((d) => startOfDay(d).getTime() >= today0.getTime());
+      const seq = seqRaw;
       seq.forEach((day) => {
         const key = toKey(day);
         const arr = map.get(key) ?? [];

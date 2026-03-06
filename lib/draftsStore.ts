@@ -69,7 +69,13 @@ export async function fetchDrafts(params?: { workspaceId?: string }) {
       .map((r: any) => {
         const d = r?.draft ?? {};
         const id = String(r?.draft_id ?? d?.id ?? "");
-        return { ...d, id };
+        const updatedAt = (() => {
+          const raw = String(r?.updated_at ?? "");
+          if (!raw) return undefined;
+          const ms = Date.parse(raw);
+          return Number.isFinite(ms) ? ms : undefined;
+        })();
+        return { ...d, id, ...(typeof updatedAt === "number" ? { updatedAt } : {}) };
       })
       .filter((d: any) => {
         const id = String((d as any)?.id || "");
@@ -109,15 +115,21 @@ export async function fetchDraft(params: { id: string; workspaceId?: string }) {
 
     const d = (data as any).draft ?? {};
     const id = String((data as any).draft_id ?? d?.id ?? "");
+    const updatedAt = (() => {
+      const raw = String((data as any)?.updated_at ?? "");
+      if (!raw) return undefined;
+      const ms = Date.parse(raw);
+      return Number.isFinite(ms) ? ms : undefined;
+    })();
     if (RESERVED_DRAFT_IDS.has(id)) {
       // Still return it (calendar uses fetchDraft for these), but ensure id is stable.
-      return { ok: true as const, draft: { ...d, id } };
+      return { ok: true as const, draft: { ...d, id, ...(typeof updatedAt === "number" ? { updatedAt } : {}) } };
     }
     const kind = String((d as any)?.kind || "");
     if (kind === "calendar_blockouts" || kind === "calendar_tasks") {
-      return { ok: true as const, draft: { ...d, id } };
+      return { ok: true as const, draft: { ...d, id, ...(typeof updatedAt === "number" ? { updatedAt } : {}) } };
     }
-    return { ok: true as const, draft: { ...d, id } };
+    return { ok: true as const, draft: { ...d, id, ...(typeof updatedAt === "number" ? { updatedAt } : {}) } };
   } catch (e) {
     return { ok: false as const, reason: "error" as const, error: e, draft: null as any };
   }
