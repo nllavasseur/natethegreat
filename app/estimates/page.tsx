@@ -5954,7 +5954,14 @@ function EstimatesPageInner() {
             </div>
             <div>
               <div className="text-[11px] text-[var(--muted)] mb-1">Phone</div>
-              <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="Phone number" />
+              <Input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Phone number"
+              />
             </div>
             <div>
               <div className="text-[11px] text-[var(--muted)] mb-1">Email</div>
@@ -6133,6 +6140,7 @@ function EstimatesPageInner() {
                 <div className="col-span-3">
                   <div className="text-[11px] text-[var(--muted)] mb-1">Length (ft)</div>
                   <Input
+                    type="tel"
                     inputMode="decimal"
                     maxLength={3}
                     value={Number(seg.length) === 0 ? "" : String(seg.length)}
@@ -6343,6 +6351,7 @@ function EstimatesPageInner() {
                           <div className="col-span-6">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Length (ft)</div>
                             <Input
+                              type="tel"
                               inputMode="decimal"
                               value={value === null ? "" : String(value)}
                               onChange={(e) => {
@@ -6661,6 +6670,7 @@ function EstimatesPageInner() {
                                     <div className="col-span-4">
                                       <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
                                       <Input
+                                        type="tel"
                                         inputMode="decimal"
                                         value={
                                           takeoffUnitPriceOverrideDrafts[takeoffLineKeyForItem(m)] ??
@@ -6783,19 +6793,21 @@ function EstimatesPageInner() {
                                 <div className="col-span-5">
                                   <div className="text-[11px] text-[var(--muted)] mb-1">Manual days</div>
                                   <Input
+                                    type="tel"
                                     inputMode="decimal"
                                     value={laborManualDays}
                                     onChange={(e) => setLaborManualDays(e.target.value)}
-                                    placeholder=""
+                                    placeholder="0"
                                   />
                                 </div>
                                 <div className="col-span-5">
                                   <div className="text-[11px] text-[var(--muted)] mb-1">Manual cost</div>
                                   <Input
+                                    type="tel"
                                     inputMode="decimal"
                                     value={laborManualCost}
                                     onChange={(e) => setLaborManualCost(e.target.value)}
-                                    placeholder=""
+                                    placeholder="$"
                                   />
                                 </div>
                                 <div className="col-span-2">
@@ -6876,6 +6888,7 @@ function EstimatesPageInner() {
                             <div className="md:col-span-2">
                               {isAdditional ? null : <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>}
                               <Input
+                                type="tel"
                                 inputMode="decimal"
                                 value={
                                   itemNumberDrafts[`${idx}:qty`] ??
@@ -6912,6 +6925,7 @@ function EstimatesPageInner() {
                             <div className="md:col-span-2">
                               {isAdditional ? null : <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>}
                               <Input
+                                type="tel"
                                 inputMode="decimal"
                                 value={
                                   itemNumberDrafts[`${idx}:unitPrice`] ??
@@ -7606,7 +7620,7 @@ function EstimatesPageInner() {
                                         )
                                       }))
                                     }
-                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 54}
+                                    disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
                                   >
                                     <option value="walk_48_45">
                                       48" wide x 4.5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "WALK", widthIn: 48, hIn: 54 }) }))}
@@ -7633,7 +7647,7 @@ function EstimatesPageInner() {
                                         )
                                       }))
                                     }
-                                    disabled={Number(materialsDetails.aluminumPanelHeight) !== 54}
+                                    disabled={!([48, 60].includes(Number(materialsDetails.aluminumPanelHeight) || 0))}
                                   >
                                     <option value="double_48_45">
                                       48" wide x 4.5' high — {money(getUnitPriceFromMap({ materialUnitPrices, name: "", priceKey: aluminumGatePriceKey({ style: "Pacific", kind: "DOUBLE", widthIn: 48, hIn: 54 }) }))}
@@ -8082,12 +8096,6 @@ function EstimatesPageInner() {
                         </div>
                       </div>
 
-
-
-
-
-
-
                       <div className="mt-3 grid gap-2">
                         <div className="text-[11px] text-[var(--muted)]">Post selectors</div>
 
@@ -8465,6 +8473,7 @@ function EstimatesPageInner() {
                       <div className="mt-3">
                         <div className="text-[11px] text-[var(--muted)] mb-1">Extra 5/4 boards</div>
                         <Input
+                          type="tel"
                           inputMode="numeric"
                           value={String(Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0)))}
                           onChange={(e) => {
