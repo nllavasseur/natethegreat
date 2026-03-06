@@ -330,24 +330,12 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+96px)]">
-      {portalReady
-        ? createPortal(
-          <div className="fixed left-4 z-[70]" style={{ bottom: "calc(env(safe-area-inset-bottom) + 88px)" }}>
-            <SecondaryButton onClick={() => window.history.back()} data-no-swipe="true">
-              Back
-            </SecondaryButton>
-          </div>,
-          document.body
-        )
-        : null}
-
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xl font-black tracking-tight truncate">{title}</div>
           <div className="text-sm text-[var(--muted)]">Read-only view</div>
         </div>
         <div className="flex flex-wrap justify-start sm:justify-end gap-2 max-w-full">
-          <Link href="/quotes"><SecondaryButton>Back</SecondaryButton></Link>
           <Link href={`/estimates?clone=${encodeURIComponent(id)}`}><SecondaryButton>Additional quote</SecondaryButton></Link>
           <Link href={`/estimates?draft=${encodeURIComponent(id)}`}><PrimaryButton>Edit</PrimaryButton></Link>
         </div>
@@ -355,6 +343,15 @@ export default function QuoteDetailPage() {
 
       <SectionTitle title="Customer" />
       <GlassCard className="p-4 mb-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <PrimaryButton
+            data-no-swipe="true"
+            onClick={() => window.history.back()}
+            className="bg-[rgba(31,200,120,.30)] hover:bg-[rgba(31,200,120,.38)] border-[rgba(31,200,120,.40)]"
+          >
+            Back
+          </PrimaryButton>
+        </div>
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Name</div>
@@ -368,6 +365,11 @@ export default function QuoteDetailPage() {
             <div className="text-[var(--muted)]">Email</div>
             <div className="font-extrabold text-right">{draft.email || ""}</div>
           </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <SecondaryButton data-no-swipe="true" onClick={viewContract}>
+            Open contract
+          </SecondaryButton>
         </div>
       </GlassCard>
 
@@ -562,11 +564,6 @@ export default function QuoteDetailPage() {
       <SectionTitle title="Attachments" />
       <GlassCard className="p-4">
         <div className="grid gap-2">
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <div className="text-[var(--muted)]">Contract</div>
-            <SecondaryButton onClick={viewContract}>Open</SecondaryButton>
-          </div>
-
           {hasProjectPhoto ? (
             <div className="mt-2">
               <div className="text-[11px] text-[var(--muted)] mb-2">Project photo</div>

@@ -2177,20 +2177,14 @@ export default function CalendarPage() {
                       const isEstimate = (j: any) => (j as any).status === "estimate";
                       const installs = jobs.filter((j: any) => !isEstimate(j));
                       const estimates = jobs.filter((j: any) => isEstimate(j));
-                      const hasEstimate = estimates.length > 0;
                       const maxDots = 6;
 
-                      const visible = (() => {
-                        if (!hasEstimate) return installs.slice(0, maxDots);
-                        const installSlots = Math.max(0, maxDots - 1);
-                        const installVisible = installs.slice(0, installSlots);
-                        return [...installVisible, estimates[0]];
-                      })();
+                      const visible = [...installs, ...estimates].slice(0, maxDots);
 
                       return visible.map((j: any) => (
                         <div
                           key={j.id}
-                          className="h-2 w-2 rounded-full"
+                          className={"h-2 w-2 " + (isEstimate(j) ? "rounded-[3px]" : "rounded-full")}
                           style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
                           title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                         />
@@ -2265,7 +2259,7 @@ export default function CalendarPage() {
                       {j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                     </div>
                     <div
-                      className="h-3 w-3 rounded-full"
+                      className={"h-3 w-3 " + ((j as any).status === "estimate" ? "rounded-[4px]" : "rounded-full")}
                       style={{
                         background: (j as any).color ?? "rgba(255,255,255,.25)",
                         filter: "saturate(1.8) contrast(1.2)",
