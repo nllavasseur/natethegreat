@@ -20,6 +20,7 @@ export type QueueDraft = {
   startDate?: string;
   installDate?: string;
   scheduledAt?: string;
+  queueLocked?: boolean;
   [k: string]: any;
 };
 
@@ -168,6 +169,37 @@ export async function setHoldDate(params: { id: string; iso?: string; fallback?:
   const store = readStore();
   const prev = ensureStoreEntry(store, sid, params.fallback);
   const next: QueueDraft = { ...prev, id: sid, holdDate: params.iso, updatedAt: now() };
+  store[sid] = next;
+  writeStore(store);
+  await safeUpsert(sid, next);
+  notifyDraftsChanged();
+  return { ok: true as const, draft: next };
+}
+
+export async function setQueueLocked(params: {
+  id: string;
+  locked: boolean;
+  startIso?: string;
+  fallback?: QueueDraft;
+}) {
+  const sid = String(params.id);
+  const store = readStore();
+  const prev = ensureStoreEntry(store, sid, params.fallback);
+
+  const lock = Boolean(params.locked);
+  const startIso = String(params.startIso || "").slice(0, 10);
+
+  const next: QueueDraft = {
+    ...prev,
+    id: sid,
+    queueLocked: lock,
+    // When locking, persist an explicit start so the job stays anchored.
+    // When unlocking, clear explicit start so the queue can rebase from today.
+    startDate: lock ? (startIso || (prev as any).startDate) : undefined,
+    installDate: lock ? (startIso || (prev as any).installDate) : undefined,
+    updatedAt: now()
+  };
+
   store[sid] = next;
   writeStore(store);
   await safeUpsert(sid, next);

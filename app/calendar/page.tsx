@@ -10,6 +10,7 @@ import {
   moveSoldJobToPosition as moveSoldJobToPositionPipeline,
   resetLaborDays as resetLaborDaysPipeline,
   setHoldDate as setHoldDatePipeline,
+  setQueueLocked as setQueueLockedPipeline,
   toggleWeekendAllowed as toggleWeekendAllowedPipeline
 } from "@/lib/queuePipeline";
 
@@ -128,6 +129,7 @@ type DraftEntry = {
   allowSunday?: boolean;
   calendarHidden?: boolean;
   queueRank?: number;
+  queueLocked?: boolean;
 };
 
 function readDraftStore(): Record<string, DraftEntry> {
@@ -339,6 +341,20 @@ export default function CalendarPage() {
   const requestOpenDayPreview = React.useCallback(() => {
     if (Date.now() < suppressDayPreviewOpenUntilRef.current) return;
     setDayPreviewOpen(true);
+  }, [drafts]);
+
+  const setQueueLocked = React.useCallback((id: string, locked: boolean, startIso?: string, fallback?: DraftEntry) => {
+    const sid = String(id);
+    void (async () => {
+      const res = await setQueueLockedPipeline({ id: sid, locked, startIso, fallback: fallback as any });
+      if (!res.ok) return;
+      setDrafts((prev) => {
+        const nextOne = { ...(res.draft as any) };
+        const idx = prev.findIndex((d) => String(d.id) === sid);
+        if (idx >= 0) return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
+        return [...prev, nextOne as any];
+      });
+    })();
   }, [drafts]);
 
   const requestCloseDayPreview = React.useCallback(() => {
@@ -667,8 +683,6 @@ export default function CalendarPage() {
 
   const soldQueue = React.useMemo(() => {
     const explicitStartIso = (d: DraftEntry) => {
-      const s = String((d as any).scheduledAt || "");
-      if (s) return s.slice(0, 10);
       return String((d as any).startDate || d.installDate || "");
     };
 
@@ -736,10 +750,11 @@ export default function CalendarPage() {
       const explicitIso = explicitStartIso(d);
       const explicitStart = explicitIso ? new Date(explicitIso + "T12:00:00") : null;
       const hasStarted = Boolean(explicitStart) && startOfDay(explicitStart as Date).getTime() <= today0.getTime();
+      const isUnlocked = (d as any).queueLocked === false;
 
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
-      if (hasStarted && !requested && explicitIso) {
+      if (hasStarted && !isUnlocked && !requested && explicitIso) {
         scheduledStartById.set(d.id, explicitIso);
         occupyRange(explicitIso, (d as any).laborDays, "sold", allowSat, allowSun);
         const seq = workdaySequenceForJob(explicitStart as Date, span, allowSat, allowSun);
@@ -815,6 +830,23 @@ export default function CalendarPage() {
 
     return sold;
   }, [blockedDays.set, drafts, isNonWorkingDayForJob, nextWorkdayForJob, today0, workdaySequenceForJob]);
+
+  React.useEffect(() => {
+    // Auto-lock sold jobs as they reach their start date, unless explicitly unlocked.
+    if (!soldQueue.length) return;
+    soldQueue.forEach((j) => {
+      if ((j as any).queueLocked === false) return;
+      const startIso = String((j as any).installDate || (j as any).startDate || "").slice(0, 10);
+      if (!startIso) return;
+      try {
+        const start = startOfDay(new Date(startIso + "T12:00:00"));
+        if (start.getTime() <= today0.getTime() && (j as any).queueLocked !== true) {
+          setQueueLocked(j.id, true, startIso, j as any);
+        }
+      } catch {
+      }
+    });
+  }, [soldQueue, setQueueLocked, today0]);
 
   React.useLayoutEffect(() => {
     const snap = queueAnchorRef.current;
@@ -1591,6 +1623,15 @@ export default function CalendarPage() {
                   const hold = String((j as any).holdDate || "").slice(0, 10);
                   const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
                   const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
+                  const hasStarted = (() => {
+                    if (!startIso) return false;
+                    try {
+                      return startOfDay(new Date(startIso + "T12:00:00")).getTime() <= today0.getTime();
+                    } catch {
+                      return false;
+                    }
+                  })();
+                  const locked = (j as any).queueLocked !== false;
                   const dotColor = installColorMap.get(j.id) ?? colorForInstallId(j.id);
                   const endIso = (() => {
                     const endRaw = (j as any).end ?? (j as any).endDate;
@@ -1723,6 +1764,38 @@ export default function CalendarPage() {
                               </button>
                             </div>
                           </div>
+
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            disabled={!hasStarted}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+
+                              if (!hasStarted) return;
+
+                              if (locked) {
+                                // Unlock = clear explicit start so it rebases from today.
+                                setQueueLocked(j.id, false, undefined, j as any);
+                              } else {
+                                // Lock = pin whatever the queue currently has scheduled.
+                                if (!startIso) return;
+                                setQueueLocked(j.id, true, startIso, j as any);
+                              }
+                            }}
+                            className={
+                              "rounded-full border px-3 py-2 text-[11px] font-black leading-none transition " +
+                              (hasStarted
+                                ? locked
+                                  ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.18)] hover:bg-[rgba(31,200,120,.24)]"
+                                  : "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.18)]"
+                                : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
+                            }
+                            title={hasStarted ? (locked ? "Active (locked)" : "Unlocked (rebases)") : "Locks once job starts"}
+                          >
+                            {hasStarted ? (locked ? "Active" : "Unlocked") : "Lock"}
+                          </button>
 
                           <button
                             type="button"
