@@ -130,6 +130,12 @@ function workdaySequenceForJob(start: Date, count: number, allowSaturday: boolea
 function parseJobStartDate(d: DraftEntry): Date | null {
   const sched = String((d as any).scheduledAt || "");
   if (sched) {
+    const isoDay = sched.length >= 10 ? sched.slice(0, 10) : "";
+    if (isoDay) {
+      // Normalize to a date-only key at midday to avoid timezone offsets shifting the day.
+      const ms = Date.parse(isoDay + "T12:00:00");
+      if (Number.isFinite(ms)) return new Date(ms);
+    }
     const ms = Date.parse(sched);
     if (Number.isFinite(ms)) return new Date(ms);
   }
@@ -463,6 +469,13 @@ export default function TotalsPage() {
     return selectedMonthDays;
   }, [selectedMonthDays]);
 
+  const selectedDaysWithTotals = useMemo(() => {
+    return selected.reduce((count, d) => {
+      const g = rowGrandTotal(d.row);
+      return count + (Math.abs(g) > 0.0001 ? 1 : 0);
+    }, 0);
+  }, [selected]);
+
   const monthTotals = useMemo(() => {
     return selected.reduce((sum, j) => {
       return addRows(sum, j.row);
@@ -538,6 +551,7 @@ export default function TotalsPage() {
             ))}
           </select>
           <div className="text-[11px] text-[var(--muted)]">Days in month: {selected.length}</div>
+          <div className="text-[11px] text-[var(--muted)]">Days with totals: {selectedDaysWithTotals}</div>
           <div className="text-[11px] text-[var(--muted)]">
             Customers: {includedCustomerNames.length > 0 ? includedCustomerNames.join(", ") : "(none)"}
           </div>
