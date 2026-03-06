@@ -9279,19 +9279,23 @@ function EstimatesPageInner() {
               </div>
             ) : null}
 
-            <nav
-              className="fixed left-0 right-0 z-50 isolate px-4 pointer-events-auto"
-              style={{ bottom: 0, touchAction: "none" }}
-              aria-label="Estimate actions"
+            <div
+              className="fixed left-0 right-0 z-40 pointer-events-auto"
+              style={{ bottom: 0, height: "92px" }}
               onPointerDown={(e) => {
                 e.stopPropagation();
               }}
-              onTouchStart={(e) => {
-                e.preventDefault();
+              onClick={(e) => {
                 e.stopPropagation();
               }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
+              aria-hidden="true"
+            />
+
+            <nav
+              className="fixed left-0 right-0 z-50 isolate px-4 pointer-events-auto"
+              style={{ bottom: 0, touchAction: "manipulation" }}
+              aria-label="Estimate actions"
+              onPointerDown={(e) => {
                 e.stopPropagation();
               }}
               onClick={(e) => {
@@ -9305,24 +9309,11 @@ function EstimatesPageInner() {
                       type="button"
                       data-no-swipe="true"
                       onPointerDown={(e) => {
-                        e.preventDefault();
                         e.stopPropagation();
                       }}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        save();
-                      }}
+                      onClick={save}
                       disabled={saving || savingAsNew}
-                      style={{ touchAction: "none" }}
+                      style={{ touchAction: "manipulation" }}
                     >
                       {saving ? "Saving…" : "Save"}
                     </PrimaryButton>
@@ -9330,24 +9321,11 @@ function EstimatesPageInner() {
                       type="button"
                       data-no-swipe="true"
                       onPointerDown={(e) => {
-                        e.preventDefault();
                         e.stopPropagation();
                       }}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        saveAsNew();
-                      }}
+                      onClick={saveAsNew}
                       disabled={saving || savingAsNew}
-                      style={{ touchAction: "none" }}
+                      style={{ touchAction: "manipulation" }}
                     >
                       {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                     </SecondaryButton>
@@ -9355,24 +9333,11 @@ function EstimatesPageInner() {
                       type="button"
                       data-no-swipe="true"
                       onPointerDown={(e) => {
-                        e.preventDefault();
                         e.stopPropagation();
                       }}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        resetEstimate();
-                      }}
+                      onClick={resetEstimate}
                       disabled={saving || savingAsNew}
-                      style={{ touchAction: "none" }}
+                      style={{ touchAction: "manipulation" }}
                     >
                       Reset
                     </SecondaryButton>
