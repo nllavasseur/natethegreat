@@ -9281,9 +9281,17 @@ function EstimatesPageInner() {
 
             <nav
               className="fixed left-0 right-0 z-50 isolate px-4 pointer-events-auto"
-              style={{ bottom: 0 }}
+              style={{ bottom: 0, touchAction: "none" }}
               aria-label="Estimate actions"
               onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
               }}
               onClick={(e) => {
@@ -9300,13 +9308,21 @@ function EstimatesPageInner() {
                         e.preventDefault();
                         e.stopPropagation();
                       }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         save();
                       }}
                       disabled={saving || savingAsNew}
-                      style={{ touchAction: "manipulation" }}
+                      style={{ touchAction: "none" }}
                     >
                       {saving ? "Saving…" : "Save"}
                     </PrimaryButton>
@@ -9317,13 +9333,21 @@ function EstimatesPageInner() {
                         e.preventDefault();
                         e.stopPropagation();
                       }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         saveAsNew();
                       }}
                       disabled={saving || savingAsNew}
-                      style={{ touchAction: "manipulation" }}
+                      style={{ touchAction: "none" }}
                     >
                       {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                     </SecondaryButton>
@@ -9334,13 +9358,21 @@ function EstimatesPageInner() {
                         e.preventDefault();
                         e.stopPropagation();
                       }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         resetEstimate();
                       }}
                       disabled={saving || savingAsNew}
-                      style={{ touchAction: "manipulation" }}
+                      style={{ touchAction: "none" }}
                     >
                       Reset
                     </SecondaryButton>
