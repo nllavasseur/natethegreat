@@ -9279,18 +9279,6 @@ function EstimatesPageInner() {
               </div>
             ) : null}
 
-            <div
-              className="fixed left-0 right-0 z-10 pointer-events-auto"
-              style={{ bottom: 0, height: "92px" }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-              aria-hidden="true"
-            />
-
             <nav
               className="fixed left-0 right-0 z-[9999] px-4 pointer-events-auto"
               style={{ bottom: 0, touchAction: "manipulation" }}
@@ -9303,7 +9291,7 @@ function EstimatesPageInner() {
               }}
             >
               <div className="mx-auto max-w-[980px]">
-                <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end pb-[max(calc(env(safe-area-inset-bottom) - 6px),0px)]">
+                <div className="bg-[rgba(20,30,24,.75)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end pb-[max(calc(env(safe-area-inset-bottom) - 6px),0px)]" style={{ WebkitBackdropFilter: "none", backdropFilter: "none" }}>
                   <div className="h-16 flex items-center justify-around">
                     <PrimaryButton
                       type="button"
