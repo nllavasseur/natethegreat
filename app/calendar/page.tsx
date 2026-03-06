@@ -732,6 +732,21 @@ export default function CalendarPage() {
       // For SOLD jobs, queue is the control center. Only an explicit hold date
       // is allowed to constrain scheduling; prior estimate scheduling should not.
       const requested = String((d as any).holdDate || "");
+
+      const explicitIso = explicitStartIso(d);
+      const explicitStart = explicitIso ? new Date(explicitIso + "T12:00:00") : null;
+      const hasStarted = Boolean(explicitStart) && startOfDay(explicitStart as Date).getTime() <= today0.getTime();
+
+      // If a sold job has started, keep it anchored unless the user explicitly
+      // changes it by setting a hold date.
+      if (hasStarted && !requested && explicitIso) {
+        scheduledStartById.set(d.id, explicitIso);
+        occupyRange(explicitIso, (d as any).laborDays, "sold", allowSat, allowSun);
+        const seq = workdaySequenceForJob(explicitStart as Date, span, allowSat, allowSun);
+        lastQueuedEnd = seq[span - 1];
+        return;
+      }
+
       const explicitMin = requested
         ? nextWorkdayForJob(new Date(requested + "T12:00:00"), allowSat, allowSun)
         : nextWorkdayForJob(today0, allowSat, allowSun);
