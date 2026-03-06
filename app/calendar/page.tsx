@@ -1965,6 +1965,7 @@ export default function CalendarPage() {
                   const isHi = highlightQueueId === j.id;
                   const isCurrentQueueJob = idx === 0;
                   const isActiveForUi = isCurrentQueueJob && hasStarted;
+                  const canInteractLock = isActiveForUi;
                   return (
                     <div
                       key={j.id}
@@ -2043,12 +2044,12 @@ export default function CalendarPage() {
                           <button
                             type="button"
                             data-no-swipe="true"
-                            disabled={!hasStarted}
+                            disabled={!canInteractLock}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
 
-                              if (!hasStarted) return;
+                              if (!canInteractLock) return;
 
                               if (locked) {
                                 // Unlock = clear explicit start so it rebases from today.
@@ -2061,7 +2062,7 @@ export default function CalendarPage() {
                             }}
                             className={
                               "rounded-full border px-3 py-2 text-[11px] font-black leading-none transition " +
-                              (hasStarted
+                              (canInteractLock
                                 ? locked
                                   ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.18)] hover:bg-[rgba(31,200,120,.24)]"
                                   : "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.18)]"
