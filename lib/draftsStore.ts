@@ -11,6 +11,11 @@ type DraftRow = {
   updated_at?: string;
 };
 
+const RESERVED_DRAFT_IDS = new Set([
+  "vf_calendar_blockouts_v1",
+  "vf_calendar_tasks_v1"
+]);
+
 export async function upsertDraft(params: { id: string; data: any; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
@@ -60,11 +65,20 @@ export async function fetchDrafts(params?: { workspaceId?: string }) {
 
     if (error) throw error;
 
-    const drafts = (data ?? []).map((r: any) => {
-      const d = r?.draft ?? {};
-      const id = String(r?.draft_id ?? d?.id ?? "");
-      return { ...d, id };
-    });
+    const drafts = (data ?? [])
+      .map((r: any) => {
+        const d = r?.draft ?? {};
+        const id = String(r?.draft_id ?? d?.id ?? "");
+        return { ...d, id };
+      })
+      .filter((d: any) => {
+        const id = String((d as any)?.id || "");
+        if (!id) return false;
+        if (RESERVED_DRAFT_IDS.has(id)) return false;
+        const kind = String((d as any)?.kind || "");
+        if (kind === "calendar_blockouts" || kind === "calendar_tasks") return false;
+        return true;
+      });
 
     return { ok: true as const, drafts };
   } catch (e) {
@@ -75,6 +89,12 @@ export async function fetchDrafts(params?: { workspaceId?: string }) {
 export async function fetchDraft(params: { id: string; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, draft: null as any };
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+
+  const sid = String(params.id || "");
+  if (RESERVED_DRAFT_IDS.has(sid)) {
+    // These are used as internal app records, not user-facing drafts.
+    // Use fetchDraft only for internal consumers in that case.
+  }
 
   try {
     const { data, error } = await supabase
@@ -89,6 +109,14 @@ export async function fetchDraft(params: { id: string; workspaceId?: string }) {
 
     const d = (data as any).draft ?? {};
     const id = String((data as any).draft_id ?? d?.id ?? "");
+    if (RESERVED_DRAFT_IDS.has(id)) {
+      // Still return it (calendar uses fetchDraft for these), but ensure id is stable.
+      return { ok: true as const, draft: { ...d, id } };
+    }
+    const kind = String((d as any)?.kind || "");
+    if (kind === "calendar_blockouts" || kind === "calendar_tasks") {
+      return { ok: true as const, draft: { ...d, id } };
+    }
     return { ok: true as const, draft: { ...d, id } };
   } catch (e) {
     return { ok: false as const, reason: "error" as const, error: e, draft: null as any };
