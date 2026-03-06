@@ -18,6 +18,9 @@ type DraftEntry = {
   scheduledAt?: string;
   installDate?: string;
   startDate?: string;
+  laborDays?: number;
+  allowSaturday?: boolean;
+  allowSunday?: boolean;
   items?: QuoteItem[];
 };
 
@@ -63,10 +66,72 @@ function isSameMonth(a: Date, y: number, m0: number) {
   return a.getFullYear() === y && a.getMonth() === m0;
 }
 
-function parseJobDate(d: DraftEntry): Date | null {
-  const iso = String((d as any).startDate || (d as any).installDate || (d as any).scheduledAt || "");
+function addDays(dt: Date, days: number) {
+  const d = new Date(dt);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function startOfDay(dt: Date) {
+  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}
+
+function toIsoDayKey(dt: Date) {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function asBool(v: unknown) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s === "true" || s === "1" || s === "yes" || s === "y") return true;
+  if (s === "false" || s === "0" || s === "no" || s === "n") return false;
+  return false;
+}
+
+function computeSpanDays(laborDays: unknown) {
+  const n = Number(laborDays);
+  const roundedHalf = Number.isFinite(n) && n > 0 ? Math.ceil(n * 2) / 2 : 0.5;
+  return Math.max(1, Math.ceil(roundedHalf));
+}
+
+function nextWorkdayForJob(d: Date, allowSaturday: boolean, allowSunday: boolean) {
+  let cur = startOfDay(d);
+  while (true) {
+    const day = cur.getDay();
+    if (day === 6 && !allowSaturday) {
+      cur = addDays(cur, 1);
+      continue;
+    }
+    if (day === 0 && !allowSunday) {
+      cur = addDays(cur, 1);
+      continue;
+    }
+    return cur;
+  }
+}
+
+function workdaySequenceForJob(start: Date, count: number, allowSaturday: boolean, allowSunday: boolean) {
+  const days: Date[] = [];
+  let cur = nextWorkdayForJob(start, allowSaturday, allowSunday);
+  while (days.length < count) {
+    const day = cur.getDay();
+    const isSatBlocked = day === 6 && !allowSaturday;
+    const isSunBlocked = day === 0 && !allowSunday;
+    if (!isSatBlocked && !isSunBlocked) days.push(cur);
+    cur = addDays(cur, 1);
+  }
+  return days;
+}
+
+function parseJobStartDate(d: DraftEntry): Date | null {
+  const iso = String((d as any).startDate || (d as any).installDate || "");
   if (!iso) return null;
-  const ms = Date.parse(iso);
+  // Use midday to avoid timezone edge cases when parsing yyyy-mm-dd.
+  const ms = Date.parse(iso + "T12:00:00");
   if (!Number.isFinite(ms)) return null;
   return new Date(ms);
 }
@@ -181,6 +246,16 @@ function rowGrandTotal(r: TotalsRow) {
   return r.laborTotal + r.equipmentTotal + r.deliveryTotal + r.disposalTotal + r.materialsMarkup20;
 }
 
+function scaleRow(r: TotalsRow, factor: number): TotalsRow {
+  return {
+    laborTotal: r.laborTotal * factor,
+    equipmentTotal: r.equipmentTotal * factor,
+    deliveryTotal: r.deliveryTotal * factor,
+    disposalTotal: r.disposalTotal * factor,
+    materialsMarkup20: r.materialsMarkup20 * factor
+  };
+}
+
 function Line({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex justify-between gap-3 text-sm">
@@ -235,26 +310,46 @@ export default function TotalsPage() {
     };
   }, []);
 
-  const jobs = useMemo(() => {
-    return drafts
-      .filter((d) => {
-        const status = String((d as any)?.status || "estimate");
-        if (status === "void") return false;
-        return status === "sold" || status === "complete";
-      })
-      .map((d) => {
-        const dt = parseJobDate(d);
-        if (!dt) return null;
-        return { d, dt, monthKey: monthKeyFromDate(dt), week: weekBucketForDate(dt) };
-      })
-      .filter(Boolean) as Array<{ d: DraftEntry; dt: Date; monthKey: string; week: number }>;
+  const dayBuckets = useMemo(() => {
+    const byDay = new Map<string, TotalsRow>();
+
+    const soldDrafts = drafts.filter((d) => String((d as any)?.status || "estimate") === "sold");
+    for (const d of soldDrafts) {
+      const start = parseJobStartDate(d);
+      if (!start) continue;
+
+      const span = computeSpanDays((d as any).laborDays);
+      const allowSat = asBool((d as any).allowSaturday);
+      const allowSun = asBool((d as any).allowSunday);
+      const seq = workdaySequenceForJob(start, span, allowSat, allowSun);
+      const items = Array.isArray((d as any).items) ? ((d as any).items as QuoteItem[]) : [];
+      const jobRow = computeBreakdown(items);
+      const perDay = scaleRow(jobRow, 1 / Math.max(1, seq.length));
+
+      for (const day of seq) {
+        const key = toIsoDayKey(day);
+        byDay.set(key, addRows(byDay.get(key) ?? emptyRow(), perDay));
+      }
+    }
+
+    return byDay;
   }, [drafts]);
+
+  const days = useMemo(() => {
+    const out = Array.from(dayBuckets.entries()).map(([key, row]) => {
+      const ms = Date.parse(key + "T12:00:00");
+      const dt = Number.isFinite(ms) ? new Date(ms) : null;
+      if (!dt) return null;
+      return { key, dt, monthKey: monthKeyFromDate(dt), week: weekBucketForDate(dt), row };
+    });
+    return out.filter(Boolean) as Array<{ key: string; dt: Date; monthKey: string; week: number; row: TotalsRow }>;
+  }, [dayBuckets]);
 
   const months = useMemo(() => {
     const set = new Set<string>();
-    for (const j of jobs) set.add(j.monthKey);
+    for (const j of days) set.add(j.monthKey);
     return Array.from(set.values()).sort().reverse();
-  }, [jobs]);
+  }, [days]);
 
   useEffect(() => {
     if (monthKey) return;
@@ -263,23 +358,19 @@ export default function TotalsPage() {
 
   const selected = useMemo(() => {
     if (!monthKey) return [];
-    return jobs.filter((j) => j.monthKey === monthKey);
-  }, [jobs, monthKey]);
+    return days.filter((j) => j.monthKey === monthKey);
+  }, [days, monthKey]);
 
   const monthTotals = useMemo(() => {
     return selected.reduce((sum, j) => {
-      const items = Array.isArray((j.d as any).items) ? ((j.d as any).items as QuoteItem[]) : [];
-      const row = computeBreakdown(items);
-      return addRows(sum, row);
+      return addRows(sum, j.row);
     }, emptyRow());
   }, [selected]);
 
   const weekTotals = useMemo(() => {
     const out: Record<number, TotalsRow> = { 1: emptyRow(), 2: emptyRow(), 3: emptyRow(), 4: emptyRow() };
     for (const j of selected) {
-      const items = Array.isArray((j.d as any).items) ? ((j.d as any).items as QuoteItem[]) : [];
-      const row = computeBreakdown(items);
-      out[j.week] = addRows(out[j.week] ?? emptyRow(), row);
+      out[j.week] = addRows(out[j.week] ?? emptyRow(), j.row);
     }
     return out;
   }, [selected]);
@@ -304,19 +395,15 @@ export default function TotalsPage() {
   }, [monthKey, monthTotals]);
 
   const allTime = useMemo(() => {
-    return jobs.reduce((sum, j) => {
-      const items = Array.isArray((j.d as any).items) ? ((j.d as any).items as QuoteItem[]) : [];
-      const row = computeBreakdown(items);
-      return addRows(sum, row);
-    }, emptyRow());
-  }, [jobs]);
+    return days.reduce((sum, j) => addRows(sum, j.row), emptyRow());
+  }, [days]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-xl font-black tracking-tight">Running Totals</div>
-          <div className="text-sm text-[var(--muted)]">Sold + complete jobs only</div>
+          <div className="text-sm text-[var(--muted)]">Sold jobs only (spread across calendar workdays)</div>
         </div>
         <Link href="/tasks">
           <SecondaryButton>Back</SecondaryButton>
@@ -337,7 +424,7 @@ export default function TotalsPage() {
               </option>
             ))}
           </select>
-          <div className="text-[11px] text-[var(--muted)]">Jobs in month: {selected.length}</div>
+          <div className="text-[11px] text-[var(--muted)]">Workdays in month: {selected.length}</div>
         </div>
       </GlassCard>
 
