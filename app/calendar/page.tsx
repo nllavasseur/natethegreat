@@ -2577,7 +2577,7 @@ export default function CalendarPage() {
                     : "")
                 }
               >
-                <div className="relative h-full flex flex-col">
+                <div className="relative h-full">
                   <div className="flex items-start justify-between">
                     <div
                       className={
@@ -2613,15 +2613,25 @@ export default function CalendarPage() {
                     </div>
                   ) : null}
 
-                  {jobs.length || dayTasks.length ? (
-                    <>
-                      <div className="flex-1 grid place-items-center">
-                        {(() => {
-                          const isEstimate = (j: any) => (j as any).status === "estimate";
-                          const estimates = jobs.filter((j: any) => isEstimate(j));
-                          const maxEst = 4;
-                          const visibleEst = estimates.slice(0, maxEst);
-                          return visibleEst.length ? (
+                  {(() => {
+                    const isEstimate = (j: any) => (j as any).status === "estimate";
+                    const installs = jobs.filter((j: any) => !isEstimate(j));
+                    const estimates = jobs.filter((j: any) => isEstimate(j));
+                    const visibleInstallCount = Math.min(installs.length, 4);
+                    const visibleEstimateCount = Math.min(estimates.length, 4);
+                    const visibleTaskCount = Math.min(dayTasks.length, 4);
+                    const visibleTotal = visibleInstallCount + visibleEstimateCount + visibleTaskCount;
+                    const total = jobs.length + dayTasks.length;
+                    const showOverflow = total > visibleTotal;
+                    const maxEst = 4;
+                    const maxStars = 4;
+                    const visibleEst = estimates.slice(0, maxEst);
+                    const visibleTasks = dayTasks.slice(0, maxStars);
+
+                    return (
+                      <>
+                        {visibleEst.length ? (
+                          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
                             <div className="flex flex-wrap justify-center gap-1">
                               {visibleEst.map((j: any) => (
                                 <div
@@ -2632,49 +2642,32 @@ export default function CalendarPage() {
                                 />
                               ))}
                             </div>
-                          ) : null;
-                        })()}
-                      </div>
+                          </div>
+                        ) : null}
 
-                      <div className="flex items-end justify-between gap-1">
-                        <div className="flex flex-wrap gap-1">
-                          {(() => {
-                            const maxStars = 4;
-                            const visibleTasks = dayTasks.slice(0, maxStars);
-                            return (
-                              <>
-                                {visibleTasks.map((t) => (
-                                  <div
-                                    key={t.id}
-                                    className="h-3 w-3 grid place-items-center"
-                                    title={t.description || "Task"}
-                                    style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
-                                  >
-                                    <span className="text-[11px] leading-none">★</span>
-                                  </div>
-                                ))}
-                              </>
-                            );
-                          })()}
-                        </div>
-                        {(() => {
-                          const isEstimate = (j: any) => (j as any).status === "estimate";
-                          const installs = jobs.filter((j: any) => !isEstimate(j));
-                          const estimates = jobs.filter((j: any) => isEstimate(j));
-                          const visibleInstallCount = Math.min(installs.length, 4);
-                          const visibleEstimateCount = Math.min(estimates.length, 4);
-                          const visibleTaskCount = Math.min(dayTasks.length, 4);
-                          const visibleTotal = visibleInstallCount + visibleEstimateCount + visibleTaskCount;
-                          const total = jobs.length + dayTasks.length;
-                          return total > visibleTotal ? (
-                            <div className="text-[10px] text-[var(--muted)] font-extrabold">+{total - visibleTotal}</div>
-                          ) : null;
-                        })()}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex-1" />
-                  )}
+                        {visibleTasks.length ? (
+                          <div className="absolute left-0 right-0 bottom-0 flex items-end justify-start gap-1">
+                            <div className="flex flex-wrap gap-1">
+                              {visibleTasks.map((t) => (
+                                <div
+                                  key={t.id}
+                                  className="h-3 w-3 grid place-items-center"
+                                  title={t.description || "Task"}
+                                  style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
+                                >
+                                  <span className="text-[11px] leading-none">★</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {showOverflow ? (
+                          <div className="absolute bottom-0 right-0 text-[10px] text-[var(--muted)] font-extrabold">+{total - visibleTotal}</div>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                 </div>
               </button>
             );
