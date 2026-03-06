@@ -1375,7 +1375,7 @@ export default function CalendarPage() {
                   {dayTasks.map((t) => (
                     <div
                       key={t.id}
-                      className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-3"
+                      className="rounded-2xl border border-[rgba(31,200,120,.35)] bg-[rgba(31,200,120,.10)] px-3 py-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -1384,7 +1384,7 @@ export default function CalendarPage() {
                             {String((t as any).atIso || "").slice(11, 16)}
                           </div>
                         </div>
-                        <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
+                        <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(31,200,120,.95)" }} aria-hidden="true">
                           <span className="text-[14px] leading-none">★</span>
                         </div>
                       </div>
@@ -1868,7 +1868,7 @@ export default function CalendarPage() {
                               (hasStarted
                                 ? locked
                                   ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.18)] hover:bg-[rgba(31,200,120,.24)]"
-                                  : "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.18)]"
+                                  : "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.18)]"
                                 : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
                             }
                             title={hasStarted ? (locked ? "Active (locked)" : "Unlocked (rebases)") : "Locks once job starts"}
@@ -1916,15 +1916,15 @@ export default function CalendarPage() {
                             setHoldOpenId(j.id);
                             setHoldDraftIso(hold);
                           }}
-                          aria-pressed={Boolean(hold)}
                           className={
                             "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition max-w-[120px] truncate " +
                             (hold
-                              ? "border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.14)] hover:bg-[rgba(255,214,10,.20)]"
+                              ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.20)]"
                               : "border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)]")
                           }
+                          title={hold ? `Hold ${hold}` : "Hold"}
                         >
-                          {hold ? `Hold ${hold}` : "Set Hold"}
+                          {hold ? `Hold ${hold}` : "Hold"}
                         </button>
 
                         {isLastDay ? (
@@ -2324,7 +2324,7 @@ export default function CalendarPage() {
                 setTaskTime("09:00");
                 setTaskDesc("");
               }}
-              className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(255,214,10,.55)] bg-[rgba(255,214,10,.12)] hover:bg-[rgba(255,214,10,.18)]"
+              className="rounded-2xl border px-4 py-3 text-[13px] font-black border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.12)] hover:bg-[rgba(31,200,120,.18)]"
               aria-label="Add task"
               title="Add task"
             >
@@ -2378,7 +2378,7 @@ export default function CalendarPage() {
                     ? " ring-4 ring-[rgba(255,255,255,.45)] border-[rgba(255,255,255,.45)] shadow-[0_0_0_2px_rgba(0,0,0,.25)]"
                     : "") +
                   (isToday && !isSelected
-                    ? " ring-4 ring-[rgba(255,214,10,.70)] shadow-[0_0_0_2px_rgba(255,214,10,.18)]"
+                    ? " ring-4 ring-[rgba(31,200,120,.70)] shadow-[0_0_0_2px_rgba(31,200,120,.18)]"
                     : "")
                 }
               >
@@ -2421,7 +2421,7 @@ export default function CalendarPage() {
                               key={t.id}
                               className="h-2 w-2 grid place-items-center"
                               title={t.description || "Task"}
-                              style={{ color: "rgba(255,214,10,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
+                              style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
                             >
                               <span className="text-[10px] leading-none">★</span>
                             </div>
@@ -2487,7 +2487,7 @@ export default function CalendarPage() {
                   {(tasksByDay.get(String(taskDate || "").slice(0, 10)) ?? []).map((t) => (
                     <div
                       key={t.id}
-                      className="rounded-2xl border border-[rgba(255,214,10,.28)] bg-[rgba(255,214,10,.08)] px-3 py-2"
+                      className="rounded-2xl border border-[rgba(31,200,120,.28)] bg-[rgba(31,200,120,.08)] px-3 py-2"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -2642,7 +2642,7 @@ export default function CalendarPage() {
               {dayTasks.map((t) => (
                 <div
                   key={t.id}
-                  className="rounded-2xl border border-[rgba(255,214,10,.35)] bg-[rgba(255,214,10,.10)] px-3 py-2"
+                  className="rounded-2xl border border-[rgba(31,200,120,.35)] bg-[rgba(31,200,120,.10)] px-3 py-2"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -2651,7 +2651,7 @@ export default function CalendarPage() {
                         {String((t as any).atIso || "").slice(11, 16)}
                       </div>
                     </div>
-                    <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(255,214,10,.95)" }} aria-hidden="true">
+                    <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(31,200,120,.95)" }} aria-hidden="true">
                       <span className="text-[14px] leading-none">★</span>
                     </div>
                   </div>
