@@ -109,6 +109,8 @@ type BlockOut = {
 
 const BLOCKOUTS_REMOTE_ID = "vf_calendar_blockouts_v1";
 
+const TASKS_REMOTE_ID = "vf_calendar_tasks_v1";
+
 type CalendarTask = {
   id: string;
   atIso: string;
@@ -224,6 +226,44 @@ function writeTaskStore(list: CalendarTask[]) {
   } catch {
     // ignore
   }
+}
+
+async function upsertTasksRemote(list: CalendarTask[]) {
+  try {
+    await upsertDraft({
+      id: TASKS_REMOTE_ID,
+      data: {
+        id: TASKS_REMOTE_ID,
+        kind: "calendar_tasks",
+        tasks: Array.isArray(list) ? list : [],
+        updatedAt: Date.now()
+      }
+    });
+  } catch {
+    // ignore
+  }
+}
+
+function mergeTaskLists(localList: CalendarTask[], remoteList: CalendarTask[]) {
+  const byId = new Map<string, CalendarTask>();
+  for (const t of Array.isArray(remoteList) ? remoteList : []) {
+    const id = String((t as any)?.id || "");
+    if (!id) continue;
+    byId.set(id, t);
+  }
+  for (const t of Array.isArray(localList) ? localList : []) {
+    const id = String((t as any)?.id || "");
+    if (!id) continue;
+    const prev = byId.get(id);
+    if (!prev) {
+      byId.set(id, t);
+      continue;
+    }
+    const p = Number((prev as any)?.createdAt) || 0;
+    const n = Number((t as any)?.createdAt) || 0;
+    if (n >= p) byId.set(id, t);
+  }
+  return Array.from(byId.values());
 }
 
 function notifyDraftsChanged() {
@@ -381,11 +421,11 @@ export default function CalendarPage() {
   const [blockStart, setBlockStart] = React.useState("");
   const [blockEnd, setBlockEnd] = React.useState("");
   const [blockDesc, setBlockDesc] = React.useState("");
+  const [tasks, setTasks] = React.useState<CalendarTask[]>([]);
   const [taskOpen, setTaskOpen] = React.useState(false);
   const [taskDate, setTaskDate] = React.useState("");
   const [taskTime, setTaskTime] = React.useState("");
   const [taskDesc, setTaskDesc] = React.useState("");
-  const [tasks, setTasks] = React.useState<CalendarTask[]>([]);
   const blockStartInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockEndInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockDescInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -483,7 +523,35 @@ export default function CalendarPage() {
       }
 
       const tasks = readTaskStore();
-      if (!cancelled) setTasks(tasks);
+      const localTasks = tasks;
+      let remoteTasks: CalendarTask[] = [];
+      try {
+        const remote = await fetchDraft({ id: TASKS_REMOTE_ID });
+        const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
+        const list = (raw as any)?.tasks;
+        remoteTasks = Array.isArray(list) ? (list as CalendarTask[]) : [];
+      } catch {
+        remoteTasks = [];
+      }
+
+      const mergedTasks = mergeTaskLists(localTasks, remoteTasks);
+      try {
+        writeTaskStore(mergedTasks);
+      } catch {
+        // ignore
+      }
+      if (!cancelled) setTasks(mergedTasks);
+
+      // Publish legacy local-only tasks (or newer changes) so other devices can see them.
+      try {
+        const mergedHas = Array.isArray(mergedTasks) && mergedTasks.length > 0;
+        if (mergedHas) {
+          const same = JSON.stringify(mergedTasks) === JSON.stringify(remoteTasks);
+          if (!same) void upsertTasksRemote(mergedTasks);
+        }
+      } catch {
+        // ignore
+      }
     };
     void refresh();
 
@@ -646,14 +714,11 @@ export default function CalendarPage() {
       const soldSnapshot = (drafts || [])
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
         .slice()
-        .sort((a, b) => {
-          const ar0 = Number((a as any).queueRank);
-          const br0 = Number((b as any).queueRank);
-          const ar = Number.isFinite(ar0) && ar0 > 0 ? ar0 : Number.POSITIVE_INFINITY;
-          const br = Number.isFinite(br0) && br0 > 0 ? br0 : Number.POSITIVE_INFINITY;
-          if (ar !== br) return ar - br;
-          return String((a as any).id || "").localeCompare(String((b as any).id || ""));
-        });
+        .sort((a, b) =>
+          Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
+            Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
+          String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
+        );
       const res = await moveSoldJobRelativePipeline({ id: sid, dir, soldSnapshot: soldSnapshot as any });
       if (!(res as any)?.ok) return res as any;
       const store = readDraftStore();
@@ -686,14 +751,11 @@ export default function CalendarPage() {
       const soldSnapshot = (drafts || [])
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
         .slice()
-        .sort((a, b) => {
-          const ar0 = Number((a as any).queueRank);
-          const br0 = Number((b as any).queueRank);
-          const ar = Number.isFinite(ar0) && ar0 > 0 ? ar0 : Number.POSITIVE_INFINITY;
-          const br = Number.isFinite(br0) && br0 > 0 ? br0 : Number.POSITIVE_INFINITY;
-          if (ar !== br) return ar - br;
-          return String((a as any).id || "").localeCompare(String((b as any).id || ""));
-        });
+        .sort((a, b) =>
+          Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
+            Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
+          String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
+        );
       const res = await moveSoldJobToPositionPipeline({ id: sid, targetPos, soldSnapshot: soldSnapshot as any });
       if (!(res as any)?.ok) return res as any;
       const store = readDraftStore();
@@ -833,7 +895,7 @@ export default function CalendarPage() {
       .slice()
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
-        Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
+          Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
         String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
       );
 
@@ -1953,7 +2015,6 @@ export default function CalendarPage() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              if (hold) return;
                               setMoveOpenId(j.id);
                               setMovePreviewPos(idx + 1);
                               setMoveError("");
@@ -2577,6 +2638,7 @@ export default function CalendarPage() {
                             const next = readTaskStore().filter((x) => x.id !== t.id);
                             writeTaskStore(next);
                             setTasks(next);
+                            void upsertTasksRemote(next);
                           }}
                           className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
                         >
