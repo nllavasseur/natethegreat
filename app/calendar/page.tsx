@@ -2577,58 +2577,105 @@ export default function CalendarPage() {
                     : "")
                 }
               >
-                <div className="flex items-start justify-between">
-                  <div
-                    className={
-                      "text-sm font-black leading-none " +
-                      (isToday ? "text-white" : "") +
-                      (isPast && !isToday ? " text-[rgba(255,255,255,.55)]" : "")
-                    }
-                  >
-                    {c.date.getDate()}
+                <div className="relative h-full flex flex-col">
+                  <div className="flex items-start justify-between">
+                    <div
+                      className={
+                        "text-sm font-black leading-none " +
+                        (isToday ? "text-white" : "") +
+                        (isPast && !isToday ? " text-[rgba(255,255,255,.55)]" : "")
+                      }
+                    >
+                      {c.date.getDate()}
+                    </div>
                   </div>
-                </div>
 
-                {jobs.length || dayTasks.length ? (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {(() => {
-                      const isEstimate = (j: any) => (j as any).status === "estimate";
-                      const installs = jobs.filter((j: any) => !isEstimate(j));
-                      const estimates = jobs.filter((j: any) => isEstimate(j));
-                      const maxDots = 6;
+                  {jobs.length ? (
+                    <div className="mt-1 w-full h-2 rounded-xl overflow-hidden bg-[rgba(255,255,255,.06)]">
+                      {(() => {
+                        const isEstimate = (j: any) => (j as any).status === "estimate";
+                        const installs = jobs.filter((j: any) => !isEstimate(j));
+                        const maxBands = 4;
+                        const visibleInstalls = installs.slice(0, maxBands);
+                        return visibleInstalls.length ? (
+                          <div className="h-full w-full flex">
+                            {visibleInstalls.map((j: any) => (
+                              <div
+                                key={j.id}
+                                className="h-full flex-1"
+                                style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)" }}
+                                title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
+                              />
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  ) : null}
 
-                      const visibleJobs = [...installs, ...estimates].slice(0, maxDots);
-                      const remainingSlots = Math.max(0, maxDots - visibleJobs.length);
-                      const visibleTasks = dayTasks.slice(0, remainingSlots);
-
-                      return (
-                        <>
-                          {visibleJobs.map((j: any) => (
-                            <div
-                              key={j.id}
-                              className={"h-2 w-2 " + (isEstimate(j) ? "rounded-none" : "rounded-full")}
-                              style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
-                              title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
-                            />
-                          ))}
-                          {visibleTasks.map((t) => (
-                            <div
-                              key={t.id}
-                              className="h-2 w-2 grid place-items-center"
-                              title={t.description || "Task"}
-                              style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
-                            >
-                              <span className="text-[10px] leading-none">★</span>
+                  {jobs.length || dayTasks.length ? (
+                    <>
+                      <div className="flex-1 grid place-items-center">
+                        {(() => {
+                          const isEstimate = (j: any) => (j as any).status === "estimate";
+                          const estimates = jobs.filter((j: any) => isEstimate(j));
+                          const maxEst = 4;
+                          const visibleEst = estimates.slice(0, maxEst);
+                          return visibleEst.length ? (
+                            <div className="flex flex-wrap justify-center gap-1">
+                              {visibleEst.map((j: any) => (
+                                <div
+                                  key={j.id}
+                                  className="h-2.5 w-2.5 rounded-sm"
+                                  style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.12)" }}
+                                  title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Estimate"}
+                                />
+                              ))}
                             </div>
-                          ))}
-                        </>
-                      );
-                    })()}
-                    {jobs.length + dayTasks.length > 6 ? (
-                      <div className="text-[10px] text-[var(--muted)] font-extrabold">+{jobs.length + dayTasks.length - 6}</div>
-                    ) : null}
-                  </div>
-                ) : null}
+                          ) : null;
+                        })()}
+                      </div>
+
+                      <div className="flex items-end justify-between gap-1">
+                        <div className="flex flex-wrap gap-1">
+                          {(() => {
+                            const maxStars = 4;
+                            const visibleTasks = dayTasks.slice(0, maxStars);
+                            return (
+                              <>
+                                {visibleTasks.map((t) => (
+                                  <div
+                                    key={t.id}
+                                    className="h-3 w-3 grid place-items-center"
+                                    title={t.description || "Task"}
+                                    style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
+                                  >
+                                    <span className="text-[11px] leading-none">★</span>
+                                  </div>
+                                ))}
+                              </>
+                            );
+                          })()}
+                        </div>
+                        {(() => {
+                          const isEstimate = (j: any) => (j as any).status === "estimate";
+                          const installs = jobs.filter((j: any) => !isEstimate(j));
+                          const estimates = jobs.filter((j: any) => isEstimate(j));
+                          const visibleInstallCount = Math.min(installs.length, 4);
+                          const visibleEstimateCount = Math.min(estimates.length, 4);
+                          const visibleTaskCount = Math.min(dayTasks.length, 4);
+                          const visibleTotal = visibleInstallCount + visibleEstimateCount + visibleTaskCount;
+                          const total = jobs.length + dayTasks.length;
+                          return total > visibleTotal ? (
+                            <div className="text-[10px] text-[var(--muted)] font-extrabold">+{total - visibleTotal}</div>
+                          ) : null;
+                        })()}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                </div>
               </button>
             );
           })}
