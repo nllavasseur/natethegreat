@@ -3,6 +3,7 @@
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
 import {
   adjustLaborDays as adjustLaborDaysPipeline,
@@ -426,6 +427,11 @@ export default function CalendarPage() {
   const [taskDate, setTaskDate] = React.useState("");
   const [taskTime, setTaskTime] = React.useState("");
   const [taskDesc, setTaskDesc] = React.useState("");
+  const [syncDiag, setSyncDiag] = React.useState(() => ({
+    supabaseConfigured,
+    blockouts: { ok: false as boolean, count: 0 as number, error: "" as string },
+    tasks: { ok: false as boolean, count: 0 as number, error: "" as string }
+  }));
   const blockStartInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockEndInputRef = React.useRef<HTMLInputElement | null>(null);
   const blockDescInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -491,13 +497,18 @@ export default function CalendarPage() {
 
       const localBlocks = readBlockOutStore();
       let remoteBlocks: BlockOut[] = [];
+      let remoteBlocksOk = false;
+      let remoteBlocksErr = "";
       try {
         const remote = await fetchDraft({ id: BLOCKOUTS_REMOTE_ID });
         const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
         const list = (raw as any)?.blockOuts;
         remoteBlocks = Array.isArray(list) ? (list as BlockOut[]) : [];
-      } catch {
+        remoteBlocksOk = Boolean((remote as any)?.ok);
+      } catch (e) {
         remoteBlocks = [];
+        remoteBlocksOk = false;
+        remoteBlocksErr = String((e as any)?.message || e || "");
       }
 
       const mergedBlocks = mergeBlockOutLists(localBlocks, remoteBlocks);
@@ -525,13 +536,18 @@ export default function CalendarPage() {
       const tasks = readTaskStore();
       const localTasks = tasks;
       let remoteTasks: CalendarTask[] = [];
+      let remoteTasksOk = false;
+      let remoteTasksErr = "";
       try {
         const remote = await fetchDraft({ id: TASKS_REMOTE_ID });
         const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
         const list = (raw as any)?.tasks;
         remoteTasks = Array.isArray(list) ? (list as CalendarTask[]) : [];
-      } catch {
+        remoteTasksOk = Boolean((remote as any)?.ok);
+      } catch (e) {
         remoteTasks = [];
+        remoteTasksOk = false;
+        remoteTasksErr = String((e as any)?.message || e || "");
       }
 
       const mergedTasks = mergeTaskLists(localTasks, remoteTasks);
@@ -548,6 +564,18 @@ export default function CalendarPage() {
         if (mergedHas) {
           const same = JSON.stringify(mergedTasks) === JSON.stringify(remoteTasks);
           if (!same) void upsertTasksRemote(mergedTasks);
+        }
+      } catch {
+        // ignore
+      }
+
+      try {
+        if (!cancelled) {
+          setSyncDiag({
+            supabaseConfigured,
+            blockouts: { ok: remoteBlocksOk, count: remoteBlocks.length, error: remoteBlocksErr },
+            tasks: { ok: remoteTasksOk, count: remoteTasks.length, error: remoteTasksErr }
+          });
         }
       } catch {
         // ignore
@@ -1568,6 +1596,7 @@ export default function CalendarPage() {
                                 filter: "saturate(1.8) contrast(1.2)",
                                 boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)"
                               }}
+                              aria-hidden="true"
                             />
                           </div>
                         </div>
@@ -2203,7 +2232,10 @@ export default function CalendarPage() {
               <div className="sticky bottom-0 -mx-2 mt-2 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)]">
                 <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-2">
                   <div className="flex items-center justify-start px-1">
-                    <SecondaryButton data-no-swipe="true" onClick={() => setQueueOpen(false)}>
+                    <SecondaryButton
+                      data-no-swipe="true"
+                      onClick={() => setQueueOpen(false)}
+                    >
                       Close
                     </SecondaryButton>
                   </div>
