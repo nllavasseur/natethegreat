@@ -128,6 +128,12 @@ function workdaySequenceForJob(start: Date, count: number, allowSaturday: boolea
 }
 
 function parseJobStartDate(d: DraftEntry): Date | null {
+  const sched = String((d as any).scheduledAt || "");
+  if (sched) {
+    const ms = Date.parse(sched);
+    if (Number.isFinite(ms)) return new Date(ms);
+  }
+
   const iso = String((d as any).startDate || (d as any).installDate || "");
   if (!iso) return null;
   // Use midday to avoid timezone edge cases when parsing yyyy-mm-dd.
