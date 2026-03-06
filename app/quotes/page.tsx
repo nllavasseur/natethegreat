@@ -1127,8 +1127,11 @@ export default function QuotesPage() {
                         setConfirmDeleteId(null);
                         const store = readDraftStore();
                         const cur = store[q.id] as any;
-                        const existing = String(cur?.scheduledAt || "");
-                        const existingAssignee = String(cur?.estimateAssignee || "");
+                        const fromState = drafts.find((d) => d.id === q.id) as any;
+                        const existing = String(cur?.scheduledAt || fromState?.scheduledAt || (q as any)?.scheduledAt || "");
+                        const existingAssignee = String(
+                          cur?.estimateAssignee || fromState?.estimateAssignee || (q as any)?.estimateAssignee || ""
+                        );
                         setScheduleForId(q.id);
                         if (existing) {
                           setScheduleDate(toDateLocalValue(existing));
