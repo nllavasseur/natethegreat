@@ -501,10 +501,13 @@ export default function CalendarPage() {
       let remoteBlocksErr = "";
       try {
         const remote = await fetchDraft({ id: BLOCKOUTS_REMOTE_ID });
+        remoteBlocksOk = Boolean((remote as any)?.ok);
+        if (!remoteBlocksOk) {
+          remoteBlocksErr = String((remote as any)?.reason || "");
+        }
         const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
         const list = (raw as any)?.blockOuts;
         remoteBlocks = Array.isArray(list) ? (list as BlockOut[]) : [];
-        remoteBlocksOk = Boolean((remote as any)?.ok);
       } catch (e) {
         remoteBlocks = [];
         remoteBlocksOk = false;
@@ -540,10 +543,13 @@ export default function CalendarPage() {
       let remoteTasksErr = "";
       try {
         const remote = await fetchDraft({ id: TASKS_REMOTE_ID });
+        remoteTasksOk = Boolean((remote as any)?.ok);
+        if (!remoteTasksOk) {
+          remoteTasksErr = String((remote as any)?.reason || "");
+        }
         const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
         const list = (raw as any)?.tasks;
         remoteTasks = Array.isArray(list) ? (list as CalendarTask[]) : [];
-        remoteTasksOk = Boolean((remote as any)?.ok);
       } catch (e) {
         remoteTasks = [];
         remoteTasksOk = false;
