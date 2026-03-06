@@ -2650,11 +2650,11 @@ export default function CalendarPage() {
                               {visibleTasks.map((t) => (
                                 <div
                                   key={t.id}
-                                  className="h-3 w-3 grid place-items-center"
+                                  className="h-4 w-4 grid place-items-center"
                                   title={t.description || "Task"}
                                   style={{ color: "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
                                 >
-                                  <span className="text-[11px] leading-none">★</span>
+                                  <span className="text-[13px] leading-none">★</span>
                                 </div>
                               ))}
                             </div>
