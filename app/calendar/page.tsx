@@ -1473,6 +1473,20 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
+      <div className="px-4">
+        <div className="rounded-2xl border border-[rgba(31,200,120,.30)] bg-[rgba(31,200,120,.10)] px-4 py-3">
+          <div className="text-[12px] font-black">
+            SYNC DEBUG · {syncDiag.supabaseConfigured ? "Supabase ON" : "Supabase OFF"} · Blockouts {syncDiag.blockouts.ok ? "OK" : "NO"} ({syncDiag.blockouts.count}) · Tasks {syncDiag.tasks.ok ? "OK" : "NO"} ({syncDiag.tasks.count})
+          </div>
+          {(syncDiag.blockouts.error || syncDiag.tasks.error) ? (
+            <div className="mt-1 text-[11px] text-[rgba(255,150,150,.90)] font-black break-words">
+              {syncDiag.blockouts.error ? `Blockouts: ${syncDiag.blockouts.error}` : ""}
+              {syncDiag.blockouts.error && syncDiag.tasks.error ? " · " : ""}
+              {syncDiag.tasks.error ? `Tasks: ${syncDiag.tasks.error}` : ""}
+            </div>
+          ) : null}
+        </div>
+      </div>
       {portalReady && dayPreviewOpen ? createPortal(
         <div
           className="fixed inset-0 z-[70] grid place-items-center p-3"
