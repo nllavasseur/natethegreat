@@ -313,8 +313,11 @@ export default function TotalsPage() {
   const dayBuckets = useMemo(() => {
     const byDay = new Map<string, TotalsRow>();
 
-    const soldDrafts = drafts.filter((d) => String((d as any)?.status || "estimate") === "sold");
-    for (const d of soldDrafts) {
+    const includedDrafts = drafts.filter((d) => {
+      const status = String((d as any)?.status || "estimate");
+      return status === "sold" || status === "complete";
+    });
+    for (const d of includedDrafts) {
       const start = parseJobStartDate(d);
       if (!start) continue;
 
