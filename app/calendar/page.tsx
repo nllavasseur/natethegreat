@@ -118,6 +118,7 @@ type DraftEntry = {
   contract?: unknown;
   status?: "estimate" | "pending" | "sold" | "complete" | "void";
   scheduledAt?: string;
+  estimateAssignee?: "nate" | "cam";
   installDate?: string;
   startDate?: string;
   holdDate?: string;
@@ -1127,7 +1128,14 @@ export default function CalendarPage() {
     monthJobs.forEach((j) => {
       const status = (j as any).status as DraftEntry["status"];
       if (status === "estimate") {
-        map.set(j.id, ESTIMATE_DOT_COLOR);
+        const who = String((j as any).estimateAssignee || "").trim().toLowerCase();
+        if (who === "nate") {
+          map.set(j.id, "hsla(210, 96%, 66%, 0.92)");
+        } else if (who === "cam") {
+          map.set(j.id, "hsla(50, 96%, 60%, 0.92)");
+        } else {
+          map.set(j.id, ESTIMATE_DOT_COLOR);
+        }
       } else {
         map.set(j.id, installColorMap.get(j.id) ?? colorForInstallId(j.id));
       }
@@ -1144,7 +1152,10 @@ export default function CalendarPage() {
       const span = status === "estimate" ? 1 : computeSpanDays((j as any).laborDays);
       const allowSat = asBool((j as any).allowSaturday);
       const allowSun = asBool((j as any).allowSunday);
-      const seq = status === "estimate" ? [start] : workdaySequenceForJob(start, span, allowSat, allowSun);
+      const seqRaw = status === "estimate" ? [start] : workdaySequenceForJob(start, span, allowSat, allowSun);
+      const seq = status === "estimate"
+        ? seqRaw
+        : seqRaw.filter((d) => startOfDay(d).getTime() >= today0.getTime());
       seq.forEach((day) => {
         const key = toKey(day);
         const arr = map.get(key) ?? [];
@@ -1182,6 +1193,9 @@ export default function CalendarPage() {
     const key = toKey(selected);
     const list = (jobsByDay.get(key) ?? []).slice();
     list.sort((a: any, b: any) => {
+      const aEst = (a as any).status === "estimate";
+      const bEst = (b as any).status === "estimate";
+      if (aEst !== bEst) return aEst ? 1 : -1;
       const at = a?.install instanceof Date ? a.install.getTime() : new Date(String(a?.installDate || "") + "T12:00:00").getTime();
       const bt = b?.install instanceof Date ? b.install.getTime() : new Date(String(b?.installDate || "") + "T12:00:00").getTime();
       return at - bt;
@@ -1290,7 +1304,7 @@ export default function CalendarPage() {
                           <div className="flex items-center gap-2 shrink-0">
                             {pos >= 0 ? <div className="text-[14px] font-black text-white">#{pos + 1}</div> : null}
                             <div
-                              className="h-3 w-3 rounded-full"
+                              className={"h-3 w-3 " + ((j as any).status === "estimate" ? "rounded-none" : "rounded-full")}
                               style={{
                                 background: (j as any).color ?? "rgba(255,255,255,.25)",
                                 filter: "saturate(1.8) contrast(1.2)",
@@ -1593,6 +1607,7 @@ export default function CalendarPage() {
                     }
                     return "";
                   })();
+                  const isLastDay = Boolean(endIso) && endIso === toKey(today0);
                   const canComplete = (() => {
                     if (!endIso) return false;
                     try {
@@ -1744,6 +1759,29 @@ export default function CalendarPage() {
                         >
                           {hold ? `Hold ${hold}` : "Set Hold"}
                         </button>
+
+                        {isLastDay ? (
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!canComplete) return;
+                              markDraftComplete(j.id);
+                            }}
+                            className={
+                              "rounded-full border px-3 py-1 text-[10px] font-black leading-none transition " +
+                              (canComplete
+                                ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.18)] hover:bg-[rgba(31,200,120,.24)]"
+                                : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
+                            }
+                            disabled={!canComplete}
+                            title="Mark job complete"
+                          >
+                            Complete?
+                          </button>
+                        ) : null}
 
                         <div className="inline-flex rounded-2xl border border-[rgba(255,255,255,.14)] overflow-hidden">
                           <button

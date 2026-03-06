@@ -19,6 +19,7 @@ type DraftEntry = {
   phoneNumber?: string;
   projectAddress?: string;
   selectedStyle?: { name: string } | null;
+  estimateAssignee?: "nate" | "cam";
   projectPhotoUrl?: string | null;
   projectPhotoDataUrl?: string | null;
   materialsDetails?: {
@@ -94,6 +95,7 @@ export default function QuotesPage() {
   const [scheduleForId, setScheduleForId] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState<string>("");
   const [scheduleTime, setScheduleTime] = useState<string>("");
+  const [scheduleAssignee, setScheduleAssignee] = useState<DraftEntry["estimateAssignee"] | "">("");
   const [portalReady, setPortalReady] = useState(false);
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
@@ -143,6 +145,38 @@ export default function QuotesPage() {
                 updatedAt: Date.now(),
                 calendarHidden: false,
                 ...(nextStatus ? { status: nextStatus as any } : {})
+              }
+            : d
+        )
+      );
+      notifyDraftsChanged();
+    } catch {
+      // ignore
+    }
+  }
+
+  function setDraftEstimateAssignee(id: string, assignee: DraftEntry["estimateAssignee"] | null) {
+    try {
+      const store = readDraftStore();
+      const existing = store[id] ?? drafts.find((d) => d.id === id);
+      if (!existing) return;
+      store[id] = {
+        ...existing,
+        estimateAssignee: assignee ?? undefined,
+        updatedAt: Date.now()
+      };
+      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      try {
+        void upsertDraft({ id, data: store[id] });
+      } catch {
+      }
+      setDrafts((prev) =>
+        prev.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                estimateAssignee: assignee ?? undefined,
+                updatedAt: Date.now()
               }
             : d
         )
@@ -734,6 +768,7 @@ export default function QuotesPage() {
               setScheduleForId(null);
               setScheduleDate("");
               setScheduleTime("");
+              setScheduleAssignee("");
             }}
           />
           <div
@@ -750,6 +785,7 @@ export default function QuotesPage() {
                     setScheduleForId(null);
                     setScheduleDate("");
                     setScheduleTime("");
+                    setScheduleAssignee("");
                   }}
                 >
                   Close
@@ -782,13 +818,61 @@ export default function QuotesPage() {
                 </div>
               </div>
 
+              <div className="mt-3 grid gap-2">
+                <div className="text-[11px] text-[var(--muted)]">Assigned to</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => setScheduleAssignee("nate")}
+                    className={
+                      "rounded-full border px-3 py-2 text-[12px] font-black transition " +
+                      (scheduleAssignee === "nate"
+                        ? "border-[rgba(64,156,255,.65)] bg-[rgba(64,156,255,.22)]"
+                        : "border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] hover:bg-[rgba(255,255,255,.14)]")
+                    }
+                  >
+                    Nate
+                  </button>
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => setScheduleAssignee("cam")}
+                    className={
+                      "rounded-full border px-3 py-2 text-[12px] font-black transition " +
+                      (scheduleAssignee === "cam"
+                        ? "border-[rgba(255,214,10,.70)] bg-[rgba(255,214,10,.22)]"
+                        : "border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] hover:bg-[rgba(255,255,255,.14)]")
+                    }
+                  >
+                    Cam
+                  </button>
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => setScheduleAssignee("")}
+                    className={
+                      "rounded-full border px-3 py-2 text-[12px] font-black transition " +
+                      (!scheduleAssignee
+                        ? "border-[rgba(255,255,255,.28)] bg-[rgba(255,255,255,.14)]"
+                        : "border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] hover:bg-[rgba(255,255,255,.14)]")
+                    }
+                    title="Unassigned"
+                  >
+                    —
+                  </button>
+                </div>
+              </div>
+
               <div className="mt-4 flex items-center justify-between gap-2">
                 <SecondaryButton
                   onClick={() => {
                     setDraftScheduledAt(scheduleForId, null);
+                    if (scheduleForId) setDraftEstimateAssignee(scheduleForId, null);
                     setScheduleForId(null);
                     setScheduleDate("");
                     setScheduleTime("");
+                    setScheduleAssignee("");
                   }}
                 >
                   Clear
@@ -804,9 +888,11 @@ export default function QuotesPage() {
                     const dt = new Date(`${d}T${t}`);
                     if (!Number.isFinite(dt.getTime())) return;
                     setDraftScheduledAt(id, dt.toISOString());
+                    setDraftEstimateAssignee(id, (scheduleAssignee || null) as any);
                     setScheduleForId(null);
                     setScheduleDate("");
                     setScheduleTime("");
+                    setScheduleAssignee("");
                   }}
                 >
                   Save
@@ -1042,6 +1128,7 @@ export default function QuotesPage() {
                         const store = readDraftStore();
                         const cur = store[q.id] as any;
                         const existing = String(cur?.scheduledAt || "");
+                        const existingAssignee = String(cur?.estimateAssignee || "");
                         setScheduleForId(q.id);
                         if (existing) {
                           setScheduleDate(toDateLocalValue(existing));
@@ -1050,12 +1137,10 @@ export default function QuotesPage() {
                           setScheduleDate(defaultScheduleDateValue());
                           setScheduleTime(defaultScheduleTimeValue());
                         }
+                        setScheduleAssignee(existingAssignee === "nate" || existingAssignee === "cam" ? (existingAssignee as any) : "");
                       }}
                       className={
-                        "rounded-full border px-3 py-1 text-[11px] font-extrabold " +
-                        (q.scheduledAt
-                          ? "bg-[rgba(255,80,80,.30)] border-[rgba(255,80,80,.55)] text-white"
-                          : "bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.90)]")
+                        "rounded-full border px-2.5 py-1 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
                       }
                     >
                       {q.scheduledAt ? "Scheduled" : "Schedule"}
