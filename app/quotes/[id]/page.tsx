@@ -330,6 +330,21 @@ export default function QuoteDetailPage() {
 
   return (
     <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+96px)]">
+      {portalReady
+        ? createPortal(
+          <div className="fixed left-4 z-[70]" style={{ bottom: "calc(env(safe-area-inset-bottom) + 88px)" }}>
+            <PrimaryButton
+              data-no-swipe="true"
+              onClick={() => window.history.back()}
+              className="bg-[rgba(31,200,120,.30)] hover:bg-[rgba(31,200,120,.38)] border-[rgba(31,200,120,.40)]"
+            >
+              Back
+            </PrimaryButton>
+          </div>,
+          document.body
+        )
+        : null}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xl font-black tracking-tight truncate">{title}</div>
@@ -343,15 +358,6 @@ export default function QuoteDetailPage() {
 
       <SectionTitle title="Customer" />
       <GlassCard className="p-4 mb-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <PrimaryButton
-            data-no-swipe="true"
-            onClick={() => window.history.back()}
-            className="bg-[rgba(31,200,120,.30)] hover:bg-[rgba(31,200,120,.38)] border-[rgba(31,200,120,.40)]"
-          >
-            Back
-          </PrimaryButton>
-        </div>
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Name</div>
@@ -616,7 +622,7 @@ export default function QuoteDetailPage() {
             <div
               className="rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-white"
             >
-              <div ref={contractFrameRef} className="relative w-full h-[420px] sm:h-[520px] overflow-hidden bg-white">
+              <div ref={contractFrameRef} className="relative w-full h-[420px] sm:h-[520px] overflow-auto bg-white">
                 <div
                   className="absolute left-0 top-0"
                   style={{
@@ -631,7 +637,7 @@ export default function QuoteDetailPage() {
                     src={`/estimates/contract?draft=${encodeURIComponent(id)}&embed=1`}
                     className="block border-0"
                     style={{ width: 720, height: 1040 }}
-                    scrolling="no"
+                    scrolling="yes"
                   />
                 </div>
               </div>

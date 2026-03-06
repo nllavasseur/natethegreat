@@ -2184,7 +2184,7 @@ export default function CalendarPage() {
                       return visible.map((j: any) => (
                         <div
                           key={j.id}
-                          className={"h-2 w-2 " + (isEstimate(j) ? "rounded-[3px]" : "rounded-full")}
+                          className={"h-2 w-2 " + (isEstimate(j) ? "rounded-none" : "rounded-full")}
                           style={{ background: (j as any).color, filter: "saturate(1.8) contrast(1.2)", boxShadow: "0 0 0 1px rgba(0,0,0,.25), 0 0 10px rgba(0,0,0,.15)" }}
                           title={j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                         />
@@ -2259,7 +2259,7 @@ export default function CalendarPage() {
                       {j.title || j.customerName || j.projectAddress || j.selectedStyle?.name || "Job"}
                     </div>
                     <div
-                      className={"h-3 w-3 " + ((j as any).status === "estimate" ? "rounded-[4px]" : "rounded-full")}
+                      className={"h-3 w-3 " + ((j as any).status === "estimate" ? "rounded-none" : "rounded-full")}
                       style={{
                         background: (j as any).color ?? "rgba(255,255,255,.25)",
                         filter: "saturate(1.8) contrast(1.2)",
