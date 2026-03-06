@@ -447,6 +447,17 @@ export default function CalendarPage() {
   const queueListRef = React.useRef<HTMLDivElement | null>(null);
   const queueAnchorRef = React.useRef<{ id: string; anchorTop: number } | null>(null);
 
+  const refreshDebounceRef = React.useRef<number | null>(null);
+
+  const withTimeout = React.useCallback(async <T,>(p: Promise<T>, ms: number) => {
+    return await Promise.race([
+      p,
+      new Promise<T>((_resolve, reject) => {
+        window.setTimeout(() => reject(new Error("timeout")), ms);
+      })
+    ]);
+  }, []);
+
   const monthStart = React.useMemo(() => startOfMonth(cursor), [cursor]);
   const monthDays = React.useMemo(() => daysInMonth(cursor), [cursor]);
   const firstDow = monthStart.getDay();
@@ -481,90 +492,95 @@ export default function CalendarPage() {
 
   React.useEffect(() => {
     let cancelled = false;
-    const refresh = async () => {
+    const refreshLocal = () => {
+      try {
+        const store = readDraftStore();
+        const localDrafts = Object.values(store).map((d) => ({ ...d }));
+        if (!cancelled) setDrafts(localDrafts);
+      } catch {
+      }
+      try {
+        const localBlocks = readBlockOutStore();
+        if (!cancelled) setBlockOuts(localBlocks);
+      } catch {
+      }
+      try {
+        const localTasks = readTaskStore();
+        if (!cancelled) setTasks(localTasks);
+      } catch {
+      }
+    };
+
+    const refreshRemote = async () => {
+      // Do remote fetch/merge in the background. On poor service this can take a while,
+      // but the UI should already be populated from localStorage.
       const store = readDraftStore();
       const localList = Object.values(store).map((d) => ({ ...d }));
+      const localBlocks = readBlockOutStore();
+      const localTasks = readTaskStore();
+
       let remoteList: DraftEntry[] = [];
+      let remoteBlocks: BlockOut[] = [];
+      let remoteTasks: CalendarTask[] = [];
+      let remoteBlocksOk = false;
+      let remoteTasksOk = false;
+      let remoteBlocksErr = "";
+      let remoteTasksErr = "";
+
       try {
-        const remote = await fetchDrafts();
-        remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
-      } catch {
-        remoteList = [];
+        const [draftsRes, blocksRes, tasksRes] = await Promise.all([
+          withTimeout(fetchDrafts(), 4500),
+          withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
+          withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500)
+        ]);
+
+        remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : [];
+
+        remoteBlocksOk = Boolean((blocksRes as any)?.ok);
+        if (!remoteBlocksOk) remoteBlocksErr = String((blocksRes as any)?.reason || "");
+        remoteBlocks = Array.isArray((blocksRes as any)?.draft?.blockOuts) ? ((blocksRes as any).draft.blockOuts as BlockOut[]) : [];
+
+        remoteTasksOk = Boolean((tasksRes as any)?.ok);
+        if (!remoteTasksOk) remoteTasksErr = String((tasksRes as any)?.reason || "");
+        remoteTasks = Array.isArray((tasksRes as any)?.draft?.tasks) ? ((tasksRes as any).draft.tasks as CalendarTask[]) : [];
+      } catch (e) {
+        // ignore (offline/slow). Keep local data.
+        const msg = String((e as any)?.message || e || "");
+        if (msg === "timeout") {
+          remoteBlocksErr = remoteBlocksErr || "timeout";
+          remoteTasksErr = remoteTasksErr || "timeout";
+        } else {
+          remoteBlocksErr = remoteBlocksErr || msg;
+          remoteTasksErr = remoteTasksErr || msg;
+        }
       }
 
       const merged = mergeDraftLists(localList, remoteList);
       if (!cancelled) setDrafts(merged);
 
-      const localBlocks = readBlockOutStore();
-      let remoteBlocks: BlockOut[] = [];
-      let remoteBlocksOk = false;
-      let remoteBlocksErr = "";
-      try {
-        const remote = await fetchDraft({ id: BLOCKOUTS_REMOTE_ID });
-        remoteBlocksOk = Boolean((remote as any)?.ok);
-        if (!remoteBlocksOk) {
-          remoteBlocksErr = String((remote as any)?.reason || "");
-        }
-        const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
-        const list = (raw as any)?.blockOuts;
-        remoteBlocks = Array.isArray(list) ? (list as BlockOut[]) : [];
-      } catch (e) {
-        remoteBlocks = [];
-        remoteBlocksOk = false;
-        remoteBlocksErr = String((e as any)?.message || e || "");
-      }
-
       const mergedBlocks = mergeBlockOutLists(localBlocks, remoteBlocks);
       try {
         writeBlockOutStore(mergedBlocks);
       } catch {
-        // ignore
       }
       if (!cancelled) setBlockOuts(mergedBlocks);
 
-      // If this device has legacy local-only blockouts (or newer changes) and the remote
-      // copy is missing/out-of-date, publish the merged list so other devices can see it.
       try {
-        const localHas = Array.isArray(localBlocks) && localBlocks.length > 0;
-        const remoteHas = Array.isArray(remoteBlocks) && remoteBlocks.length > 0;
         const mergedHas = Array.isArray(mergedBlocks) && mergedBlocks.length > 0;
-        if (mergedHas && (localHas || remoteHas)) {
+        if (mergedHas) {
           const same = JSON.stringify(mergedBlocks) === JSON.stringify(remoteBlocks);
           if (!same) void upsertBlockOutsRemote(mergedBlocks);
         }
       } catch {
-        // ignore
-      }
-
-      const tasks = readTaskStore();
-      const localTasks = tasks;
-      let remoteTasks: CalendarTask[] = [];
-      let remoteTasksOk = false;
-      let remoteTasksErr = "";
-      try {
-        const remote = await fetchDraft({ id: TASKS_REMOTE_ID });
-        remoteTasksOk = Boolean((remote as any)?.ok);
-        if (!remoteTasksOk) {
-          remoteTasksErr = String((remote as any)?.reason || "");
-        }
-        const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
-        const list = (raw as any)?.tasks;
-        remoteTasks = Array.isArray(list) ? (list as CalendarTask[]) : [];
-      } catch (e) {
-        remoteTasks = [];
-        remoteTasksOk = false;
-        remoteTasksErr = String((e as any)?.message || e || "");
       }
 
       const mergedTasks = mergeTaskLists(localTasks, remoteTasks);
       try {
         writeTaskStore(mergedTasks);
       } catch {
-        // ignore
       }
       if (!cancelled) setTasks(mergedTasks);
 
-      // Publish legacy local-only tasks (or newer changes) so other devices can see them.
       try {
         const mergedHas = Array.isArray(mergedTasks) && mergedTasks.length > 0;
         if (mergedHas) {
@@ -572,7 +588,6 @@ export default function CalendarPage() {
           if (!same) void upsertTasksRemote(mergedTasks);
         }
       } catch {
-        // ignore
       }
 
       try {
@@ -584,21 +599,32 @@ export default function CalendarPage() {
           });
         }
       } catch {
-        // ignore
       }
     };
-    void refresh();
+
+    const refresh = () => {
+      refreshLocal();
+      void refreshRemote();
+    };
+
+    refresh();
+
+    const debouncedRefresh = () => {
+      if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
+      refreshDebounceRef.current = window.setTimeout(() => refresh(), 150);
+    };
 
     const onStorage = (e: StorageEvent) => {
       if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1" && e.key !== "vf_calendar_tasks_v1") return;
-      void refresh();
+      debouncedRefresh();
     };
-    const onDraftsChanged = () => void refresh();
+    const onDraftsChanged = () => debouncedRefresh();
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("vf-drafts-changed", onDraftsChanged as any);
     return () => {
       cancelled = true;
+      if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("vf-drafts-changed", onDraftsChanged as any);
     };
