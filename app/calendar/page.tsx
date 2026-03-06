@@ -1060,18 +1060,18 @@ export default function CalendarPage() {
   React.useEffect(() => {
     // Auto-lock sold jobs as they reach their start date, unless explicitly unlocked.
     if (!soldQueue.length) return;
-    soldQueue.forEach((j) => {
-      if ((j as any).queueLocked === false) return;
-      const startIso = String((j as any).installDate || (j as any).startDate || "").slice(0, 10);
-      if (!startIso) return;
-      try {
-        const start = startOfDay(new Date(startIso + "T12:00:00"));
-        if (start.getTime() <= today0.getTime() && (j as any).queueLocked !== true) {
-          setQueueLocked(j.id, true, startIso, j as any);
-        }
-      } catch {
+    const j = soldQueue[0];
+    if (!j) return;
+    if ((j as any).queueLocked === false) return;
+    const startIso = String((j as any).installDate || (j as any).startDate || "").slice(0, 10);
+    if (!startIso) return;
+    try {
+      const start = startOfDay(new Date(startIso + "T12:00:00"));
+      if (start.getTime() <= today0.getTime() && (j as any).queueLocked !== true) {
+        setQueueLocked(j.id, true, startIso, j as any);
       }
-    });
+    } catch {
+    }
   }, [soldQueue, setQueueLocked, today0]);
 
   React.useLayoutEffect(() => {
@@ -1404,11 +1404,15 @@ export default function CalendarPage() {
       const lf = totalLfFromDraft(j);
       const labor = computeSpanDays((j as any).laborDays) || 0;
       const hold = String((j as any).holdDate || "").slice(0, 10);
+      const startDt = (j as any).install instanceof Date && Number.isFinite(((j as any).install as Date).getTime())
+        ? ((j as any).install as Date)
+        : null;
       const startIsoRaw = String((j as any).installDate || (j as any).startDate || "");
       const startIso = startIsoRaw ? startIsoRaw.slice(0, 10) : "";
       const hasStarted = (() => {
-        if (!startIso) return false;
         try {
+          if (startDt) return startOfDay(startDt).getTime() <= today0.getTime();
+          if (!startIso) return false;
           return startOfDay(new Date(startIso + "T12:00:00")).getTime() <= today0.getTime();
         } catch {
           return false;
@@ -1959,6 +1963,8 @@ export default function CalendarPage() {
                 {soldQueueComputed.map((row) => {
                   const { j, idx, allowSat, allowSun, style, lf, labor, hold, startIso, hasStarted, locked, dotColor, endIso, usedWeekend, isLastDay, canComplete } = row;
                   const isHi = highlightQueueId === j.id;
+                  const isCurrentQueueJob = idx === 0;
+                  const isActiveForUi = isCurrentQueueJob && hasStarted;
                   return (
                     <div
                       key={j.id}
@@ -2061,9 +2067,9 @@ export default function CalendarPage() {
                                   : "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.18)]"
                                 : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
                             }
-                            title={hasStarted ? (locked ? "Active (locked)" : "Unlocked (rebases)") : "Locks once job starts"}
+                            title={isActiveForUi ? (locked ? "Active (locked)" : "Unlocked (rebases)") : "Locks once job starts"}
                           >
-                            {hasStarted ? (locked ? "Active" : "Unlocked") : "Lock"}
+                            {isActiveForUi ? (locked ? "Active" : "Unlocked") : "Lock"}
                           </button>
 
                           <button
