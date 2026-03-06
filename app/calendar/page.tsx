@@ -468,6 +468,20 @@ export default function CalendarPage() {
       }
       if (!cancelled) setBlockOuts(mergedBlocks);
 
+      // If this device has legacy local-only blockouts (or newer changes) and the remote
+      // copy is missing/out-of-date, publish the merged list so other devices can see it.
+      try {
+        const localHas = Array.isArray(localBlocks) && localBlocks.length > 0;
+        const remoteHas = Array.isArray(remoteBlocks) && remoteBlocks.length > 0;
+        const mergedHas = Array.isArray(mergedBlocks) && mergedBlocks.length > 0;
+        if (mergedHas && (localHas || remoteHas)) {
+          const same = JSON.stringify(mergedBlocks) === JSON.stringify(remoteBlocks);
+          if (!same) void upsertBlockOutsRemote(mergedBlocks);
+        }
+      } catch {
+        // ignore
+      }
+
       const tasks = readTaskStore();
       if (!cancelled) setTasks(tasks);
     };
