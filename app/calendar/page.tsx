@@ -2481,6 +2481,41 @@ export default function CalendarPage() {
                 </SecondaryButton>
               </div>
 
+              {(tasksByDay.get(String(taskDate || "").slice(0, 10)) ?? []).length ? (
+                <div className="mt-3 grid gap-2">
+                  <div className="text-[11px] text-[var(--muted)]">Tasks on this day</div>
+                  {(tasksByDay.get(String(taskDate || "").slice(0, 10)) ?? []).map((t) => (
+                    <div
+                      key={t.id}
+                      className="rounded-2xl border border-[rgba(255,214,10,.28)] bg-[rgba(255,214,10,.08)] px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-black truncate">{t.description || "Task"}</div>
+                          <div className="text-[11px] text-[var(--muted)] mt-1">
+                            {String((t as any).atIso || "").slice(11, 16)}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const next = readTaskStore().filter((x) => x.id !== t.id);
+                            writeTaskStore(next);
+                            setTasks(next);
+                          }}
+                          className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
               <div className="mt-3 grid gap-2">
                 <div className="text-[11px] text-[var(--muted)]">Date &amp; time</div>
                 <div className="grid gap-2 sm:grid-cols-2 items-end">
