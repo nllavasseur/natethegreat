@@ -2,7 +2,7 @@
 
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
-import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
 import { createPortal } from "react-dom";
 import {
   adjustLaborDays as adjustLaborDaysPipeline,
@@ -107,6 +107,8 @@ type BlockOut = {
   createdAt: number;
 };
 
+const BLOCKOUTS_REMOTE_ID = "vf_calendar_blockouts_v1";
+
 type CalendarTask = {
   id: string;
   atIso: string;
@@ -162,6 +164,44 @@ function readBlockOutStore(): BlockOut[] {
 function writeBlockOutStore(list: BlockOut[]) {
   try {
     window.localStorage.setItem("vf_calendar_blockouts_v1", JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+function mergeBlockOutLists(localList: BlockOut[], remoteList: BlockOut[]) {
+  const byId = new Map<string, BlockOut>();
+  for (const b of Array.isArray(remoteList) ? remoteList : []) {
+    const id = String((b as any)?.id || "");
+    if (!id) continue;
+    byId.set(id, b);
+  }
+  for (const b of Array.isArray(localList) ? localList : []) {
+    const id = String((b as any)?.id || "");
+    if (!id) continue;
+    const prev = byId.get(id);
+    if (!prev) {
+      byId.set(id, b);
+      continue;
+    }
+    const p = Number((prev as any)?.createdAt) || 0;
+    const n = Number((b as any)?.createdAt) || 0;
+    if (n >= p) byId.set(id, b);
+  }
+  return Array.from(byId.values());
+}
+
+async function upsertBlockOutsRemote(list: BlockOut[]) {
+  try {
+    await upsertDraft({
+      id: BLOCKOUTS_REMOTE_ID,
+      data: {
+        id: BLOCKOUTS_REMOTE_ID,
+        kind: "calendar_blockouts",
+        blockOuts: Array.isArray(list) ? list : [],
+        updatedAt: Date.now()
+      }
+    });
   } catch {
     // ignore
   }
@@ -409,8 +449,24 @@ export default function CalendarPage() {
       const merged = mergeDraftLists(localList, remoteList);
       if (!cancelled) setDrafts(merged);
 
-      const blocks = readBlockOutStore();
-      if (!cancelled) setBlockOuts(blocks);
+      const localBlocks = readBlockOutStore();
+      let remoteBlocks: BlockOut[] = [];
+      try {
+        const remote = await fetchDraft({ id: BLOCKOUTS_REMOTE_ID });
+        const raw = (remote as any)?.ok ? (remote as any)?.draft : null;
+        const list = (raw as any)?.blockOuts;
+        remoteBlocks = Array.isArray(list) ? (list as BlockOut[]) : [];
+      } catch {
+        remoteBlocks = [];
+      }
+
+      const mergedBlocks = mergeBlockOutLists(localBlocks, remoteBlocks);
+      try {
+        writeBlockOutStore(mergedBlocks);
+      } catch {
+        // ignore
+      }
+      if (!cancelled) setBlockOuts(mergedBlocks);
 
       const tasks = readTaskStore();
       if (!cancelled) setTasks(tasks);
@@ -2253,6 +2309,7 @@ export default function CalendarPage() {
                       list.push({ id, startIso: s, endIso: e, description: desc, createdAt: Date.now() });
                       writeBlockOutStore(list);
                       setBlockOuts(list);
+                      void upsertBlockOutsRemote(list);
                       setBlockStart("");
                       setBlockEnd("");
                       setBlockDesc("");
@@ -2284,6 +2341,7 @@ export default function CalendarPage() {
                               const next = readBlockOutStore().filter((x) => x.id !== b.id);
                               writeBlockOutStore(next);
                               setBlockOuts(next);
+                              void upsertBlockOutsRemote(next);
                             }}
                             className="rounded-xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] hover:bg-[rgba(255,255,255,.10)] px-3 py-2 text-[12px] font-black"
                           >
