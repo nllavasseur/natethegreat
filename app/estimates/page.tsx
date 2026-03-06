@@ -9280,20 +9280,68 @@ function EstimatesPageInner() {
             ) : null}
 
             <nav
-              className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
+              className="fixed left-0 right-0 z-50 isolate px-4 pointer-events-auto"
               style={{ bottom: 0 }}
               aria-label="Estimate actions"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
             >
               <div className="mx-auto max-w-[980px]">
                 <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end pb-[max(calc(env(safe-area-inset-bottom) - 6px),0px)]">
                   <div className="h-16 flex items-center justify-around">
-                    <PrimaryButton onClick={save} disabled={saving || savingAsNew}>
+                    <PrimaryButton
+                      type="button"
+                      data-no-swipe="true"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        save();
+                      }}
+                      disabled={saving || savingAsNew}
+                      style={{ touchAction: "manipulation" }}
+                    >
                       {saving ? "Saving…" : "Save"}
                     </PrimaryButton>
-                    <SecondaryButton onClick={saveAsNew} disabled={saving || savingAsNew}>
+                    <SecondaryButton
+                      type="button"
+                      data-no-swipe="true"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        saveAsNew();
+                      }}
+                      disabled={saving || savingAsNew}
+                      style={{ touchAction: "manipulation" }}
+                    >
                       {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                     </SecondaryButton>
-                    <SecondaryButton onClick={resetEstimate} disabled={saving || savingAsNew}>
+                    <SecondaryButton
+                      type="button"
+                      data-no-swipe="true"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        resetEstimate();
+                      }}
+                      disabled={saving || savingAsNew}
+                      style={{ touchAction: "manipulation" }}
+                    >
                       Reset
                     </SecondaryButton>
                   </div>
