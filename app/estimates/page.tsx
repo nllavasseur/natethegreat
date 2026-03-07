@@ -7765,7 +7765,7 @@ function EstimatesPageInner() {
                   <SecondaryButton onClick={() => setMaterialsDetailsOpen(false)}>Close</SecondaryButton>
                 </div>
 
-                <div className="mt-3 grid gap-3">
+                <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {selectedFenceType === "aluminum" ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Aluminum details</div>
@@ -8991,11 +8991,8 @@ function EstimatesPageInner() {
 
                   {selectedFenceType === "wood" ? (
                     <>
-                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 lg:col-span-2">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Per-panel add-ons</div>
-                        <div className="text-[11px] text-[var(--muted)]">
-                          Adds items as qty-per-panel × (Σ ceil(segment / center)).
-                        </div>
 
                         <div className="mt-2 grid grid-cols-12 gap-2 items-end">
                           <div className="col-span-12">
@@ -9124,48 +9121,45 @@ function EstimatesPageInner() {
                       {selectedFenceType === "wood" ? (
                         <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Wood material set</div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <div className="text-[11px] text-[var(--muted)] mb-1">Material set</div>
-                              <Select
-                                value={materialsDetails.woodType}
-                                onChange={(e) => {
-                                  const next = e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
-                                  setMaterialsDetails((p) => ({
-                                    ...p,
-                                    woodType: next,
-                                    postType: next,
-                                    railMaterial: next,
-                                    picketMaterial: next,
-                                    trimMaterial: next,
-                                    twoByTwoMaterial: next,
-                                    pictureFrameTrimMaterial: next,
-                                    horizontalCedarBoardMaterial:
-                                      next === "Cedar tone"
-                                        ? "CedarTone"
-                                        : next === "Pressure treated"
-                                          ? "Pressure Treated"
-                                          : (p.horizontalCedarBoardProfile === "1x6" ? "1x6 cedar" : "5/4 cedar"),
-                                    shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
-                                  }));
-                                }}
-                              >
-                                <option value="Pressure treated">Pressure treated</option>
-                                <option value="Cedar">Cedar</option>
-                                <option value="Rough sawn cedar">Rough sawn cedar</option>
-                                <option value="Cedar tone">Cedar tone</option>
-                              </Select>
-                            </div>
-                            <div className="text-[11px] text-[var(--muted)] flex items-end">
-                              Sets posts/rails/pickets/trim/2x2/boards. You can override below.
-                            </div>
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Material set</div>
+                            <Select
+                              value={materialsDetails.woodType}
+                              onChange={(e) => {
+                                const next = e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  woodType: next,
+                                  postType: next,
+                                  railMaterial: next,
+                                  picketMaterial: next,
+                                  trimMaterial: next,
+                                  twoByTwoMaterial: next,
+                                  pictureFrameTrimMaterial: next,
+                                  horizontalCedarBoardMaterial:
+                                    next === "Cedar tone"
+                                      ? "CedarTone"
+                                      : next === "Pressure treated"
+                                        ? "Pressure Treated"
+                                        : (p.horizontalCedarBoardProfile === "1x6" ? "1x6 cedar" : "5/4 cedar"),
+                                  shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
+                                }));
+                              }}
+                            >
+                              <option value="Pressure treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Rough sawn cedar">Rough sawn cedar</option>
+                              <option value="Cedar tone">Cedar tone</option>
+                            </Select>
                           </div>
                         </div>
                       ) : null}
 
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Posts</div>
+                        <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Post</div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Size</div>
                           <Select
                             value={materialsDetails.postDim}
                             onChange={(e) => {
@@ -9195,7 +9189,7 @@ function EstimatesPageInner() {
                             <option value="14">14</option>
                           </Select>
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <div className="text-[11px] text-[var(--muted)] mb-1">Post material</div>
                           <Select
                             value={materialsDetails.postType}
@@ -9214,8 +9208,35 @@ function EstimatesPageInner() {
                         </div>
                       </div>
 
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Extra posts</div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-extrabold">Extra posts</div>
+                          <div className="flex items-center gap-2">
+                            <PrimaryButton
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() => setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1))}
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="min-w-8 text-center font-black">{extraPosts}</div>
+                            <PrimaryButton
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() => setExtraPosts((v) => (Number(v) || 0) + 1)}
+                            >
+                              +
+                            </PrimaryButton>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                       {selectedFenceType === "wood" ? (
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                          <div className="text-[11px] text-[var(--muted)] mb-2">Rails & pickets</div>
+                          <div className="grid grid-cols-2 gap-3">
                           <div>
                             <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
                             <Select
@@ -9253,6 +9274,27 @@ function EstimatesPageInner() {
                             </Select>
                           </div>
                         </div>
+
+                        {selectedFenceType === "wood" &&
+                        selectedStyleKind !== "wood_shadowbox" &&
+                        selectedStyleKind !== "wood_shadowbox_pickets" &&
+                        selectedStyleKind !== "wood_shadowbox_top_cap" &&
+                        selectedStyleKind !== "wood_board_on_board" ? (
+                          <div className="mt-3">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
+                            <Select
+                              value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                              onChange={(e) => {
+                                const n = Number(e.target.value);
+                                setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                              }}
+                            >
+                              <option value="5.5">Standard spacing</option>
+                              <option value="8">2.5" spacing</option>
+                            </Select>
+                          </div>
+                        ) : null}
+                      </div>
                       ) : null}
 
                       {selectedFenceType === "wood" && selectedStyleKind === "wood_split_rail" ? (
@@ -9268,93 +9310,51 @@ function EstimatesPageInner() {
                         </div>
                       ) : null}
 
-                      {selectedFenceType === "wood" &&
-                      selectedStyleKind !== "wood_shadowbox" &&
-                      selectedStyleKind !== "wood_shadowbox_pickets" &&
-                      selectedStyleKind !== "wood_shadowbox_top_cap" &&
-                      selectedStyleKind !== "wood_board_on_board" ? (
-                        <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
-                          <Select
-                            value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
-                            onChange={(e) => {
-                              const n = Number(e.target.value);
-                              setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
-                            }}
-                          >
-                            <option value="5.5">Standard (5.5\")</option>
-                            <option value="8">2.5\" spacing (8\")</option>
-                          </Select>
-                        </div>
-                      ) : null}
                     </>
                   ) : null}
 
-                  <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                    <div className="text-[11px] text-[var(--muted)] mb-2">Add posts</div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-extrabold">Extra posts</div>
-                      <div className="flex items-center gap-2">
-                        <PrimaryButton
-                          data-no-swipe="true"
-                          className="px-3 py-2 text-[12px]"
-                          onClick={() => setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1))}
-                        >
-                          -
-                        </PrimaryButton>
-                        <div className="min-w-8 text-center font-black">{extraPosts}</div>
-                        <PrimaryButton
-                          data-no-swipe="true"
-                          className="px-3 py-2 text-[12px]"
-                          onClick={() => setExtraPosts((v) => (Number(v) || 0) + 1)}
-                        >
-                          +
-                        </PrimaryButton>
-                      </div>
-                    </div>
-                    <div className="mt-1 text-[11px] text-[var(--muted)]">Adds posts to the generated takeoff.</div>
-                  </div>
-
-                  <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                    <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Rail end bracket packs (3 per pack @ $4.50 ea)</div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <PrimaryButton
-                          type="button"
-                          data-no-swipe="true"
-                          className="px-3 py-2 text-[12px]"
-                          onClick={() =>
-                            setMaterialsDetails((p) => ({
-                              ...p,
-                              railEndBracketPacks: Math.max(0, Math.floor(Number(p.railEndBracketPacks) || 0) - 1)
-                            }))
-                          }
-                        >
-                          -
-                        </PrimaryButton>
-                        <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                          {Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0))}
+                  {selectedFenceType === "aluminum" ? (
+                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Rail end bracket packs (3 per pack @ $4.50 ea)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                railEndBracketPacks: Math.max(0, Math.floor(Number(p.railEndBracketPacks) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                railEndBracketPacks: Math.max(0, Math.floor(Number(p.railEndBracketPacks) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
                         </div>
-                        <PrimaryButton
-                          type="button"
-                          data-no-swipe="true"
-                          className="px-3 py-2 text-[12px]"
-                          onClick={() =>
-                            setMaterialsDetails((p) => ({
-                              ...p,
-                              railEndBracketPacks: Math.max(0, Math.floor(Number(p.railEndBracketPacks) || 0) + 1)
-                            }))
-                          }
-                        >
-                          +
-                        </PrimaryButton>
-                      </div>
-                      <div className="mt-1 text-[11px] text-[var(--muted)]">
-                        Total brackets: {Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3}
+                        <div className="mt-1 text-[11px] text-[var(--muted)]">
+                          Total brackets: {Math.max(0, Math.floor(Number(materialsDetails.railEndBracketPacks) || 0)) * 3}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
 
                   {selectedFenceType === "wood" && selectedStyleKind !== "wood_wire_mesh" && selectedStyleKind !== "wood_split_rail" ? (
                     <div className="grid grid-cols-2 gap-3">
@@ -9415,7 +9415,7 @@ function EstimatesPageInner() {
                   ) : null}
 
                   {selectedFenceType === "wood" ? (
-                    <div className="mt-3">
+                    <div>
                       <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
                       <button
                         type="button"
@@ -9595,53 +9595,59 @@ function EstimatesPageInner() {
                     selectedStyleKind === "wood_picture_framed_lattice"
                   ) ? (
                     <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                      <div className="text-[11px] text-[var(--muted)] mb-2">Picture frame trim</div>
-                      <div>
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Trim material</div>
-                        <Select
-                          value={materialsDetails.pictureFrameTrimMaterial}
-                          onChange={(e) =>
-                            setMaterialsDetails((p) => ({
-                              ...p,
-                              pictureFrameTrimMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
-                            }))
-                          }
-                        >
-                          <option value="Pressure treated">Pressure treated</option>
-                          <option value="Cedar">Cedar</option>
-                          <option value="Rough sawn cedar">Rough sawn cedar</option>
-                          <option value="Cedar tone">Cedar tone</option>
-                        </Select>
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Trim</div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Material</div>
+                          <Select
+                            value={materialsDetails.pictureFrameTrimMaterial}
+                            onChange={(e) =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                pictureFrameTrimMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
+                              }))
+                            }
+                          >
+                            <option value="Pressure treated">Pressure treated</option>
+                            <option value="Cedar">Cedar</option>
+                            <option value="Rough sawn cedar">Rough sawn cedar</option>
+                            <option value="Cedar tone">Cedar tone</option>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, pictureFrameTrimPieces: 2 }))}
+                              className={
+                                "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                                (materialsDetails.pictureFrameTrimPieces === 2
+                                  ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                  : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                              }
+                            >
+                              2x
+                            </button>
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, pictureFrameTrimPieces: 3 }))}
+                              className={
+                                "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
+                                (materialsDetails.pictureFrameTrimPieces === 3
+                                  ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                  : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                              }
+                            >
+                              3x
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, pictureFrameTrimPieces: 2 }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
-                            (materialsDetails.pictureFrameTrimPieces === 2
-                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                        >
-                          2x
-                        </button>
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, pictureFrameTrimPieces: 3 }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold " +
-                            (materialsDetails.pictureFrameTrimPieces === 3
-                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                        >
-                          3x
-                        </button>
-                      </div>
-                      <div className="mt-2 text-[11px] text-[var(--muted)]">Controls trim boards: {materialsDetails.pictureFrameTrimPieces} x 1x4x8 per panel.</div>
                     </div>
                   ) : null}
                 </div>
