@@ -2893,7 +2893,9 @@ function EstimatesPageInner() {
 
         // Keep these proportional to the reference sheet (274 LF):
         const screwCount = lf > 0 ? Math.ceil(lf * (50 / 274)) : 0;
-        const useStainlessScrews = materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar";
+        const useStainlessScrews =
+          materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar" ||
+          materialsDetails.horizontalCedarBoardMaterial === "1x6 cedar";
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
         const concrete80Bags = posts * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -8699,126 +8701,6 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {useHorizontalCedarTakeoff ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                          <div className="text-[11px] text-[var(--muted)] mb-1">Height</div>
-                          <Select
-                            value={String(Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6))))}
-                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylPanelHeightFt: Number(e.target.value) }))}
-                            disabled={!selectedStyle}
-                          >
-                            {[4, 5, 6].map((h) => (
-                              <option key={h} value={String(h)}>{h}'</option>
-                            ))}
-                          </Select>
-                        </div>
-                        <div className="text-[11px] text-[var(--muted)] flex items-end">
-                          Boards + posts update with height.
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "5/4" }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                            (materialsDetails.horizontalCedarBoardProfile === "5/4"
-                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.horizontalCedarBoardProfile === "5/4"}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-extrabold">5/4x6x12</div>
-                            <div className="text-[11px] text-[var(--muted)]">Boards</div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "1x6" }))}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                            (materialsDetails.horizontalCedarBoardProfile === "1x6"
-                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-pressed={materialsDetails.horizontalCedarBoardProfile === "1x6"}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-extrabold">1x6x12</div>
-                            <div className="text-[11px] text-[var(--muted)]">Boards</div>
-                          </div>
-                        </button>
-                      </div>
-
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
-                      <button
-                        type="button"
-                        data-no-swipe="true"
-                        onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarVerticals: !p.horizontalCedarVerticals }))}
-                        className={
-                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                          (materialsDetails.horizontalCedarVerticals
-                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                        }
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-extrabold">{materialsDetails.horizontalCedarVerticals ? "On" : "Off"}</div>
-                          <div className="text-[11px] text-[var(--muted)]">Adds boards</div>
-                        </div>
-                      </button>
-                      <div className="mt-2 text-[11px] text-[var(--muted)]">Base includes: .25 boards/panel. Toggle adds: 1 board/corner + .5 boards/post.</div>
-
-                      <div className="mt-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Corners</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) - 1 }))}
-                          >
-                            -
-                          </PrimaryButton>
-                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                            {(Number(materialsDetails.horizontalCedarCornerAdjust) || 0) >= 0 ? "+" : ""}{Number(materialsDetails.horizontalCedarCornerAdjust) || 0}
-                          </div>
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) + 1 }))}
-                          >
-                            +
-                          </PrimaryButton>
-                        </div>
-                        <div className="mt-2 text-[11px] text-[var(--muted)]">Adjusts corners used for takeoff. Default is based on segment count.</div>
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Extra 5/4 boards</div>
-                        <Input
-                          type="tel"
-                          inputMode="numeric"
-                          value={String(Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0)))}
-                          onChange={(e) => {
-                            const n = Math.max(0, Math.floor(Number(e.target.value) || 0));
-                            setMaterialsDetails((p) => ({ ...p, horizontalCedarExtraBoards: n }));
-                          }}
-                          placeholder="0"
-                        />
-                        <div className="mt-2 text-[11px] text-[var(--muted)]">Adds directly to the 5/4x6x12 board quantity.</div>
-                      </div>
-                    </div>
-                  ) : null}
-
                   {selectedStyleKind === "wood_wire_mesh" && String(selectedStyle?.name || "")
                     .trim()
                     .toLowerCase()
@@ -9118,6 +9000,21 @@ function EstimatesPageInner() {
                         ) : null}
                       </div>
 
+                      {useHorizontalCedarTakeoff ? (
+                        <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                          <div className="text-[11px] text-[var(--muted)] mb-2">Height</div>
+                          <Select
+                            value={String(Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6))))}
+                            onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylPanelHeightFt: Number(e.target.value) }))}
+                            disabled={!selectedStyle}
+                          >
+                            {[4, 5, 6].map((h) => (
+                              <option key={h} value={String(h)}>{h}'</option>
+                            ))}
+                          </Select>
+                        </div>
+                      ) : null}
+
                       {selectedFenceType === "wood" ? (
                         <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Wood material set</div>
@@ -9231,70 +9128,195 @@ function EstimatesPageInner() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                      </div>
 
                       {selectedFenceType === "wood" ? (
-                        <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                          <div className="text-[11px] text-[var(--muted)] mb-2">Rails & pickets</div>
-                          <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
-                            <Select
-                              value={materialsDetails.railMaterial}
-                              onChange={(e) =>
-                                setMaterialsDetails((p) => ({
-                                  ...p,
-                                  railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
-                                }))
-                              }
-                            >
-                              <option value="Pressure treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Rough sawn cedar">Rough sawn cedar</option>
-                              <option value="Cedar tone">Cedar tone</option>
-                            </Select>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Pickets</div>
-                            <Select
-                              value={materialsDetails.picketMaterial}
-                              onChange={(e) =>
-                                setMaterialsDetails((p) => ({
-                                  ...p,
-                                  picketMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4" | "Cedar tone"
-                                }))
-                              }
-                            >
-                              <option value="Pressure treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Rough sawn cedar">Rough sawn cedar</option>
-                              <option value="Rough sawn cedar 5/8">Rough sawn cedar (5/8)</option>
-                              <option value="Rough sawn cedar 3/4">Rough sawn cedar (3/4)</option>
-                              <option value="Cedar tone">Cedar tone</option>
-                            </Select>
-                          </div>
-                        </div>
+                        <>
+                          {useHorizontalCedarTakeoff ? (
+                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                              <div className="text-[11px] text-[var(--muted)] mb-2">Rails</div>
+                              <div>
+                                <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
+                                <Select
+                                  value={materialsDetails.railMaterial}
+                                  onChange={(e) =>
+                                    setMaterialsDetails((p) => ({
+                                      ...p,
+                                      railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
+                                    }))
+                                  }
+                                >
+                                  <option value="Pressure treated">Pressure treated</option>
+                                  <option value="Cedar">Cedar</option>
+                                  <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                  <option value="Cedar tone">Cedar tone</option>
+                                </Select>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                              <div className="text-[11px] text-[var(--muted)] mb-2">Rails & pickets</div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
+                                  <Select
+                                    value={materialsDetails.railMaterial}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
+                                      }))
+                                    }
+                                  >
+                                    <option value="Pressure treated">Pressure treated</option>
+                                    <option value="Cedar">Cedar</option>
+                                    <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                    <option value="Cedar tone">Cedar tone</option>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Pickets</div>
+                                  <Select
+                                    value={materialsDetails.picketMaterial}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        picketMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4" | "Cedar tone"
+                                      }))
+                                    }
+                                  >
+                                    <option value="Pressure treated">Pressure treated</option>
+                                    <option value="Cedar">Cedar</option>
+                                    <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                    <option value="Rough sawn cedar 5/8">Rough sawn cedar (5/8)</option>
+                                    <option value="Rough sawn cedar 3/4">Rough sawn cedar (3/4)</option>
+                                    <option value="Cedar tone">Cedar tone</option>
+                                  </Select>
+                                </div>
+                              </div>
 
-                        {selectedFenceType === "wood" &&
-                        selectedStyleKind !== "wood_shadowbox" &&
-                        selectedStyleKind !== "wood_shadowbox_pickets" &&
-                        selectedStyleKind !== "wood_shadowbox_top_cap" &&
-                        selectedStyleKind !== "wood_board_on_board" ? (
-                          <div className="mt-3">
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
-                            <Select
-                              value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
-                              onChange={(e) => {
-                                const n = Number(e.target.value);
-                                setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
-                              }}
-                            >
-                              <option value="5.5">Standard spacing</option>
-                              <option value="8">2.5" spacing</option>
-                            </Select>
-                          </div>
-                        ) : null}
-                      </div>
+                              {selectedFenceType === "wood" &&
+                              selectedStyleKind !== "wood_shadowbox" &&
+                              selectedStyleKind !== "wood_shadowbox_pickets" &&
+                              selectedStyleKind !== "wood_shadowbox_top_cap" &&
+                              selectedStyleKind !== "wood_board_on_board" ? (
+                                <div className="mt-3">
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
+                                  <Select
+                                    value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                                    onChange={(e) => {
+                                      const n = Number(e.target.value);
+                                      setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                                    }}
+                                  >
+                                    <option value="5.5">Standard spacing</option>
+                                    <option value="8">2.5" spacing</option>
+                                  </Select>
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+
+                          {useHorizontalCedarTakeoff ? (
+                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                              <div className="text-[11px] text-[var(--muted)] mb-2">Board profile</div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "5/4" }))}
+                                  className={
+                                    "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
+                                    (materialsDetails.horizontalCedarBoardProfile === "5/4"
+                                      ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                      : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                  }
+                                  aria-pressed={materialsDetails.horizontalCedarBoardProfile === "5/4"}
+                                >
+                                  5/4
+                                </button>
+
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "1x6" }))}
+                                  className={
+                                    "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
+                                    (materialsDetails.horizontalCedarBoardProfile === "1x6"
+                                      ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                      : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                  }
+                                  aria-pressed={materialsDetails.horizontalCedarBoardProfile === "1x6"}
+                                >
+                                  1x6
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {useHorizontalCedarTakeoff ? (
+                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 lg:col-span-2">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
+                                  <button
+                                    type="button"
+                                    data-no-swipe="true"
+                                    onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarVerticals: !p.horizontalCedarVerticals }))}
+                                    className={
+                                      "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
+                                      (materialsDetails.horizontalCedarVerticals
+                                        ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                        : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                    }
+                                    aria-pressed={materialsDetails.horizontalCedarVerticals}
+                                  >
+                                    {materialsDetails.horizontalCedarVerticals ? "On" : "Off"}
+                                  </button>
+                                </div>
+
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Corners</div>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <PrimaryButton
+                                      type="button"
+                                      data-no-swipe="true"
+                                      className="px-3 py-2 text-[12px]"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) - 1 }))}
+                                    >
+                                      -
+                                    </PrimaryButton>
+                                    <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                                      {(Number(materialsDetails.horizontalCedarCornerAdjust) || 0) >= 0 ? "+" : ""}{Number(materialsDetails.horizontalCedarCornerAdjust) || 0}
+                                    </div>
+                                    <PrimaryButton
+                                      type="button"
+                                      data-no-swipe="true"
+                                      className="px-3 py-2 text-[12px]"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarCornerAdjust: (Number(p.horizontalCedarCornerAdjust) || 0) + 1 }))}
+                                    >
+                                      +
+                                    </PrimaryButton>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-3">
+                                <div className="text-[11px] text-[var(--muted)] mb-1">Extra boards</div>
+                                <Input
+                                  type="tel"
+                                  inputMode="numeric"
+                                  value={String(Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0)))}
+                                  onChange={(e) => {
+                                    const n = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                                    setMaterialsDetails((p) => ({ ...p, horizontalCedarExtraBoards: n }));
+                                  }}
+                                  placeholder="0"
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+                        </>
                       ) : null}
 
                       {selectedFenceType === "wood" && selectedStyleKind === "wood_split_rail" ? (
