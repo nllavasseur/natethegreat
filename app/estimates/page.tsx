@@ -9134,23 +9134,60 @@ function EstimatesPageInner() {
                         <>
                           {useHorizontalCedarTakeoff ? (
                             <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                              <div className="text-[11px] text-[var(--muted)] mb-2">Rails</div>
-                              <div>
-                                <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
-                                <Select
-                                  value={materialsDetails.railMaterial}
-                                  onChange={(e) =>
-                                    setMaterialsDetails((p) => ({
-                                      ...p,
-                                      railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
-                                    }))
-                                  }
-                                >
-                                  <option value="Pressure treated">Pressure treated</option>
-                                  <option value="Cedar">Cedar</option>
-                                  <option value="Rough sawn cedar">Rough sawn cedar</option>
-                                  <option value="Cedar tone">Cedar tone</option>
-                                </Select>
+                              <div className="text-[11px] text-[var(--muted)] mb-2">Rails & board profile</div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Rails</div>
+                                  <Select
+                                    value={materialsDetails.railMaterial}
+                                    onChange={(e) =>
+                                      setMaterialsDetails((p) => ({
+                                        ...p,
+                                        railMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
+                                      }))
+                                    }
+                                  >
+                                    <option value="Pressure treated">Pressure treated</option>
+                                    <option value="Cedar">Cedar</option>
+                                    <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                    <option value="Cedar tone">Cedar tone</option>
+                                  </Select>
+                                </div>
+
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Board profile</div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "5/4" }))}
+                                      className={
+                                        "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
+                                        (materialsDetails.horizontalCedarBoardProfile === "5/4"
+                                          ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                      aria-pressed={materialsDetails.horizontalCedarBoardProfile === "5/4"}
+                                    >
+                                      5/4
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "1x6" }))}
+                                      className={
+                                        "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
+                                        (materialsDetails.horizontalCedarBoardProfile === "1x6"
+                                          ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                      aria-pressed={materialsDetails.horizontalCedarBoardProfile === "1x6"}
+                                    >
+                                      1x6
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ) : (
@@ -9216,43 +9253,6 @@ function EstimatesPageInner() {
                               ) : null}
                             </div>
                           )}
-
-                          {useHorizontalCedarTakeoff ? (
-                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
-                              <div className="text-[11px] text-[var(--muted)] mb-2">Board profile</div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <button
-                                  type="button"
-                                  data-no-swipe="true"
-                                  onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "5/4" }))}
-                                  className={
-                                    "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
-                                    (materialsDetails.horizontalCedarBoardProfile === "5/4"
-                                      ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                                      : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                                  }
-                                  aria-pressed={materialsDetails.horizontalCedarBoardProfile === "5/4"}
-                                >
-                                  5/4
-                                </button>
-
-                                <button
-                                  type="button"
-                                  data-no-swipe="true"
-                                  onClick={() => setMaterialsDetails((p) => ({ ...p, horizontalCedarBoardProfile: "1x6" }))}
-                                  className={
-                                    "w-full rounded-xl px-3 py-2 text-[12px] font-extrabold border transition-none " +
-                                    (materialsDetails.horizontalCedarBoardProfile === "1x6"
-                                      ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                                      : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                                  }
-                                  aria-pressed={materialsDetails.horizontalCedarBoardProfile === "1x6"}
-                                >
-                                  1x6
-                                </button>
-                              </div>
-                            </div>
-                          ) : null}
 
                           {useHorizontalCedarTakeoff ? (
                             <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 lg:col-span-2">
