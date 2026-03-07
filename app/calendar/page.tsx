@@ -566,11 +566,9 @@ export default function CalendarPage() {
       if (!cancelled) setBlockOuts(mergedBlocks);
 
       try {
-        const mergedHas = Array.isArray(mergedBlocks) && mergedBlocks.length > 0;
-        if (mergedHas) {
-          const same = JSON.stringify(mergedBlocks) === JSON.stringify(remoteBlocks);
-          if (!same) void upsertBlockOutsRemote(mergedBlocks);
-        }
+        // Always publish blockout changes (including deletions that result in an empty list).
+        const same = JSON.stringify(mergedBlocks) === JSON.stringify(remoteBlocks);
+        if (!same) void upsertBlockOutsRemote(mergedBlocks);
       } catch {
       }
 
