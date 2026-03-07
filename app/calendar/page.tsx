@@ -1059,19 +1059,22 @@ export default function CalendarPage() {
 
   React.useEffect(() => {
     // Auto-lock sold jobs as they reach their start date, unless explicitly unlocked.
+    // This prevents the queue from "rebasing" (sliding forward) for jobs that have effectively started.
     if (!soldQueue.length) return;
-    const j = soldQueue[0];
-    if (!j) return;
-    if ((j as any).queueLocked === false) return;
-    const startIso = String((j as any).installDate || (j as any).startDate || "").slice(0, 10);
-    if (!startIso) return;
-    try {
-      const start = startOfDay(new Date(startIso + "T12:00:00"));
-      if (start.getTime() <= today0.getTime() && (j as any).queueLocked !== true) {
-        setQueueLocked(j.id, true, startIso, j as any);
+    soldQueue.forEach((j) => {
+      if (!j) return;
+      if ((j as any).queueLocked === false) return;
+      if ((j as any).queueLocked === true) return;
+      const startIso = String((j as any).installDate || (j as any).startDate || "").slice(0, 10);
+      if (!startIso) return;
+      try {
+        const start = startOfDay(new Date(startIso + "T12:00:00"));
+        if (start.getTime() <= today0.getTime()) {
+          setQueueLocked(j.id, true, startIso, j as any);
+        }
+      } catch {
       }
-    } catch {
-    }
+    });
   }, [soldQueue, setQueueLocked, today0]);
 
   React.useLayoutEffect(() => {
