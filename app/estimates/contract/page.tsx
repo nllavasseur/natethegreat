@@ -550,6 +550,16 @@ export default function EstimateContractPage() {
             <div className="workText">
               {estimate.notes || "Install fence per estimate details."}
             </div>
+            {sections.labor.length ? (
+              <div style={{ marginTop: 8 }}>
+                {sections.labor.map((r, idx) => (
+                  <div key={idx} className="flex justify-between gap-3" style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.2 }}>
+                    <div style={{ maxWidth: "75%" }}>{r.name}</div>
+                    <div>{money(r.price)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {sections.additional.length ? (
               <div style={{ marginTop: 8 }}>
                 {sections.additional.map((r, idx) => (
