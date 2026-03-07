@@ -987,6 +987,11 @@ function EstimatesPageInner() {
   const [takeoffManualItems, setTakeoffManualItems] = useState<QuoteItem[]>([]);
   const [takeoffManualDraft, setTakeoffManualDraft] = useState(() => ({ desc: "", qty: "", unitPrice: "" }));
 
+  const [takeoffPerPanelAddons, setTakeoffPerPanelAddons] = useState<
+    Array<{ id: string; desc: string; qtyPerPanel: number; unitPrice: number }>
+  >([]);
+  const [takeoffPerPanelDraft, setTakeoffPerPanelDraft] = useState(() => ({ desc: "", qtyPerPanel: "", unitPrice: "" }));
+
   const [saving, setSaving] = useState(false);
   const [savingAsNew, setSavingAsNew] = useState(false);
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
@@ -3831,6 +3836,7 @@ function EstimatesPageInner() {
         ? generatedMaterials
         : (Array.isArray(takeoffMaterialsStable) ? takeoffMaterialsStable : [])),
       takeoffManualItems: (Array.isArray(takeoffManualItems) ? takeoffManualItems : []),
+      takeoffPerPanelAddons: (Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : []),
       totals: {
         materialsSubtotal: Number(takeoffMaterialsAndExpensesTotal) || 0,
         laborSubtotal: Number(laborBaseTotal) || 0,
@@ -4698,8 +4704,61 @@ function EstimatesPageInner() {
   const takeoffMaterialsWithAdditional = useMemo(() => {
     const base = takeoffMaterialsStable;
     const manual = Array.isArray(takeoffManualItems) ? takeoffManualItems : [];
-    return manual.length ? [...base, ...manual] : base;
-  }, [takeoffMaterialsStable, takeoffManualItems]);
+    const addons = Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : [];
+
+    const segmentLengths = segments
+      .filter((s) => !s.removed)
+      .map((s) => Number(s.length) || 0)
+      .filter((n) => n > 0);
+
+    const centerFt = (() => {
+      if (selectedFenceType !== "wood") return null;
+      if (selectedStyleKind === "wood_split_rail") return 10;
+      if (selectedStyleKind === "wood_wire_mesh") {
+        const normalizedWireMeshStyle = String(selectedStyle?.name || "")
+          .trim()
+          .toLowerCase()
+          .replaceAll("/", ":")
+          .replaceAll("-", " ")
+          .replace(/\s+/g, " ");
+        const isFiveQuarterTwoRailMesh = normalizedWireMeshStyle === "5:4 2 rail mesh";
+        return isFiveQuarterTwoRailMesh ? 7.5 : 5.5;
+      }
+      if (useHorizontalCedarTakeoff) return 5.5;
+      return 7.5;
+    })();
+
+    const panels = (() => {
+      const c = Number(centerFt);
+      if (!Number.isFinite(c) || c <= 0) return 0;
+      if (segmentLengths.length) return segmentLengths.reduce((sum, len) => sum + Math.ceil(len / c), 0);
+      const lf = Number(totalLf) || 0;
+      return lf > 0 ? Math.ceil(lf / c) : 0;
+    })();
+
+    const derivedAddonItems: QuoteItem[] = addons
+      .filter((a) => a && typeof a === "object")
+      .filter((a) => String(a.desc || "").trim().length > 0)
+      .filter((a) => panels > 0)
+      .map((a) => {
+        const qtyPerPanel = Number(a.qtyPerPanel) || 0;
+        const unitPrice = Number(a.unitPrice) || 0;
+        const qty = Math.round((qtyPerPanel * panels) * 1000) / 1000;
+        const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+        return {
+          id: String(a.id || ""),
+          section: "materials",
+          name: String(a.desc || ""),
+          qty,
+          unit: "ea",
+          unitPrice,
+          lineTotal
+        } as any;
+      });
+
+    const combined = derivedAddonItems.length ? [...manual, ...derivedAddonItems] : manual;
+    return combined.length ? [...base, ...combined] : base;
+  }, [segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffManualItems, takeoffMaterialsStable, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
 
   const takeoffMaterialsTotal = useMemo(() => {
     const v = takeoffMaterialsWithAdditional.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
@@ -5275,6 +5334,9 @@ function EstimatesPageInner() {
 
     setTakeoffManualItems([]);
     setTakeoffManualDraft({ desc: "", qty: "", unitPrice: "" });
+
+    setTakeoffPerPanelAddons([]);
+    setTakeoffPerPanelDraft({ desc: "", qtyPerPanel: "", unitPrice: "" });
   }
 
 // ...
@@ -5717,6 +5779,13 @@ function EstimatesPageInner() {
         : []
     );
     setTakeoffManualDraft({ desc: "", qty: "", unitPrice: "" });
+
+    setTakeoffPerPanelAddons(
+      Array.isArray((d as any).takeoffPerPanelAddons)
+        ? (((d as any).takeoffPerPanelAddons as any[]) as Array<{ id: string; desc: string; qtyPerPanel: number; unitPrice: number }>).filter((x) => x && typeof x === "object")
+        : []
+    );
+    setTakeoffPerPanelDraft({ desc: "", qtyPerPanel: "", unitPrice: "" });
     setLaborDays(Number(d.laborDays ?? 0));
     setLaborManualDays(String((d as any).laborManualDays ?? ""));
     setLaborManualCost(String((d as any).laborManualCost ?? ""));
@@ -8825,6 +8894,136 @@ function EstimatesPageInner() {
 
                   {selectedFenceType === "wood" ? (
                     <>
+                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Per-panel add-ons</div>
+                        <div className="text-[11px] text-[var(--muted)]">
+                          Adds items as qty-per-panel × (Σ ceil(segment / center)).
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-12 gap-2 items-end">
+                          <div className="col-span-12">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
+                            <Input
+                              value={takeoffPerPanelDraft.desc}
+                              onChange={(e) => setTakeoffPerPanelDraft((p) => ({ ...p, desc: e.target.value }))}
+                              placeholder="Description"
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Qty / panel</div>
+                            <Input
+                              type="tel"
+                              inputMode="decimal"
+                              value={takeoffPerPanelDraft.qtyPerPanel}
+                              onChange={(e) => setTakeoffPerPanelDraft((p) => ({ ...p, qtyPerPanel: e.target.value }))}
+                              placeholder="0"
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
+                            <Input
+                              type="tel"
+                              inputMode="decimal"
+                              value={takeoffPerPanelDraft.unitPrice}
+                              onChange={(e) => setTakeoffPerPanelDraft((p) => ({ ...p, unitPrice: e.target.value }))}
+                              placeholder="$"
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <div className="text-[11px] text-[var(--muted)] mb-1"> </div>
+                            <PrimaryButton
+                              data-no-swipe="true"
+                              className="w-full px-3 py-2 text-[12px]"
+                              onClick={() => {
+                                const desc = String(takeoffPerPanelDraft.desc || "").trim();
+                                if (!desc) return;
+                                const qtyPerPanel = Number(String(takeoffPerPanelDraft.qtyPerPanel || "").trim());
+                                const unitPrice = Number(String(takeoffPerPanelDraft.unitPrice || "").trim());
+                                const safeQtyPerPanel = Number.isFinite(qtyPerPanel) ? qtyPerPanel : 0;
+                                const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+                                const id =
+                                  typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+                                    ? (crypto as any).randomUUID()
+                                    : `pp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                                setTakeoffPerPanelAddons((prev) => [
+                                  ...(Array.isArray(prev) ? prev : []),
+                                  { id, desc, qtyPerPanel: safeQtyPerPanel, unitPrice: safeUnitPrice }
+                                ]);
+                                setTakeoffPerPanelDraft({ desc: "", qtyPerPanel: "", unitPrice: "" });
+                              }}
+                            >
+                              Add
+                            </PrimaryButton>
+                          </div>
+                        </div>
+
+                        {(Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : []).length ? (
+                          <div className="mt-2 grid gap-2">
+                            {(Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : []).map((a, ai) => (
+                              <div
+                                key={String((a as any).id || ai)}
+                                className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-sm font-extrabold truncate min-w-0">{String((a as any).desc || "")}</div>
+                                  <SecondaryButton
+                                    data-no-swipe="true"
+                                    className="px-3 py-2 text-[12px]"
+                                    onClick={() => setTakeoffPerPanelAddons((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== ai))}
+                                  >
+                                    Delete
+                                  </SecondaryButton>
+                                </div>
+                                <div className="mt-1 grid grid-cols-12 gap-2 items-end">
+                                  <div className="col-span-12">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
+                                    <Input
+                                      value={String((a as any).desc || "")}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        setTakeoffPerPanelAddons((prev) =>
+                                          (Array.isArray(prev) ? prev : []).map((row, i) => (i === ai ? ({ ...(row as any), desc: v } as any) : row))
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="col-span-6">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Qty / panel</div>
+                                    <Input
+                                      type="tel"
+                                      inputMode="decimal"
+                                      value={String((a as any).qtyPerPanel ?? "")}
+                                      onChange={(e) => {
+                                        const qtyPerPanel = Number(String(e.target.value || "").trim());
+                                        const safe = Number.isFinite(qtyPerPanel) ? qtyPerPanel : 0;
+                                        setTakeoffPerPanelAddons((prev) =>
+                                          (Array.isArray(prev) ? prev : []).map((row, i) => (i === ai ? ({ ...(row as any), qtyPerPanel: safe } as any) : row))
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="col-span-6">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
+                                    <Input
+                                      type="tel"
+                                      inputMode="decimal"
+                                      value={String((a as any).unitPrice ?? "")}
+                                      onChange={(e) => {
+                                        const unitPrice = Number(String(e.target.value || "").trim());
+                                        const safe = Number.isFinite(unitPrice) ? unitPrice : 0;
+                                        setTakeoffPerPanelAddons((prev) =>
+                                          (Array.isArray(prev) ? prev : []).map((row, i) => (i === ai ? ({ ...(row as any), unitPrice: safe } as any) : row))
+                                        );
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
                       {selectedFenceType === "wood" ? (
                         <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Wood material set</div>

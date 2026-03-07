@@ -420,6 +420,7 @@ export default function EstimateContractPage() {
   const subtotal = totals.materialsSubtotal + totals.laborSubtotal + totals.additionalSubtotal;
   const totalLf = Number(estimate.totalLf ?? sections.labor?.[0]?.qty ?? 0);
   const removalTotal = Number(totals.removalTotal ?? 0);
+  const installationTotal = Math.round((Number(totals.laborSubtotal || 0) + Number(totals.additionalSubtotal || 0)) * 100) / 100;
   const gateCount =
     (Number(estimate.walkGateCount ?? 0) || 0) + (Number(estimate.doubleGateCount ?? 0) || 0);
   const sharedLf = Number(estimate.sharedLf ?? 0);
@@ -549,8 +550,18 @@ export default function EstimateContractPage() {
             <div className="workText">
               {estimate.notes || "Install fence per estimate details."}
             </div>
+            {sections.additional.length ? (
+              <div style={{ marginTop: 8 }}>
+                {sections.additional.map((r, idx) => (
+                  <div key={idx} className="flex justify-between gap-3" style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.2 }}>
+                    <div style={{ maxWidth: "75%" }}>{r.name}</div>
+                    <div>{money(r.price)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
-          <div className="workPrice">{money(totals.laborSubtotal)}</div>
+          <div className="workPrice">{money(installationTotal)}</div>
         </section>
 
         <section className="workBlock">
