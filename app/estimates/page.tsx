@@ -6859,10 +6859,10 @@ function EstimatesPageInner() {
                                         <div className="text-sm font-extrabold truncate min-w-0">{String((m as any).name || "")}</div>
                                         <SecondaryButton
                                           data-no-swipe="true"
-                                          className="px-3 py-2 text-[12px]"
+                                          className="px-3 py-2 text-[12px] !border-[rgba(255,80,80,.55)] !bg-[rgba(255,80,80,.22)] !text-white"
                                           onClick={() => setTakeoffManualItems((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== mi))}
                                         >
-                                          Delete
+                                          ✕
                                         </SecondaryButton>
                                       </div>
                                       <div className="mt-1 grid grid-cols-12 gap-2 items-end">
@@ -9059,16 +9059,16 @@ function EstimatesPageInner() {
                             {(Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : []).map((a, ai) => (
                               <div
                                 key={String((a as any).id || ai)}
-                                className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
+                                className="rounded-2xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2"
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="text-sm font-extrabold truncate min-w-0">{String((a as any).desc || "")}</div>
                                   <SecondaryButton
                                     data-no-swipe="true"
-                                    className="px-3 py-2 text-[12px]"
+                                    className="px-3 py-2 text-[12px] !border-[rgba(255,80,80,.55)] !bg-[rgba(255,80,80,.22)] !text-white"
                                     onClick={() => setTakeoffPerPanelAddons((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== ai))}
                                   >
-                                    Delete
+                                    ✕
                                   </SecondaryButton>
                                 </div>
                                 <div className="mt-1 grid grid-cols-12 gap-2 items-end">
