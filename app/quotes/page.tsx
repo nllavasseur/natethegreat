@@ -976,7 +976,7 @@ export default function QuotesPage() {
                     statusCardClass(stackStatus as any)
                   }
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <div className="min-w-0">
                       <div className="text-sm font-extrabold truncate">{stack.label}</div>
                       <div className="text-[11px] text-[var(--muted)]">
@@ -984,7 +984,16 @@ export default function QuotesPage() {
                         {expanded ? " · Tap to collapse" : " · Tap to expand"}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex items-center justify-center">
+                      {statusFilter === "sold" && stackStatus === "sold" && stackStartDate ? (
+                        <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
+                          {stackStartDate}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
                       {stackStatus === "sold" && hasIncompleteTasks ? (
                         <div className="relative" aria-label="Incomplete tasks" title="Incomplete tasks">
                           <span className="h-3 w-3 rounded-full bg-[rgba(255,80,80,.95)] animate-pulse block" />
@@ -997,14 +1006,6 @@ export default function QuotesPage() {
                       ) : null}
                     </div>
                   </div>
-
-                  {statusFilter === "sold" && stackStatus === "sold" && stackStartDate ? (
-                    <div className="mt-2 grid place-items-center">
-                      <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
-                        {stackStartDate}
-                      </div>
-                    </div>
-                  ) : null}
                 </button>
 
                 {expanded
