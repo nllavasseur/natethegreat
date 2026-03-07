@@ -7808,7 +7808,7 @@ function EstimatesPageInner() {
 
                 <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {selectedFenceType === "aluminum" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Aluminum details</div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -8347,7 +8347,7 @@ function EstimatesPageInner() {
                       </div>
                     </div>
                   ) : selectedFenceType === "vinyl" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Vinyl details</div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -8603,7 +8603,7 @@ function EstimatesPageInner() {
                   ) : null}
 
                   {selectedStyleKind === "wood_four_rail_poplar" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Four rail poplar</div>
 
                       <div>
@@ -8672,7 +8672,7 @@ function EstimatesPageInner() {
                   ) : null}
 
                   {selectedStyleKind === "wood_4_rail_wire_mesh" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">4 rail wire mesh</div>
 
                       <div>
@@ -8746,7 +8746,7 @@ function EstimatesPageInner() {
                     .replaceAll("/", ":")
                     .replaceAll("-", " ")
                     .replace(/\s+/g, " ") === "5:4 2 rail mesh" ? (
-                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                         <div className="text-[11px] text-[var(--muted)] mb-2">5:4 2 rail mesh</div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -8801,7 +8801,7 @@ function EstimatesPageInner() {
                     .replaceAll("/", ":")
                     .replaceAll("-", " ")
                     .replace(/\s+/g, " ") !== "5:4 2 rail mesh" ? (
-                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Wire mesh</div>
 
                         <div className="grid grid-cols-2 gap-3">
@@ -8912,7 +8912,7 @@ function EstimatesPageInner() {
 
                   {selectedFenceType === "wood" ? (
                     <>
-                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 lg:col-span-2">
+                      <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3 lg:col-span-2">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Per-panel add-ons</div>
 
                         <div className="mt-2 grid grid-cols-12 gap-2 items-end">
@@ -9040,7 +9040,7 @@ function EstimatesPageInner() {
                       </div>
 
                       {useHorizontalCedarTakeoff ? (
-                        <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Height</div>
                           <Select
                             value={String(Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6))))}
@@ -9055,7 +9055,7 @@ function EstimatesPageInner() {
                       ) : null}
 
                       {selectedFenceType === "wood" ? (
-                        <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                        <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Wood material set</div>
                           <div>
                             <div className="text-[11px] text-[var(--muted)] mb-1">Material set</div>
@@ -9091,7 +9091,7 @@ function EstimatesPageInner() {
                         </div>
                       ) : null}
 
-                      <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Posts</div>
                         <div className="grid grid-cols-3 gap-3">
                         <div>
@@ -9186,7 +9186,7 @@ function EstimatesPageInner() {
                       {selectedFenceType === "wood" ? (
                         <>
                           {useHorizontalCedarTakeoff ? (
-                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                            <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                               <div className="text-[11px] text-[var(--muted)] mb-2">Rails & board profile</div>
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -9244,7 +9244,7 @@ function EstimatesPageInner() {
                               </div>
                             </div>
                           ) : (
-                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                            <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3">
                               <div className="text-[11px] text-[var(--muted)] mb-2">Rails & pickets</div>
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
@@ -9308,7 +9308,7 @@ function EstimatesPageInner() {
                           )}
 
                           {useHorizontalCedarTakeoff ? (
-                            <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 lg:col-span-2">
+                            <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3 lg:col-span-2">
                               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                                 <div>
                                   <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
