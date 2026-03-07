@@ -236,6 +236,7 @@ type MaterialsDetails = {
   woodType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
+  picketSpacingIn: 5.5 | 8;
   trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   horizontalCedarBoardProfile: "5/4" | "1x6";
@@ -298,6 +299,7 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   woodType: "Pressure treated",
   railMaterial: "Pressure treated",
   picketMaterial: "Pressure treated",
+  picketSpacingIn: 5.5,
   trimMaterial: "Pressure treated",
   twoByTwoMaterial: "Pressure treated",
   horizontalCedarBoardProfile: "5/4",
@@ -1073,6 +1075,7 @@ function EstimatesPageInner() {
       Boolean(materialsDetails.arbor) ||
       String(materialsDetails.railMaterial || "Pressure treated") !== "Pressure treated" ||
       String(materialsDetails.picketMaterial || "Pressure treated") !== "Pressure treated" ||
+      (Number((materialsDetails as any).picketSpacingIn) || 5.5) !== 5.5 ||
       String(materialsDetails.trimMaterial || "Pressure treated") !== "Pressure treated" ||
       String(materialsDetails.twoByTwoMaterial || "Pressure treated") !== "Pressure treated" ||
       String(materialsDetails.shadowboxBoardMaterial || "Pressure Treated") !== "Pressure Treated" ||
@@ -2212,6 +2215,7 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_shadowbox_top_cap") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
+      const picketSpacingIn = 8;
       const segmentLengths = segments
         .filter((s) => !s.removed)
         .map((s) => Number(s.length) || 0)
@@ -2235,8 +2239,8 @@ function EstimatesPageInner() {
 
       // Pickets: (lf inches / 8) * 2
       const pickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / 8) * 2) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / picketSpacingIn) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -2350,6 +2354,7 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_scalloped") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
+      const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : 5.5) as 5.5 | 8;
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
       // 7.5' centers.
@@ -2366,8 +2371,8 @@ function EstimatesPageInner() {
       const railsPerPanel = heightFt <= 4 ? 2 : 3;
       const rails2x4x8 = panels * railsPerPanel;
 
-      // Pickets stay the same as standard privacy: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
-      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0;
+      // Pickets: ceil(totalLf * 12 / spacing) + 15 pickets per every 100ft
+      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -2488,6 +2493,7 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_shadowbox_pickets") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
+      const picketSpacingIn = 8;
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
       // 7.5' centers.
@@ -2506,8 +2512,8 @@ function EstimatesPageInner() {
 
       // Pickets: use the prior shadowbox math, but output as pickets (not 1x4 boards)
       const pickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / 8) * 2) : 0);
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / picketSpacingIn) * 2), 0)
+        : (lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -2935,6 +2941,8 @@ function EstimatesPageInner() {
       const isPictureFramed = isPictureFramedFamily;
       const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
 
+      const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : 5.5) as 5.5 | 8;
+
       const panels = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
@@ -2974,13 +2982,13 @@ function EstimatesPageInner() {
           : 0;
 
       // Pickets
-      // Standard: ceil(totalLf * 12 / 5.5) + 15 pickets per every 100ft
+      // Standard: ceil(totalLf * 12 / spacing) + 15 pickets per every 100ft
       // Board-on-board: sum( ceil((segment inches / 8) * 2) )
       const pickets = isBoardOnBoard
         ? (segmentLengths.length
             ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
             : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0))
-        : (totalLf > 0 ? Math.ceil((totalLf * 12) / 5.5) + Math.floor(totalLf / 100) * 15 : 0);
+        : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0);
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -9167,6 +9175,26 @@ function EstimatesPageInner() {
                           >
                             <option value="Pressure treated">Pressure treated</option>
                             <option value="Cedar tone">Cedar tone</option>
+                          </Select>
+                        </div>
+                      ) : null}
+
+                      {selectedFenceType === "wood" &&
+                      selectedStyleKind !== "wood_shadowbox" &&
+                      selectedStyleKind !== "wood_shadowbox_pickets" &&
+                      selectedStyleKind !== "wood_shadowbox_top_cap" &&
+                      selectedStyleKind !== "wood_board_on_board" ? (
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
+                          <Select
+                            value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                            onChange={(e) => {
+                              const n = Number(e.target.value);
+                              setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                            }}
+                          >
+                            <option value="5.5">Standard (5.5\")</option>
+                            <option value="8">2.5\" spacing (8\")</option>
                           </Select>
                         </div>
                       ) : null}
