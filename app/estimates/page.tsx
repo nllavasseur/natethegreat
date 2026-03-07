@@ -4695,28 +4695,11 @@ function EstimatesPageInner() {
     return Math.round(v * 100) / 100;
   }, [items]);
 
-  const additionalServicesAsMaterials = useMemo(() => {
-    return items
-      .filter((i) => i.section === "additional")
-      .filter((i) => (Number(i.qty) || 0) > 0)
-      .filter((i) => (Number(i.lineTotal) || 0) !== 0)
-      .map((i) => ({
-        section: "materials" as const,
-        name: String(i.name || "").trim() || "Additional service",
-        qty: Number(i.qty) || 0,
-        unit: String(i.unit || "ea"),
-        unitPrice: Number(i.unitPrice) || 0,
-        lineTotal: Number(i.lineTotal) || 0
-      }));
-  }, [items]);
-
   const takeoffMaterialsWithAdditional = useMemo(() => {
-    const base = !additionalServicesAsMaterials.length
-      ? takeoffMaterialsStable
-      : [...takeoffMaterialsStable, ...additionalServicesAsMaterials];
+    const base = takeoffMaterialsStable;
     const manual = Array.isArray(takeoffManualItems) ? takeoffManualItems : [];
     return manual.length ? [...base, ...manual] : base;
-  }, [additionalServicesAsMaterials, takeoffMaterialsStable, takeoffManualItems]);
+  }, [takeoffMaterialsStable, takeoffManualItems]);
 
   const takeoffMaterialsTotal = useMemo(() => {
     const v = takeoffMaterialsWithAdditional.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
