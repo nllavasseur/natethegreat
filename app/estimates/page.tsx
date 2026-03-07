@@ -4768,6 +4768,59 @@ function EstimatesPageInner() {
     return combined.length ? [...base, ...combined] : base;
   }, [segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffManualItems, takeoffMaterialsStable, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
 
+  const takeoffPerPanelAddonItems = useMemo(() => {
+    const addons = Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : [];
+    const segmentLengths = segments
+      .filter((s) => !s.removed)
+      .map((s) => Number(s.length) || 0)
+      .filter((n) => n > 0);
+
+    const centerFt = (() => {
+      if (selectedFenceType !== "wood") return null;
+      if (selectedStyleKind === "wood_split_rail") return 10;
+      if (selectedStyleKind === "wood_wire_mesh") {
+        const normalizedWireMeshStyle = String(selectedStyle?.name || "")
+          .trim()
+          .toLowerCase()
+          .replaceAll("/", ":")
+          .replaceAll("-", " ")
+          .replace(/\s+/g, " ");
+        const isFiveQuarterTwoRailMesh = normalizedWireMeshStyle === "5:4 2 rail mesh";
+        return isFiveQuarterTwoRailMesh ? 7.5 : 5.5;
+      }
+      if (useHorizontalCedarTakeoff) return 5.5;
+      return 7.5;
+    })();
+
+    const panels = (() => {
+      const c = Number(centerFt);
+      if (!Number.isFinite(c) || c <= 0) return 0;
+      if (segmentLengths.length) return segmentLengths.reduce((sum, len) => sum + Math.ceil(len / c), 0);
+      const lf = Number(totalLf) || 0;
+      return lf > 0 ? Math.ceil(lf / c) : 0;
+    })();
+
+    return addons
+      .filter((a) => a && typeof a === "object")
+      .filter((a) => String(a.desc || "").trim().length > 0)
+      .filter(() => panels > 0)
+      .map((a) => {
+        const qtyPerPanel = Number(a.qtyPerPanel) || 0;
+        const unitPrice = Number(a.unitPrice) || 0;
+        const qty = Math.round((qtyPerPanel * panels) * 1000) / 1000;
+        const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+        return {
+          id: String(a.id || ""),
+          section: "materials",
+          name: String(a.desc || ""),
+          qty,
+          unit: "ea",
+          unitPrice,
+          lineTotal
+        } as any;
+      });
+  }, [segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
+
   const takeoffMaterialsTotal = useMemo(() => {
     const v = takeoffMaterialsWithAdditional.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
     return Math.round(v * 100) / 100;
@@ -6866,6 +6919,42 @@ function EstimatesPageInner() {
                                               );
                                             }}
                                           />
+                                        </div>
+                                        <div className="col-span-4">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Total</div>
+                                          <div className="rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.12)] text-right font-black">
+                                            {money(Number((m as any).lineTotal) || 0)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+
+                              {(Array.isArray(takeoffPerPanelAddonItems) ? takeoffPerPanelAddonItems : []).length ? (
+                                <div className="grid gap-2">
+                                  {(Array.isArray(takeoffPerPanelAddonItems) ? takeoffPerPanelAddonItems : []).map((m, mi) => (
+                                    <div
+                                      key={String((m as any).id || `addon-${mi}`)}
+                                      className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="text-sm font-extrabold truncate min-w-0">{String((m as any).name || "")}</div>
+                                        <div className="text-sm font-black">{money(Number((m as any).lineTotal) || 0)}</div>
+                                      </div>
+                                      <div className="mt-1 grid grid-cols-12 gap-2 items-end">
+                                        <div className="col-span-4">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
+                                          <div className="rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.12)]">
+                                            {Number((m as any).qty) || 0} {String((m as any).unit || "")}
+                                          </div>
+                                        </div>
+                                        <div className="col-span-4">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
+                                          <div className="rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.12)] text-right font-black">
+                                            {money(Number((m as any).unitPrice) || 0)}
+                                          </div>
                                         </div>
                                         <div className="col-span-4">
                                           <div className="text-[11px] text-[var(--muted)] mb-1">Total</div>
