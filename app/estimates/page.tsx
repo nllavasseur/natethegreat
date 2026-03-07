@@ -859,6 +859,7 @@ function EstimatesPageInner() {
     selectedStyle: { name: string; thumb: string } | null;
     materialsDetails: MaterialsDetails;
     extraPosts: number;
+    extraPostSize?: number;
     shared?: boolean;
   };
 
@@ -870,6 +871,7 @@ function EstimatesPageInner() {
   const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
+  const [extraPostSize, setExtraPostSize] = useState<number>(10);
 
   const initialComboCardId =
     typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
@@ -883,6 +885,7 @@ function EstimatesPageInner() {
       selectedStyle: null,
       materialsDetails: DEFAULT_MATERIALS_DETAILS,
       extraPosts: 0,
+      extraPostSize: 10,
       shared: false
     }
   ]);
@@ -898,12 +901,13 @@ function EstimatesPageInner() {
               vinylStyleTab,
               selectedStyle,
               materialsDetails,
-              extraPosts
+              extraPosts,
+              extraPostSize
             }
           : c
       )
     );
-  }, [activeComboCardId, extraPosts, materialsDetails, selectedFenceType, selectedStyle, vinylStyleTab]);
+  }, [activeComboCardId, extraPostSize, extraPosts, materialsDetails, selectedFenceType, selectedStyle, vinylStyleTab]);
 
   useEffect(() => {
     const card = comboCards.find((c) => c.id === activeComboCardId);
@@ -913,6 +917,8 @@ function EstimatesPageInner() {
     if ((card.selectedStyle?.name || "") !== (selectedStyle?.name || "")) setSelectedStyle(card.selectedStyle);
     if (card.materialsDetails !== materialsDetails) setMaterialsDetails(card.materialsDetails);
     if ((Number(card.extraPosts) || 0) !== (Number(extraPosts) || 0)) setExtraPosts(Number(card.extraPosts) || 0);
+    const nextExtraPostSize = Number((card as any).extraPostSize);
+    if (Number.isFinite(nextExtraPostSize) && nextExtraPostSize > 0 && nextExtraPostSize !== extraPostSize) setExtraPostSize(nextExtraPostSize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeComboCardId]);
 
@@ -2032,6 +2038,8 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_wire_mesh") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
+      const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
+      const extraPostSizeSafe = ([8, 10, 12, 14] as const).includes(extraPostSize as any) ? (extraPostSize as 8 | 10 | 12 | 14) : 10;
       const segmentLengths = segments
         .filter((s) => !s.removed)
         .map((s) => Number(s.length) || 0)
@@ -2050,7 +2058,8 @@ function EstimatesPageInner() {
         const postsBase = segmentLengths.length
           ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
           : (lf > 0 ? Math.max(2, Math.ceil(lf / 7.5) + 1) : 0);
-        const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+        const postsFence = Math.max(0, postsBase + gatePostsAdd);
+        const posts = postsFence;
 
         const panels = segmentLengths.length
           ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
@@ -2066,8 +2075,8 @@ function EstimatesPageInner() {
           : (lf > 0 ? Math.ceil((lf / 15) * 3) : 0);
 
         // Verticals: +1/3 board per post (toggle) + 1 per corner (toggle)
-        const verticalBoards = materialsDetails.fiveQuarterTwoRailMeshVerticals && posts > 0
-          ? Math.ceil(posts * (1 / 3))
+        const verticalBoards = materialsDetails.fiveQuarterTwoRailMeshVerticals && postsFence > 0
+          ? Math.ceil(postsFence * (1 / 3))
           : 0;
 
         // Cedar S4S: 2x 2x4x8 per panel
@@ -2082,13 +2091,14 @@ function EstimatesPageInner() {
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
 
         // Staples: 10 per post
-        const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
+        const staples = postsFence > 0 ? Math.ceil(postsFence * 10) : 0;
         const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
-        const concrete80Bags = posts * 2;
+        const concrete80Bags = postsFence * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
         const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+        const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
 
         const fiveQuarterRailName =
           materialsDetails.railMaterial === "Cedar tone"
@@ -2103,7 +2113,8 @@ function EstimatesPageInner() {
         const picketName = woodPicketName(materialsDetails.picketMaterial);
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
-          { name: postName, qty: posts, unit: "ea" },
+          { name: postName, qty: postsFence, unit: "ea" },
+          ...(extraPostsQty > 0 ? [{ name: extraPostName, qty: extraPostsQty, unit: "ea" }] : []),
           ...(rails5_4 > 0 ? [{ name: fiveQuarterRailName, qty: rails5_4, unit: "ea" }] : []),
           ...(verticalBoards + cornerCount > 0 ? [{ name: fiveQuarterVerticalName, qty: verticalBoards + cornerCount, unit: "ea" }] : []),
           ...(cedarS4SRails2x4x8 > 0 ? [{ name: rail8Name, qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
@@ -2112,7 +2123,7 @@ function EstimatesPageInner() {
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "Stainless screws", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
-          ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+          ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: postsFence, unit: "ea" }] : []),
           ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
@@ -2146,7 +2157,7 @@ function EstimatesPageInner() {
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0) + 1
         : (lf > 0 ? Math.max(2, Math.ceil(lf / 5.5) + 1) : 0);
-      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+      const postsFence = Math.max(0, postsBase + gatePostsAdd);
 
       const panels = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0)
@@ -2161,7 +2172,7 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 12) * 4), 0)
         : (lf > 0 ? Math.ceil((lf / 12) * 4) : 0);
 
-      const verticalDefault = posts > 0 ? Math.ceil(posts * (1 / 3)) : 0;
+      const verticalDefault = postsFence > 0 ? Math.ceil(postsFence * (1 / 3)) : 0;
       const verticalOverride = Number(materialsDetails.wireMeshVerticalBoardsOverride);
       const verticalBoards = Number.isFinite(verticalOverride) && verticalOverride >= 0 ? Math.floor(verticalOverride) : verticalDefault;
       const boards = boardsBase + verticalBoards + cornerCount;
@@ -2174,26 +2185,28 @@ function EstimatesPageInner() {
       const nailsName = "2\" Nails 2000ct Hot-Dipped Galvanized Ring Shank Nails";
 
       // Staples: 10 per post
-      const staples = posts > 0 ? Math.ceil(posts * 10) : 0;
+      const staples = postsFence > 0 ? Math.ceil(postsFence * 10) : 0;
       const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
-      const concrete80Bags = posts * 2;
+      const concrete80Bags = postsFence * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+      const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
 
       const boardsName = woodBoard1x6x12Name(materialsDetails.railMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        { name: postName, qty: posts, unit: "ea" },
+        { name: postName, qty: postsFence, unit: "ea" },
+        ...(extraPostsQty > 0 ? [{ name: extraPostName, qty: extraPostsQty, unit: "ea" }] : []),
         { name: boardsName, qty: boards, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
-        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: postsFence, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
@@ -2845,7 +2858,10 @@ function EstimatesPageInner() {
 
       if (useHorizontalCedarTakeoff) {
         const lf = Number(totalLf) || 0;
+        const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
+        const extraPostSizeSafe = ([8, 10, 12, 14] as const).includes(extraPostSize as any) ? (extraPostSize as 8 | 10 | 12 | 14) : 10;
         const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+        const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
         const boardProfile = materialsDetails.horizontalCedarBoardProfile === "1x6" ? "1x6" : "5/4";
         const woodType = (materialsDetails.woodType || "Pressure treated") as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
         const boardName =
@@ -2871,7 +2887,7 @@ function EstimatesPageInner() {
         const postsBase = segmentLengths.length
           ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0) + 1
           : (lf > 0 ? Math.max(2, Math.ceil(lf / 5.5) + 1) : 0);
-        const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+        const postsFence = Math.max(0, postsBase + gatePostsAdd);
 
         const panels = segmentLengths.length
           ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 5.5), 0)
@@ -2883,7 +2899,7 @@ function EstimatesPageInner() {
 
         const baseBoards = panels > 0 ? (panels / 2) * boardsPerPanel : 0;
         const includeVerticals = Boolean(materialsDetails.horizontalCedarVerticals);
-        const verticalBoards = includeVerticals && posts > 0 ? posts * 0.5 : 0;
+        const verticalBoards = includeVerticals && postsFence > 0 ? postsFence * 0.5 : 0;
         const spineBoards = panels > 0 ? panels * 0.25 : 0;
         const cornerBoards = cornerCount;
         const extraBoards = Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0));
@@ -2897,12 +2913,13 @@ function EstimatesPageInner() {
           materialsDetails.horizontalCedarBoardMaterial === "5/4 cedar" ||
           materialsDetails.horizontalCedarBoardMaterial === "1x6 cedar";
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
-        const concrete80Bags = posts * 2;
+        const concrete80Bags = postsFence * 2;
         const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
         const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
-          { name: postName, qty: posts, unit: "ea" },
+          { name: postName, qty: postsFence, unit: "ea" },
+          ...(extraPostsQty > 0 ? [{ name: extraPostName, qty: extraPostsQty, unit: "ea" }] : []),
           { name: boardName, qty: boards, unit: "ea" },
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
@@ -2949,11 +2966,14 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (totalLf > 0 ? Math.ceil(totalLf / 7.5) : 0);
 
+      const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
+      const extraPostSizeSafe = ([8, 10, 12, 14] as const).includes(extraPostSize as any) ? (extraPostSize as 8 | 10 | 12 | 14) : 10;
+
       // Posts = ceil(segment/7.5) for each segment + 1 for first segment
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
         : (totalLf > 0 ? Math.max(2, Math.ceil(totalLf / 7.5) + 1) : 0);
-      const posts = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+      const postsFence = Math.max(0, postsBase + gatePostsAdd);
 
       // Rails for picture-framed family styles (7.5' centers) are style-specific.
       // Assumption from you: styles will have either topCaps OR postCaps on.
@@ -2992,7 +3012,7 @@ function EstimatesPageInner() {
             : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0))
         : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0);
 
-      const concrete80Bags = posts * 2;
+      const concrete80Bags = postsFence * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
@@ -3021,9 +3041,11 @@ function EstimatesPageInner() {
       const screwBoxes = railsForScrews > 0 ? Math.ceil((railsForScrews * 6) / 350) : 0;
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+      const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
-        { name: postName, qty: posts, unit: "ea" },
+        { name: postName, qty: postsFence, unit: "ea" },
+        ...(extraPostsQty > 0 ? [{ name: extraPostName, qty: extraPostsQty, unit: "ea" }] : []),
         ...(isPictureFramed
           ? [
             {
@@ -3051,7 +3073,7 @@ function EstimatesPageInner() {
         ...(railEndBracketsQty > 0
           ? [{ name: "Rail end bracket packs", qty: railEndBracketsQty, unit: "ea" }]
           : []),
-        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
+        ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: postsFence, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
         ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
         ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
@@ -5379,6 +5401,7 @@ function EstimatesPageInner() {
     setSelectedStyle(null);
     setMaterialsDetails(DEFAULT_MATERIALS_DETAILS);
     setExtraPosts(0);
+    setExtraPostSize(10);
     setComboCards([
       {
         id: nextComboCardId,
@@ -5387,6 +5410,7 @@ function EstimatesPageInner() {
         selectedStyle: null,
         materialsDetails: DEFAULT_MATERIALS_DETAILS,
         extraPosts: 0,
+        extraPostSize: 10,
         shared: false
       }
     ]);
@@ -5550,8 +5574,10 @@ function EstimatesPageInner() {
             ? ({ ...DEFAULT_MATERIALS_DETAILS, ...(c.materialsDetails as any) } as MaterialsDetails)
             : DEFAULT_MATERIALS_DETAILS;
           const extraPosts = Number(c.extraPosts) || 0;
+          const extraPostSizeRaw = Number((c as any).extraPostSize);
+          const extraPostSize = Number.isFinite(extraPostSizeRaw) ? extraPostSizeRaw : 10;
           const shared = typeof c.shared === "boolean" ? c.shared : false;
-          return { id: cid, fenceType, vinylStyleTab, selectedStyle, materialsDetails, extraPosts, shared };
+          return { id: cid, fenceType, vinylStyleTab, selectedStyle, materialsDetails, extraPosts, extraPostSize, shared };
         });
 
       const normalizedActiveId =
@@ -5569,6 +5595,7 @@ function EstimatesPageInner() {
         setSelectedStyle(active.selectedStyle);
         setMaterialsDetails(active.materialsDetails);
         setExtraPosts(Number(active.extraPosts) || 0);
+        setExtraPostSize(Number.isFinite(Number((active as any).extraPostSize)) ? Number((active as any).extraPostSize) : 10);
       }
     } else {
       const fenceType = (d.selectedFenceType ?? "wood") as "wood" | "vinyl" | "aluminum" | "chainlink";
@@ -5594,6 +5621,7 @@ function EstimatesPageInner() {
             : null
       );
       setExtraPosts(Number((d as any).extraPosts) || 0);
+      setExtraPostSize(Number.isFinite(Number((d as any).extraPostSize)) ? Number((d as any).extraPostSize) : 10);
     }
 
     if (d.materialsDetails && typeof d.materialsDetails === "object") {
@@ -9107,24 +9135,38 @@ function EstimatesPageInner() {
 
                       <div className="mt-3">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Extra posts</div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-extrabold">Extra posts</div>
-                          <div className="flex items-center gap-2">
-                            <PrimaryButton
-                              data-no-swipe="true"
-                              className="px-3 py-2 text-[12px]"
-                              onClick={() => setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1))}
+                        <div className="grid grid-cols-2 gap-3 items-end">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-extrabold">Extra posts</div>
+                            <div className="flex items-center gap-2">
+                              <PrimaryButton
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1))}
+                              >
+                                -
+                              </PrimaryButton>
+                              <div className="min-w-8 text-center font-black">{extraPosts}</div>
+                              <PrimaryButton
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => setExtraPosts((v) => (Number(v) || 0) + 1)}
+                              >
+                                +
+                              </PrimaryButton>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">Extra post height</div>
+                            <Select
+                              value={String(extraPostSize)}
+                              onChange={(e) => setExtraPostSize(Number(e.target.value))}
                             >
-                              -
-                            </PrimaryButton>
-                            <div className="min-w-8 text-center font-black">{extraPosts}</div>
-                            <PrimaryButton
-                              data-no-swipe="true"
-                              className="px-3 py-2 text-[12px]"
-                              onClick={() => setExtraPosts((v) => (Number(v) || 0) + 1)}
-                            >
-                              +
-                            </PrimaryButton>
+                              <option value="8">8</option>
+                              <option value="10">10</option>
+                              <option value="12">12</option>
+                              <option value="14">14</option>
+                            </Select>
                           </div>
                         </div>
                       </div>
