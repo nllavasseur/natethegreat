@@ -940,24 +940,11 @@ export default function QuotesPage() {
 
             const soldTopCard = stack.cards.find((c) => (c as any).status === "sold");
             const stackStartDate = (() => {
-              const scheduledAtRaw = String((soldTopCard as any)?.scheduledAt || "").trim();
-              if (scheduledAtRaw) {
-                const dt = new Date(scheduledAtRaw);
-                if (!Number.isFinite(dt.getTime())) return "";
-                const pad = (n: number) => String(n).padStart(2, "0");
-                return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
-              }
-
-              const dateOnlyRaw = String((soldTopCard as any)?.startDate || (soldTopCard as any)?.installDate || "").trim();
-              if (!dateOnlyRaw) return "";
-
-              // If it's already a yyyy-mm-dd, keep it stable (avoid timezone shifts).
-              if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnlyRaw)) return dateOnlyRaw;
-
-              const dt = new Date(dateOnlyRaw);
-              if (!Number.isFinite(dt.getTime())) return "";
-              const pad = (n: number) => String(n).padStart(2, "0");
-              return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+              // Show the same date field that jobs typically use across the app: installDate (yyyy-mm-dd).
+              // Do not derive from scheduledAt here to avoid timezone-based day shifts.
+              const iso = String((soldTopCard as any)?.installDate || "").trim();
+              if (!iso) return "";
+              return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : "";
             })();
 
             return (
