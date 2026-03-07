@@ -6968,6 +6968,17 @@ function EstimatesPageInner() {
                                     <div
                                       key={String((m as any).id || `addon-${mi}`)}
                                       className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
+                                      style={(() => {
+                                        const idx = comboCards.findIndex((c) => c.id === activeComboCardId);
+                                        const isSharedCard = Boolean(comboCards[idx]?.shared);
+                                        if (isSharedCard) return undefined;
+                                        const accent = comboCardAccent(idx);
+                                        if (!accent) return undefined;
+                                        return {
+                                          borderColor: accent.border,
+                                          backgroundColor: accent.bg
+                                        };
+                                      })()}
                                     >
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="text-sm font-extrabold truncate min-w-0">{String((m as any).name || "")}</div>
