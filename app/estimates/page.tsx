@@ -9298,7 +9298,7 @@ function EstimatesPageInner() {
 
                           {useHorizontalCedarTakeoff ? (
                             <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3 lg:col-span-2">
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                                 <div>
                                   <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
                                   <button
@@ -9341,20 +9341,20 @@ function EstimatesPageInner() {
                                     </PrimaryButton>
                                   </div>
                                 </div>
-                              </div>
 
-                              <div className="mt-3">
-                                <div className="text-[11px] text-[var(--muted)] mb-1">Extra boards</div>
-                                <Input
-                                  type="tel"
-                                  inputMode="numeric"
-                                  value={String(Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0)))}
-                                  onChange={(e) => {
-                                    const n = Math.max(0, Math.floor(Number(e.target.value) || 0));
-                                    setMaterialsDetails((p) => ({ ...p, horizontalCedarExtraBoards: n }));
-                                  }}
-                                  placeholder="0"
-                                />
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Extra boards</div>
+                                  <Input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    value={String(Math.max(0, Math.floor(Number(materialsDetails.horizontalCedarExtraBoards) || 0)))}
+                                    onChange={(e) => {
+                                      const n = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                                      setMaterialsDetails((p) => ({ ...p, horizontalCedarExtraBoards: n }));
+                                    }}
+                                    placeholder="0"
+                                  />
+                                </div>
                               </div>
                             </div>
                           ) : null}
