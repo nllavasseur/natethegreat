@@ -232,9 +232,23 @@ export default function QuoteDetailPage() {
   const materialsUsed = (Number(materialsSubtotal) || 0) - materialsFees;
   const additionalServicesSubtotal = items.filter((i) => i.section === "additional").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);
   const persistedMaterialsAndExpensesTotal = Number((draft as any)?.totals?.materialsSubtotal);
+  const takeoffMaterialsRaw = Array.isArray((draft as any)?.takeoffMaterials) ? (((draft as any).takeoffMaterials as any[]) as QuoteItem[]) : [];
+  const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
+    (i) => i && (i as any).section === "materials"
+  );
+  const takeoffManualRaw = Array.isArray((draft as any)?.takeoffManualItems)
+    ? (((draft as any).takeoffManualItems as any[]) as QuoteItem[])
+    : [];
+  const takeoffManualItems = (Array.isArray(takeoffManualRaw) ? takeoffManualRaw : []).filter(
+    (i) => i && (i as any).section === "materials"
+  );
   const materialsAndExpensesTotal = Number.isFinite(persistedMaterialsAndExpensesTotal)
     ? persistedMaterialsAndExpensesTotal
-    : computeMaterialsAndExpensesTotal(items);
+    : computeMaterialsAndExpensesTotal(
+        (Array.isArray(items) && items.length > 0
+          ? items
+          : ([...takeoffMaterials, ...takeoffManualItems] as QuoteItem[])) as QuoteItem[]
+      );
 
   const laborBaseTotal = items
     .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")

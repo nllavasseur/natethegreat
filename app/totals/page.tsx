@@ -22,6 +22,8 @@ type DraftEntry = {
   allowSaturday?: boolean;
   allowSunday?: boolean;
   items?: QuoteItem[];
+  takeoffMaterials?: QuoteItem[];
+  takeoffManualItems?: QuoteItem[];
 };
 
 function readDraftStore(): Record<string, DraftEntry> {
@@ -352,7 +354,17 @@ export default function TotalsPage() {
       const allowSun = asBool((d as any).allowSunday);
       const seq = workdaySequenceForJob(start, span, allowSat, allowSun);
       const items = Array.isArray((d as any).items) ? ((d as any).items as QuoteItem[]) : [];
-      const jobRow = computeBreakdown(items);
+      const takeoffMaterialsRaw = Array.isArray((d as any).takeoffMaterials)
+        ? (((d as any).takeoffMaterials as any[]) as QuoteItem[])
+        : [];
+      const takeoffManualRaw = Array.isArray((d as any).takeoffManualItems)
+        ? (((d as any).takeoffManualItems as any[]) as QuoteItem[])
+        : [];
+      const itemsForBreakdown =
+        Array.isArray(items) && items.length > 0
+          ? items
+          : ([...takeoffMaterialsRaw, ...takeoffManualRaw] as QuoteItem[]);
+      const jobRow = computeBreakdown(itemsForBreakdown);
       const perDay = scaleRow(jobRow, 1 / Math.max(1, seq.length));
 
       for (const day of seq) {

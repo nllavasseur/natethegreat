@@ -984,6 +984,9 @@ function EstimatesPageInner() {
 
   const [takeoffMaterialsStable, setTakeoffMaterialsStable] = useState<QuoteItem[]>([]);
 
+  const [takeoffManualItems, setTakeoffManualItems] = useState<QuoteItem[]>([]);
+  const [takeoffManualDraft, setTakeoffManualDraft] = useState(() => ({ desc: "", qty: "", unitPrice: "" }));
+
   const [saving, setSaving] = useState(false);
   const [savingAsNew, setSavingAsNew] = useState(false);
   const [saveAsNewJustSaved, setSaveAsNewJustSaved] = useState(false);
@@ -3827,6 +3830,7 @@ function EstimatesPageInner() {
       takeoffMaterials: ((generatedMaterials?.length || 0) > 0
         ? generatedMaterials
         : (Array.isArray(takeoffMaterialsStable) ? takeoffMaterialsStable : [])),
+      takeoffManualItems: (Array.isArray(takeoffManualItems) ? takeoffManualItems : []),
       totals: {
         materialsSubtotal: Number(takeoffMaterialsAndExpensesTotal) || 0,
         laborSubtotal: Number(laborBaseTotal) || 0,
@@ -4707,9 +4711,12 @@ function EstimatesPageInner() {
   }, [items]);
 
   const takeoffMaterialsWithAdditional = useMemo(() => {
-    if (!additionalServicesAsMaterials.length) return takeoffMaterialsStable;
-    return [...takeoffMaterialsStable, ...additionalServicesAsMaterials];
-  }, [additionalServicesAsMaterials, takeoffMaterialsStable]);
+    const base = !additionalServicesAsMaterials.length
+      ? takeoffMaterialsStable
+      : [...takeoffMaterialsStable, ...additionalServicesAsMaterials];
+    const manual = Array.isArray(takeoffManualItems) ? takeoffManualItems : [];
+    return manual.length ? [...base, ...manual] : base;
+  }, [additionalServicesAsMaterials, takeoffMaterialsStable, takeoffManualItems]);
 
   const takeoffMaterialsTotal = useMemo(() => {
     const v = takeoffMaterialsWithAdditional.reduce((sum, m) => sum + (Number((m as any).lineTotal) || 0), 0);
@@ -5282,6 +5289,9 @@ function EstimatesPageInner() {
 
     setTakeoffUnitPriceOverrides({});
     setTakeoffUnitPriceOverrideDrafts({});
+
+    setTakeoffManualItems([]);
+    setTakeoffManualDraft({ desc: "", qty: "", unitPrice: "" });
   }
 
 // ...
@@ -5717,6 +5727,13 @@ function EstimatesPageInner() {
       setTakeoffUnitPriceOverrides({});
     }
     setTakeoffUnitPriceOverrideDrafts({});
+
+    setTakeoffManualItems(
+      Array.isArray((d as any).takeoffManualItems)
+        ? (((d as any).takeoffManualItems as any[]) as QuoteItem[]).filter((x) => x && typeof x === "object")
+        : []
+    );
+    setTakeoffManualDraft({ desc: "", qty: "", unitPrice: "" });
     setLaborDays(Number(d.laborDays ?? 0));
     setLaborManualDays(String((d as any).laborManualDays ?? ""));
     setLaborManualCost(String((d as any).laborManualCost ?? ""));
@@ -6636,6 +6653,172 @@ function EstimatesPageInner() {
                             </div>
                           ) : (
                             <div className="grid gap-2">
+                              <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="text-sm font-extrabold">Manual line items</div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-12 gap-2 items-end">
+                                  <div className="col-span-12">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
+                                    <Input
+                                      value={takeoffManualDraft.desc}
+                                      onChange={(e) => setTakeoffManualDraft((p) => ({ ...p, desc: e.target.value }))}
+                                      placeholder="Description"
+                                    />
+                                  </div>
+                                  <div className="col-span-4">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
+                                    <Input
+                                      type="tel"
+                                      inputMode="decimal"
+                                      value={takeoffManualDraft.qty}
+                                      onChange={(e) => setTakeoffManualDraft((p) => ({ ...p, qty: e.target.value }))}
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                  <div className="col-span-4">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
+                                    <Input
+                                      type="tel"
+                                      inputMode="decimal"
+                                      value={takeoffManualDraft.unitPrice}
+                                      onChange={(e) => setTakeoffManualDraft((p) => ({ ...p, unitPrice: e.target.value }))}
+                                      placeholder="$"
+                                    />
+                                  </div>
+                                  <div className="col-span-4">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Total</div>
+                                    <div className="rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.12)] text-right font-black">
+                                      {money(
+                                        Math.round(
+                                          ((Number(String(takeoffManualDraft.qty || "").trim()) || 0) *
+                                            (Number(String(takeoffManualDraft.unitPrice || "").trim()) || 0)) *
+                                            100
+                                        ) / 100
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="col-span-12">
+                                    <PrimaryButton
+                                      data-no-swipe="true"
+                                      className="w-full px-3 py-2 text-[12px]"
+                                      onClick={() => {
+                                        const desc = String(takeoffManualDraft.desc || "").trim();
+                                        const qty = Number(String(takeoffManualDraft.qty || "").trim());
+                                        const unitPrice = Number(String(takeoffManualDraft.unitPrice || "").trim());
+                                        const safeQty = Number.isFinite(qty) ? qty : 0;
+                                        const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+                                        if (!desc) return;
+                                        const lineTotal = Math.round(safeQty * safeUnitPrice * 100) / 100;
+                                        const id =
+                                          typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+                                            ? (crypto as any).randomUUID()
+                                            : `manual-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                                        setTakeoffManualItems((prev) => [
+                                          ...(Array.isArray(prev) ? prev : []),
+                                          {
+                                            id,
+                                            section: "materials",
+                                            name: desc,
+                                            qty: safeQty,
+                                            unit: "ea",
+                                            unitPrice: safeUnitPrice,
+                                            lineTotal
+                                          } as any
+                                        ]);
+                                        setTakeoffManualDraft({ desc: "", qty: "", unitPrice: "" });
+                                      }}
+                                    >
+                                      Add line item
+                                    </PrimaryButton>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {(Array.isArray(takeoffManualItems) ? takeoffManualItems : []).length ? (
+                                <div className="grid gap-2">
+                                  {(Array.isArray(takeoffManualItems) ? takeoffManualItems : []).map((m, mi) => (
+                                    <div
+                                      key={String((m as any).id || mi)}
+                                      className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="text-sm font-extrabold truncate min-w-0">{String((m as any).name || "")}</div>
+                                        <SecondaryButton
+                                          data-no-swipe="true"
+                                          className="px-3 py-2 text-[12px]"
+                                          onClick={() => setTakeoffManualItems((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== mi))}
+                                        >
+                                          Delete
+                                        </SecondaryButton>
+                                      </div>
+                                      <div className="mt-1 grid grid-cols-12 gap-2 items-end">
+                                        <div className="col-span-12">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
+                                          <Input
+                                            value={String((m as any).name || "")}
+                                            onChange={(e) => {
+                                              const nextName = e.target.value;
+                                              setTakeoffManualItems((prev) =>
+                                                (Array.isArray(prev) ? prev : []).map((row, i) => (i === mi ? ({ ...(row as any), name: nextName } as any) : row))
+                                              );
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="col-span-4">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
+                                          <Input
+                                            type="tel"
+                                            inputMode="decimal"
+                                            value={String((m as any).qty ?? "")}
+                                            onChange={(e) => {
+                                              const raw = e.target.value;
+                                              const qty = Number(String(raw || "").trim());
+                                              setTakeoffManualItems((prev) =>
+                                                (Array.isArray(prev) ? prev : []).map((row, i) => {
+                                                  if (i !== mi) return row;
+                                                  const safeQty = Number.isFinite(qty) ? qty : 0;
+                                                  const unitPrice = Number((row as any).unitPrice) || 0;
+                                                  const lineTotal = Math.round(safeQty * unitPrice * 100) / 100;
+                                                  return { ...(row as any), qty: safeQty, lineTotal } as any;
+                                                })
+                                              );
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="col-span-4">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
+                                          <Input
+                                            type="tel"
+                                            inputMode="decimal"
+                                            value={String((m as any).unitPrice ?? "")}
+                                            onChange={(e) => {
+                                              const raw = e.target.value;
+                                              const unitPrice = Number(String(raw || "").trim());
+                                              setTakeoffManualItems((prev) =>
+                                                (Array.isArray(prev) ? prev : []).map((row, i) => {
+                                                  if (i !== mi) return row;
+                                                  const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
+                                                  const qty = Number((row as any).qty) || 0;
+                                                  const lineTotal = Math.round(qty * safeUnitPrice * 100) / 100;
+                                                  return { ...(row as any), unitPrice: safeUnitPrice, lineTotal } as any;
+                                                })
+                                              );
+                                            }}
+                                          />
+                                        </div>
+                                        <div className="col-span-4">
+                                          <div className="text-[11px] text-[var(--muted)] mb-1">Total</div>
+                                          <div className="rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.12)] text-right font-black">
+                                            {money(Number((m as any).lineTotal) || 0)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+
                               {generatedMaterials.map((m) => (
                                 <div
                                   key={m.name}

@@ -120,17 +120,37 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
     (i) => i && (i as any).section === "materials"
   );
+  const takeoffManualRaw: QuoteItem[] = Array.isArray((draft as any)?.takeoffManualItems)
+    ? (((draft as any).takeoffManualItems as any[]) as QuoteItem[])
+    : [];
+  const takeoffManualItems = (Array.isArray(takeoffManualRaw) ? takeoffManualRaw : []).filter(
+    (i) => i && (i as any).section === "materials"
+  );
 
   const materialsAndExpensesTotal = hasPersistedTotals
     ? round2(persistedMaterialsSubtotal)
     : round2(computeMaterialsAndExpensesTotal((takeoffMaterials?.length || 0) > 0 ? takeoffMaterials : items));
+  const materialsAndExpensesTotalWithManual = hasPersistedTotals
+    ? round2(persistedMaterialsSubtotal)
+    : round2(
+        computeMaterialsAndExpensesTotal(
+          (takeoffMaterials?.length || 0) > 0
+            ? ([...takeoffMaterials, ...takeoffManualItems] as QuoteItem[])
+            : ([...items, ...takeoffManualItems] as QuoteItem[])
+        )
+      );
   const additionalFeesTotal = hasPersistedTotals
     ? round2(persistedAdditionalSubtotal)
     : round2((Number(additionalServicesTotal) || 0) + (Number(laborFeeTotal) || 0));
   const laborBaseTotalRounded = hasPersistedTotals ? round2(persistedLaborSubtotal) : round2(laborBaseTotal);
   const removalTotalRounded = Number.isFinite(persistedRemovalTotal) ? round2(persistedRemovalTotal) : round2(removalTotal);
   const depositTotal = Number.isFinite(persistedDepositTotal) ? round2(persistedDepositTotal) : round2(materialsAndExpensesTotal);
-  const grandTotal = hasPersistedTotals ? round2(persistedTotal) : round2(materialsAndExpensesTotal + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
+  const depositTotalWithManual = Number.isFinite(persistedDepositTotal)
+    ? round2(persistedDepositTotal)
+    : round2(materialsAndExpensesTotalWithManual);
+  const grandTotal = hasPersistedTotals
+    ? round2(persistedTotal)
+    : round2(materialsAndExpensesTotalWithManual + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
 
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
@@ -158,7 +178,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       totalLf,
       walkGateCount: gateCounts.walk,
       doubleGateCount: gateCounts.dbl,
-      depositTotal,
+      depositTotal: depositTotalWithManual,
       notes,
       disclaimer: "",
       contractText: "By signing below, the homeowner agrees to the scope of work and pricing described in this estimate."
@@ -169,7 +189,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       additional: additionalRows
     },
     totals: {
-      materialsSubtotal: depositTotal,
+      materialsSubtotal: depositTotalWithManual,
       laborSubtotal: laborBaseTotalRounded,
       additionalSubtotal: additionalFeesTotal,
       removalTotal: removalTotalRounded,

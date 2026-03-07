@@ -21,6 +21,8 @@ type DraftEntry = {
   projectPhotoDataUrl?: string | null;
   segments?: Array<{ length: number; removed?: boolean; removal?: boolean }>; 
   items?: QuoteItem[];
+  takeoffMaterials?: QuoteItem[];
+  takeoffManualItems?: QuoteItem[];
 };
 
 function readDraftStore(): Record<string, DraftEntry> {
@@ -54,7 +56,25 @@ export default function QuotePrintClient({ id, printCss }: { id: string; printCs
   }, [id]);
 
   const items = Array.isArray(draft?.items) ? (draft!.items as QuoteItem[]) : [];
-  const materialsAndExpensesTotal = React.useMemo(() => computeMaterialsAndExpensesTotal(items), [items]);
+  const takeoffMaterialsRaw = Array.isArray((draft as any)?.takeoffMaterials) ? (((draft as any).takeoffMaterials as any[]) as QuoteItem[]) : [];
+  const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
+    (i) => i && (i as any).section === "materials"
+  );
+  const takeoffManualRaw = Array.isArray((draft as any)?.takeoffManualItems)
+    ? (((draft as any).takeoffManualItems as any[]) as QuoteItem[])
+    : [];
+  const takeoffManualItems = (Array.isArray(takeoffManualRaw) ? takeoffManualRaw : []).filter(
+    (i) => i && (i as any).section === "materials"
+  );
+  const materialsAndExpensesTotal = React.useMemo(
+    () =>
+      computeMaterialsAndExpensesTotal(
+        (Array.isArray(items) && items.length > 0
+          ? items
+          : ([...takeoffMaterials, ...takeoffManualItems] as QuoteItem[])) as QuoteItem[]
+      ),
+    [items, takeoffManualItems, takeoffMaterials]
+  );
 
   const segments = Array.isArray(draft?.segments) ? (draft!.segments as any[]) : [];
   const removalLf = segments
