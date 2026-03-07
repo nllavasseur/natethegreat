@@ -939,10 +939,22 @@ export default function QuotesPage() {
                   : (stack.cards[0] as any)?.status;
 
             const soldTopCard = stack.cards.find((c) => (c as any).status === "sold");
-            const stackStartDateRaw = String((soldTopCard as any)?.startDate || (soldTopCard as any)?.installDate || "");
             const stackStartDate = (() => {
-              if (!stackStartDateRaw) return "";
-              const dt = new Date(stackStartDateRaw);
+              const scheduledAtRaw = String((soldTopCard as any)?.scheduledAt || "").trim();
+              if (scheduledAtRaw) {
+                const dt = new Date(scheduledAtRaw);
+                if (!Number.isFinite(dt.getTime())) return "";
+                const pad = (n: number) => String(n).padStart(2, "0");
+                return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+              }
+
+              const dateOnlyRaw = String((soldTopCard as any)?.startDate || (soldTopCard as any)?.installDate || "").trim();
+              if (!dateOnlyRaw) return "";
+
+              // If it's already a yyyy-mm-dd, keep it stable (avoid timezone shifts).
+              if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnlyRaw)) return dateOnlyRaw;
+
+              const dt = new Date(dateOnlyRaw);
               if (!Number.isFinite(dt.getTime())) return "";
               const pad = (n: number) => String(n).padStart(2, "0");
               return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
@@ -978,11 +990,6 @@ export default function QuotesPage() {
                           <span className="h-3 w-3 rounded-full bg-[rgba(255,80,80,.95)] animate-pulse block" />
                         </div>
                       ) : null}
-                      {statusFilter === "sold" && stackStatus === "sold" && stackStartDate ? (
-                        <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
-                          {stackStartDate}
-                        </div>
-                      ) : null}
                       {hasScheduled && stackStatus !== "pending" ? (
                         <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
                           Scheduled
@@ -990,6 +997,14 @@ export default function QuotesPage() {
                       ) : null}
                     </div>
                   </div>
+
+                  {statusFilter === "sold" && stackStatus === "sold" && stackStartDate ? (
+                    <div className="mt-2 grid place-items-center">
+                      <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
+                        {stackStartDate}
+                      </div>
+                    </div>
+                  ) : null}
                 </button>
 
                 {expanded
