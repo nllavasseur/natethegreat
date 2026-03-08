@@ -9161,8 +9161,8 @@ function EstimatesPageInner() {
                               <PrimaryButton
                                 type="button"
                                 data-no-swipe="true"
-                                className="px-3 py-2 text-[12px] touch-manipulation select-none"
-                                onPointerUp={(e) => {
+                                className="w-11 h-11 min-w-[44px] min-h-[44px] px-0 py-0 text-[16px] leading-none flex items-center justify-center touch-manipulation select-none"
+                                onPointerDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1));
@@ -9174,8 +9174,8 @@ function EstimatesPageInner() {
                               <PrimaryButton
                                 type="button"
                                 data-no-swipe="true"
-                                className="px-3 py-2 text-[12px] touch-manipulation select-none"
-                                onPointerUp={(e) => {
+                                className="w-11 h-11 min-w-[44px] min-h-[44px] px-0 py-0 text-[16px] leading-none flex items-center justify-center touch-manipulation select-none"
+                                onPointerDown={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   setExtraPosts((v) => (Number(v) || 0) + 1);
