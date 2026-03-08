@@ -9317,7 +9317,7 @@ function EstimatesPageInner() {
 
                           {useHorizontalCedarTakeoff ? (
                             <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3 lg:col-span-2">
-                              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                              <div className="grid grid-cols-3 gap-2">
                                 <div>
                                   <div className="text-[11px] text-[var(--muted)] mb-1">Verticals</div>
                                   <button
