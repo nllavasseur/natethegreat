@@ -125,6 +125,9 @@ type DraftEntry = {
   updatedAt?: number;
   title?: string;
   customerName?: string;
+  phoneNumber?: string;
+  customerPhone?: string;
+  phone?: string;
   projectAddress?: string;
   selectedStyle?: { name: string } | null;
   segments?: Array<{ length: number; removed?: boolean }>;
@@ -155,6 +158,9 @@ function toCalendarDraftLite(d: DraftEntry): DraftEntry {
     updatedAt: Number((d as any)?.updatedAt) || undefined,
     title: (d as any)?.title,
     customerName: (d as any)?.customerName,
+    phoneNumber: (d as any)?.phoneNumber,
+    customerPhone: (d as any)?.customerPhone,
+    phone: (d as any)?.phone,
     projectAddress: (d as any)?.projectAddress,
     selectedStyle: (d as any)?.selectedStyle,
     segments: Array.isArray((d as any)?.segments) ? ((d as any).segments as any) : undefined,
