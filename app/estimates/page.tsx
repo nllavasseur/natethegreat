@@ -6895,31 +6895,22 @@ function EstimatesPageInner() {
                                     >
                                       <div className="flex items-center justify-between gap-2">
                                         <div className="text-sm font-extrabold truncate min-w-0">{String((m as any).name || "")}</div>
-                                        <SecondaryButton
-                                          data-no-swipe="true"
-                                          className="px-3 py-2 text-[12px] !border-[rgba(255,80,80,.55)] !bg-[rgba(255,80,80,.22)] !text-white"
-                                          onClick={() => setTakeoffManualItems((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== mi))}
-                                        >
-                                          ✕
-                                        </SecondaryButton>
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-sm font-black">{money(Number((m as any).lineTotal) || 0)}</div>
+                                          <SecondaryButton
+                                            data-no-swipe="true"
+                                            className="px-3 py-2 text-[12px] !border-[rgba(255,80,80,.55)] !bg-[rgba(255,80,80,.22)] !text-white"
+                                            onClick={() => setTakeoffManualItems((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== mi))}
+                                          >
+                                            ✕
+                                          </SecondaryButton>
+                                        </div>
                                       </div>
                                       <div className="mt-1 grid grid-cols-12 gap-2 items-end">
-                                        <div className="col-span-12">
-                                          <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
-                                          <Input
-                                            value={String((m as any).name || "")}
-                                            onChange={(e) => {
-                                              const nextName = e.target.value;
-                                              setTakeoffManualItems((prev) =>
-                                                (Array.isArray(prev) ? prev : []).map((row, i) => (i === mi ? ({ ...(row as any), name: nextName } as any) : row))
-                                              );
-                                            }}
-                                          />
-                                        </div>
                                         <div className="col-span-4">
                                           <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
                                           <Input
-                                            type="tel"
+                                            type="text"
                                             inputMode="decimal"
                                             value={String((m as any).qty ?? "")}
                                             onChange={(e) => {
@@ -6940,7 +6931,7 @@ function EstimatesPageInner() {
                                         <div className="col-span-4">
                                           <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
                                           <Input
-                                            type="tel"
+                                            type="text"
                                             inputMode="decimal"
                                             value={String((m as any).unitPrice ?? "")}
                                             onChange={(e) => {
