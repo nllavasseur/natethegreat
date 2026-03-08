@@ -4104,7 +4104,15 @@ function EstimatesPageInner() {
         price: Number(i.lineTotal) || 0
       }));
 
-    const additionalRows: Array<{ name: string; qty: number; unit: string; unitPrice: number; price: number }> = [];
+    const additionalRows = items
+      .filter((i) => i.section === "additional" && (Number(i.qty) || 0) > 0)
+      .map((i) => ({
+        name: i.name,
+        qty: Number(i.qty) || 0,
+        unit: i.unit,
+        unitPrice: Number(i.unitPrice) || 0,
+        price: Number(i.lineTotal) || 0
+      }));
 
     const contractId = String(overrideDraftId || draftId || "");
     const submittedOn = new Date().toISOString();
@@ -4150,7 +4158,7 @@ function EstimatesPageInner() {
       totals: {
         materialsSubtotal: Number(materialsDepositTotal) || 0,
         laborSubtotal: Number(totals.laborSubtotal) || 0,
-        additionalSubtotal: 0,
+        additionalSubtotal: Number(additionalServicesSubtotal) || 0,
         removalTotal: Number(removalTotal) || 0,
         discount: 0,
         tax: 0,
