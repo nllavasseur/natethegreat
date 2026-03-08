@@ -9162,11 +9162,7 @@ function EstimatesPageInner() {
                                 type="button"
                                 data-no-swipe="true"
                                 className="w-11 h-11 min-w-[44px] min-h-[44px] px-0 py-0 text-[16px] leading-none flex items-center justify-center touch-manipulation select-none"
-                                onPointerDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1));
-                                }}
+                                onClick={() => setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1))}
                               >
                                 -
                               </PrimaryButton>
@@ -9175,11 +9171,7 @@ function EstimatesPageInner() {
                                 type="button"
                                 data-no-swipe="true"
                                 className="w-11 h-11 min-w-[44px] min-h-[44px] px-0 py-0 text-[16px] leading-none flex items-center justify-center touch-manipulation select-none"
-                                onPointerDown={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setExtraPosts((v) => (Number(v) || 0) + 1);
-                                }}
+                                onClick={() => setExtraPosts((v) => (Number(v) || 0) + 1)}
                               >
                                 +
                               </PrimaryButton>
