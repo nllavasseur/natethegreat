@@ -1636,7 +1636,7 @@ export default function CalendarPage() {
     list.sort((a: any, b: any) => {
       const aEst = (a as any).status === "estimate";
       const bEst = (b as any).status === "estimate";
-      if (aEst !== bEst) return aEst ? 1 : -1;
+      if (aEst !== bEst) return aEst ? -1 : 1;
 
        if (aEst && bEst) {
          const ar = estimateAssigneeRank(a);
