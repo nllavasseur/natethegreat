@@ -9649,7 +9649,7 @@ function EstimatesPageInner() {
                   ) : null}
 
                   {selectedStyleKind === "wood_shadowbox" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.42)] bg-[rgba(138,90,43,.40)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Shadowbox details</div>
                       <div>
                         <div className="text-[11px] text-[var(--muted)] mb-1">1x4 material</div>
