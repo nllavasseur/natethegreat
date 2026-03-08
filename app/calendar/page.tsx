@@ -1623,6 +1623,13 @@ export default function CalendarPage() {
     return cells;
   }, [firstDow, monthDays, monthStart]);
 
+  const estimateAssigneeRank = React.useCallback((j: any) => {
+    const who = String((j as any)?.estimateAssignee || "").trim().toLowerCase();
+    if (who === "nate") return 0;
+    if (who === "cam") return 1;
+    return 2;
+  }, []);
+
   const dayJobs = React.useMemo(() => {
     const key = toKey(selected);
     const list = (jobsByDay.get(key) ?? []).slice();
@@ -1630,12 +1637,23 @@ export default function CalendarPage() {
       const aEst = (a as any).status === "estimate";
       const bEst = (b as any).status === "estimate";
       if (aEst !== bEst) return aEst ? 1 : -1;
+
+       if (aEst && bEst) {
+         const ar = estimateAssigneeRank(a);
+         const br = estimateAssigneeRank(b);
+         if (ar !== br) return ar - br;
+         const at = new Date(String((a as any).scheduledAt || (a as any).installDate || "") || "").getTime();
+         const bt = new Date(String((b as any).scheduledAt || (b as any).installDate || "") || "").getTime();
+         if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return at - bt;
+         return String((a as any).id || "").localeCompare(String((b as any).id || ""));
+       }
+
       const at = a?.install instanceof Date ? a.install.getTime() : new Date(String(a?.installDate || "") + "T12:00:00").getTime();
       const bt = b?.install instanceof Date ? b.install.getTime() : new Date(String(b?.installDate || "") + "T12:00:00").getTime();
       return at - bt;
     });
     return list;
-  }, [jobsByDay, selected]);
+  }, [estimateAssigneeRank, jobsByDay, selected]);
 
   const dayBlocks = React.useMemo(() => {
     const key = toKey(selected);
@@ -2708,7 +2726,18 @@ export default function CalendarPage() {
                   {(() => {
                     const isEstimate = (j: any) => (j as any).status === "estimate";
                     const installs = jobs.filter((j: any) => !isEstimate(j));
-                    const estimates = jobs.filter((j: any) => isEstimate(j));
+                    const estimates = jobs
+                      .filter((j: any) => isEstimate(j))
+                      .slice()
+                      .sort((a: any, b: any) => {
+                        const ar = estimateAssigneeRank(a);
+                        const br = estimateAssigneeRank(b);
+                        if (ar !== br) return ar - br;
+                        const at = new Date(String((a as any).scheduledAt || (a as any).installDate || "") || "").getTime();
+                        const bt = new Date(String((b as any).scheduledAt || (b as any).installDate || "") || "").getTime();
+                        if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return at - bt;
+                        return String((a as any).id || "").localeCompare(String((b as any).id || ""));
+                      });
                     const visibleInstallCount = Math.min(installs.length, 4);
                     const visibleEstimateCount = Math.min(estimates.length, 4);
                     const visibleTaskCount = Math.min(dayTasks.length, 4);
