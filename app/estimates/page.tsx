@@ -9159,17 +9159,27 @@ function EstimatesPageInner() {
                             <div className="text-sm font-extrabold">Extra posts</div>
                             <div className="flex items-center gap-2">
                               <PrimaryButton
+                                type="button"
                                 data-no-swipe="true"
-                                className="px-3 py-2 text-[12px]"
-                                onClick={() => setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1))}
+                                className="px-3 py-2 text-[12px] touch-manipulation select-none"
+                                onPointerUp={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setExtraPosts((v) => Math.max(0, (Number(v) || 0) - 1));
+                                }}
                               >
                                 -
                               </PrimaryButton>
                               <div className="min-w-8 text-center font-black">{extraPosts}</div>
                               <PrimaryButton
+                                type="button"
                                 data-no-swipe="true"
-                                className="px-3 py-2 text-[12px]"
-                                onClick={() => setExtraPosts((v) => (Number(v) || 0) + 1)}
+                                className="px-3 py-2 text-[12px] touch-manipulation select-none"
+                                onPointerUp={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setExtraPosts((v) => (Number(v) || 0) + 1);
+                                }}
                               >
                                 +
                               </PrimaryButton>
