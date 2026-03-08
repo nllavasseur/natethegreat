@@ -52,16 +52,19 @@ export async function deleteDraftRemote(params: { id: string; workspaceId?: stri
   }
 }
 
-export async function fetchDrafts(params?: { workspaceId?: string }) {
+export async function fetchDrafts(params?: { workspaceId?: string; limit?: number }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
   const workspaceId = params?.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const limit = Number((params as any)?.limit);
 
   try {
-    const { data, error } = await supabase
+    const q = supabase
       .from("drafts")
       .select("draft_id, draft, updated_at")
       .eq("workspace_id", workspaceId)
       .order("updated_at", { ascending: false });
+
+    const { data, error } = Number.isFinite(limit) && limit > 0 ? await (q as any).limit(limit) : await q;
 
     if (error) throw error;
 

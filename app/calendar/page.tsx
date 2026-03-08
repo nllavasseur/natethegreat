@@ -144,6 +144,61 @@ type DraftEntry = {
   queueLocked?: boolean;
 };
 
+const CALENDAR_DRAFTS_CACHE_KEY = "vf_calendar_drafts_cache_v1";
+
+function toCalendarDraftLite(d: DraftEntry): DraftEntry {
+  // Keep only fields used by calendar calculations/rendering.
+  // This avoids repeatedly carrying very large draft payloads (items, photos, etc.) through React state.
+  return {
+    id: String((d as any)?.id || ""),
+    createdAt: Number((d as any)?.createdAt) || undefined,
+    updatedAt: Number((d as any)?.updatedAt) || undefined,
+    title: (d as any)?.title,
+    customerName: (d as any)?.customerName,
+    projectAddress: (d as any)?.projectAddress,
+    selectedStyle: (d as any)?.selectedStyle,
+    segments: Array.isArray((d as any)?.segments) ? ((d as any).segments as any) : undefined,
+    contract: (d as any)?.contract,
+    status: (d as any)?.status,
+    scheduledAt: (d as any)?.scheduledAt,
+    estimateAssignee: (d as any)?.estimateAssignee,
+    installDate: (d as any)?.installDate,
+    startDate: (d as any)?.startDate,
+    holdDate: (d as any)?.holdDate,
+    laborDays: (d as any)?.laborDays,
+    originalLaborDays: (d as any)?.originalLaborDays,
+    allowSaturday: (d as any)?.allowSaturday,
+    allowSunday: (d as any)?.allowSunday,
+    calendarHidden: (d as any)?.calendarHidden,
+    queueRank: (d as any)?.queueRank,
+    queueLocked: (d as any)?.queueLocked
+  } as DraftEntry;
+}
+
+function readCalendarDraftsCache(): DraftEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CALENDAR_DRAFTS_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    const list = Array.isArray(parsed?.drafts) ? (parsed.drafts as DraftEntry[]) : [];
+    return (Array.isArray(list) ? list : []).filter((d) => d && typeof (d as any).id === "string");
+  } catch {
+    return [];
+  }
+}
+
+function writeCalendarDraftsCache(list: DraftEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      CALENDAR_DRAFTS_CACHE_KEY,
+      JSON.stringify({ updatedAt: Date.now(), drafts: (Array.isArray(list) ? list : []).map((d) => toCalendarDraftLite(d)) })
+    );
+  } catch {
+    // ignore
+  }
+}
+
 function readDraftStore(): Record<string, DraftEntry> {
   if (typeof window === "undefined") return {};
   try {
@@ -494,9 +549,9 @@ export default function CalendarPage() {
     let cancelled = false;
     const refreshLocal = () => {
       try {
-        const store = readDraftStore();
-        const localDrafts = Object.values(store).map((d) => ({ ...d }));
-        if (!cancelled) setDrafts(localDrafts);
+        // Fast path: seed UI from lightweight cache so the calendar can render immediately.
+        const cached = readCalendarDraftsCache();
+        if (!cancelled && Array.isArray(cached) && cached.length) setDrafts(cached);
       } catch {
       }
       try {
@@ -507,6 +562,20 @@ export default function CalendarPage() {
       try {
         const localTasks = readTaskStore();
         if (!cancelled) setTasks(localTasks);
+      } catch {
+      }
+    };
+
+    const hydrateLocalFull = () => {
+      // Heavy path: parse the full drafts store after initial paint.
+      try {
+        const store = readDraftStore();
+        const localDrafts = Object.values(store).map((d) => toCalendarDraftLite(d));
+        if (!cancelled) setDrafts(localDrafts);
+        try {
+          writeCalendarDraftsCache(localDrafts);
+        } catch {
+        }
       } catch {
       }
     };
@@ -529,7 +598,9 @@ export default function CalendarPage() {
 
       try {
         const [draftsRes, blocksRes, tasksRes] = await Promise.all([
-          withTimeout(fetchDrafts(), 4500),
+          // Limit drafts fetch to keep calendar responsive.
+          // Calendar only needs a rolling window of recent drafts + sold queue.
+          withTimeout(fetchDrafts({ limit: 450 }), 4500),
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
           withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500)
         ]);
@@ -556,7 +627,12 @@ export default function CalendarPage() {
       }
 
       const merged = mergeDraftLists(localList, remoteList);
-      if (!cancelled) setDrafts(merged);
+      const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toCalendarDraftLite(d));
+      if (!cancelled) setDrafts(mergedLite);
+      try {
+        writeCalendarDraftsCache(mergedLite);
+      } catch {
+      }
 
       const mergedBlocks = mergeBlockOutLists(localBlocks, remoteBlocks);
       try {
@@ -606,6 +682,9 @@ export default function CalendarPage() {
     };
 
     refresh();
+
+    // Defer full local parse until after first paint.
+    window.setTimeout(() => hydrateLocalFull(), 0);
 
     const debouncedRefresh = () => {
       if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
