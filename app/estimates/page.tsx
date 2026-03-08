@@ -6830,7 +6830,7 @@ function EstimatesPageInner() {
                                   <div className="col-span-4">
                                     <div className="text-[11px] text-[var(--muted)] mb-1">Unit Price</div>
                                     <Input
-                                      type="tel"
+                                      type="text"
                                       inputMode="decimal"
                                       value={takeoffManualDraft.unitPrice}
                                       onChange={(e) => setTakeoffManualDraft((p) => ({ ...p, unitPrice: e.target.value }))}
