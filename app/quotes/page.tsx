@@ -49,6 +49,8 @@ type DraftEntry = {
   };
 };
 
+const QUOTES_DRAFTS_CACHE_KEY = "vf_quotes_drafts_cache_v1";
+
 function normalizePreInstallPhotos(input: unknown) {
   if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
 
@@ -71,6 +73,43 @@ function normalizePreInstallPhotos(input: unknown) {
     }
   }
   return out;
+}
+
+function stripDataUrlsFromPreInstall(input: unknown) {
+  if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
+  return (input as any[]).filter((p) => p && typeof (p as any).src === "string" && !String((p as any).src || "").startsWith("data:"));
+}
+
+function toQuotesDraftLite(d: DraftEntry): DraftEntry {
+  return {
+    ...(d as any),
+    id: String((d as any)?.id || ""),
+    projectPhotoDataUrl: null,
+    preInstallPhotos: stripDataUrlsFromPreInstall((d as any)?.preInstallPhotos)
+  } as DraftEntry;
+}
+
+function readQuotesDraftsCache(): DraftEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(QUOTES_DRAFTS_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    const list = Array.isArray(parsed?.drafts) ? (parsed.drafts as DraftEntry[]) : [];
+    return (Array.isArray(list) ? list : []).filter((d) => d && typeof (d as any).id === "string");
+  } catch {
+    return [];
+  }
+}
+
+function writeQuotesDraftsCache(list: DraftEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      QUOTES_DRAFTS_CACHE_KEY,
+      JSON.stringify({ updatedAt: Date.now(), drafts: (Array.isArray(list) ? list : []).map((d) => toQuotesDraftLite(d)) })
+    );
+  } catch {
+  }
 }
 
 function readDraftStore(): Record<string, DraftEntry> {
@@ -323,10 +362,30 @@ export default function QuotesPage() {
     const getTs = (d: any) => Number(d?.updatedAt ?? d?.createdAt) || 0;
 
     const load = async () => {
+      try {
+        const cached = readQuotesDraftsCache();
+        if (!cancelled && Array.isArray(cached) && cached.length) setDrafts(cached);
+      } catch {
+      }
+
+      window.setTimeout(() => {
+        if (cancelled) return;
+        try {
+          const localStore = readDraftStore();
+          const localList = Object.values(localStore).map((d) => toQuotesDraftLite({ ...(d as any) } as any));
+          if (!cancelled) setDrafts(localList);
+          try {
+            writeQuotesDraftsCache(localList);
+          } catch {
+          }
+        } catch {
+        }
+      }, 0);
+
       const localStore = readDraftStore();
       const localList = Object.values(localStore).map((d) => ({ ...d }));
 
-      const remote = await fetchDrafts();
+      const remote = await fetchDrafts({ limit: 450 });
       const remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
 
       const byId = new Map<string, DraftEntry>();
@@ -339,7 +398,12 @@ export default function QuotesPage() {
       }
 
       const merged = Array.from(byId.values()).sort((a, b) => getTs(b) - getTs(a));
-      if (!cancelled) setDrafts(merged);
+      const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toQuotesDraftLite({ ...(d as any) } as any));
+      if (!cancelled) setDrafts(mergedLite);
+      try {
+        writeQuotesDraftsCache(mergedLite);
+      } catch {
+      }
     };
 
     void load();
