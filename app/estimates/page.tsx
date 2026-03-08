@@ -9176,7 +9176,7 @@ function EstimatesPageInner() {
                             </div>
                           </div>
                           <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Extra post height</div>
+                            <div className="text-[10px] text-[var(--muted)] mb-1">Extra post height</div>
                             <Select
                               value={String(extraPostSize)}
                               onChange={(e) => setExtraPostSize(Number(e.target.value))}
