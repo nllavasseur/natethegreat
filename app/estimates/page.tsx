@@ -9440,82 +9440,84 @@ function EstimatesPageInner() {
                   ) : null}
 
                   {selectedFenceType === "wood" && selectedStyleKind !== "wood_wire_mesh" && selectedStyleKind !== "wood_split_rail" ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() =>
-                            setMaterialsDetails((p) => ({
-                              ...p,
-                              postCaps: !p.postCaps,
-                              topCaps: !p.postCaps ? false : p.topCaps
-                            }))
-                          }
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                            (materialsDetails.postCaps
-                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-extrabold">{materialsDetails.postCaps ? "On" : "Off"}</div>
-                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
-                          </div>
-                        </button>
-                      </div>
-                      <div>
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Top caps</div>
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          onClick={() => {
-                            if (castoTopCapsLocked) return;
-                            setMaterialsDetails((p) => ({
-                              ...p,
-                              topCaps: !p.topCaps,
-                              postCaps: !p.topCaps ? false : p.postCaps
-                            }));
-                          }}
-                          className={
-                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                            (castoTopCapsLocked ? "opacity-50 cursor-not-allowed " : "") +
-                            (materialsDetails.topCaps
-                              ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                          }
-                          aria-disabled={castoTopCapsLocked}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="font-extrabold">{materialsDetails.topCaps ? "On" : "Off"}</div>
-                            <div className="text-[11px] text-[var(--muted)]">Tap</div>
-                          </div>
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {selectedFenceType === "wood" ? (
-                    <div>
-                      <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
-                      <button
-                        type="button"
-                        data-no-swipe="true"
-                        onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
-                        className={
-                          "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
-                          (materialsDetails.arbor
-                            ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                            : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                        }
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="font-extrabold">{materialsDetails.arbor ? "Yes" : "No"}</div>
-                          <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.30)] bg-[rgba(138,90,43,.26)] p-3 lg:col-span-2">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Caps & arbor</div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Post caps</div>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                postCaps: !p.postCaps,
+                                topCaps: !p.postCaps ? false : p.topCaps
+                              }))
+                            }
+                            className={
+                              "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                              (materialsDetails.postCaps
+                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                            }
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-extrabold">{materialsDetails.postCaps ? "On" : "Off"}</div>
+                              <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                            </div>
+                          </button>
                         </div>
-                      </button>
+
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Top caps</div>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={() => {
+                              if (castoTopCapsLocked) return;
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                topCaps: !p.topCaps,
+                                postCaps: !p.topCaps ? false : p.postCaps
+                              }));
+                            }}
+                            className={
+                              "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                              (castoTopCapsLocked ? "opacity-50 cursor-not-allowed " : "") +
+                              (materialsDetails.topCaps
+                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                            }
+                            aria-disabled={castoTopCapsLocked}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-extrabold">{materialsDetails.topCaps ? "On" : "Off"}</div>
+                              <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                            </div>
+                          </button>
+                        </div>
+
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Arbor</div>
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
+                            className={
+                              "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none " +
+                              (materialsDetails.arbor
+                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                            }
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="font-extrabold">{materialsDetails.arbor ? "Yes" : "No"}</div>
+                              <div className="text-[11px] text-[var(--muted)]">Tap</div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ) : null}
 
