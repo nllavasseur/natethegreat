@@ -3562,7 +3562,14 @@ function EstimatesPageInner() {
 
       ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
       ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
-      ensureQty("Cedar S4S Gate Framing", "ea", totalWalkGates * 5 + totalDoubleGates * 10);
+      const selectedGateFramingName = woodGateFramingName(materialsDetails.railMaterial);
+      const otherGateFramingName = selectedGateFramingName === "Rough Sawn Cedar Gate Framing"
+        ? "Cedar S4S Gate Framing"
+        : "Rough Sawn Cedar Gate Framing";
+
+      ensureQty(selectedGateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10);
+      // Prevent duplicates when railMaterial changes (or when takeoff has already added the other name).
+      ensureQty(otherGateFramingName, "ea", 0);
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
