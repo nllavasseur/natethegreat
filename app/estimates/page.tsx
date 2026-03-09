@@ -3536,13 +3536,31 @@ function EstimatesPageInner() {
           return card?.fenceType === "wood";
         });
 
+      const resolvedWoodGateCardIds = Array.from(
+        new Set(
+          woodGateSegments
+            .map((s: any) => {
+              const cid = (s as any).cardId ?? null;
+              return (cid === null ? baseIdResolved : cid) as string | null;
+            })
+            .filter((id): id is string => typeof id === "string" && Boolean(id))
+        )
+      );
+
+      // Choose the card context that owns the wood gates. This prevents switching railMaterial when the
+      // user is actively editing a different (e.g. aluminum) card.
+      const woodGateAccessoryCardId =
+        resolvedWoodGateCardIds[0] || comboCards.find((c) => c.fenceType === "wood")?.id || baseIdResolved || null;
+      const woodGateAccessoryCard = woodGateAccessoryCardId ? comboCards.find((c) => c.id === woodGateAccessoryCardId) : null;
+      const woodGateRailMaterial = woodGateAccessoryCard?.materialsDetails?.railMaterial ?? materialsDetails.railMaterial;
+
       const totalWalkGates = Math.max(
         0,
         woodGateSegments.filter((s: any) => (s as any).gateType === "walk" || ((s as any).gateType == null && Boolean((s as any).gate))).length
       );
       const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
-      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number) => {
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, meta?: { cardId?: string | null; shared?: boolean }) => {
         const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
         if (qty <= 0) {
           merged.delete(k);
@@ -3553,23 +3571,41 @@ function EstimatesPageInner() {
           prev.qty = qty;
           prev.name = name;
           prev.unit = unit;
+          if (meta && Object.prototype.hasOwnProperty.call(meta, "cardId")) {
+            const nextId = typeof meta.cardId === "string" ? meta.cardId : "";
+            (prev as any).__cardIds = nextId ? [nextId] : [];
+          }
+          if (meta && Object.prototype.hasOwnProperty.call(meta, "shared")) {
+            (prev as any).__shared = Boolean(meta.shared);
+          }
           prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
           const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
-          merged.set(k, { section: "materials", name, qty, unit, unitPrice, lineTotal: Math.round(qty * unitPrice * 100) / 100 });
+          const nextId = typeof meta?.cardId === "string" ? meta.cardId : "";
+          merged.set(k, {
+            section: "materials",
+            name,
+            qty,
+            unit,
+            unitPrice,
+            lineTotal: Math.round(qty * unitPrice * 100) / 100,
+            __cardIds: nextId ? [nextId] : [],
+            __shared: Boolean(meta?.shared)
+          } as any);
         }
       };
 
-      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1);
-      ensureQty("Double gate kit", "ea", totalDoubleGates * 1);
-      const selectedGateFramingName = woodGateFramingName(materialsDetails.railMaterial);
+      const woodGateMeta = { cardId: woodGateAccessoryCardId, shared: false };
+      ensureQty("Gate Hinge Kit", "ea", totalWalkGates * 1, woodGateMeta);
+      ensureQty("Double gate kit", "ea", totalDoubleGates * 1, woodGateMeta);
+      const selectedGateFramingName = woodGateFramingName(woodGateRailMaterial);
       const otherGateFramingName = selectedGateFramingName === "Rough Sawn Cedar Gate Framing"
         ? "Cedar S4S Gate Framing"
         : "Rough Sawn Cedar Gate Framing";
 
-      ensureQty(selectedGateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10);
+      ensureQty(selectedGateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, woodGateMeta);
       // Prevent duplicates when railMaterial changes (or when takeoff has already added the other name).
-      ensureQty(otherGateFramingName, "ea", 0);
+      ensureQty(otherGateFramingName, "ea", 0, woodGateMeta);
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
