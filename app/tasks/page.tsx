@@ -81,7 +81,19 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
     }
     const prevTs = Number((prev as any).updatedAt ?? (prev as any).createdAt ?? 0) || 0;
     const nextTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
-    if (nextTs > prevTs) byId.set(id, { ...prev, ...d });
+    if (nextTs > prevTs) {
+      const merged: DraftEntry = { ...prev, ...d };
+
+      // Guardrails: never let a remote draft that is missing task-related fields wipe out
+      // locally-entered task data.
+      if ((d as any).jobTasks == null && (prev as any).jobTasks != null) merged.jobTasks = (prev as any).jobTasks;
+      if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged.jobTaskSnooze = (prev as any).jobTaskSnooze;
+      if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged.jobTaskLabels = (prev as any).jobTaskLabels;
+      if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged.jobTaskHidden = (prev as any).jobTaskHidden;
+      if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged.jobCustomTasks = (prev as any).jobCustomTasks;
+
+      byId.set(id, merged);
+    }
   });
   return Array.from(byId.values());
 }
@@ -142,8 +154,11 @@ export default function TasksPage() {
       const localStore = readDraftStore();
       const localList = Object.values(localStore).map((d) => ({ ...d }));
 
-      const remote = await fetchDrafts();
-      const remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+      // Seed UI from local first so the page doesn't appear to "lose" tasks while remote loads.
+      if (!cancelled) setDrafts(localList);
+
+      const remote = await fetchDrafts({ limit: 450 });
+      const remoteList = (remote as any)?.ok ? ((remote as any).drafts as DraftEntry[]) : [];
 
       const merged = mergeDraftLists(localList, remoteList);
       if (!cancelled) setDrafts(merged);

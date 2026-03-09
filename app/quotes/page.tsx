@@ -47,6 +47,9 @@ type DraftEntry = {
     scheduleDelivery?: number;
     call811?: number;
   };
+  jobTaskLabels?: Record<string, string>;
+  jobTaskHidden?: Record<string, boolean>;
+  jobCustomTasks?: Array<{ id: string; label: string; done?: boolean; createdAt?: number }>;
 };
 
 const QUOTES_DRAFTS_CACHE_KEY = "vf_quotes_drafts_cache_v1";
@@ -389,12 +392,29 @@ export default function QuotesPage() {
       const remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
 
       const byId = new Map<string, DraftEntry>();
-      for (const d of [...localList, ...remoteList]) {
+      for (const d of Array.isArray(localList) ? localList : []) {
+        const id = String((d as any)?.id || "");
+        if (!id) continue;
+        byId.set(id, d as any);
+      }
+      for (const d of Array.isArray(remoteList) ? remoteList : []) {
         const id = String((d as any)?.id || "");
         if (!id) continue;
         const prev = byId.get(id);
-        // Prefer local on timestamp ties by only replacing when strictly newer.
-        if (!prev || getTs(d) > getTs(prev)) byId.set(id, d);
+        if (!prev) {
+          byId.set(id, d as any);
+          continue;
+        }
+
+        if (getTs(d) > getTs(prev)) {
+          const mergedNext: DraftEntry = { ...(prev as any), ...(d as any) } as any;
+          if ((d as any).jobTasks == null && (prev as any).jobTasks != null) (mergedNext as any).jobTasks = (prev as any).jobTasks;
+          if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prev as any).jobTaskSnooze;
+          if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prev as any).jobTaskLabels;
+          if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) (mergedNext as any).jobTaskHidden = (prev as any).jobTaskHidden;
+          if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) (mergedNext as any).jobCustomTasks = (prev as any).jobCustomTasks;
+          byId.set(id, mergedNext);
+        }
       }
 
       const merged = Array.from(byId.values()).sort((a, b) => getTs(b) - getTs(a));

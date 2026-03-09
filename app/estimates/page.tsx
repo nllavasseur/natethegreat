@@ -293,6 +293,8 @@ type MaterialsDetails = {
   vinylThreeWayPosts: number;
   vinylPostStiffeners: number;
   railEndBracketPacks: number;
+  heavyDutyDoubleGateFlipLatchQty: number;
+  heavyDutySlideBoltQty: number;
 };
 
 const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
@@ -355,7 +357,9 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   vinylBlankPosts: 0,
   vinylThreeWayPosts: 0,
   vinylPostStiffeners: 0,
-  railEndBracketPacks: 0
+  railEndBracketPacks: 0,
+  heavyDutyDoubleGateFlipLatchQty: 0,
+  heavyDutySlideBoltQty: 0
 };
 
 export default function EstimatesPage() {
@@ -1104,6 +1108,8 @@ function EstimatesPageInner() {
       (Number(materialsDetails.vinylThreeWayPosts) || 0) !== 0 ||
       (Number(materialsDetails.vinylPostStiffeners) || 0) !== 0 ||
       (Number(materialsDetails.railEndBracketPacks) || 0) !== 0 ||
+      (Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0) !== 0 ||
+      (Number(materialsDetails.heavyDutySlideBoltQty) || 0) !== 0 ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -4746,6 +4752,44 @@ function EstimatesPageInner() {
     const manual = Array.isArray(takeoffManualItems) ? takeoffManualItems : [];
     const addons = Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : [];
 
+    const heavyDutyDoubleGateFlipLatchItems: QuoteItem[] = (() => {
+      if (selectedFenceType !== "wood") return [];
+      const qty = Math.max(0, Math.floor(Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0));
+      if (qty <= 0) return [];
+      const unitPrice = 30.98;
+      const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+      return [
+        {
+          id: "heavy_duty_double_gate_flip_latch",
+          section: "materials",
+          name: "Heavy duty double gate flip latch",
+          qty,
+          unit: "ea",
+          unitPrice,
+          lineTotal
+        } as any
+      ];
+    })();
+
+    const heavyDutySlideBoltItems: QuoteItem[] = (() => {
+      if (selectedFenceType !== "wood") return [];
+      const qty = Math.max(0, Math.floor(Number(materialsDetails.heavyDutySlideBoltQty) || 0));
+      if (qty <= 0) return [];
+      const unitPrice = 10.98;
+      const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+      return [
+        {
+          id: "heavy_duty_slide_bolt",
+          section: "materials",
+          name: "Heavy duty slide bolt",
+          qty,
+          unit: "ea",
+          unitPrice,
+          lineTotal
+        } as any
+      ];
+    })();
+
     const segmentLengths = segments
       .filter((s) => !s.removed)
       .map((s) => Number(s.length) || 0)
@@ -4796,9 +4840,11 @@ function EstimatesPageInner() {
         } as any;
       });
 
-    const combined = derivedAddonItems.length ? [...manual, ...derivedAddonItems] : manual;
+    const combinedBase = derivedAddonItems.length ? [...manual, ...derivedAddonItems] : manual;
+    const withFlipLatch = heavyDutyDoubleGateFlipLatchItems.length ? [...combinedBase, ...heavyDutyDoubleGateFlipLatchItems] : combinedBase;
+    const combined = heavyDutySlideBoltItems.length ? [...withFlipLatch, ...heavyDutySlideBoltItems] : withFlipLatch;
     return combined.length ? [...base, ...combined] : base;
-  }, [segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffManualItems, takeoffMaterialsStable, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
+  }, [materialsDetails.heavyDutyDoubleGateFlipLatchQty, materialsDetails.heavyDutySlideBoltQty, segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffManualItems, takeoffMaterialsStable, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
 
   const takeoffPerPanelAddonItems = useMemo(() => {
     const addons = Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : [];
@@ -5534,7 +5580,23 @@ function EstimatesPageInner() {
         if (remote.ok && remote.draft) {
           d = remote.draft as any;
           try {
-            store[id] = d;
+            const prev = store[id] as any;
+            if (prev && typeof prev === "object") {
+              const merged: any = { ...prev, ...d };
+
+              // Guardrails: don't let a remote draft that is missing task-related fields wipe out
+              // locally-entered task data.
+              if ((d as any).jobTasks == null && (prev as any).jobTasks != null) merged.jobTasks = (prev as any).jobTasks;
+              if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged.jobTaskSnooze = (prev as any).jobTaskSnooze;
+              if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged.jobTaskLabels = (prev as any).jobTaskLabels;
+              if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged.jobTaskHidden = (prev as any).jobTaskHidden;
+              if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged.jobCustomTasks = (prev as any).jobCustomTasks;
+
+              store[id] = merged;
+              d = merged;
+            } else {
+              store[id] = d;
+            }
             writeDraftStore(store);
           } catch {
           }
@@ -5729,6 +5791,14 @@ function EstimatesPageInner() {
         ? Math.max(0, Math.floor(Number(dd.railEndBracketPacks)))
         : (typeof dd.railEndBrackets === "boolean" ? (dd.railEndBrackets ? 1 : 0) : 0);
 
+      const heavyDutyDoubleGateFlipLatchQty = Number.isFinite(Number((dd as any).heavyDutyDoubleGateFlipLatchQty))
+        ? Math.max(0, Math.floor(Number((dd as any).heavyDutyDoubleGateFlipLatchQty)))
+        : 0;
+
+      const heavyDutySlideBoltQty = Number.isFinite(Number((dd as any).heavyDutySlideBoltQty))
+        ? Math.max(0, Math.floor(Number((dd as any).heavyDutySlideBoltQty)))
+        : 0;
+
       const mansfieldWalkGateOptions = Array.isArray(dd.mansfieldWalkGateOptions)
         ? dd.mansfieldWalkGateOptions.map((x: any) => String(x))
         : [];
@@ -5820,6 +5890,8 @@ function EstimatesPageInner() {
         horizontalCedarVerticals,
         horizontalCedarCornerAdjust,
         railEndBracketPacks,
+        heavyDutyDoubleGateFlipLatchQty,
+        heavyDutySlideBoltQty,
         mansfieldWalkGateOptions,
         mansfieldDoubleGateOptions,
         atlanticWalkGateOptions,
@@ -9509,6 +9581,81 @@ function EstimatesPageInner() {
                               <div className="text-[11px] text-[var(--muted)]">Tap</div>
                             </div>
                           </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedFenceType === "wood" ? (
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.42)] bg-[rgba(138,90,43,.40)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty double gate flip latch ($30.98)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty slide bolt ($10.98)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.heavyDutySlideBoltQty) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
                         </div>
                       </div>
                     </div>
