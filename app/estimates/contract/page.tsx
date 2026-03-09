@@ -708,9 +708,17 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   @page{ size: letter; margin: 0.20in; }
   .noPrint{ display:none !important; }
   html, body{
+    width: 100% !important;
     background:#fff !important;
     filter:none !important;
     -webkit-filter:none !important;
+  }
+  body{
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
   }
   *{
     filter:none !important;
@@ -721,8 +729,8 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   .page{
     /* Keep the contract centered even if the user adjusts the print dialog scaling. */
     box-sizing: border-box;
-    width: 100%;
-    max-width: none;
+    width: 8.1in;
+    max-width: 100%;
     margin: 0;
     padding:0.12in 0.28in;
     background:#fff;
