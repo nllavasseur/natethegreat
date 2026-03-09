@@ -1978,6 +1978,7 @@ function EstimatesPageInner() {
       if (n === "shadowbox") return "wood_shadowbox_pickets";
       if (n.includes("shadowbox")) return "wood_shadowbox_pickets";
       if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
+      if (n === "board on board fence" || n.includes("board on board fence") || n.includes("board-on-board-fence")) return "wood_board_on_board_fence";
       if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
       if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
       return n;
