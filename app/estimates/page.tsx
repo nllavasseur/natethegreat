@@ -7844,10 +7844,10 @@ function EstimatesPageInner() {
                   ? createPortal(
                     <div className="fixed inset-0 z-[70]" data-no-swipe="true">
                       <div
-                        className="absolute inset-0 bg-[rgba(0,0,0,.75)]"
+                        className="absolute inset-0 z-[70] bg-[rgba(0,0,0,.75)]"
                         onClick={() => setStylePreview(null)}
                       />
-                      <div className="absolute inset-0">
+                      <div className="absolute inset-0 z-[80]">
                         {(() => {
                           const idx = visibleStyleOptions.findIndex((s) => s.name === stylePreview.name);
                           const hasPrev = idx > 0;
@@ -7906,7 +7906,7 @@ function EstimatesPageInner() {
                           );
                         })()}
 
-                        <div className="absolute left-0 right-0 top-0 z-[85] flex items-center justify-between gap-3 p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
+                        <div className="absolute left-0 right-0 top-0 z-[85] flex items-center justify-between gap-3 p-4 pointer-events-auto" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)" }}>
                           <SecondaryButton
                             data-no-swipe="true"
                             onClick={() => setStylePreview(null)}
@@ -7924,7 +7924,7 @@ function EstimatesPageInner() {
                             OK
                           </PrimaryButton>
                         </div>
-                        <div className="absolute inset-0 grid place-items-center p-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
+                        <div className="absolute inset-0 grid place-items-center p-4 pointer-events-none" style={{ paddingTop: "calc(env(safe-area-inset-top) + 16px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 16px)" }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={stylePreview.thumb}
