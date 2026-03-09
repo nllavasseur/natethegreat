@@ -9407,19 +9407,55 @@ function EstimatesPageInner() {
                               selectedStyleKind !== "wood_shadowbox_pickets" &&
                               selectedStyleKind !== "wood_shadowbox_top_cap" &&
                               selectedStyleKind !== "wood_board_on_board" ? (
-                                <div className="mt-3">
-                                  <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
-                                  <Select
-                                    value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
-                                    onChange={(e) => {
-                                      const n = Number(e.target.value);
-                                      setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
-                                    }}
-                                  >
-                                    <option value="5.5">Standard spacing</option>
-                                    <option value="8">2.5" spacing</option>
-                                  </Select>
-                                </div>
+                                selectedStyleKind === "wood_niko" || selectedStyleKind === "wood_casto" ? (
+                                  <div className="mt-3 grid grid-cols-[1fr_200px] gap-3">
+                                    <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2">
+                                      <div className="text-[11px] text-[var(--muted)] mb-1">2x2x8 material</div>
+                                      <Select
+                                        value={materialsDetails.twoByTwoMaterial}
+                                        onChange={(e) =>
+                                          setMaterialsDetails((p) => ({
+                                            ...p,
+                                            twoByTwoMaterial: e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone"
+                                          }))
+                                        }
+                                      >
+                                        <option value="Pressure treated">Pressure treated</option>
+                                        <option value="Cedar">Cedar</option>
+                                        <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                        <option value="Cedar tone">Cedar tone</option>
+                                      </Select>
+                                    </div>
+
+                                    <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2">
+                                      <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
+                                      <Select
+                                        value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                                        onChange={(e) => {
+                                          const n = Number(e.target.value);
+                                          setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                                        }}
+                                      >
+                                        <option value="5.5">Standard spacing</option>
+                                        <option value="8">2.5" spacing</option>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="mt-3">
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
+                                    <Select
+                                      value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                                      onChange={(e) => {
+                                        const n = Number(e.target.value);
+                                        setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                                      }}
+                                    >
+                                      <option value="5.5">Standard spacing</option>
+                                      <option value="8">2.5" spacing</option>
+                                    </Select>
+                                  </div>
+                                )
                               ) : null}
                             </div>
                           )}
