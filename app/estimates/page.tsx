@@ -3027,8 +3027,12 @@ function EstimatesPageInner() {
       const boardOnBoardBasePickets = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
         : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0);
+      const lfForExtraPickets = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + (Number(len) || 0), 0)
+        : (Number(totalLf) || 0);
+      const extraPicketBundles = lfForExtraPickets > 0 ? Math.floor((lfForExtraPickets + 1e-6) / 100) : 0;
       const pickets = isBoardOnBoardFence
-        ? (boardOnBoardBasePickets + (totalLf > 0 ? Math.floor(totalLf / 100) * 15 : 0))
+        ? (boardOnBoardBasePickets + extraPicketBundles * 5)
         : isBoardOnBoard
             ? boardOnBoardBasePickets
             : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0);
