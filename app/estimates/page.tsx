@@ -296,6 +296,7 @@ type MaterialsDetails = {
   railEndBracketPacks: number;
   heavyDutyDoubleGateFlipLatchQty: number;
   heavyDutySlideBoltQty: number;
+  concretePostMount4x4Qty: number;
 };
 
 const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
@@ -360,7 +361,8 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   vinylPostStiffeners: 0,
   railEndBracketPacks: 0,
   heavyDutyDoubleGateFlipLatchQty: 0,
-  heavyDutySlideBoltQty: 0
+  heavyDutySlideBoltQty: 0,
+  concretePostMount4x4Qty: 0
 };
 
 export default function EstimatesPage() {
@@ -4834,6 +4836,25 @@ function EstimatesPageInner() {
       ];
     })();
 
+    const concretePostMount4x4Items: QuoteItem[] = (() => {
+      if (selectedFenceType !== "wood") return [];
+      const qty = Math.max(0, Math.floor(Number(materialsDetails.concretePostMount4x4Qty) || 0));
+      if (qty <= 0) return [];
+      const unitPrice = 31.86;
+      const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+      return [
+        {
+          id: "concrete_post_mount_4x4",
+          section: "materials",
+          name: "Concrete 4x4 post mount",
+          qty,
+          unit: "ea",
+          unitPrice,
+          lineTotal
+        } as any
+      ];
+    })();
+
     const segmentLengths = segments
       .filter((s) => !s.removed)
       .map((s) => Number(s.length) || 0)
@@ -4887,8 +4908,9 @@ function EstimatesPageInner() {
     const combinedBase = derivedAddonItems.length ? [...manual, ...derivedAddonItems] : manual;
     const withFlipLatch = heavyDutyDoubleGateFlipLatchItems.length ? [...combinedBase, ...heavyDutyDoubleGateFlipLatchItems] : combinedBase;
     const combined = heavyDutySlideBoltItems.length ? [...withFlipLatch, ...heavyDutySlideBoltItems] : withFlipLatch;
-    return combined.length ? [...base, ...combined] : base;
-  }, [materialsDetails.heavyDutyDoubleGateFlipLatchQty, materialsDetails.heavyDutySlideBoltQty, segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffManualItems, takeoffMaterialsStable, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
+    const withPostMounts = concretePostMount4x4Items.length ? [...combined, ...concretePostMount4x4Items] : combined;
+    return withPostMounts.length ? [...base, ...withPostMounts] : base;
+  }, [materialsDetails.concretePostMount4x4Qty, materialsDetails.heavyDutyDoubleGateFlipLatchQty, materialsDetails.heavyDutySlideBoltQty, segments, selectedFenceType, selectedStyle?.name, selectedStyleKind, takeoffManualItems, takeoffMaterialsStable, takeoffPerPanelAddons, totalLf, useHorizontalCedarTakeoff]);
 
   const takeoffPerPanelAddonItems = useMemo(() => {
     const addons = Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : [];
@@ -9796,6 +9818,41 @@ function EstimatesPageInner() {
                               setMaterialsDetails((p) => ({
                                 ...p,
                                 heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Concrete 4x4 post mount ($31.86)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.concretePostMount4x4Qty) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) + 1)
                               }))
                             }
                           >
