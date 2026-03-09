@@ -8559,7 +8559,7 @@ function EstimatesPageInner() {
                         {selectedStyle ? `${selectedStyle.name}` : "Select a style"}
                       </div>
 
-                      <div className="mt-3 rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                      <div className="mt-3 rounded-xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-2">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
                         <div className="grid gap-2">
                           {[
@@ -9570,7 +9570,7 @@ function EstimatesPageInner() {
                   ) : null}
 
                   {selectedFenceType === "aluminum" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
                       <div>
                         <div className="text-[11px] text-[var(--muted)] mb-1">Rail end bracket packs (3 per pack @ $4.50 ea)</div>
