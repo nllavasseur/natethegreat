@@ -2268,9 +2268,7 @@ function EstimatesPageInner() {
       const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
 
       // Pickets: (lf inches / 8) * 2
-      const pickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / picketSpacingIn) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0);
+      const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -2541,9 +2539,7 @@ function EstimatesPageInner() {
       const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
 
       // Pickets: use the prior shadowbox math, but output as pickets (not 1x4 boards)
-      const pickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / picketSpacingIn) * 2), 0)
-        : (lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0);
+      const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -3025,13 +3021,8 @@ function EstimatesPageInner() {
       // Standard: ceil(totalLf * 12 / spacing) + 15 pickets per every 100ft
       // Board-on-board: sum( ceil((segment inches / 8) * 2) )
       const isBoardOnBoardFence = selectedStyleKind === "wood_board_on_board_fence";
-      const boardOnBoardBasePickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
-        : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0);
-      const lfForExtraPickets = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + (Number(len) || 0), 0)
-        : (Number(totalLf) || 0);
-      const extraPicketBundles = lfForExtraPickets > 0 ? Math.floor((lfForExtraPickets + 1e-6) / 100) : 0;
+      const boardOnBoardBasePickets = totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0;
+      const extraPicketBundles = totalLf > 0 ? Math.floor((totalLf + 1e-6) / 100) : 0;
       const pickets = isBoardOnBoardFence
         ? (boardOnBoardBasePickets + extraPicketBundles * 5)
         : isBoardOnBoard
