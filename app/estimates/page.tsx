@@ -2399,8 +2399,10 @@ function EstimatesPageInner() {
       const railsPerPanel = heightFt <= 4 ? 2 : 3;
       const rails2x4x8 = panels * railsPerPanel;
 
-      // Pickets: ceil(totalLf * 12 / spacing) + 15 pickets per every 100ft
-      const pickets = totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0;
+      // Pickets: base +10 pickets, plus +5 pickets per every 100ft
+      const pickets = totalLf > 0
+        ? (Math.ceil((totalLf * 12) / picketSpacingIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5)
+        : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -3024,10 +3026,10 @@ function EstimatesPageInner() {
       const boardOnBoardBasePickets = totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0;
       const extraPicketBundles = totalLf > 0 ? Math.floor((totalLf + 1e-6) / 100) : 0;
       const pickets = isBoardOnBoardFence
-        ? (boardOnBoardBasePickets + extraPicketBundles * 5)
+        ? (boardOnBoardBasePickets + 10 + extraPicketBundles * 5)
         : isBoardOnBoard
             ? boardOnBoardBasePickets
-            : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0);
+            : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5 : 0);
 
       const concrete80Bags = postsFence * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
