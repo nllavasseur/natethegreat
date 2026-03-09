@@ -3957,27 +3957,36 @@ function EstimatesPageInner() {
       }
       const store = readDraftStore();
       const payload = buildDraftData(id);
-      store[id] = payload;
+      const prev = store[id] as any;
+      const payloadAny = payload as any;
+      const mergedPayload: any = prev && typeof prev === "object" ? { ...prev, ...payload } : payload;
+      if (payloadAny?.jobTasks == null && prev?.jobTasks != null) mergedPayload.jobTasks = prev.jobTasks;
+      if (payloadAny?.jobTaskSnooze == null && prev?.jobTaskSnooze != null) mergedPayload.jobTaskSnooze = prev.jobTaskSnooze;
+      if (payloadAny?.jobTaskLabels == null && prev?.jobTaskLabels != null) mergedPayload.jobTaskLabels = prev.jobTaskLabels;
+      if (payloadAny?.jobTaskHidden == null && prev?.jobTaskHidden != null) mergedPayload.jobTaskHidden = prev.jobTaskHidden;
+      if (payloadAny?.jobCustomTasks == null && prev?.jobCustomTasks != null) mergedPayload.jobCustomTasks = prev.jobCustomTasks;
+
+      store[id] = mergedPayload;
       try {
         writeDraftStore(store);
       } catch (e) {
         if (!isQuotaError(e)) throw e;
         const quotaSanitized = sanitizePhotosForStorage({
           projectPhotoDataUrl:
-            typeof (payload as any)?.projectPhotoDataUrl === "string" && String((payload as any).projectPhotoDataUrl).startsWith("data:")
-              ? String((payload as any).projectPhotoDataUrl)
+            typeof (mergedPayload as any)?.projectPhotoDataUrl === "string" && String((mergedPayload as any).projectPhotoDataUrl).startsWith("data:")
+              ? String((mergedPayload as any).projectPhotoDataUrl)
               : null,
-          preInstallPhotos: normalizePreInstallPhotos((payload as any)?.preInstallPhotos)
+          preInstallPhotos: normalizePreInstallPhotos((mergedPayload as any)?.preInstallPhotos)
         });
         const lite = {
-          ...payload,
+          ...mergedPayload,
           projectPhotoDataUrl: quotaSanitized.projectPhotoDataUrl,
           projectPhotoUrl:
-            typeof payload.projectPhotoUrl === "string" && payload.projectPhotoUrl.startsWith("data:")
+            typeof mergedPayload.projectPhotoUrl === "string" && mergedPayload.projectPhotoUrl.startsWith("data:")
               ? quotaSanitized.projectPhotoDataUrl
-              : payload.projectPhotoUrl,
+              : mergedPayload.projectPhotoUrl,
           preInstallPhotos: mergePreInstallForStorage(
-            stripDataUrlsFromPreInstall(Array.isArray((payload as any).preInstallPhotos) ? (payload as any).preInstallPhotos : []),
+            stripDataUrlsFromPreInstall(Array.isArray((mergedPayload as any).preInstallPhotos) ? (mergedPayload as any).preInstallPhotos : []),
             quotaSanitized.preInstallPhotos
           )
         };
@@ -4019,7 +4028,7 @@ function EstimatesPageInner() {
       setDraftId(id);
 
       try {
-        await upsertDraft({ id, data: payload });
+        await upsertDraft({ id, data: store[id] });
       } catch {
         // ignore
       }
@@ -4114,7 +4123,7 @@ function EstimatesPageInner() {
       setDraftId(id);
 
       try {
-        await upsertDraft({ id, data: payload });
+        await upsertDraft({ id, data: store[id] });
       } catch {
         // ignore
       }
