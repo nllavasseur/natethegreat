@@ -207,6 +207,7 @@ function woodBoard1x6x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar
 }
 
 function woodBoard2x2x8Name(boardMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
+  if (boardMaterial === "Rough sawn cedar") return "2x2x8 Rough Sawn Cedar";
   if (isCedarLike(boardMaterial)) return "2x2x8 Cedar";
   if (boardMaterial === "Cedar tone") return "2x2x8 CedarTone";
   return "2x2x8";
@@ -3060,10 +3061,10 @@ function EstimatesPageInner() {
               unit: "ea"
             },
             ...(isNiko
-              ? [{ name: woodTwoByTwoName(materialsDetails.twoByTwoMaterial), qty: panels * 8, unit: "ea" }]
+              ? [{ name: woodBoard2x2x8Name(materialsDetails.twoByTwoMaterial), qty: panels * 8, unit: "ea" }]
               : []),
             ...(isCasto
-              ? [{ name: woodTwoByTwoName(materialsDetails.twoByTwoMaterial), qty: panels * 7, unit: "ea" }]
+              ? [{ name: woodBoard2x2x8Name(materialsDetails.twoByTwoMaterial), qty: panels * 7, unit: "ea" }]
               : []),
             ...(pictureFramed2x4x16 > 0
               ? [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: pictureFramed2x4x16, unit: "ea" }]
