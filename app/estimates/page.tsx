@@ -470,6 +470,11 @@ function EstimatesPageInner() {
     },
     {
       type: "wood",
+      name: "board on board fence",
+      thumb: "/Board-on-Board-Fence.jpg"
+    },
+    {
+      type: "wood",
       name: "picture framed flat top",
       thumb: "/picture framed flat top.jpeg"
     },
@@ -1203,6 +1208,7 @@ function EstimatesPageInner() {
     if (n === "shadowbox") return "wood_shadowbox_pickets";
     if (n.includes("shadowbox")) return "wood_shadowbox_pickets";
     if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
+    if (n === "board on board fence" || n.includes("board on board fence") || n.includes("board-on-board-fence")) return "wood_board_on_board_fence";
     if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
     if (n === "four rail poplar" || n.includes("four rail poplar")) return "wood_four_rail_poplar";
     if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
@@ -1252,7 +1258,8 @@ function EstimatesPageInner() {
       selectedStyleKind === "wood_niko" ||
       selectedStyleKind === "wood_casto" ||
       selectedStyleKind === "wood_picture_framed_4ft" ||
-      selectedStyleKind === "wood_picture_framed_lattice";
+      selectedStyleKind === "wood_picture_framed_lattice" ||
+      selectedStyleKind === "wood_board_on_board_fence";
     if (!isPictureFramedFamily) return;
 
     const raw = Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0);
@@ -2844,6 +2851,7 @@ function EstimatesPageInner() {
       selectedStyleKind === "wood_casto" ||
       selectedStyleKind === "wood_picture_framed_4ft" ||
       selectedStyleKind === "wood_picture_framed_lattice" ||
+      selectedStyleKind === "wood_board_on_board_fence" ||
       selectedStyleKind === "wood_horizontal" ||
       selectedStyleKind === "wood_board_on_board"
     ) {
@@ -2855,7 +2863,6 @@ function EstimatesPageInner() {
       const isBoardOnBoard =
         selectedStyleKind === "wood_board_on_board" ||
         normalizedWoodStyle === "board on board" ||
-        normalizedWoodStyle.includes("board on board") ||
         normalizedWoodStyle.includes("board-on-board");
 
       const isNikoStyleName = normalizedWoodStyle === "niko" || normalizedWoodStyle.includes("niko");
@@ -2959,7 +2966,8 @@ function EstimatesPageInner() {
         selectedStyleKind === "wood_niko" ||
         selectedStyleKind === "wood_casto" ||
         selectedStyleKind === "wood_picture_framed_4ft" ||
-        selectedStyleKind === "wood_picture_framed_lattice";
+        selectedStyleKind === "wood_picture_framed_lattice" ||
+        selectedStyleKind === "wood_board_on_board_fence";
       const isNiko = selectedStyleKind === "wood_niko";
       const isCasto = selectedStyleKind === "wood_casto";
       const isAm = selectedStyleKind === "wood_am";
@@ -3015,11 +3023,15 @@ function EstimatesPageInner() {
       // Pickets
       // Standard: ceil(totalLf * 12 / spacing) + 15 pickets per every 100ft
       // Board-on-board: sum( ceil((segment inches / 8) * 2) )
-      const pickets = isBoardOnBoard
-        ? (segmentLengths.length
-            ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
-            : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0))
-        : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0);
+      const isBoardOnBoardFence = selectedStyleKind === "wood_board_on_board_fence";
+      const boardOnBoardBasePickets = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(((len * 12) / 8) * 2), 0)
+        : (totalLf > 0 ? Math.ceil(((totalLf * 12) / 8) * 2) : 0);
+      const pickets = isBoardOnBoardFence
+        ? (boardOnBoardBasePickets + (totalLf > 0 ? Math.floor(totalLf / 100) * 15 : 0))
+        : isBoardOnBoard
+            ? boardOnBoardBasePickets
+            : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + Math.floor(totalLf / 100) * 15 : 0);
 
       const concrete80Bags = postsFence * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -3382,12 +3394,13 @@ function EstimatesPageInner() {
       selectedStyleKind === "wood_niko" ||
       selectedStyleKind === "wood_casto" ||
       selectedStyleKind === "wood_picture_framed_4ft" ||
-      selectedStyleKind === "wood_picture_framed_lattice";
+      selectedStyleKind === "wood_picture_framed_lattice" ||
+      selectedStyleKind === "wood_board_on_board_fence";
     const trimMaterialFinal = isPictureFrameKind
       ? (materialsDetails.pictureFrameTrimMaterial || materialsDetails.trimMaterial)
       : materialsDetails.trimMaterial;
     const trimName = woodTrimName(trimMaterialFinal);
-    const trimBoards = selectedStyleKind === "wood_picture_framed" || selectedStyleKind === "wood_am" || selectedStyleKind === "wood_niko" || selectedStyleKind === "wood_casto" || selectedStyleKind === "wood_picture_framed_4ft" || selectedStyleKind === "wood_picture_framed_lattice"
+    const trimBoards = selectedStyleKind === "wood_picture_framed" || selectedStyleKind === "wood_am" || selectedStyleKind === "wood_niko" || selectedStyleKind === "wood_casto" || selectedStyleKind === "wood_picture_framed_4ft" || selectedStyleKind === "wood_picture_framed_lattice" || selectedStyleKind === "wood_board_on_board_fence"
       ? Math.max(0, Math.floor(Number(materialsDetails.pictureFrameTrimPieces) || 0)) * panels
       : 0;
 
@@ -5193,6 +5206,18 @@ function EstimatesPageInner() {
         horizontalCedarVerticals: true,
         horizontalCedarCornerAdjust: 0,
         topCaps: false
+      };
+    } else if (styleName === "board on board fence" || normalized === "board on board fence") {
+      overrides = {
+        woodType: "Pressure treated",
+        picketMaterial: "Pressure treated",
+        railMaterial: "Pressure treated",
+        trimMaterial: "Pressure treated",
+        twoByTwoMaterial: "Pressure treated",
+        postSize: 10,
+        postType: "Pressure treated",
+        takeoffPreset: "standard",
+        topCaps: true
       };
     } else if (styleName === "picture framed flat top") {
       overrides = {
@@ -9497,7 +9522,8 @@ function EstimatesPageInner() {
                             selectedStyleKind === "wood_niko" ||
                             selectedStyleKind === "wood_casto" ||
                             selectedStyleKind === "wood_picture_framed_4ft" ||
-                            selectedStyleKind === "wood_picture_framed_lattice"
+                            selectedStyleKind === "wood_picture_framed_lattice" ||
+                            selectedStyleKind === "wood_board_on_board_fence"
                           ) ? (
                             <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                               <div className="text-[11px] text-[var(--muted)] mb-2">Trim</div>
