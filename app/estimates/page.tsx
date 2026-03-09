@@ -7871,12 +7871,13 @@ function EstimatesPageInner() {
               onClick={() => setMaterialsDetailsOpen(false)}
             />
             <div className="relative w-full max-w-[980px]">
-              <GlassCard className="p-4 max-h-[80dvh] overflow-y-auto">
+              <GlassCard className="p-4 backdrop-blur-none [-webkit-backdrop-filter:none]">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-extrabold">Materials details</div>
                   <SecondaryButton onClick={() => setMaterialsDetailsOpen(false)}>Close</SecondaryButton>
                 </div>
 
+                <div className="max-h-[80dvh] overflow-y-auto">
                 <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {selectedFenceType === "aluminum" ? (
                     <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-3">
@@ -9875,7 +9876,7 @@ function EstimatesPageInner() {
                       </div>
                     </div>
                   ) : null}
-
+                </div>
                 </div>
               </GlassCard>
             </div>
