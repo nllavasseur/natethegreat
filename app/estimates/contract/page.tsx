@@ -720,10 +720,11 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   }
   .page{
     /* Keep the contract centered even if the user adjusts the print dialog scaling. */
-    width: 8.1in;
-    max-width: 8.1in;
-    margin: 0 auto;
-    padding:0.12in 0.34in;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding:0.12in 0.28in;
     background:#fff;
     box-shadow:none;
     height: auto;
