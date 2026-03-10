@@ -637,7 +637,6 @@ export default function CalendarPage() {
     const refreshRemote = async () => {
       // Do remote fetch/merge in the background. On poor service this can take a while,
       // but the UI should already be populated from localStorage.
-      const epochAtStart = localMutationEpochRef.current;
       const store = readDraftStore();
       const localList = Object.values(store).map((d) => ({ ...d }));
       const localBlocks = readBlockOutStore();
@@ -696,7 +695,7 @@ export default function CalendarPage() {
       }
 
       const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toCalendarDraftLite(d));
-      if (!cancelled && localMutationEpochRef.current === epochAtStart) setDrafts(mergedLite);
+      if (!cancelled) setDrafts(mergedLite);
       try {
         writeCalendarDraftsCache(mergedLite);
       } catch {
