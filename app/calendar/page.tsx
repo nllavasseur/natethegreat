@@ -1007,6 +1007,18 @@ export default function CalendarPage() {
   const resetLaborDays = React.useCallback((id: string, fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+
+    // Optimistic UI: immediately reset days in local state.
+    setDrafts((prev) =>
+      prev.map((d) => {
+        if (String((d as any).id) !== sid) return d;
+        const curOriginal = Number((d as any).originalLaborDays);
+        const curLabor = Number((d as any).laborDays);
+        const nextDays = Number.isFinite(curOriginal) && curOriginal > 0 ? Math.round(curOriginal) : Number.isFinite(curLabor) && curLabor > 0 ? Math.round(curLabor) : 1;
+        return { ...(d as any), laborDays: nextDays } as any;
+      })
+    );
+
     void (async () => {
       const res = await resetLaborDaysPipeline({ id: sid, fallback: fallback as any });
       if (!res.ok) return;
@@ -1045,6 +1057,18 @@ export default function CalendarPage() {
   const adjustLaborDays = React.useCallback((id: string, delta: number, fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+
+    // Optimistic UI: immediately reflect the +/- in local state.
+    setDrafts((prev) =>
+      prev.map((d) => {
+        if (String((d as any).id) !== sid) return d;
+        const cur = Number((d as any).laborDays);
+        const base = Number.isFinite(cur) && cur > 0 ? Math.round(cur) : 1;
+        const nextDays = Math.max(1, base + Math.sign(delta || 0));
+        return { ...(d as any), laborDays: nextDays } as any;
+      })
+    );
+
     void (async () => {
       const res = await adjustLaborDaysPipeline({ id: sid, delta, fallback: fallback as any });
       if (!res.ok) return;
