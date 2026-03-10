@@ -991,6 +991,21 @@ export default function CalendarPage() {
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+
+    // Optimistic UI: immediately toggle weekend flag in local state.
+    setDrafts((prev) =>
+      prev.map((d) => {
+        if (String((d as any).id) !== sid) return d;
+        const curSat = asBool((d as any).allowSaturday);
+        const curSun = asBool((d as any).allowSunday);
+        const nextFlags =
+          which === "sat"
+            ? { allowSaturday: !curSat, allowSunday: curSun }
+            : { allowSaturday: curSat, allowSunday: !curSun };
+        return { ...(d as any), ...nextFlags } as any;
+      })
+    );
+
     void (async () => {
       const res = await toggleWeekendAllowedPipeline({ id: sid, which, fallback: fallback as any });
       if (!res.ok) return;
@@ -2103,7 +2118,7 @@ export default function CalendarPage() {
 
               <div
                 ref={queueListRef}
-                className="mt-2 grid content-start gap-1.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
+                className="mt-2 grid content-start gap-2.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
                 style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
               >
                 {soldQueue.length === 0 ? (
