@@ -2,7 +2,7 @@
 
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
-import { fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { fetchCalendarEntries, fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
 import { supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
 import {
@@ -111,6 +111,34 @@ type BlockOut = {
 const BLOCKOUTS_REMOTE_ID = "vf_calendar_blockouts_v1";
 
 const TASKS_REMOTE_ID = "vf_calendar_tasks_v1";
+
+const CALENDAR_ENTRIES_CACHE_KEY = "vf_calendar_entries_cache_v1";
+
+function readCalendarEntriesCache(key: string): DraftEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CALENDAR_ENTRIES_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    if (!parsed || typeof parsed !== "object") return [];
+    const list = Array.isArray(parsed?.[key]) ? (parsed[key] as DraftEntry[]) : [];
+    return (Array.isArray(list) ? list : []).filter((d) => d && typeof (d as any).id === "string");
+  } catch {
+    return [];
+  }
+}
+
+function writeCalendarEntriesCache(key: string, list: DraftEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(CALENDAR_ENTRIES_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : {};
+    const next = parsed && typeof parsed === "object" ? { ...(parsed as any) } : {};
+    next[key] = (Array.isArray(list) ? list : []).slice(0, 1200).map((d) => toCalendarDraftLite(d));
+    next.updatedAt = Date.now();
+    window.localStorage.setItem(CALENDAR_ENTRIES_CACHE_KEY, JSON.stringify(next));
+  } catch {
+  }
+}
 
 type CalendarTask = {
   id: string;
@@ -564,7 +592,7 @@ export default function CalendarPage() {
         window.setTimeout(() => reject(new Error("timeout")), ms);
       })
     ]);
-  }, []);
+  }, [cursor]);
 
   const monthStart = React.useMemo(() => startOfMonth(cursor), [cursor]);
   const monthDays = React.useMemo(() => daysInMonth(cursor), [cursor]);
@@ -601,11 +629,32 @@ export default function CalendarPage() {
 
   React.useEffect(() => {
     let cancelled = false;
+
+    const cursorMonthStart = startOfMonth(cursor);
+    const windowStart = new Date(cursorMonthStart);
+    windowStart.setDate(windowStart.getDate() - 45);
+    const windowEnd = new Date(cursorMonthStart);
+    windowEnd.setMonth(windowEnd.getMonth() + 1);
+    windowEnd.setDate(windowEnd.getDate() + 45);
+    const windowStartIso = windowStart.toISOString().slice(0, 10);
+    const windowEndIso = windowEnd.toISOString().slice(0, 10);
+    const windowKey = `${windowStartIso}_${windowEndIso}`;
+
     const refreshLocal = () => {
       try {
         // Fast path: seed UI from lightweight cache so the calendar can render immediately.
         const cached = readCalendarDraftsCache();
         if (!cancelled && Array.isArray(cached) && cached.length) setDrafts(cached);
+      } catch {
+      }
+
+      try {
+        // Extra-fast path: if available, seed the visible window from a smaller calendar-specific cache.
+        const cachedEntries = readCalendarEntriesCache(windowKey);
+        if (!cancelled && Array.isArray(cachedEntries) && cachedEntries.length) setDrafts((prev) => {
+          if (Array.isArray(prev) && prev.length > 0) return prev;
+          return cachedEntries;
+        });
       } catch {
       }
       try {
@@ -643,6 +692,7 @@ export default function CalendarPage() {
       const localTasks = readTaskStore();
 
       let remoteList: DraftEntry[] = [];
+      let remoteListOk = false;
       let remoteBlocks: BlockOut[] = [];
       let remoteTasks: CalendarTask[] = [];
       let remoteBlocksOk = false;
@@ -650,16 +700,26 @@ export default function CalendarPage() {
       let remoteBlocksErr = "";
       let remoteTasksErr = "";
 
+      // Prefer fast calendar snapshot if available; it fetches only the visible window + sold queue.
+      try {
+        const snapshot = await withTimeout(fetchCalendarEntries({ windowStartIso, windowEndIso }), 3500);
+        if ((snapshot as any)?.ok && Array.isArray((snapshot as any)?.drafts)) {
+          remoteList = ((snapshot as any).drafts as DraftEntry[]) || [];
+          remoteListOk = true;
+        }
+      } catch {
+      }
+
       try {
         const [draftsRes, blocksRes, tasksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
           // Calendar only needs a rolling window of recent drafts + sold queue.
-          withTimeout(fetchDrafts({ limit: 450 }), 4500),
+          remoteListOk ? Promise.resolve({ ok: true, drafts: remoteList } as any) : withTimeout(fetchDrafts({ limit: 450 }), 4500),
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
           withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500)
         ]);
 
-        remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : [];
+        remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : remoteList;
 
         remoteBlocksOk = Boolean((blocksRes as any)?.ok);
         if (!remoteBlocksOk) remoteBlocksErr = String((blocksRes as any)?.reason || "");
@@ -698,6 +758,13 @@ export default function CalendarPage() {
       if (!cancelled) setDrafts(mergedLite);
       try {
         writeCalendarDraftsCache(mergedLite);
+      } catch {
+      }
+
+      try {
+        if (remoteListOk && Array.isArray(remoteList) && remoteList.length > 0) {
+          writeCalendarEntriesCache(windowKey, remoteList);
+        }
       } catch {
       }
 

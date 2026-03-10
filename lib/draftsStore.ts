@@ -138,6 +138,109 @@ export async function fetchDraft(params: { id: string; workspaceId?: string }) {
   }
 }
 
+type CalendarEntryRow = {
+  draft_id: string;
+  updated_at?: string;
+  // denormalized fields
+  created_at_ms?: number;
+  updated_at_ms?: number;
+  status?: string;
+  calendar_hidden?: boolean;
+  scheduled_iso?: string | null;
+  install_date?: string | null;
+  start_date?: string | null;
+  hold_date?: string | null;
+  labor_days?: number | null;
+  queue_rank?: number | null;
+  allow_saturday?: boolean | null;
+  allow_sunday?: boolean | null;
+  estimate_assignee?: string | null;
+  customer_name?: string | null;
+  title?: string | null;
+  project_address?: string | null;
+  selected_style?: any;
+};
+
+export async function fetchCalendarEntries(params: {
+  windowStartIso: string;
+  windowEndIso: string;
+  workspaceId?: string;
+  soldLimit?: number;
+}) {
+  if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
+  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const soldLimit = Number(params.soldLimit);
+  const soldTake = Number.isFinite(soldLimit) && soldLimit > 0 ? Math.min(600, Math.max(50, soldLimit)) : 250;
+
+  try {
+    const selectCols =
+      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,project_address,selected_style";
+
+    const [windowRes, soldRes] = await Promise.all([
+      supabase
+        .from("calendar_entries")
+        .select(selectCols)
+        .eq("workspace_id", workspaceId)
+        .gte("scheduled_iso", params.windowStartIso)
+        .lte("scheduled_iso", params.windowEndIso),
+      supabase
+        .from("calendar_entries")
+        .select(selectCols)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "sold")
+        .eq("calendar_hidden", false)
+        .order("queue_rank", { ascending: true, nullsFirst: false })
+        .order("updated_at", { ascending: false })
+        .limit(soldTake)
+    ]);
+
+    if (windowRes.error) throw windowRes.error;
+    if (soldRes.error) throw soldRes.error;
+
+    const rows = [...(windowRes.data ?? []), ...(soldRes.data ?? [])] as CalendarEntryRow[];
+
+    const byId = new Map<string, any>();
+    for (const r of rows) {
+      const id = String((r as any)?.draft_id || "");
+      if (!id) continue;
+      const updatedAtMs = Number((r as any)?.updated_at_ms);
+      const next = {
+        id,
+        createdAt: Number((r as any)?.created_at_ms) || undefined,
+        updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
+        status: (r as any)?.status ?? undefined,
+        calendarHidden: (r as any)?.calendar_hidden ?? undefined,
+        scheduledAt: (r as any)?.scheduled_iso ?? undefined,
+        installDate: (r as any)?.install_date ?? undefined,
+        startDate: (r as any)?.start_date ?? undefined,
+        holdDate: (r as any)?.hold_date ?? undefined,
+        laborDays: (r as any)?.labor_days ?? undefined,
+        queueRank: (r as any)?.queue_rank ?? undefined,
+        allowSaturday: (r as any)?.allow_saturday ?? undefined,
+        allowSunday: (r as any)?.allow_sunday ?? undefined,
+        estimateAssignee: (r as any)?.estimate_assignee ?? undefined,
+        customerName: (r as any)?.customer_name ?? undefined,
+        title: (r as any)?.title ?? undefined,
+        projectAddress: (r as any)?.project_address ?? undefined,
+        selectedStyle: (r as any)?.selected_style ?? undefined
+      };
+
+      const prev = byId.get(id);
+      if (!prev) {
+        byId.set(id, next);
+        continue;
+      }
+      const p = Number(prev?.updatedAt ?? prev?.createdAt ?? 0) || 0;
+      const n = Number(next?.updatedAt ?? next?.createdAt ?? 0) || 0;
+      if (n >= p) byId.set(id, next);
+    }
+
+    return { ok: true as const, drafts: Array.from(byId.values()) };
+  } catch (e) {
+    return { ok: false as const, reason: "error" as const, error: e, drafts: [] as any[] };
+  }
+}
+
 export async function uploadDraftPhoto(params: {
   draftId: string;
   file: File | Blob;
