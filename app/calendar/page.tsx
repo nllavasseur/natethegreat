@@ -1136,10 +1136,11 @@ export default function CalendarPage() {
       const explicitIso = explicitStartIso(d);
       const explicitStart = explicitIso ? new Date(explicitIso + "T12:00:00") : null;
       const hasStarted = Boolean(explicitStart) && startOfDay(explicitStart as Date).getTime() <= today0.getTime();
+      const isLocked = (d as any).queueLocked === true;
 
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
-      if (hasStarted && !requested && explicitIso) {
+      if (isLocked && explicitIso) {
         scheduledStartById.set(String((d as any).id), explicitIso);
         occupyRange(explicitIso, (d as any).laborDays, "sold", allowSat, allowSun);
         const seq = workdaySequenceForJob(explicitStart as Date, span, allowSat, allowSun);
@@ -1228,7 +1229,10 @@ export default function CalendarPage() {
       if (!startIso) return;
       try {
         const start = startOfDay(new Date(startIso + "T12:00:00"));
-        if (start.getTime() <= today0.getTime()) {
+        const end = (j as any).end ? startOfDay(new Date((j as any).end)) : null;
+        if (!end) return;
+        // Only lock the job that is actually in progress today.
+        if (start.getTime() <= today0.getTime() && end.getTime() >= today0.getTime()) {
           setQueueLocked(j.id, true, startIso, j as any);
         }
       } catch {
