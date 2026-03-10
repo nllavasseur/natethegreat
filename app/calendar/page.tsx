@@ -606,7 +606,7 @@ export default function CalendarPage() {
         const [draftsRes, blocksRes, tasksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
           // Calendar only needs a rolling window of recent drafts + sold queue.
-          withTimeout(fetchDrafts({ limit: 450 }), 4500),
+          withTimeout(fetchDrafts({ limit: 2000 }), 4500),
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
           withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500)
         ]);
