@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { deleteDraftRemote, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { deleteDraftRemote, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import type { QuoteItem } from "@/lib/types";
 
@@ -384,6 +384,19 @@ export default function QuotesPage() {
   useEffect(() => {
     let cancelled = false;
     const getTs = (d: any) => Number(d?.updatedAt ?? d?.createdAt) || 0;
+    const withTimeout = async <T,>(p: Promise<T>, ms: number) => {
+      let t: any;
+      try {
+        return await Promise.race([
+          p,
+          new Promise<T>((_, reject) => {
+            t = window.setTimeout(() => reject(new Error("timeout")), ms);
+          })
+        ]);
+      } finally {
+        if (t) window.clearTimeout(t);
+      }
+    };
 
     const load = async () => {
       const tombstones = readDeletedQuoteTombstones();
@@ -416,8 +429,23 @@ export default function QuotesPage() {
         .map((d) => ({ ...d }))
         .filter((d) => !tombstones[String((d as any)?.id || "")]);
 
-      const remote = await fetchDrafts({ limit: 450 });
-      const remoteListRaw = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+      let remoteListRaw: DraftEntry[] = [];
+      let usedSnapshot = false;
+
+      try {
+        const snap = await withTimeout(fetchQuotesEntries({ limit: 900 }) as any, 3500);
+        if ((snap as any)?.ok && Array.isArray((snap as any)?.drafts)) {
+          remoteListRaw = ((snap as any).drafts as DraftEntry[]) || [];
+          usedSnapshot = true;
+        }
+      } catch {
+      }
+
+      if (!usedSnapshot) {
+        const remote = await fetchDrafts({ limit: 450 });
+        remoteListRaw = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+      }
+
       const remoteList = remoteListRaw.filter((d) => !tombstones[String((d as any)?.id || "")]);
 
       const byId = new Map<string, DraftEntry>();
@@ -454,6 +482,61 @@ export default function QuotesPage() {
       try {
         writeQuotesDraftsCache(mergedLite);
       } catch {
+      }
+
+      if (usedSnapshot) {
+        void (async () => {
+          try {
+            const remoteAll = await withTimeout(fetchDrafts({ limit: 1800 }) as any, 12000);
+            if (!(remoteAll as any)?.ok) return;
+            const remoteAllListRaw = (((remoteAll as any).drafts as DraftEntry[]) || []).filter(
+              (d) => !tombstones[String((d as any)?.id || "")]
+            );
+
+            const latestStore = readDraftStore();
+            const latestLocalList = Object.values(latestStore)
+              .map((d) => ({ ...d }))
+              .filter((d) => !tombstones[String((d as any)?.id || "")]);
+
+            const byIdAll = new Map<string, DraftEntry>();
+            for (const d of Array.isArray(latestLocalList) ? latestLocalList : []) {
+              const id = String((d as any)?.id || "");
+              if (!id) continue;
+              byIdAll.set(id, d as any);
+            }
+            for (const d of Array.isArray(remoteAllListRaw) ? remoteAllListRaw : []) {
+              const id = String((d as any)?.id || "");
+              if (!id) continue;
+              const prev = byIdAll.get(id);
+              if (!prev) {
+                byIdAll.set(id, d as any);
+                continue;
+              }
+
+              if (getTs(d) > getTs(prev)) {
+                const mergedNext: DraftEntry = { ...(prev as any), ...(d as any) } as any;
+                if ((d as any).jobTasks == null && (prev as any).jobTasks != null) (mergedNext as any).jobTasks = (prev as any).jobTasks;
+                if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prev as any).jobTaskSnooze;
+                if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prev as any).jobTaskLabels;
+                if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) (mergedNext as any).jobTaskHidden = (prev as any).jobTaskHidden;
+                if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) (mergedNext as any).jobCustomTasks = (prev as any).jobCustomTasks;
+                byIdAll.set(id, mergedNext);
+              }
+            }
+
+            const mergedAll = Array.from(byIdAll.values()).sort((a, b) => getTs(b) - getTs(a));
+            const mergedAllLite = (Array.isArray(mergedAll) ? mergedAll : [])
+              .filter((d) => !tombstones[String((d as any)?.id || "")])
+              .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
+
+            if (!cancelled) setDrafts(mergedAllLite);
+            try {
+              writeQuotesDraftsCache(mergedAllLite);
+            } catch {
+            }
+          } catch {
+          }
+        })();
       }
     };
 

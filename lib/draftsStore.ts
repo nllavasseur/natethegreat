@@ -35,6 +35,93 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
   }
 }
 
+type QuotesEntryRow = {
+  draft_id: string;
+  updated_at?: string;
+  created_at_ms?: number;
+  updated_at_ms?: number;
+  status?: string | null;
+  calendar_hidden?: boolean | null;
+  scheduled_iso?: string | null;
+  install_date?: string | null;
+  start_date?: string | null;
+  labor_days?: number | null;
+  queue_rank?: number | null;
+  estimate_assignee?: string | null;
+  customer_name?: string | null;
+  title?: string | null;
+  phone_number?: string | null;
+  project_address?: string | null;
+  selected_style_name?: string | null;
+  project_photo_url?: string | null;
+  preinstall_count?: number | null;
+  totals?: any;
+  job_tasks?: any;
+  job_task_snooze?: any;
+};
+
+export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?: number }) {
+  if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
+  const workspaceId = params?.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const limit = Number((params as any)?.limit);
+  const take = Number.isFinite(limit) && limit > 0 ? Math.min(2000, Math.max(50, limit)) : 900;
+
+  try {
+    const selectCols =
+      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,labor_days,queue_rank,estimate_assignee,customer_name,title,phone_number,project_address,selected_style_name,project_photo_url,preinstall_count,totals,job_tasks,job_task_snooze";
+
+    const res = await supabase
+      .from("quotes_entries")
+      .select(selectCols)
+      .eq("workspace_id", workspaceId)
+      .order("updated_at", { ascending: false })
+      .limit(take);
+
+    if ((res as any)?.error) throw (res as any).error;
+
+    const rows = ((res as any)?.data ?? []) as QuotesEntryRow[];
+    const out = rows
+      .map((r) => {
+        const id = String((r as any)?.draft_id || "");
+        if (!id) return null;
+        const updatedAtMs = Number((r as any)?.updated_at_ms);
+        const createdAtMs = Number((r as any)?.created_at_ms);
+        return {
+          id,
+          createdAt: Number.isFinite(createdAtMs) && createdAtMs > 0 ? createdAtMs : undefined,
+          updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
+          status: (r as any)?.status ?? undefined,
+          calendarHidden: (r as any)?.calendar_hidden ?? undefined,
+          scheduledAt: (r as any)?.scheduled_iso ?? undefined,
+          installDate: (r as any)?.install_date ?? undefined,
+          startDate: (r as any)?.start_date ?? undefined,
+          laborDays: (r as any)?.labor_days ?? undefined,
+          queueRank: (r as any)?.queue_rank ?? undefined,
+          estimateAssignee: (r as any)?.estimate_assignee ?? undefined,
+          customerName: (r as any)?.customer_name ?? undefined,
+          title: (r as any)?.title ?? undefined,
+          phoneNumber: (r as any)?.phone_number ?? undefined,
+          projectAddress: (r as any)?.project_address ?? undefined,
+          selectedStyle: (r as any)?.selected_style_name ? { name: (r as any)?.selected_style_name } : undefined,
+          projectPhotoUrl: (r as any)?.project_photo_url ?? undefined,
+          preInstallPhotos: typeof (r as any)?.preinstall_count === "number" ? new Array(Math.max(0, (r as any).preinstall_count)).fill({ src: "", note: "", createdAt: 0 }) : undefined,
+          totals: (r as any)?.totals ?? undefined,
+          jobTasks: (r as any)?.job_tasks ?? undefined,
+          jobTaskSnooze: (r as any)?.job_task_snooze ?? undefined
+        } as any;
+      })
+      .filter(Boolean);
+
+    return { ok: true as const, drafts: out as any[] };
+  } catch (e: any) {
+    const msg = String(e?.message || e || "");
+    if (msg.toLowerCase().includes("relation") && msg.toLowerCase().includes("does not exist")) {
+      return { ok: false as const, reason: "missing_relation" as const, drafts: [] as any[] };
+    }
+    return { ok: false as const, reason: "error" as const, error: e, drafts: [] as any[] };
+  }
+}
+
 export async function deleteDraftRemote(params: { id: string; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
