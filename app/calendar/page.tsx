@@ -490,7 +490,6 @@ export default function CalendarPage() {
   const [taskDesc, setTaskDesc] = React.useState("");
   const [syncDiag, setSyncDiag] = React.useState(() => ({
     supabaseConfigured,
-    drafts: { ok: false as boolean, count: 0 as number, error: "" as string },
     blockouts: { ok: false as boolean, count: 0 as number, error: "" as string },
     tasks: { ok: false as boolean, count: 0 as number, error: "" as string }
   }));
@@ -598,10 +597,8 @@ export default function CalendarPage() {
       let remoteList: DraftEntry[] = [];
       let remoteBlocks: BlockOut[] = [];
       let remoteTasks: CalendarTask[] = [];
-      let remoteDraftsOk = false;
       let remoteBlocksOk = false;
       let remoteTasksOk = false;
-      let remoteDraftsErr = "";
       let remoteBlocksErr = "";
       let remoteTasksErr = "";
 
@@ -609,14 +606,12 @@ export default function CalendarPage() {
         const [draftsRes, blocksRes, tasksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
           // Calendar only needs a rolling window of recent drafts + sold queue.
-          withTimeout(fetchDrafts({ limit: 2000 }), 12000),
+          withTimeout(fetchDrafts({ limit: 2000 }), 4500),
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
           withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500)
         ]);
 
-        remoteDraftsOk = Boolean((draftsRes as any)?.ok);
-        if (!remoteDraftsOk) remoteDraftsErr = String((draftsRes as any)?.reason || "");
-        remoteList = remoteDraftsOk ? ((draftsRes as any)?.drafts as DraftEntry[]) : [];
+        remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : [];
 
         remoteBlocksOk = Boolean((blocksRes as any)?.ok);
         if (!remoteBlocksOk) remoteBlocksErr = String((blocksRes as any)?.reason || "");
@@ -629,11 +624,9 @@ export default function CalendarPage() {
         // ignore (offline/slow). Keep local data.
         const msg = String((e as any)?.message || e || "");
         if (msg === "timeout") {
-          remoteDraftsErr = remoteDraftsErr || "timeout";
           remoteBlocksErr = remoteBlocksErr || "timeout";
           remoteTasksErr = remoteTasksErr || "timeout";
         } else {
-          remoteDraftsErr = remoteDraftsErr || msg;
           remoteBlocksErr = remoteBlocksErr || msg;
           remoteTasksErr = remoteTasksErr || msg;
         }
@@ -681,7 +674,6 @@ export default function CalendarPage() {
         if (!cancelled) {
           setSyncDiag({
             supabaseConfigured,
-            drafts: { ok: remoteDraftsOk, count: remoteList.length, error: remoteDraftsErr },
             blockouts: { ok: remoteBlocksOk, count: remoteBlocks.length, error: remoteBlocksErr },
             tasks: { ok: remoteTasksOk, count: remoteTasks.length, error: remoteTasksErr }
           });
@@ -2626,16 +2618,7 @@ export default function CalendarPage() {
           >
             Prev
           </SecondaryButton>
-          <div className="text-center">
-            <div className="text-sm font-extrabold">{label}</div>
-            <div className="text-[10px] text-[var(--muted)] font-extrabold leading-none mt-1">
-              {syncDiag.supabaseConfigured
-                ? (syncDiag.drafts.ok
-                    ? `Sync: ${syncDiag.drafts.count}`
-                    : `Sync: ${syncDiag.drafts.error || "error"}`)
-                : "Sync: off"}
-            </div>
-          </div>
+          <div className="text-sm font-extrabold">{label}</div>
           <div className="flex items-center gap-2">
             <button
               type="button"
