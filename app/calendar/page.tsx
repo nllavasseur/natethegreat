@@ -1234,6 +1234,13 @@ export default function CalendarPage() {
     // Locking persists queueLockedAt so it never slides after midnight.
     const first = (soldQueue || [])[0] as any;
     if (!first) return;
+
+    // Only #1 may be locked. If older data has other rows locked, unlock them.
+    (soldQueue || []).slice(1).forEach((j: any) => {
+      if (!j) return;
+      if (j.queueLocked === true) setQueueLocked(String(j.id), false, undefined, j);
+    });
+
     if (first.queueLocked === false) return;
     if (first.queueLocked === true) return;
     const startIso = String(first.installDate || first.startDate || "").slice(0, 10);

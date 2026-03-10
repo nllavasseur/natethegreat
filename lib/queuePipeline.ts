@@ -200,11 +200,9 @@ export async function setQueueLocked(params: {
     queueLocked: lock,
     // Locking a sold job anchors it via queueLockedAt; we do not persist calendar start dates.
     queueLockedAt: lock
-      ? Number.isFinite(Number((prev as any).queueLockedAt))
-        ? Number((prev as any).queueLockedAt)
-        : startIso
-          ? new Date(startIso + "T12:00:00").getTime()
-          : now()
+      ? startIso
+        ? new Date(startIso + "T12:00:00").getTime()
+        : now()
       : undefined,
     startDate: undefined,
     installDate: undefined,
