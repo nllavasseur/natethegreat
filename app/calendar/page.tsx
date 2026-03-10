@@ -1111,11 +1111,10 @@ export default function CalendarPage() {
       const explicitIso = explicitStartIso(d);
       const explicitStart = explicitIso ? new Date(explicitIso + "T12:00:00") : null;
       const hasStarted = Boolean(explicitStart) && startOfDay(explicitStart as Date).getTime() <= today0.getTime();
-      const isUnlocked = (d as any).queueLocked === false;
 
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
-      if (hasStarted && !isUnlocked && !requested && explicitIso) {
+      if (hasStarted && !requested && explicitIso) {
         scheduledStartById.set(d.id, explicitIso);
         occupyRange(explicitIso, (d as any).laborDays, "sold", allowSat, allowSun);
         const seq = workdaySequenceForJob(explicitStart as Date, span, allowSat, allowSun);
