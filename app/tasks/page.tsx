@@ -160,7 +160,12 @@ export default function TasksPage() {
       const remote = await fetchDrafts({ limit: 450 });
       const remoteList = (remote as any)?.ok ? ((remote as any).drafts as DraftEntry[]) : [];
 
-      const merged = mergeDraftLists(localList, remoteList);
+      // Re-read local store right before merge so any task toggles done while the remote
+      // fetch was in-flight cannot be overwritten by the stale localList snapshot.
+      const latestStore = readDraftStore();
+      const latestLocalList = Object.values(latestStore).map((d) => ({ ...d }));
+
+      const merged = mergeDraftLists(latestLocalList, remoteList);
       if (!cancelled) setDrafts(merged);
     })();
 
