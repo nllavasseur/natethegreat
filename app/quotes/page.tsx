@@ -1014,6 +1014,10 @@ export default function QuotesPage() {
             const expanded = Boolean(expandedCustomerStacks[stack.key]);
             const hasScheduled = stack.cards.some((c) => Boolean(String((c as any).scheduledAt || "").trim()));
             const hasIncompleteTasks = stack.cards.some((c) => Boolean((c as any).hasIncompleteTasks));
+            const firstUnscheduledEstimate = stack.cards.find(
+              (c) => (c as any).status === "estimate" && !String((c as any).scheduledAt || "").trim()
+            ) as any;
+            const stackCallTel = normalizePhone(String((firstUnscheduledEstimate as any)?.phoneNumber || ""));
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"
               : stack.cards.some((c) => (c as any).status === "pending")
@@ -1069,6 +1073,34 @@ export default function QuotesPage() {
                         <div className="relative" aria-label="Incomplete tasks" title="Incomplete tasks">
                           <span className="h-3 w-3 rounded-full bg-[rgba(255,80,80,.95)] animate-pulse block" />
                         </div>
+                      ) : null}
+                      {stackStatus === "estimate" && !hasScheduled ? (
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          disabled={!stackCallTel}
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                            if (!stackCallTel) return;
+                            window.location.href = `tel:${stackCallTel}`;
+                          }}
+                          className={
+                            "rounded-full border px-3 py-1 text-[11px] font-extrabold whitespace-nowrap " +
+                            (stackCallTel
+                              ? "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)] text-white"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
+                          }
+                        >
+                          Call
+                        </button>
                       ) : null}
                       {hasScheduled && stackStatus !== "pending" ? (
                         <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
@@ -1279,36 +1311,6 @@ export default function QuotesPage() {
                 ) : (
                   <div className="flex-1" />
                 )}
-
-                {(q.status === "estimate" && !String((q as any).scheduledAt || "").trim()) ? (
-                  <button
-                    type="button"
-                    data-no-swipe="true"
-                    data-keep-open="true"
-                    disabled={!normalizePhone((q as any).phoneNumber || "")}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      bumpSuppressNav();
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      bumpSuppressNav();
-                      const tel = normalizePhone((q as any).phoneNumber || "");
-                      if (!tel) return;
-                      window.location.href = `tel:${tel}`;
-                    }}
-                    className={
-                      "rounded-full border px-3 py-1 text-[11px] font-extrabold whitespace-nowrap " +
-                      (normalizePhone((q as any).phoneNumber || "")
-                        ? "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)] text-white"
-                        : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
-                    }
-                  >
-                    Call
-                  </button>
-                ) : null}
 
                 {Number((q as any).preInstallPhotoCount) > 0 ? (
                   <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] whitespace-nowrap">
