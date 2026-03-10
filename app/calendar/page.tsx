@@ -1055,6 +1055,11 @@ export default function CalendarPage() {
       }
     };
 
+    const legacyAnchorIso = (d: DraftEntry) => {
+      const s = String((d as any).installDate || (d as any).startDate || "");
+      return s ? s.slice(0, 10) : "";
+    };
+
     const explicitNonSoldIso = (d: DraftEntry) => {
       const s = String((d as any).scheduledAt || "");
       if (s) return s.slice(0, 10);
@@ -1142,7 +1147,7 @@ export default function CalendarPage() {
       const requested = String((d as any).holdDate || "");
 
       const isLocked = (d as any).queueLocked === true;
-      const anchorIso = isLocked ? lockAnchorIso(d) : "";
+      const anchorIso = isLocked ? (lockAnchorIso(d) || legacyAnchorIso(d)) : "";
       const anchorStart = anchorIso ? new Date(anchorIso + "T12:00:00") : null;
 
       // If a sold job has started, keep it anchored unless the user explicitly
@@ -1231,7 +1236,8 @@ export default function CalendarPage() {
     if (!first) return;
     if (first.queueLocked === false) return;
     if (first.queueLocked === true) return;
-    setQueueLocked(String(first.id), true, undefined, first);
+    const startIso = String(first.installDate || first.startDate || "").slice(0, 10);
+    setQueueLocked(String(first.id), true, startIso || undefined, first);
   }, [soldQueue, setQueueLocked, today0]);
 
   React.useLayoutEffect(() => {
