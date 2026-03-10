@@ -1205,44 +1205,76 @@ export default function QuotesPage() {
 
                 {q.status === "estimate" ? (
                   <div className="flex-1 flex justify-center">
-                    <button
-                      type="button"
-                      data-no-swipe="true"
-                      data-keep-open="true"
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        bumpSuppressNav();
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        bumpSuppressNav();
-                        setOpenStatusId(null);
-                        setConfirmDeleteId(null);
-                        const store = readDraftStore();
-                        const cur = store[q.id] as any;
-                        const fromState = drafts.find((d) => d.id === q.id) as any;
-                        const existing = String(cur?.scheduledAt || fromState?.scheduledAt || (q as any)?.scheduledAt || "");
-                        const existingAssignee = String(
-                          cur?.estimateAssignee || fromState?.estimateAssignee || (q as any)?.estimateAssignee || ""
-                        );
-                        setScheduleForId(q.id);
-                        if (existing) {
-                          setScheduleDate(toDateLocalValue(existing));
-                          setScheduleTime(toTimeLocalValue(existing));
-                        } else {
-                          setScheduleDate(defaultScheduleDateValue());
-                          setScheduleTime(defaultScheduleTimeValue());
+                    <div className="flex items-center justify-center gap-2">
+                      {!String((q as any).scheduledAt || "").trim() ? (
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          disabled={!normalizePhone((q as any).phoneNumber || "")}
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                            const tel = normalizePhone((q as any).phoneNumber || "");
+                            if (!tel) return;
+                            window.location.href = `tel:${tel}`;
+                          }}
+                          className={
+                            "rounded-full border px-3 py-1 text-[11px] font-extrabold " +
+                            (normalizePhone((q as any).phoneNumber || "")
+                              ? "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)] text-white"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
+                          }
+                        >
+                          Call
+                        </button>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        data-no-swipe="true"
+                        data-keep-open="true"
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          bumpSuppressNav();
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          bumpSuppressNav();
+                          setOpenStatusId(null);
+                          setConfirmDeleteId(null);
+                          const store = readDraftStore();
+                          const cur = store[q.id] as any;
+                          const fromState = drafts.find((d) => d.id === q.id) as any;
+                          const existing = String(cur?.scheduledAt || fromState?.scheduledAt || (q as any)?.scheduledAt || "");
+                          const existingAssignee = String(
+                            cur?.estimateAssignee || fromState?.estimateAssignee || (q as any)?.estimateAssignee || ""
+                          );
+                          setScheduleForId(q.id);
+                          if (existing) {
+                            setScheduleDate(toDateLocalValue(existing));
+                            setScheduleTime(toTimeLocalValue(existing));
+                          } else {
+                            setScheduleDate(defaultScheduleDateValue());
+                            setScheduleTime(defaultScheduleTimeValue());
+                          }
+                          setScheduleAssignee(existingAssignee === "nate" || existingAssignee === "cam" ? (existingAssignee as any) : "");
+                        }}
+                        className={
+                          "rounded-full border px-2.5 py-1 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
                         }
-                        setScheduleAssignee(existingAssignee === "nate" || existingAssignee === "cam" ? (existingAssignee as any) : "");
-                      }}
-                      className={
-                        "rounded-full border px-2.5 py-1 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
-                      }
-                    >
-                      {q.scheduledAt ? "Scheduled" : "Schedule"}
-                    </button>
+                      >
+                        {q.scheduledAt ? "Scheduled" : "Schedule"}
+                      </button>
+                    </div>
                   </div>
                 ) : q.status === "pending" ? (
                   <div className="flex-1 flex justify-center">
