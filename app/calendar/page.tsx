@@ -678,12 +678,17 @@ export default function CalendarPage() {
         }
       }
 
-      const merged = mergeDraftLists(localList, remoteList);
+      // Re-read local store right before merge so recent local mutations (toggles, locks, moves)
+      // can't be overwritten by a stale snapshot captured before the remote fetch finished.
+      const latestStore = readDraftStore();
+      const latestLocalList = Object.values(latestStore).map((d) => ({ ...d }));
+
+      const merged = mergeDraftLists(latestLocalList, remoteList);
 
       // If an estimate was scheduled on this device but hasn't made it to Supabase yet,
       // publish it so other devices (iPad) see the same calendar.
       try {
-        void publishScheduledEstimates({ localList, remoteList });
+        void publishScheduledEstimates({ localList: latestLocalList, remoteList });
       } catch {
       }
 
