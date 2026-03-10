@@ -2805,7 +2805,7 @@ export default function CalendarPage() {
                       <>
                         {visibleEst.length ? (
                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                            <div className="flex flex-wrap justify-center gap-1">
+                            <div className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:justify-center">
                               {visibleEst.map((j: any) => (
                                 <div
                                   key={j.id}
