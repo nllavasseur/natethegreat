@@ -380,6 +380,50 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
   return Array.from(byId.values());
 }
 
+async function publishScheduledEstimates(params: { localList: DraftEntry[]; remoteList: DraftEntry[] }) {
+  try {
+    if (!supabaseConfigured) return;
+
+    const remoteById = new Map<string, DraftEntry>();
+    for (const d of Array.isArray(params.remoteList) ? params.remoteList : []) {
+      const id = String((d as any)?.id || "");
+      if (!id) continue;
+      remoteById.set(id, d);
+    }
+
+    const pending: DraftEntry[] = [];
+    for (const d of Array.isArray(params.localList) ? params.localList : []) {
+      const id = String((d as any)?.id || "");
+      if (!id) continue;
+      const status = (d as any).status as DraftEntry["status"];
+      if (status !== "estimate") continue;
+      const scheduledAt = String((d as any).scheduledAt || "");
+      if (!scheduledAt) continue;
+
+      const remote = remoteById.get(id);
+      const localTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
+      const remoteTs = Number((remote as any)?.updatedAt ?? (remote as any)?.createdAt ?? 0) || 0;
+      if (!remote || localTs > remoteTs) pending.push(d);
+    }
+
+    // Publish in small batches to avoid tying up the main thread/network.
+    for (let i = 0; i < pending.length; i += 6) {
+      const batch = pending.slice(i, i + 6);
+      await Promise.all(
+        batch.map(async (d) => {
+          try {
+            const id = String((d as any)?.id || "");
+            if (!id) return;
+            await upsertDraft({ id, data: d });
+          } catch {
+          }
+        })
+      );
+    }
+  } catch {
+  }
+}
+
 function toKey(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -633,6 +677,14 @@ export default function CalendarPage() {
       }
 
       const merged = mergeDraftLists(localList, remoteList);
+
+      // If an estimate was scheduled on this device but hasn't made it to Supabase yet,
+      // publish it so other devices (iPad) see the same calendar.
+      try {
+        void publishScheduledEstimates({ localList, remoteList });
+      } catch {
+      }
+
       const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toCalendarDraftLite(d));
       if (!cancelled) setDrafts(mergedLite);
       try {
