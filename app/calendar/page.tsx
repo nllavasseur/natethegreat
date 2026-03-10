@@ -1060,12 +1060,6 @@ export default function CalendarPage() {
       return s ? s.slice(0, 10) : "";
     };
 
-    const explicitNonSoldIso = (d: DraftEntry) => {
-      const s = String((d as any).scheduledAt || "");
-      if (s) return s.slice(0, 10);
-      return String((d as any).startDate || d.installDate || "");
-    };
-
     const occupied = new Set<string>();
     const occupiedEndByDay = new Map<string, Date>();
     const occupyRange = (startIso: string, laborDays: unknown, status: DraftEntry["status"], allowSaturday: boolean, allowSunday: boolean) => {
@@ -1102,25 +1096,6 @@ export default function CalendarPage() {
       occupied.add(k);
       const dt = new Date(k + "T12:00:00");
       occupiedEndByDay.set(k, dt);
-    });
-
-    const nonSoldExplicit = drafts
-      .filter(
-        (d) =>
-          !(d as any).calendarHidden &&
-          (d as any).status !== "sold" &&
-          (d as any).status !== "estimate" &&
-          (d as any).status !== "void" &&
-          (d as any).status !== "complete" &&
-          Boolean(explicitNonSoldIso(d))
-      )
-      .slice()
-      .sort((a, b) => String(explicitNonSoldIso(a)).localeCompare(String(explicitNonSoldIso(b))));
-
-    nonSoldExplicit.forEach((d) => {
-      const iso = explicitNonSoldIso(d);
-      if (!iso) return;
-      occupyRange(iso, (d as any).laborDays, (d as any).status as DraftEntry["status"], asBool((d as any).allowSaturday), asBool((d as any).allowSunday));
     });
 
     const soldJobs = drafts
