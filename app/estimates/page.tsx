@@ -374,6 +374,7 @@ function EstimatesPageInner() {
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
@@ -390,6 +391,19 @@ function EstimatesPageInner() {
   const [photoViewerY, setPhotoViewerY] = useState(0);
   const [measureOpen, setMeasureOpen] = useState(false);
   const [tracePoints, setTracePoints] = useState<Array<{ x: number; y: number }>>([]);
+
+  useEffect(() => {
+    try {
+      const m = window.matchMedia?.("(display-mode: standalone)");
+      const compute = () => Boolean((m as any)?.matches) || Boolean((navigator as any)?.standalone);
+      setIsStandalone(compute());
+      const onChange = () => setIsStandalone(compute());
+      (m as any)?.addEventListener?.("change", onChange);
+      return () => (m as any)?.removeEventListener?.("change", onChange);
+    } catch {
+      setIsStandalone(Boolean((navigator as any)?.standalone));
+    }
+  }, []);
   const tracedSegments = useMemo(() => {
     if (tracePoints.length < 2) return [] as Array<{ label: string; a: { x: number; y: number }; b: { x: number; y: number } }>;
     return tracePoints.slice(0, -1).map((p, i) => ({
@@ -10117,7 +10131,7 @@ function EstimatesPageInner() {
             {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) || takeoffError || saveError || saveNotice ? (
               <div
                 className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
-                style={{ bottom: "calc(max(calc(env(safe-area-inset-bottom) - 6px), 0px) + 76px)" }}
+                style={{ bottom: `calc(max(calc(env(safe-area-inset-bottom) - ${isStandalone ? 24 : 6}px), 0px) + 76px)` }}
                 aria-label="Estimate notices"
               >
                 <div className="mx-auto max-w-[980px] grid gap-2">
@@ -10176,7 +10190,10 @@ function EstimatesPageInner() {
               }}
             >
               <div className="mx-auto max-w-[980px]">
-                <div className="bg-[rgba(20,30,24,.75)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end pb-[max(calc(env(safe-area-inset-bottom) - 6px),0px)]" style={{ WebkitBackdropFilter: "none", backdropFilter: "none" }}>
+                <div
+                  className="bg-[rgba(20,30,24,.75)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end"
+                  style={{ WebkitBackdropFilter: "none", backdropFilter: "none", paddingBottom: `max(calc(env(safe-area-inset-bottom) - ${isStandalone ? 24 : 6}px), 0px)` }}
+                >
                   <div className="h-16 flex items-center justify-around">
                     <PrimaryButton
                       type="button"
