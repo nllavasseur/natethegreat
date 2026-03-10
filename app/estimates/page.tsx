@@ -10131,7 +10131,7 @@ function EstimatesPageInner() {
             {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) || takeoffError || saveError || saveNotice ? (
               <div
                 className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
-                style={{ bottom: `calc(max(calc(env(safe-area-inset-bottom) - ${isStandalone ? 24 : 6}px), 0px) + 76px)` }}
+                style={{ bottom: isStandalone ? "76px" : "calc(max(calc(env(safe-area-inset-bottom) - 6px), 0px) + 76px)" }}
                 aria-label="Estimate notices"
               >
                 <div className="mx-auto max-w-[980px] grid gap-2">
@@ -10192,7 +10192,7 @@ function EstimatesPageInner() {
               <div className="mx-auto max-w-[980px]">
                 <div
                   className="bg-[rgba(20,30,24,.75)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end"
-                  style={{ WebkitBackdropFilter: "none", backdropFilter: "none", paddingBottom: `max(calc(env(safe-area-inset-bottom) - ${isStandalone ? 24 : 6}px), 0px)` }}
+                  style={{ WebkitBackdropFilter: "none", backdropFilter: "none", paddingBottom: isStandalone ? "0px" : "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
                 >
                   <div className="h-16 flex items-center justify-around">
                     <PrimaryButton
