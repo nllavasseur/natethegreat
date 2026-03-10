@@ -1115,7 +1115,7 @@ export default function CalendarPage() {
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
       if (hasStarted && !requested && explicitIso) {
-        scheduledStartById.set(d.id, explicitIso);
+        scheduledStartById.set(String((d as any).id), explicitIso);
         occupyRange(explicitIso, (d as any).laborDays, "sold", allowSat, allowSun);
         const seq = workdaySequenceForJob(explicitStart as Date, span, allowSat, allowSun);
         lastQueuedEnd = seq[span - 1];
@@ -1144,7 +1144,7 @@ export default function CalendarPage() {
         const firstConflict = seq.find((day) => occupied.has(toKey(day)));
         if (!firstConflict) {
           const iso = toKey(seq[0]);
-          scheduledStartById.set(d.id, iso);
+          scheduledStartById.set(String((d as any).id), iso);
           const end = seq[seq.length - 1];
           seq.forEach((day) => {
             const k = toKey(day);
@@ -1162,7 +1162,7 @@ export default function CalendarPage() {
 
     const sold = soldJobs
       .map((d) => {
-        const iso = scheduledStartById.get(d.id) || "";
+        const iso = scheduledStartById.get(String((d as any).id)) || "";
         const install = iso ? new Date(iso + "T12:00:00") : null;
         const spanDays = computeSpanDays((d as any).laborDays);
         const allowSat = asBool((d as any).allowSaturday);
@@ -1343,7 +1343,10 @@ export default function CalendarPage() {
       const status = (d as any).status as DraftEntry["status"];
       const explicit = explicitStartIso(d);
       const sched = String((d as any).scheduledAt || "");
-      const iso = status === "sold" ? scheduledStartById.get(d.id) || "" : scheduledStartById.get(d.id) || explicit;
+      const iso =
+        status === "sold"
+          ? scheduledStartById.get(String((d as any).id)) || ""
+          : scheduledStartById.get(String((d as any).id)) || explicit;
 
       const hasSched = Boolean(sched) && status !== "sold" && status !== "void";
 
