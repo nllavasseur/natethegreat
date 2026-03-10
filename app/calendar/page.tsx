@@ -2753,7 +2753,7 @@ export default function CalendarPage() {
                       <>
                         {visibleEst.length ? (
                           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                            <div className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:justify-center">
+                            <div className="flex flex-wrap justify-center gap-1">
                               {visibleEst.map((j: any) => (
                                 <div
                                   key={j.id}
@@ -2772,11 +2772,11 @@ export default function CalendarPage() {
                               {visibleTasks.map((t) => (
                                 <div
                                   key={t.id}
-                                  className="h-3.5 w-3.5 grid place-items-center"
+                                  className="h-4 w-4 grid place-items-center"
                                   title={t.description || "Task"}
                                   style={{ color: isPastLike ? "rgba(255,255,255,.35)" : "rgba(31,200,120,.95)", textShadow: "0 0 8px rgba(0,0,0,.30)" }}
                                 >
-                                  <span className="text-[11px] leading-none">★</span>
+                                  <span className="text-[13px] leading-none">★</span>
                                 </div>
                               ))}
                             </div>
