@@ -8,19 +8,22 @@ import { upsertDraft } from "@/lib/draftsStore";
 export type QueueDraft = {
   id: string;
   createdAt?: number;
-  updatedAt?: number;
   status?: "estimate" | "pending" | "sold" | "complete" | "void";
-  calendarHidden?: boolean;
-  queueRank?: number;
+  title?: string;
+  customerName?: string;
+  projectAddress?: string;
   laborDays?: number;
   originalLaborDays?: number;
-  holdDate?: string;
   allowSaturday?: boolean;
   allowSunday?: boolean;
+  calendarHidden?: boolean;
+  queueRank?: number;
+  holdDate?: string;
   startDate?: string;
   installDate?: string;
   scheduledAt?: string;
   queueLocked?: boolean;
+  queueLockedAt?: number;
   [k: string]: any;
 };
 
@@ -109,8 +112,10 @@ export async function setStatusFromQuotes(params: {
     createdAt: Number((prev as any)?.createdAt) || now(),
     status,
     calendarHidden: status === "sold" ? false : status === "void" ? true : (prev as any).calendarHidden,
-    startDate: status === "void" ? undefined : (prev as any).startDate,
-    installDate: status === "void" ? undefined : (prev as any).installDate,
+    // Sold job calendar placement is computed from queue order, not persisted start dates.
+    startDate: status === "sold" || status === "void" ? undefined : (prev as any).startDate,
+    installDate: status === "sold" || status === "void" ? undefined : (prev as any).installDate,
+    queueLockedAt: status === "sold" ? (prev as any).queueLockedAt : undefined,
     updatedAt: now()
   };
 
@@ -193,10 +198,16 @@ export async function setQueueLocked(params: {
     ...prev,
     id: sid,
     queueLocked: lock,
-    // When locking, persist an explicit start so the job stays anchored.
-    // When unlocking, clear explicit start so the queue can rebase from today.
-    startDate: lock ? (startIso || (prev as any).startDate) : undefined,
-    installDate: lock ? (startIso || (prev as any).installDate) : undefined,
+    // Locking a sold job anchors it via queueLockedAt; we do not persist calendar start dates.
+    queueLockedAt: lock
+      ? Number.isFinite(Number((prev as any).queueLockedAt))
+        ? Number((prev as any).queueLockedAt)
+        : startIso
+          ? new Date(startIso + "T12:00:00").getTime()
+          : now()
+      : undefined,
+    startDate: undefined,
+    installDate: undefined,
     updatedAt: now()
   };
 

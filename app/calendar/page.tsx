@@ -145,6 +145,7 @@ type DraftEntry = {
   calendarHidden?: boolean;
   queueRank?: number;
   queueLocked?: boolean;
+  queueLockedAt?: number;
 };
 
 const CALENDAR_DRAFTS_CACHE_KEY = "vf_calendar_drafts_cache_v1";
@@ -177,7 +178,8 @@ function toCalendarDraftLite(d: DraftEntry): DraftEntry {
     allowSunday: (d as any)?.allowSunday,
     calendarHidden: (d as any)?.calendarHidden,
     queueRank: (d as any)?.queueRank,
-    queueLocked: (d as any)?.queueLocked
+    queueLocked: (d as any)?.queueLocked,
+    queueLockedAt: (d as any)?.queueLockedAt
   } as DraftEntry;
 }
 
@@ -1043,8 +1045,14 @@ export default function CalendarPage() {
   }, [drafts]);
 
   const soldQueue = React.useMemo(() => {
-    const explicitStartIso = (d: DraftEntry) => {
-      return String((d as any).startDate || d.installDate || "");
+    const lockAnchorIso = (d: DraftEntry) => {
+      const t = Number((d as any).queueLockedAt);
+      if (!Number.isFinite(t) || t <= 0) return "";
+      try {
+        return toKey(startOfDay(new Date(t)));
+      } catch {
+        return "";
+      }
     };
 
     const explicitNonSoldIso = (d: DraftEntry) => {
@@ -1133,17 +1141,16 @@ export default function CalendarPage() {
       // is allowed to constrain scheduling; prior estimate scheduling should not.
       const requested = String((d as any).holdDate || "");
 
-      const explicitIso = explicitStartIso(d);
-      const explicitStart = explicitIso ? new Date(explicitIso + "T12:00:00") : null;
-      const hasStarted = Boolean(explicitStart) && startOfDay(explicitStart as Date).getTime() <= today0.getTime();
       const isLocked = (d as any).queueLocked === true;
+      const anchorIso = isLocked ? lockAnchorIso(d) : "";
+      const anchorStart = anchorIso ? new Date(anchorIso + "T12:00:00") : null;
 
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
-      if (isLocked && explicitIso) {
-        scheduledStartById.set(String((d as any).id), explicitIso);
-        occupyRange(explicitIso, (d as any).laborDays, "sold", allowSat, allowSun);
-        const seq = workdaySequenceForJob(explicitStart as Date, span, allowSat, allowSun);
+      if (isLocked && anchorIso && anchorStart) {
+        scheduledStartById.set(String((d as any).id), anchorIso);
+        occupyRange(anchorIso, (d as any).laborDays, "sold", allowSat, allowSun);
+        const seq = workdaySequenceForJob(anchorStart as Date, span, allowSat, allowSun);
         lastQueuedEnd = seq[span - 1];
         return;
       }
@@ -1218,26 +1225,13 @@ export default function CalendarPage() {
   }, [blockedDays.set, drafts, isNonWorkingDayForJob, nextWorkdayForJob, today0, workdaySequenceForJob]);
 
   React.useEffect(() => {
-    // Auto-lock sold jobs as they reach their start date, unless explicitly unlocked.
-    // This prevents the queue from "rebasing" (sliding forward) for jobs that have effectively started.
-    if (!soldQueue.length) return;
-    soldQueue.forEach((j) => {
-      if (!j) return;
-      if ((j as any).queueLocked === false) return;
-      if ((j as any).queueLocked === true) return;
-      const startIso = String((j as any).installDate || (j as any).startDate || "").slice(0, 10);
-      if (!startIso) return;
-      try {
-        const start = startOfDay(new Date(startIso + "T12:00:00"));
-        const end = (j as any).end ? startOfDay(new Date((j as any).end)) : null;
-        if (!end) return;
-        // Only lock the job that is actually in progress today.
-        if (start.getTime() <= today0.getTime() && end.getTime() >= today0.getTime()) {
-          setQueueLocked(j.id, true, startIso, j as any);
-        }
-      } catch {
-      }
-    });
+    // Auto-lock only the job in queue position #1 (unless explicitly unlocked).
+    // Locking persists queueLockedAt so it never slides after midnight.
+    const first = (soldQueue || [])[0] as any;
+    if (!first) return;
+    if (first.queueLocked === false) return;
+    if (first.queueLocked === true) return;
+    setQueueLocked(String(first.id), true, undefined, first);
   }, [soldQueue, setQueueLocked, today0]);
 
   React.useLayoutEffect(() => {
