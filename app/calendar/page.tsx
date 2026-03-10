@@ -1275,74 +1275,17 @@ export default function CalendarPage() {
 
     const scheduledStartById = new Map<string, string>();
 
-    // Schedule ALL SOLD jobs strictly in queue order.
-    const soldJobs = drafts
-      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
-      .slice()
-      .sort((a, b) =>
-        Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
-          Number((b as any).queueRank ?? Number.POSITIVE_INFINITY) ||
-        String((a as any).id ?? "").localeCompare(String((b as any).id ?? ""))
-      );
+    // Sold jobs: take schedule directly from soldQueue (single source of truth).
+    // This prevents month view from drifting from the queue schedule.
+    const soldJobs = (Array.isArray(soldQueue) ? soldQueue : [])
+      .filter((d) => d && !(d as any).calendarHidden)
+      .slice();
 
-    const maxDate = (a: Date, b: Date) => (a.getTime() >= b.getTime() ? a : b);
-
-    const reserveGapDays = (from: Date, toExclusive: Date) => {
-      let cur = startOfDay(from);
-      const end = startOfDay(toExclusive);
-      for (let guard = 0; guard < 366; guard++) {
-        if (cur.getTime() >= end.getTime()) break;
-        const k = toKey(cur);
-        occupied.add(k);
-        occupiedEndByDay.set(k, cur);
-        cur = addDays(cur, 1);
-      }
-    };
-
-    let lastQueuedEnd: Date | null = null;
     soldJobs.forEach((d) => {
-      const span = computeSpanDays((d as any).laborDays);
-      const allowSat = asBool((d as any).allowSaturday);
-      const allowSun = asBool((d as any).allowSunday);
-      const minStart = lastQueuedEnd
-        ? nextWorkdayForJob(addDays(lastQueuedEnd, 1), allowSat, allowSun)
-        : nextWorkdayForJob(today0, allowSat, allowSun);
-
-      // SOLD jobs are governed by queue order + holds only.
-      const requested = String((d as any).holdDate || "");
-      const explicitMin = requested
-        ? nextWorkdayForJob(new Date(requested + "T12:00:00"), allowSat, allowSun)
-        : nextWorkdayForJob(today0, allowSat, allowSun);
-      let candidate = maxDate(explicitMin, minStart);
-
-      if (requested && explicitMin.getTime() > minStart.getTime()) {
-        reserveGapDays(minStart, explicitMin);
-      }
-
-      for (let guard = 0; guard < 365; guard++) {
-        if (isNonWorkingDayForJob(candidate, allowSat, allowSun)) {
-          candidate = nextWorkdayForJob(addDays(candidate, 1), allowSat, allowSun);
-          continue;
-        }
-        const seq = workdaySequenceForJob(candidate, span, allowSat, allowSun);
-        const firstConflict = seq.find((day) => occupied.has(toKey(day)));
-        if (!firstConflict) {
-          const iso = toKey(seq[0]);
-          scheduledStartById.set(d.id, iso);
-          const end = seq[seq.length - 1];
-          seq.forEach((day) => {
-            const k = toKey(day);
-            occupied.add(k);
-            const prev = occupiedEndByDay.get(k);
-            if (!prev || end.getTime() > prev.getTime()) occupiedEndByDay.set(k, end);
-          });
-          lastQueuedEnd = seq[span - 1];
-          break;
-        }
-
-        const conflictEnd = occupiedEndByDay.get(toKey(firstConflict)) || firstConflict;
-        candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
-      }
+      const iso = String((d as any).installDate || (d as any).startDate || "").slice(0, 10);
+      if (!iso) return;
+      scheduledStartById.set(String((d as any).id), iso);
+      occupyRange(iso, (d as any).laborDays, "sold", asBool((d as any).allowSaturday), asBool((d as any).allowSunday));
     });
 
     // Schedule non-sold capacity jobs AFTER sold queue so they can't backfill hold gaps.
