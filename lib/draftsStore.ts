@@ -176,11 +176,12 @@ export async function fetchCalendarEntries(params: {
     const selectCols =
       "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,project_address,selected_style";
 
-    const [windowRes, soldRes] = await Promise.all([
+    const [windowRes, soldRes, unscheduledRes] = await Promise.all([
       supabase
         .from("calendar_entries")
         .select(selectCols)
         .eq("workspace_id", workspaceId)
+        .in("status", ["estimate", "pending", "sold"])
         .gte("scheduled_iso", params.windowStartIso)
         .lte("scheduled_iso", params.windowEndIso),
       supabase
@@ -192,12 +193,23 @@ export async function fetchCalendarEntries(params: {
         .order("queue_rank", { ascending: true, nullsFirst: false })
         .order("updated_at", { ascending: false })
         .limit(soldTake)
+      ,
+      supabase
+        .from("calendar_entries")
+        .select(selectCols)
+        .eq("workspace_id", workspaceId)
+        .eq("status", "estimate")
+        .eq("calendar_hidden", false)
+        .is("scheduled_iso", null)
+        .order("updated_at", { ascending: false })
+        .limit(500)
     ]);
 
     if (windowRes.error) throw windowRes.error;
     if (soldRes.error) throw soldRes.error;
+    if (unscheduledRes.error) throw unscheduledRes.error;
 
-    const rows = [...(windowRes.data ?? []), ...(soldRes.data ?? [])] as CalendarEntryRow[];
+    const rows = [...(windowRes.data ?? []), ...(soldRes.data ?? []), ...(unscheduledRes.data ?? [])] as CalendarEntryRow[];
 
     const byId = new Map<string, any>();
     for (const r of rows) {

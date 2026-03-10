@@ -710,6 +710,30 @@ export default function CalendarPage() {
       } catch {
       }
 
+      // Backfill completes/older drafts on a slower path so they still appear eventually.
+      // This is intentionally not awaited; it updates drafts in-place when it finishes.
+      const backfillCompletes = () => {
+        void (async () => {
+          try {
+            const res = await withTimeout(fetchDrafts({ limit: 1800 }), 12000);
+            if (!(res as any)?.ok) return;
+
+            const latestStore = readDraftStore();
+            const latestLocalList = Object.values(latestStore).map((d) => ({ ...d }));
+            const mergedAll = mergeDraftLists(latestLocalList, ((res as any).drafts as DraftEntry[]) || []);
+            const mergedAllLite = (Array.isArray(mergedAll) ? mergedAll : []).map((d) => toCalendarDraftLite(d));
+            if (!cancelled) {
+              setDrafts((prev) => {
+                const prevList = Array.isArray(prev) ? prev : [];
+                const merged = mergeDraftLists(prevList as any, mergedAllLite as any);
+                return (Array.isArray(merged) ? merged : []) as any;
+              });
+            }
+          } catch {
+          }
+        })();
+      };
+
       try {
         const [draftsRes, blocksRes, tasksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
@@ -767,6 +791,9 @@ export default function CalendarPage() {
         }
       } catch {
       }
+
+      // After the fast path sets the calendar, kick off a slower backfill for completes.
+      backfillCompletes();
 
       const mergedBlocks = mergeBlockOutLists(localBlocks, remoteBlocks);
       try {
