@@ -522,6 +522,7 @@ export default function CalendarPage() {
   const [selected, setSelected] = React.useState(() => new Date());
   const [dayPreviewOpen, setDayPreviewOpen] = React.useState(false);
   const suppressDayPreviewOpenUntilRef = React.useRef(0);
+  const localMutationEpochRef = React.useRef(0);
   const [drafts, setDrafts] = React.useState<DraftEntry[]>([]);
   const [blockOuts, setBlockOuts] = React.useState<BlockOut[]>([]);
   const [portalReady, setPortalReady] = React.useState(false);
@@ -580,6 +581,7 @@ export default function CalendarPage() {
 
   const setQueueLocked = React.useCallback((id: string, locked: boolean, startIso?: string, fallback?: DraftEntry) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
     void (async () => {
       const res = await setQueueLockedPipeline({ id: sid, locked, startIso, fallback: fallback as any });
       if (!res.ok) return;
@@ -635,6 +637,7 @@ export default function CalendarPage() {
     const refreshRemote = async () => {
       // Do remote fetch/merge in the background. On poor service this can take a while,
       // but the UI should already be populated from localStorage.
+      const epochAtStart = localMutationEpochRef.current;
       const store = readDraftStore();
       const localList = Object.values(store).map((d) => ({ ...d }));
       const localBlocks = readBlockOutStore();
@@ -693,7 +696,7 @@ export default function CalendarPage() {
       }
 
       const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toCalendarDraftLite(d));
-      if (!cancelled) setDrafts(mergedLite);
+      if (!cancelled && localMutationEpochRef.current === epochAtStart) setDrafts(mergedLite);
       try {
         writeCalendarDraftsCache(mergedLite);
       } catch {
@@ -896,6 +899,7 @@ export default function CalendarPage() {
 
   const moveQueue = React.useCallback(async (id: string, dir: -1 | 1) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
     // Capture the row's current top offset within the scroll container so we can keep it
     // visually anchored after the reorder + re-render.
     try {
@@ -949,6 +953,7 @@ export default function CalendarPage() {
 
   const applyMoveToPosition = React.useCallback(async (id: string, targetPos: number) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
     const res = await (async () => {
       const soldSnapshot = (drafts || [])
         .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
@@ -985,6 +990,7 @@ export default function CalendarPage() {
 
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
     void (async () => {
       const res = await toggleWeekendAllowedPipeline({ id: sid, which, fallback: fallback as any });
       if (!res.ok) return;
@@ -1000,6 +1006,7 @@ export default function CalendarPage() {
 
   const resetLaborDays = React.useCallback((id: string, fallback?: DraftEntry) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
     void (async () => {
       const res = await resetLaborDaysPipeline({ id: sid, fallback: fallback as any });
       if (!res.ok) return;
@@ -1037,6 +1044,7 @@ export default function CalendarPage() {
 
   const adjustLaborDays = React.useCallback((id: string, delta: number, fallback?: DraftEntry) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
     void (async () => {
       const res = await adjustLaborDaysPipeline({ id: sid, delta, fallback: fallback as any });
       if (!res.ok) return;
