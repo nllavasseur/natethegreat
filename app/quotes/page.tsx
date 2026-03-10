@@ -1206,36 +1206,6 @@ export default function QuotesPage() {
                 {q.status === "estimate" ? (
                   <div className="flex-1 flex justify-center">
                     <div className="flex items-center justify-center gap-2">
-                      {!String((q as any).scheduledAt || "").trim() ? (
-                        <button
-                          type="button"
-                          data-no-swipe="true"
-                          data-keep-open="true"
-                          disabled={!normalizePhone((q as any).phoneNumber || "")}
-                          onPointerDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            bumpSuppressNav();
-                          }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            bumpSuppressNav();
-                            const tel = normalizePhone((q as any).phoneNumber || "");
-                            if (!tel) return;
-                            window.location.href = `tel:${tel}`;
-                          }}
-                          className={
-                            "rounded-full border px-3 py-1 text-[11px] font-extrabold " +
-                            (normalizePhone((q as any).phoneNumber || "")
-                              ? "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)] text-white"
-                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
-                          }
-                        >
-                          Call
-                        </button>
-                      ) : null}
-
                       <button
                         type="button"
                         data-no-swipe="true"
@@ -1309,6 +1279,36 @@ export default function QuotesPage() {
                 ) : (
                   <div className="flex-1" />
                 )}
+
+                {(q.status === "estimate" && !String((q as any).scheduledAt || "").trim()) ? (
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    data-keep-open="true"
+                    disabled={!normalizePhone((q as any).phoneNumber || "")}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      bumpSuppressNav();
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      bumpSuppressNav();
+                      const tel = normalizePhone((q as any).phoneNumber || "");
+                      if (!tel) return;
+                      window.location.href = `tel:${tel}`;
+                    }}
+                    className={
+                      "rounded-full border px-3 py-1 text-[11px] font-extrabold whitespace-nowrap " +
+                      (normalizePhone((q as any).phoneNumber || "")
+                        ? "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)] text-white"
+                        : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
+                    }
+                  >
+                    Call
+                  </button>
+                ) : null}
 
                 {Number((q as any).preInstallPhotoCount) > 0 ? (
                   <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] whitespace-nowrap">
