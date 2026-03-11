@@ -2278,7 +2278,7 @@ function EstimatesPageInner() {
         ? gateDerived
         : Math.max(0, Math.floor(Number(materialsDetails.aluminumGatePosts) || 0));
 
-      const total = Math.max(0, postsBase + gateDerived + (Number(extraPosts) || 0));
+      const total = Math.max(0, postsBase + gate + (Number(extraPosts) || 0));
       const line = Math.max(0, total - (corner + gate + end + blank));
       return { total, line, corner, end, gate, blank, gateDerived };
     })();
