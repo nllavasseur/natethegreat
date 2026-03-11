@@ -7396,7 +7396,7 @@ function EstimatesPageInner() {
                         >
                           <div className={selectedStyle ? "font-extrabold" : "text-[var(--muted)]"}>{selectedStyle?.name || "Style"}</div>
                           <div className="mt-2">
-                            <div className="w-full h-24 rounded-xl overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]">
+                            <div className="w-full h-36 rounded-xl overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]">
                               {selectedStyle?.thumb ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
