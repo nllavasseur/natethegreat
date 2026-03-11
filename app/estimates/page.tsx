@@ -2325,6 +2325,10 @@ function EstimatesPageInner() {
       const postsAll = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
       const effectivePanels = Math.max(0, panelsBase + gatePanelsAdd);
+
+      if (effectivePanels <= 0 || postsAll <= 0) {
+        throw new Error("Fence Builder: no fence length found. Add measured segments/length so materials can be generated.");
+      }
       const cat = fbState && Array.isArray((fbState as any).catalog) ? ((fbState as any).catalog as FenceBuilderCatalogItem[]) : [];
       const findCatalogItem = (key: string) => {
         const k = String(key || "");
@@ -2386,7 +2390,7 @@ function EstimatesPageInner() {
         const qtyPerPanel = Number((row as any)?.qtyPerPanel) || 0;
         if (!key || qtyPerPanel <= 0) continue;
         const resolved = resolveRecipeRow(key);
-        const qty = effectivePanels > 0 ? Math.ceil(effectivePanels * qtyPerPanel) : 0;
+        const qty = effectivePanels > 0 ? (effectivePanels * qtyPerPanel) : 0;
         if (qty <= 0) continue;
         recipeRows.push({
           name: resolved.name,
@@ -2402,7 +2406,7 @@ function EstimatesPageInner() {
         const qtyPerPost = Number((row as any)?.qtyPerPost) || 0;
         if (!key || qtyPerPost <= 0) continue;
         const resolved = resolveRecipeRow(key);
-        const qty = postsAll > 0 ? Math.ceil(postsAll * qtyPerPost) : 0;
+        const qty = postsAll > 0 ? (postsAll * qtyPerPost) : 0;
         if (qty <= 0) continue;
         recipeRows.push({
           name: resolved.name,
