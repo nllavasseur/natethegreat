@@ -311,6 +311,7 @@ type FenceBuilderDesign = {
   name: string;
   photoUrl?: string;
   postCentersFt: number;
+  postMaterialKey?: string;
   panelComponents: Array<{ materialKey: string; qtyPerPanel: number }>;
   postComponents: Array<{ materialKey: string; qtyPerPost: number }>;
   fastenersPerPanel: Array<{ fastenerKey: string; qtyPerPanel: number }>;
@@ -935,6 +936,31 @@ function EstimatesPageInner() {
     catalog: []
   });
 
+  const builtInPostOptions = useMemo(() => {
+    return [
+      "4x4 x 8' Post",
+      "4x4 x 10' Post",
+      "4x4 x 8' Cedar S4S Post",
+      "4x4 x 10' Cedar S4S Post",
+      "6x6 x 8' Pressure Treated Post",
+      "6x6 x 10' Pressure Treated Post",
+      "6x6 x 12' Pressure Treated Post",
+      "6x6 x 8' Cedar S4S Post",
+      "6x6 x 10' Cedar S4S Post",
+      "6x6 x 12' Cedar S4S Post"
+    ];
+  }, []);
+
+  const fenceBuilderPostOptions = useMemo(() => {
+    const cat = Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : [];
+    const custom = cat
+      .filter((c: any) => c && typeof c === "object")
+      .map((c: any) => ({ key: `catalog:${String(c.key || "")}`, label: String(c.name || "") }))
+      .filter((c: any) => c.key !== "catalog:");
+    const built = builtInPostOptions.map((name) => ({ key: name, label: name }));
+    return [...built, ...custom];
+  }, [builtInPostOptions, fenceBuilder]);
+
   const selectedFenceDesign = useMemo(() => {
     const id = String((fenceBuilder as any)?.selectedDesignId || "");
     if (!id) return null;
@@ -951,6 +977,7 @@ function EstimatesPageInner() {
         id,
         name,
         postCentersFt: 7.5,
+        postMaterialKey: "",
         panelComponents: [],
         postComponents: [],
         fastenersPerPanel: [],
@@ -2264,12 +2291,6 @@ function EstimatesPageInner() {
       const postsAll = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
 
       const effectivePanels = Math.max(0, panelsBase + gatePanelsAdd);
-
-      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
-      const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
-      const extraPostSizeSafe = ([8, 10, 12, 14] as const).includes(extraPostSize as any) ? (extraPostSize as 8 | 10 | 12 | 14) : 10;
-      const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
-
       const cat = fbState && Array.isArray((fbState as any).catalog) ? ((fbState as any).catalog as FenceBuilderCatalogItem[]) : [];
       const findCatalogItem = (key: string) => {
         const k = String(key || "");
@@ -2278,6 +2299,20 @@ function EstimatesPageInner() {
         if (!id) return null;
         return cat.find((c) => String((c as any)?.key || "") === id) ?? null;
       };
+
+      const resolvePostName = () => {
+        const key = String((design as any)?.postMaterialKey || "").trim();
+        if (!key) {
+          return woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+        }
+        const c = findCatalogItem(key);
+        if (c) return String((c as any).name || "").trim() || woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+        return key;
+      };
+
+      const postName = resolvePostName();
+      const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
+      const extraPostName = postName;
 
       const resolveRecipeRow = (materialKey: string) => {
         const k = String(materialKey || "");
@@ -8493,6 +8528,25 @@ function EstimatesPageInner() {
                               }}
                               placeholder="7.5"
                             />
+                          </div>
+
+                          <div>
+                            <div className="text-[11px] opacity-70">Post item (optional override)</div>
+                            <Select
+                              value={String((fenceBuilderEditing as any)?.postMaterialKey || "")}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), postMaterialKey: v } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                            >
+                              <option value="">Use estimate post settings</option>
+                              {fenceBuilderPostOptions.map((o) => (
+                                <option key={o.key} value={o.key}>{o.label}</option>
+                              ))}
+                            </Select>
                           </div>
 
                           <label className="flex items-center gap-2 text-sm">
