@@ -236,6 +236,7 @@ const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string
 type MaterialsDetails = {
   woodType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
+  topCapMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
   picketSpacingIn: 5.5 | 8;
   trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
@@ -331,6 +332,7 @@ type FenceBuilderState = {
 const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   woodType: "Pressure treated",
   railMaterial: "Pressure treated",
+  topCapMaterial: "Pressure treated",
   picketMaterial: "Pressure treated",
   picketSpacingIn: 5.5,
   trimMaterial: "Pressure treated",
@@ -2648,7 +2650,7 @@ function EstimatesPageInner() {
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
-      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, (materialsDetails.topCapMaterial || materialsDetails.railMaterial) as any);
 
       const boardsName = woodBoard1x6x12Name(materialsDetails.railMaterial);
 
@@ -3516,7 +3518,7 @@ function EstimatesPageInner() {
               ? [{ name: woodBoard2x2x8Name(materialsDetails.twoByTwoMaterial), qty: panels * 7, unit: "ea" }]
               : []),
             ...(pictureFramed2x4x16 > 0
-              ? [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: pictureFramed2x4x16, unit: "ea" }]
+              ? [{ name: woodRail2x4Name(16, (materialsDetails.topCapMaterial || materialsDetails.railMaterial) as any), qty: pictureFramed2x4x16, unit: "ea" }]
               : []),
           ]
           : [{ name: woodRail2x4Name(16, materialsDetails.railMaterial), qty: rails, unit: "ea" }]),
@@ -8510,7 +8512,7 @@ function EstimatesPageInner() {
                               </div>
 
                               <div className="mt-3">
-                                <div className="text-[11px] text-[var(--muted)] mb-1">Post item (optional override)</div>
+                                <div className="text-[11px] text-[var(--muted)] mb-1">Post type</div>
                                 <Select
                                   value={String((design as any)?.postMaterialKey || "")}
                                   onChange={(e) => {
@@ -8521,7 +8523,7 @@ function EstimatesPageInner() {
                                     persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
                                   }}
                                 >
-                                  <option value="">Use estimate post settings</option>
+                                  <option value="">Select post type</option>
                                   {fenceBuilderPostOptions.map((o) => (
                                     <option key={o.key} value={o.key}>{o.label}</option>
                                   ))}
@@ -8589,6 +8591,75 @@ function EstimatesPageInner() {
                           return (
                             <>
                               <div className="grid grid-cols-1 gap-2">
+                                <div>
+                                  <div className="text-[11px] text-[var(--muted)] mb-1">Title</div>
+                                  <Input
+                                    value={String((design as any)?.name || "")}
+                                    onChange={(e) => updateDesign({ name: e.target.value })}
+                                    placeholder="Fence name"
+                                  />
+                                </div>
+
+                                <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                                  <div className="text-[11px] text-[var(--muted)] mb-2">Caps + Arbor</div>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, postCaps: !p.postCaps }))}
+                                      className={
+                                        "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                                        (materialsDetails.postCaps
+                                          ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                    >
+                                      Post caps
+                                    </button>
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, topCaps: !p.topCaps }))}
+                                      className={
+                                        "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                                        (materialsDetails.topCaps
+                                          ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                    >
+                                      Top caps
+                                    </button>
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, arbor: !p.arbor }))}
+                                      className={
+                                        "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                                        (materialsDetails.arbor
+                                          ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                    >
+                                      Arbor
+                                    </button>
+                                  </div>
+
+                                  {materialsDetails.topCaps ? (
+                                    <div className="mt-3">
+                                      <div className="text-[11px] text-[var(--muted)] mb-1">Top cap material</div>
+                                      <Select
+                                        value={materialsDetails.topCapMaterial}
+                                        onChange={(e) => setMaterialsDetails((p) => ({ ...p, topCapMaterial: e.target.value as any }))}
+                                      >
+                                        <option value="Pressure treated">Pressure treated</option>
+                                        <option value="Cedar">Cedar</option>
+                                        <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                        <option value="Cedar tone">Cedar tone</option>
+                                      </Select>
+                                    </div>
+                                  ) : null}
+                                </div>
+
                                 <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
                                   <div className="text-[11px] text-[var(--muted)] mb-2">Pickets</div>
 
