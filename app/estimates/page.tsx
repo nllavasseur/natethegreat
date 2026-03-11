@@ -7394,21 +7394,23 @@ function EstimatesPageInner() {
                           onClick={() => setStylePickerIdx(true)}
                           className="w-full text-left rounded-xl px-3 py-2 text-[16px] md:text-sm bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.14)] outline-none focus:ring-2 focus:ring-[rgba(138,90,43,.55)]"
                         >
-                          <div className="flex items-center gap-2">
-                            {selectedStyle?.thumb ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={selectedStyle.thumb} alt="" className="h-8 w-8 rounded-lg object-cover border border-[rgba(255,255,255,.14)]" />
-                            ) : (
-                              <div className="h-8 w-8 rounded-lg bg-[rgba(255,255,255,.06)] border border-[rgba(255,255,255,.14)]" />
-                            )}
-                            <div className="flex-1">
-                              <div className={selectedStyle ? "" : "text-[var(--muted)]"}>{selectedStyle?.name || "Style"}</div>
+                          <div className={selectedStyle ? "font-extrabold" : "text-[var(--muted)]"}>{selectedStyle?.name || "Style"}</div>
+                          <div className="mt-2">
+                            <div className="w-full h-24 rounded-xl overflow-hidden border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)]">
+                              {selectedStyle?.thumb ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={selectedStyle.thumb}
+                                  alt=""
+                                  className="h-full w-full object-cover object-center"
+                                />
+                              ) : null}
                             </div>
-                            <div className="text-[11px] text-[var(--muted)]">LF {totalLf.toFixed(0)}</div>
                           </div>
                         </button>
 
-                        <div className="mt-2">
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="text-[11px] text-[var(--muted)]">LF {totalLf.toFixed(0)}</div>
                           <SecondaryButton
                             onClick={() => setMaterialsDetailsOpen(true)}
                             data-no-swipe="true"
