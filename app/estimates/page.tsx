@@ -299,6 +299,31 @@ type MaterialsDetails = {
   concretePostMount4x4Qty: number;
 };
 
+type FenceBuilderCatalogItem = {
+  key: string;
+  name: string;
+  unit: "ea" | "box";
+  unitPrice: number;
+};
+
+type FenceBuilderDesign = {
+  id: string;
+  name: string;
+  photoUrl?: string;
+  postCentersFt: number;
+  panelComponents: Array<{ materialKey: string; qtyPerPanel: number }>;
+  postComponents: Array<{ materialKey: string; qtyPerPost: number }>;
+  fastenersPerPanel: Array<{ fastenerKey: string; qtyPerPanel: number }>;
+  wireMeshEnabled: boolean;
+};
+
+type FenceBuilderState = {
+  version: 1;
+  selectedDesignId: string;
+  designs: FenceBuilderDesign[];
+  catalog: FenceBuilderCatalogItem[];
+};
+
 const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   woodType: "Pressure treated",
   railMaterial: "Pressure treated",
@@ -501,6 +526,12 @@ function EstimatesPageInner() {
       type: "wood",
       name: "split rail",
       thumb: "/split rail.jpeg"
+    }
+    ,
+    {
+      type: "wood",
+      name: "fence builder",
+      thumb: "/fencebuilder.jpg"
     }
     ,
     {
@@ -895,6 +926,142 @@ function EstimatesPageInner() {
   const [selectedStyle, setSelectedStyle] = useState<{ name: string; thumb: string } | null>(null);
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
+
+  const [fenceBuilderOpen, setFenceBuilderOpen] = useState(false);
+  const [fenceBuilder, setFenceBuilder] = useState<FenceBuilderState>({
+    version: 1,
+    selectedDesignId: "",
+    designs: [],
+    catalog: []
+  });
+
+  const selectedFenceDesign = useMemo(() => {
+    const id = String((fenceBuilder as any)?.selectedDesignId || "");
+    if (!id) return null;
+    return (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).find((d: any) => String(d?.id || "") === id) ?? null;
+  }, [fenceBuilder]);
+
+  const fenceBuilderPresets = useMemo(() => {
+    const mk = (name: string, patch: Partial<FenceBuilderDesign>) => {
+      const id =
+        typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+          ? (crypto as any).randomUUID()
+          : `fb-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const base: FenceBuilderDesign = {
+        id,
+        name,
+        postCentersFt: 7.5,
+        panelComponents: [],
+        postComponents: [],
+        fastenersPerPanel: [],
+        wireMeshEnabled: false
+      };
+      return { ...base, ...patch };
+    };
+
+    return [
+      mk("Picture framed", {
+        postCentersFt: 7.5,
+        panelComponents: [
+          { materialKey: "2x4x16 Pressure treated", qtyPerPanel: 1 },
+          { materialKey: "1x4 x 8' Pressure Treated Trim", qtyPerPanel: 3 }
+        ],
+        fastenersPerPanel: [{ fastenerKey: "deck_screws_3in", qtyPerPanel: 12 }]
+      }),
+      mk("Horizontal", {
+        postCentersFt: 5.5,
+        panelComponents: [
+          { materialKey: "2x4x16 Pressure treated", qtyPerPanel: 1 },
+          { materialKey: "5/4x6x12 Pressure Treated Boards", qtyPerPanel: 10 }
+        ],
+        fastenersPerPanel: [{ fastenerKey: "deck_screws_3in", qtyPerPanel: 18 }]
+      }),
+      mk("Wire mesh", {
+        postCentersFt: 5.5,
+        panelComponents: [
+          { materialKey: "2x4x16 Pressure treated", qtyPerPanel: 1 },
+          { materialKey: "5/4x6x12 Pressure Treated Boards", qtyPerPanel: 3 }
+        ],
+        fastenersPerPanel: [
+          { fastenerKey: "deck_screws_3in", qtyPerPanel: 12 },
+          { fastenerKey: "staples", qtyPerPanel: 10 }
+        ],
+        wireMeshEnabled: true
+      })
+    ];
+  }, []);
+
+  const [fenceBuilderEditingId, setFenceBuilderEditingId] = useState<string | null>(null);
+  const [fenceBuilderNewName, setFenceBuilderNewName] = useState<string>("");
+  const [fenceBuilderNewCenters, setFenceBuilderNewCenters] = useState<string>("");
+  const [fenceBuilderNewPhotoUrl, setFenceBuilderNewPhotoUrl] = useState<string>("");
+  const [fenceBuilderCatalogName, setFenceBuilderCatalogName] = useState<string>("");
+  const [fenceBuilderCatalogUnitPrice, setFenceBuilderCatalogUnitPrice] = useState<string>("");
+  const [fenceBuilderCatalogUnit, setFenceBuilderCatalogUnit] = useState<"ea" | "box">("ea");
+
+  const builtInMaterialOptions = useMemo(() => {
+    return [
+      "2x4x16 Pressure treated",
+      "2x4x16 Cedar S4S",
+      "5/4x6x12 Pressure Treated Boards",
+      "5/4x6x12 Cedar S4S Rails",
+      "1x4 x 8' Pressure Treated Trim",
+      "1x4 x 8' Cedar Trim",
+      "1x6 x 6' Pressure treated pickets",
+      "1x6 x 6' Cedar pickets",
+      "Wire mesh roll",
+      "Post caps",
+      "Concrete 60lb Bag"
+    ];
+  }, []);
+
+  const fenceBuilderMaterialOptions = useMemo(() => {
+    const cat = Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : [];
+    const custom = cat
+      .filter((c: any) => c && typeof c === "object")
+      .map((c: any) => ({ key: `catalog:${String(c.key || "")}`, label: String(c.name || "") }))
+      .filter((c: any) => c.key !== "catalog:");
+    const built = builtInMaterialOptions.map((name) => ({ key: name, label: name }));
+    return [...built, ...custom];
+  }, [builtInMaterialOptions, fenceBuilder]);
+
+  const fastenerOptions = useMemo(() => {
+    return [
+      { key: "deck_screws_3in", label: '3" Deck Screws (350ct box)' },
+      { key: "staples", label: "Staples (1000ct box)" },
+      { key: "nails", label: "2\" Nails (box)" }
+    ];
+  }, []);
+
+  const fenceBuilderEditing = useMemo(() => {
+    const id = String(fenceBuilderEditingId || "");
+    if (!id) return null;
+    const list = Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : [];
+    return list.find((d: any) => String(d?.id || "") === id) ?? null;
+  }, [fenceBuilder, fenceBuilderEditingId]);
+
+  useEffect(() => {
+    if (!fenceBuilderOpen) return;
+    const current = selectedFenceDesign as any;
+    if (current && !fenceBuilderEditingId) setFenceBuilderEditingId(String(current.id || ""));
+  }, [fenceBuilderOpen, fenceBuilderEditingId, selectedFenceDesign]);
+
+  function persistFenceBuilder(next: FenceBuilderState) {
+    setFenceBuilder(next);
+    try {
+      if (!draftId) return;
+      const store = readDraftStore();
+      const prev = (store as any)[draftId] ?? {};
+      const merged = { ...(prev as any), fenceBuilder: next, updatedAt: Date.now() };
+      (store as any)[draftId] = merged;
+      writeDraftStore(store);
+      try {
+        void upsertDraft({ id: draftId, data: merged });
+      } catch {
+      }
+    } catch {
+    }
+  }
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
   const [extraPostSize, setExtraPostSize] = useState<number>(10);
@@ -1936,6 +2103,7 @@ function EstimatesPageInner() {
     materialsDetails: MaterialsDetails;
     extraPosts: number;
     segments: typeof segments;
+    fenceBuilder?: FenceBuilderState;
   }) {
     const selectedStyle = ctx.selectedStyle;
     const selectedFenceType = ctx.selectedFenceType;
@@ -1989,12 +2157,13 @@ function EstimatesPageInner() {
       if (n === "split rail" || n.includes("split rail")) return "wood_split_rail";
       if (n === "shadowbox top cap" || n.includes("shadowbox top cap")) return "wood_shadowbox_top_cap";
       if (n === "1x4 shadowbox" || n.includes("1x4 shadowbox")) return "wood_shadowbox";
-      if (n === "shadowbox") return "wood_shadowbox_pickets";
+      if (n === "shadowbox" ) return "wood_shadowbox_pickets";
       if (n.includes("shadowbox")) return "wood_shadowbox_pickets";
       if (n === "basket weve" || n === "basket weave" || n.includes("basket weve") || n.includes("basket weave")) return "wood_basket_weave";
       if (n === "board on board fence" || n.includes("board on board fence") || n.includes("board-on-board-fence")) return "wood_board_on_board_fence";
       if (n === "board on board" || n.includes("board on board") || n.includes("board-on-board")) return "wood_board_on_board";
       if (n === "scalloped" || n.includes("scalloped")) return "wood_scalloped";
+      if (n === "fence builder") return "wood_fence_builder";
       return n;
     })();
 
@@ -2065,6 +2234,168 @@ function EstimatesPageInner() {
     const gateHingeKitsAdd = walkGates * 1;
     const doubleGateKitsAdd = doubleGates;
     const gateFramingAdd = walkGates * 5 + doubleGates * 10;
+
+    if (selectedStyleKind === "wood_fence_builder") {
+      const fb = ctx.fenceBuilder;
+      const fbState = fb && typeof fb === "object" ? fb : null;
+      const selectedDesignId = fbState ? String((fbState as any).selectedDesignId || "") : "";
+      const designs = fbState && Array.isArray((fbState as any).designs) ? ((fbState as any).designs as FenceBuilderDesign[]) : [];
+      const design = selectedDesignId ? (designs.find((d) => String((d as any)?.id || "") === selectedDesignId) ?? null) : null;
+      if (!design) return [] as QuoteItem[];
+
+      const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
+      const lf = Number(totalLf) || 0;
+      const segmentLengths = segments
+        .filter((s) => !s.removed)
+        .map((s) => Number(s.length) || 0)
+        .filter((n) => n > 0);
+
+      const postCenters = Math.max(0.1, Number((design as any).postCentersFt) || 7.5);
+      const panelsBase = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / postCenters), 0)
+        : (lf > 0 ? Math.ceil(lf / postCenters) : 0);
+      const postsBase = panelsBase > 0 ? panelsBase + 1 : 0;
+
+      const walkGates = Number(walkGateCount) || 0;
+      const doubleGates = Number(doubleGateCount) || 0;
+      const gatePanelsAdd = walkGates * 1 + doubleGates * 2;
+
+      // Keep existing post rules for gates, and assume per-post materials multiply by all posts.
+      const postsAll = Math.max(0, postsBase + gatePostsAdd + (Number(extraPosts) || 0));
+
+      const effectivePanels = Math.max(0, panelsBase + gatePanelsAdd);
+
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
+      const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
+      const extraPostSizeSafe = ([8, 10, 12, 14] as const).includes(extraPostSize as any) ? (extraPostSize as 8 | 10 | 12 | 14) : 10;
+      const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
+
+      const cat = fbState && Array.isArray((fbState as any).catalog) ? ((fbState as any).catalog as FenceBuilderCatalogItem[]) : [];
+      const findCatalogItem = (key: string) => {
+        const k = String(key || "");
+        if (!k.startsWith("catalog:")) return null;
+        const id = k.slice("catalog:".length);
+        if (!id) return null;
+        return cat.find((c) => String((c as any)?.key || "") === id) ?? null;
+      };
+
+      const resolveRecipeRow = (materialKey: string) => {
+        const k = String(materialKey || "");
+        const c = findCatalogItem(k);
+        if (c) {
+          return {
+            name: String((c as any).name || ""),
+            unit: (String((c as any).unit || "ea") === "box" ? "box" : "ea") as "ea" | "box",
+            unitPrice: Number((c as any).unitPrice) || 0,
+            fromCatalog: true
+          };
+        }
+
+        // Built-in material keys map to existing takeoff item names.
+        const name = k;
+        const unit = name.toLowerCase().includes("concrete") ? "bag" : "ea";
+        return { name, unit, unitPrice: undefined as any, fromCatalog: false };
+      };
+
+      const panelComponents = Array.isArray((design as any).panelComponents) ? ((design as any).panelComponents as any[]) : [];
+      const postComponents = Array.isArray((design as any).postComponents) ? ((design as any).postComponents as any[]) : [];
+
+      const recipeRows: Array<{ name: string; qty: number; unit: string; unitPrice?: number }> = [];
+
+      // Always include posts/concrete/post caps using existing rules.
+      if (postsAll > 0) recipeRows.push({ name: postName, qty: postsAll - extraPostsQty, unit: "ea" });
+      if (extraPostsQty > 0) recipeRows.push({ name: extraPostName, qty: extraPostsQty, unit: "ea" });
+
+      const concrete80Bags = postsAll * 2;
+      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      if (concrete60Bags > 0) recipeRows.push({ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" });
+      if (materialsDetails.postCaps && postsAll > 0) recipeRows.push({ name: "Post caps", qty: postsAll, unit: "ea" });
+
+      // Per-panel components.
+      for (const row of panelComponents) {
+        const key = String((row as any)?.materialKey || "");
+        const qtyPerPanel = Number((row as any)?.qtyPerPanel) || 0;
+        if (!key || qtyPerPanel <= 0) continue;
+        const resolved = resolveRecipeRow(key);
+        const qty = effectivePanels > 0 ? Math.ceil(effectivePanels * qtyPerPanel) : 0;
+        if (qty <= 0) continue;
+        recipeRows.push({
+          name: resolved.name,
+          qty,
+          unit: resolved.unit,
+          ...(resolved.fromCatalog ? { unitPrice: resolved.unitPrice } : {})
+        });
+      }
+
+      // Per-post components (all posts multiplier).
+      for (const row of postComponents) {
+        const key = String((row as any)?.materialKey || "");
+        const qtyPerPost = Number((row as any)?.qtyPerPost) || 0;
+        if (!key || qtyPerPost <= 0) continue;
+        const resolved = resolveRecipeRow(key);
+        const qty = postsAll > 0 ? Math.ceil(postsAll * qtyPerPost) : 0;
+        if (qty <= 0) continue;
+        recipeRows.push({
+          name: resolved.name,
+          qty,
+          unit: resolved.unit,
+          ...(resolved.fromCatalog ? { unitPrice: resolved.unitPrice } : {})
+        });
+      }
+
+      // Wire mesh toggle.
+      if (Boolean((design as any).wireMeshEnabled)) {
+        const meshRolls = lf > 0 ? Math.ceil(lf / 50) : 0;
+        if (meshRolls > 0) recipeRows.push({ name: "Wire mesh roll", qty: meshRolls, unit: "ea" });
+      }
+
+      // Fasteners per panel => boxes.
+      const fasteners = Array.isArray((design as any).fastenersPerPanel) ? ((design as any).fastenersPerPanel as any[]) : [];
+      const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+      const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
+
+      for (const f of fasteners) {
+        const key = String((f as any)?.fastenerKey || "");
+        const qtyPerPanel = Number((f as any)?.qtyPerPanel) || 0;
+        if (!key || qtyPerPanel <= 0) continue;
+        const count = effectivePanels > 0 ? Math.ceil(effectivePanels * qtyPerPanel) : 0;
+        if (count <= 0) continue;
+        if (key === "deck_screws_3in") {
+          const boxes = Math.ceil(count / 350);
+          if (boxes > 0) recipeRows.push({ name: "3\" Deck Screws", qty: boxes, unit: "box" });
+          continue;
+        }
+        if (key === "staples") {
+          const boxes = Math.ceil(count / 1000);
+          if (boxes > 0) recipeRows.push({ name: "Staples", qty: boxes, unit: "box" });
+          continue;
+        }
+        if (key === "nails") {
+          const boxes = Math.ceil(count / nailsPerBox);
+          if (boxes > 0) recipeRows.push({ name: nailsName, qty: boxes, unit: "box" });
+          continue;
+        }
+      }
+
+      // Gate extras remain as current rules.
+      if (gateFramingAdd > 0) recipeRows.push({ name: woodGateFramingName(materialsDetails.railMaterial), qty: gateFramingAdd, unit: "ea" });
+      if (gateHingeKitsAdd > 0) recipeRows.push({ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" });
+      if (doubleGateKitsAdd > 0) recipeRows.push({ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" });
+
+      // 2x4x8 protection: never include any 2x4 8' lines from the builder.
+      const filtered = recipeRows.filter((r) => !String(r.name || "").toLowerCase().includes("2x4 8'"));
+
+      return filtered
+        .filter((r) => (Number(r.qty) || 0) > 0)
+        .map((r) => {
+          const unitPrice =
+            typeof (r as any).unitPrice === "number"
+              ? Number((r as any).unitPrice)
+              : getUnitPriceFromMap({ materialUnitPrices, name: r.name });
+          const lineTotal = Math.round((Number(r.qty) * unitPrice) * 100) / 100;
+          return { section: "materials" as const, name: r.name, qty: r.qty, unit: r.unit, unitPrice, lineTotal };
+        });
+    }
 
     if (selectedStyleKind === "wood_wire_mesh") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
@@ -3472,7 +3803,8 @@ function EstimatesPageInner() {
             vinylStyleTab: card.vinylStyleTab,
             materialsDetails: card.materialsDetails,
             extraPosts: usedExtraPosts ? 0 : (Number(card.extraPosts) || 0),
-            segments: currentRun
+            segments: currentRun,
+            fenceBuilder
           });
           allRows.push(
             ...generated.map((r) => ({
@@ -3946,6 +4278,7 @@ function EstimatesPageInner() {
         : (Array.isArray(takeoffMaterialsStable) ? takeoffMaterialsStable : [])),
       takeoffManualItems: (Array.isArray(takeoffManualItems) ? takeoffManualItems : []),
       takeoffPerPanelAddons: (Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : []),
+      fenceBuilder,
       totals: {
         materialsSubtotal: Number(takeoffMaterialsAndExpensesTotal) || 0,
         laborSubtotal: Number(laborBaseTotal) || 0,
@@ -5193,6 +5526,13 @@ function EstimatesPageInner() {
   }
 
   function setMaterialStyle(style: { name: string; thumb: string }) {
+    if (String(style?.name || "").trim().toLowerCase() === "fence builder") {
+      setSelectedFenceType("wood");
+      setSelectedStyle(style);
+      setFenceBuilderOpen(true);
+      setStylePickerIdx(false);
+      return;
+    }
     setSelectedStyle(style);
 
     const styleName = String(style.name || "").trim().toLowerCase();
@@ -5590,6 +5930,9 @@ function EstimatesPageInner() {
 
     setTakeoffPerPanelAddons([]);
     setTakeoffPerPanelDraft({ desc: "", qtyPerPanel: "", unitPrice: "" });
+
+    setFenceBuilderOpen(false);
+    setFenceBuilder({ version: 1, selectedDesignId: "", designs: [], catalog: [] });
   }
 
 // ...
@@ -7968,6 +8311,485 @@ function EstimatesPageInner() {
                     document.body
                   )
                   : null}
+
+              </GlassCard>
+            </div>
+          </div>,
+          document.body
+        )
+        : null}
+
+      {portalReady && fenceBuilderOpen
+        ? createPortal(
+          <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" data-no-swipe="true">
+            <div className="absolute inset-0 bg-[rgba(0,0,0,.55)]" onClick={() => setFenceBuilderOpen(false)} />
+            <div className="relative w-full max-w-[720px]">
+              <GlassCard className="p-4 max-h-[82dvh] overflow-y-auto">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-extrabold">Fence Builder</div>
+                  <SecondaryButton
+                    data-no-swipe="true"
+                    onClick={() => {
+                      setFenceBuilderOpen(false);
+                      setFenceBuilderEditingId(null);
+                    }}
+                  >
+                    Close
+                  </SecondaryButton>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="text-xs font-extrabold opacity-80">Saved fences</div>
+                    <div className="mt-2 space-y-2">
+                      {(Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).length ? (
+                        (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) => {
+                          const id = String(d?.id || "");
+                          const active = id && (String((fenceBuilder as any).selectedDesignId || "") === id);
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => {
+                                const next = { ...(fenceBuilder as any), selectedDesignId: id } as FenceBuilderState;
+                                persistFenceBuilder(next);
+                                setFenceBuilderEditingId(id);
+                              }}
+                              className={
+                                "w-full text-left rounded-xl border px-3 py-2 transition-none " +
+                                (active
+                                  ? "bg-[rgba(255,214,10,.26)] border-[rgba(255,214,10,.55)]"
+                                  : "bg-[rgba(0,0,0,.10)] border-[rgba(255,255,255,.10)]")
+                              }
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="h-9 w-12 rounded-lg overflow-hidden border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.06)] shrink-0">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={String(d?.photoUrl || "/fencebuilder.jpg")}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-extrabold truncate">{String(d?.name || "Custom")}</div>
+                                  <div className="text-[11px] opacity-70">Centers: {Number(d?.postCentersFt) || 0} ft</div>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="text-xs opacity-70">No saved designs yet.</div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-1 gap-2">
+                      <div className="text-xs font-extrabold opacity-80">Create new</div>
+                      <div className="grid grid-cols-1 gap-2">
+                        <SecondaryButton
+                          data-no-swipe="true"
+                          onClick={() => {
+                            const id =
+                              typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+                                ? (crypto as any).randomUUID()
+                                : `fb-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                            const nextDesign: FenceBuilderDesign = {
+                              id,
+                              name: "New fence",
+                              postCentersFt: 7.5,
+                              panelComponents: [],
+                              postComponents: [],
+                              fastenersPerPanel: [],
+                              wireMeshEnabled: false
+                            };
+                            const next: FenceBuilderState = {
+                              ...(fenceBuilder as any),
+                              selectedDesignId: id,
+                              designs: [...(Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []), nextDesign]
+                            };
+                            persistFenceBuilder(next);
+                            setFenceBuilderEditingId(id);
+                          }}
+                        >
+                          Start from scratch
+                        </SecondaryButton>
+
+                        {fenceBuilderPresets.map((p) => (
+                          <SecondaryButton
+                            key={p.id}
+                            data-no-swipe="true"
+                            onClick={() => {
+                              const baseId =
+                                typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+                                  ? (crypto as any).randomUUID()
+                                  : `fb-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                              const nextDesign: FenceBuilderDesign = { ...p, id: baseId };
+                              const next: FenceBuilderState = {
+                                ...(fenceBuilder as any),
+                                selectedDesignId: baseId,
+                                designs: [...(Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []), nextDesign]
+                              };
+                              persistFenceBuilder(next);
+                              setFenceBuilderEditingId(baseId);
+                            }}
+                          >
+                            Use preset: {p.name}
+                          </SecondaryButton>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="text-xs font-extrabold opacity-80">Design editor</div>
+                    {!fenceBuilderEditing ? (
+                      <div className="mt-2 text-xs opacity-70">Select or create a design to edit.</div>
+                    ) : (
+                      <>
+                        <div className="mt-2 grid grid-cols-1 gap-2">
+                          <div>
+                            <div className="text-[11px] opacity-70">Name</div>
+                            <Input
+                              value={String((fenceBuilderEditing as any)?.name || "")}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), name: v } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                              placeholder="Fence name"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="text-[11px] opacity-70">Photo URL (optional)</div>
+                            <Input
+                              value={String((fenceBuilderEditing as any)?.photoUrl || "")}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), photoUrl: v } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                              placeholder="https://..."
+                            />
+                          </div>
+
+                          <div>
+                            <div className="text-[11px] opacity-70">Post centers (ft)</div>
+                            <Input
+                              value={String((fenceBuilderEditing as any)?.postCentersFt ?? "")}
+                              onChange={(e) => {
+                                const n = Number(e.target.value);
+                                const v = Number.isFinite(n) ? n : 0;
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), postCentersFt: v } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                              placeholder="7.5"
+                            />
+                          </div>
+
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={Boolean((fenceBuilderEditing as any)?.wireMeshEnabled)}
+                              onChange={(e) => {
+                                const v = Boolean(e.target.checked);
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), wireMeshEnabled: v } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                            />
+                            <span className="font-extrabold">Wire mesh</span>
+                          </label>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="text-xs font-extrabold opacity-80">Per panel components</div>
+                          <div className="mt-2 space-y-2">
+                            {(Array.isArray((fenceBuilderEditing as any)?.panelComponents) ? (fenceBuilderEditing as any).panelComponents : []).map((row: any, idx: number) => (
+                              <div key={idx} className="grid grid-cols-[1fr,120px,36px] gap-2 items-center">
+                                <Select
+                                  value={String(row?.materialKey || "")}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    const nextRow = { ...row, materialKey: v };
+                                    const nextPanels = (Array.isArray((fenceBuilderEditing as any).panelComponents) ? (fenceBuilderEditing as any).panelComponents : []).map((r: any, i: number) => i === idx ? nextRow : r);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), panelComponents: nextPanels } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                >
+                                  <option value="">Select material</option>
+                                  {fenceBuilderMaterialOptions.map((o) => (
+                                    <option key={o.key} value={o.key}>{o.label}</option>
+                                  ))}
+                                </Select>
+                                <Input
+                                  value={String(row?.qtyPerPanel ?? "")}
+                                  onChange={(e) => {
+                                    const n = Number(e.target.value);
+                                    const v = Number.isFinite(n) ? n : 0;
+                                    const nextRow = { ...row, qtyPerPanel: v };
+                                    const nextPanels = (Array.isArray((fenceBuilderEditing as any).panelComponents) ? (fenceBuilderEditing as any).panelComponents : []).map((r: any, i: number) => i === idx ? nextRow : r);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), panelComponents: nextPanels } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                  placeholder="qty"
+                                />
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  className="h-9 w-9 rounded-lg border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.12)] font-black"
+                                  onClick={() => {
+                                    const nextPanels = (Array.isArray((fenceBuilderEditing as any).panelComponents) ? (fenceBuilderEditing as any).panelComponents : []).filter((_: any, i: number) => i !== idx);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), panelComponents: nextPanels } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2">
+                            <SecondaryButton
+                              data-no-swipe="true"
+                              onClick={() => {
+                                const nextPanels = [...(Array.isArray((fenceBuilderEditing as any).panelComponents) ? (fenceBuilderEditing as any).panelComponents : []), { materialKey: "", qtyPerPanel: 0 }];
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), panelComponents: nextPanels } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                            >
+                              Add material
+                            </SecondaryButton>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="text-xs font-extrabold opacity-80">Per post components</div>
+                          <div className="mt-2 space-y-2">
+                            {(Array.isArray((fenceBuilderEditing as any)?.postComponents) ? (fenceBuilderEditing as any).postComponents : []).map((row: any, idx: number) => (
+                              <div key={idx} className="grid grid-cols-[1fr,120px,36px] gap-2 items-center">
+                                <Select
+                                  value={String(row?.materialKey || "")}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    const nextRow = { ...row, materialKey: v };
+                                    const nextRows = (Array.isArray((fenceBuilderEditing as any).postComponents) ? (fenceBuilderEditing as any).postComponents : []).map((r: any, i: number) => i === idx ? nextRow : r);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), postComponents: nextRows } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                >
+                                  <option value="">Select material</option>
+                                  {fenceBuilderMaterialOptions.map((o) => (
+                                    <option key={o.key} value={o.key}>{o.label}</option>
+                                  ))}
+                                </Select>
+                                <Input
+                                  value={String(row?.qtyPerPost ?? "")}
+                                  onChange={(e) => {
+                                    const n = Number(e.target.value);
+                                    const v = Number.isFinite(n) ? n : 0;
+                                    const nextRow = { ...row, qtyPerPost: v };
+                                    const nextRows = (Array.isArray((fenceBuilderEditing as any).postComponents) ? (fenceBuilderEditing as any).postComponents : []).map((r: any, i: number) => i === idx ? nextRow : r);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), postComponents: nextRows } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                  placeholder="qty"
+                                />
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  className="h-9 w-9 rounded-lg border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.12)] font-black"
+                                  onClick={() => {
+                                    const nextRows = (Array.isArray((fenceBuilderEditing as any).postComponents) ? (fenceBuilderEditing as any).postComponents : []).filter((_: any, i: number) => i !== idx);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), postComponents: nextRows } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2">
+                            <SecondaryButton
+                              data-no-swipe="true"
+                              onClick={() => {
+                                const nextRows = [...(Array.isArray((fenceBuilderEditing as any).postComponents) ? (fenceBuilderEditing as any).postComponents : []), { materialKey: "", qtyPerPost: 0 }];
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), postComponents: nextRows } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                            >
+                              Add per-post material
+                            </SecondaryButton>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="text-xs font-extrabold opacity-80">Fasteners per panel</div>
+                          <div className="mt-2 space-y-2">
+                            {(Array.isArray((fenceBuilderEditing as any)?.fastenersPerPanel) ? (fenceBuilderEditing as any).fastenersPerPanel : []).map((row: any, idx: number) => (
+                              <div key={idx} className="grid grid-cols-[1fr,120px,36px] gap-2 items-center">
+                                <Select
+                                  value={String(row?.fastenerKey || "")}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    const nextRow = { ...row, fastenerKey: v };
+                                    const nextRows = (Array.isArray((fenceBuilderEditing as any).fastenersPerPanel) ? (fenceBuilderEditing as any).fastenersPerPanel : []).map((r: any, i: number) => i === idx ? nextRow : r);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), fastenersPerPanel: nextRows } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                >
+                                  <option value="">Select fastener</option>
+                                  {fastenerOptions.map((o) => (
+                                    <option key={o.key} value={o.key}>{o.label}</option>
+                                  ))}
+                                </Select>
+                                <Input
+                                  value={String(row?.qtyPerPanel ?? "")}
+                                  onChange={(e) => {
+                                    const n = Number(e.target.value);
+                                    const v = Number.isFinite(n) ? n : 0;
+                                    const nextRow = { ...row, qtyPerPanel: v };
+                                    const nextRows = (Array.isArray((fenceBuilderEditing as any).fastenersPerPanel) ? (fenceBuilderEditing as any).fastenersPerPanel : []).map((r: any, i: number) => i === idx ? nextRow : r);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), fastenersPerPanel: nextRows } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                  placeholder="qty"
+                                />
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  className="h-9 w-9 rounded-lg border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.12)] font-black"
+                                  onClick={() => {
+                                    const nextRows = (Array.isArray((fenceBuilderEditing as any).fastenersPerPanel) ? (fenceBuilderEditing as any).fastenersPerPanel : []).filter((_: any, i: number) => i !== idx);
+                                    const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                      String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), fastenersPerPanel: nextRows } : d
+                                    );
+                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2">
+                            <SecondaryButton
+                              data-no-swipe="true"
+                              onClick={() => {
+                                const nextRows = [...(Array.isArray((fenceBuilderEditing as any).fastenersPerPanel) ? (fenceBuilderEditing as any).fastenersPerPanel : []), { fastenerKey: "", qtyPerPanel: 0 }];
+                                const nextDesigns = (Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : []).map((d: any) =>
+                                  String(d?.id || "") === String((fenceBuilderEditing as any)?.id || "") ? { ...(d as any), fastenersPerPanel: nextRows } : d
+                                );
+                                persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                              }}
+                            >
+                              Add fastener
+                            </SecondaryButton>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <div className="text-xs font-extrabold opacity-80">Custom catalog</div>
+                          <div className="mt-2 grid grid-cols-1 gap-2">
+                            <Input
+                              value={fenceBuilderCatalogName}
+                              onChange={(e) => setFenceBuilderCatalogName(e.target.value)}
+                              placeholder="Item name"
+                            />
+                            <div className="grid grid-cols-[1fr,1fr] gap-2">
+                              <Input
+                                value={fenceBuilderCatalogUnitPrice}
+                                onChange={(e) => setFenceBuilderCatalogUnitPrice(e.target.value)}
+                                placeholder="Unit price"
+                              />
+                              <Select value={fenceBuilderCatalogUnit} onChange={(e) => setFenceBuilderCatalogUnit(e.target.value as any)}>
+                                <option value="ea">ea</option>
+                                <option value="box">box</option>
+                              </Select>
+                            </div>
+                            <SecondaryButton
+                              data-no-swipe="true"
+                              onClick={() => {
+                                const name = String(fenceBuilderCatalogName || "").trim();
+                                const unitPrice = Number(fenceBuilderCatalogUnitPrice);
+                                if (!name) return;
+                                if (!Number.isFinite(unitPrice) || unitPrice < 0) return;
+                                const key =
+                                  typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+                                    ? (crypto as any).randomUUID()
+                                    : `cat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                                const item: FenceBuilderCatalogItem = { key, name, unit: fenceBuilderCatalogUnit, unitPrice };
+                                const next: FenceBuilderState = {
+                                  ...(fenceBuilder as any),
+                                  catalog: [...(Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : []), item]
+                                };
+                                persistFenceBuilder(next);
+                                setFenceBuilderCatalogName("");
+                                setFenceBuilderCatalogUnitPrice("");
+                                setFenceBuilderCatalogUnit("ea");
+                              }}
+                            >
+                              Add to catalog
+                            </SecondaryButton>
+                          </div>
+
+                          <div className="mt-2 space-y-2">
+                            {(Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : []).map((c: any) => (
+                              <div key={String(c?.key || "")} className="flex items-center justify-between gap-2 rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(0,0,0,.10)] px-3 py-2">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-extrabold truncate">{String(c?.name || "")}</div>
+                                  <div className="text-[11px] opacity-70">{String(c?.unit || "ea")} · {money(Number(c?.unitPrice) || 0)}</div>
+                                </div>
+                                <button
+                                  type="button"
+                                  data-no-swipe="true"
+                                  className="h-8 w-8 rounded-lg border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.12)] font-black"
+                                  onClick={() => {
+                                    const key = String(c?.key || "");
+                                    const nextCatalog = (Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : []).filter((x: any) => String(x?.key || "") !== key);
+                                    persistFenceBuilder({ ...(fenceBuilder as any), catalog: nextCatalog } as any);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </GlassCard>
             </div>
           </div>,
