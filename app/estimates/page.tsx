@@ -4626,7 +4626,16 @@ function EstimatesPageInner() {
 
     const contractId = String(overrideDraftId || draftId || "");
     const submittedOn = new Date().toISOString();
-    const styleTitle = selectedStyle?.name ? String(selectedStyle.name) : "";
+    const styleTitleBase = selectedStyle?.name ? String(selectedStyle.name) : "";
+    const styleTitle = (() => {
+      if (String(styleTitleBase || "").trim().toLowerCase() !== "fence builder") return styleTitleBase;
+      const fb = fenceBuilder && typeof fenceBuilder === "object" ? (fenceBuilder as any) : null;
+      const selectedId = fb ? String(fb.selectedDesignId || "") : "";
+      const designs = fb && Array.isArray(fb.designs) ? (fb.designs as any[]) : [];
+      const design = selectedId ? (designs.find((d) => String((d as any)?.id || "") === selectedId) ?? null) : null;
+      const name = design ? String((design as any).name || "").trim() : "";
+      return name || styleTitleBase;
+    })();
     const totalLfValue = Number(totalLf) || 0;
     const walkGatesValue = Math.max(0, Number(walkGateCount) || 0);
     const doubleGatesValue = Math.max(0, Number(effectiveDoubleGateCount) || 0);
@@ -6505,6 +6514,19 @@ function EstimatesPageInner() {
         ? (((d as any).takeoffPerPanelAddons as any[]) as Array<{ id: string; desc: string; qtyPerPanel: number; unitPrice: number }>).filter((x) => x && typeof x === "object")
         : []
     );
+
+    if ((d as any).fenceBuilder && typeof (d as any).fenceBuilder === "object") {
+      const fb = (d as any).fenceBuilder as any;
+      const version = fb.version === 1 ? 1 : 1;
+      const selectedDesignId = typeof fb.selectedDesignId === "string" ? fb.selectedDesignId : "";
+      const designs = Array.isArray(fb.designs)
+        ? fb.designs.filter((x: any) => x && typeof x === "object")
+        : [];
+      const catalog = Array.isArray(fb.catalog)
+        ? fb.catalog.filter((x: any) => x && typeof x === "object")
+        : [];
+      setFenceBuilder({ version, selectedDesignId, designs, catalog } as any);
+    }
     setTakeoffPerPanelDraft({ desc: "", qtyPerPanel: "", unitPrice: "" });
     setLaborDays(Number(d.laborDays ?? 0));
     setLaborManualDays(String((d as any).laborManualDays ?? ""));
@@ -7636,6 +7658,9 @@ function EstimatesPageInner() {
                                   key={m.name}
                                   className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-2 py-2"
                                   style={(() => {
+                                    const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
+                                    const hasFenceBuilder = comboCards.some((c) => String((c as any)?.selectedStyle?.name || "").trim().toLowerCase() === "fence builder");
+                                    if (comboCards.length > 1 && hasFenceBuilder && feeNames.has(String((m as any).name || ""))) return undefined;
                                     const ids = Array.isArray((m as any).__cardIds) ? ((m as any).__cardIds as string[]) : [];
                                     const shared = Boolean((m as any).__shared);
                                     if (shared) return undefined;
