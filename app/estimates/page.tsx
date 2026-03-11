@@ -312,6 +312,9 @@ type FenceBuilderDesign = {
   photoUrl?: string;
   postCentersFt: number;
   postMaterialKey?: string;
+  picketsEnabled?: boolean;
+  picketMaterial?: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
+  picketSpacingIn?: number;
   panelComponents: Array<{ materialKey: string; qtyPerPanel: number }>;
   postComponents: Array<{ materialKey: string; qtyPerPost: number }>;
   fastenersPerPanel: Array<{ fastenerKey: string; qtyPerPanel: number }>;
@@ -2351,6 +2354,19 @@ function EstimatesPageInner() {
       const extraPostsQty = Math.max(0, Math.floor(Number(extraPosts) || 0));
       const extraPostName = postName;
 
+      const picketsEnabled = Boolean((design as any).picketsEnabled);
+      const picketSpacingIn = Math.max(0.5, Number((design as any).picketSpacingIn) || 5.5);
+      const picketMaterial = (String((design as any).picketMaterial || "Pressure treated") as any) as
+        "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
+
+      const pickets = picketsEnabled && totalLf > 0
+        ? (Math.ceil((totalLf * 12) / picketSpacingIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5)
+        : 0;
+      const picketName = woodPicketName(picketMaterial);
+      const nailsPerBox = woodNailsBoxQty(picketMaterial);
+      const nailsName = woodNailsItemName(picketMaterial);
+      const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
+
       const resolveRecipeRow = (materialKey: string) => {
         const k = String(materialKey || "");
         const c = findCatalogItem(k);
@@ -2423,8 +2439,8 @@ function EstimatesPageInner() {
 
       // Fasteners per panel => boxes.
       const fasteners = Array.isArray((design as any).fastenersPerPanel) ? ((design as any).fastenersPerPanel as any[]) : [];
-      const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
-      const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
+      const fastenerNailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
+      const fastenerNailsName = woodNailsItemName(materialsDetails.picketMaterial);
 
       for (const f of fasteners) {
         const key = String((f as any)?.fastenerKey || "");
@@ -2443,8 +2459,8 @@ function EstimatesPageInner() {
           continue;
         }
         if (key === "nails") {
-          const boxes = Math.ceil(count / nailsPerBox);
-          if (boxes > 0) recipeRows.push({ name: nailsName, qty: boxes, unit: "box" });
+          const boxes = Math.ceil(count / fastenerNailsPerBox);
+          if (boxes > 0) recipeRows.push({ name: fastenerNailsName, qty: boxes, unit: "box" });
           continue;
         }
       }
@@ -2456,6 +2472,10 @@ function EstimatesPageInner() {
 
       // 2x4x8 protection: never include any 2x4 8' lines from the builder.
       const filtered = recipeRows.filter((r) => !String(r.name || "").toLowerCase().includes("2x4 8'"));
+
+      // Pickets
+      if (pickets > 0) filtered.push({ name: picketName, qty: pickets, unit: "ea" });
+      if (nailsBoxes > 0) filtered.push({ name: nailsName, qty: nailsBoxes, unit: "box" });
 
       return filtered
         .filter((r) => (Number(r.qty) || 0) > 0)
@@ -8399,9 +8419,25 @@ function EstimatesPageInner() {
             />
             <div className="relative w-full max-w-[980px]">
               <GlassCard className="p-4 backdrop-blur-none [-webkit-backdrop-filter:none]">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-extrabold">Materials details</div>
-                  <SecondaryButton onClick={() => setMaterialsDetailsOpen(false)}>Close</SecondaryButton>
+                  <div className="flex items-center gap-2">
+                    {selectedFenceType === "wood" && String(selectedStyle?.name || "").trim().toLowerCase() === "fence builder" ? (
+                      <PrimaryButton
+                        data-no-swipe="true"
+                        onClick={() => {
+                          const id = String((fenceBuilder as any)?.selectedDesignId || fenceBuilderEditingId || "");
+                          if (!id) return;
+                          const designs = Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : [];
+                          const next: FenceBuilderState = { ...(fenceBuilder as any), selectedDesignId: id, designs };
+                          persistFenceBuilder(next);
+                        }}
+                      >
+                        Save
+                      </PrimaryButton>
+                    ) : null}
+                    <SecondaryButton onClick={() => setMaterialsDetailsOpen(false)}>Close</SecondaryButton>
+                  </div>
                 </div>
 
                 <div className="max-h-[80dvh] overflow-y-auto">
@@ -8553,6 +8589,60 @@ function EstimatesPageInner() {
                           return (
                             <>
                               <div className="grid grid-cols-1 gap-2">
+                                <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
+                                  <div className="text-[11px] text-[var(--muted)] mb-2">Pickets</div>
+
+                                  <div>
+                                    <div className="text-[11px] text-[var(--muted)] mb-1">Use picket math</div>
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => updateDesign({ picketsEnabled: !Boolean((design as any)?.picketsEnabled) })}
+                                      className={
+                                        "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                                        (Boolean((design as any)?.picketsEnabled)
+                                          ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                    >
+                                      {Boolean((design as any)?.picketsEnabled) ? "On" : "Off"}
+                                    </button>
+                                  </div>
+
+                                  {Boolean((design as any)?.picketsEnabled) ? (
+                                    <div className="mt-3 grid grid-cols-2 gap-2">
+                                      <div>
+                                        <div className="text-[11px] text-[var(--muted)] mb-1">Pickets</div>
+                                        <Select
+                                          value={String((design as any)?.picketMaterial || "Pressure treated")}
+                                          onChange={(e) => updateDesign({ picketMaterial: e.target.value })}
+                                        >
+                                          <option value="Pressure treated">Pressure treated</option>
+                                          <option value="Cedar">Cedar</option>
+                                          <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                          <option value="Rough sawn cedar 5/8">Rough sawn cedar (5/8)</option>
+                                          <option value="Rough sawn cedar 3/4">Rough sawn cedar (3/4)</option>
+                                          <option value="Cedar tone">Cedar tone</option>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <div className="text-[11px] text-[var(--muted)] mb-1">Spacing (in)</div>
+                                        <Input
+                                          type="tel"
+                                          inputMode="decimal"
+                                          value={String((design as any)?.picketSpacingIn ?? "5.5")}
+                                          onChange={(e) => {
+                                            const n = Number(String(e.target.value || "").trim());
+                                            const safe = Number.isFinite(n) ? n : 5.5;
+                                            updateDesign({ picketSpacingIn: safe });
+                                          }}
+                                          placeholder="5.5"
+                                        />
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </div>
+
                                 <div>
                                   <div className="text-[11px] text-[var(--muted)] mb-1">Per panel components</div>
                                   <div className="mt-2 space-y-2">
@@ -8858,43 +8948,113 @@ function EstimatesPageInner() {
                         </div>
                       </div>
 
-                      {selectedFenceType === "wood" ? (
-                        <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
-                          <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
-                          <div>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty double gate flip latch ($30.98)</div>
-                            <div className="grid grid-cols-3 gap-2">
-                              <PrimaryButton
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={() =>
-                                  setMaterialsDetails((p) => ({
-                                    ...p,
-                                    heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) - 1)
-                                  }))
-                                }
-                              >
-                                -
-                              </PrimaryButton>
-                              <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                                {Math.max(0, Math.floor(Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0))}
-                              </div>
-                              <PrimaryButton
-                                type="button"
-                                data-no-swipe="true"
-                                onClick={() =>
-                                  setMaterialsDetails((p) => ({
-                                    ...p,
-                                    heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) + 1)
-                                  }))
-                                }
-                              >
-                                +
-                              </PrimaryButton>
+                      <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
+                        <div>
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty double gate flip latch ($30.98)</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) - 1)
+                                }))
+                              }
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                              {Math.max(0, Math.floor(Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0))}
                             </div>
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) + 1)
+                                }))
+                              }
+                            >
+                              +
+                            </PrimaryButton>
                           </div>
                         </div>
-                      ) : null}
+
+                        <div className="mt-3">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty slide bolt ($10.98)</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) - 1)
+                                }))
+                              }
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                              {Math.max(0, Math.floor(Number(materialsDetails.heavyDutySlideBoltQty) || 0))}
+                            </div>
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) + 1)
+                                }))
+                              }
+                            >
+                              +
+                            </PrimaryButton>
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
+                          <div className="text-[11px] text-[var(--muted)] mb-1">Concrete 4x4 post mount ($31.86)</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) - 1)
+                                }))
+                              }
+                            >
+                              -
+                            </PrimaryButton>
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                              {Math.max(0, Math.floor(Number(materialsDetails.concretePostMount4x4Qty) || 0))}
+                            </div>
+                            <PrimaryButton
+                              type="button"
+                              data-no-swipe="true"
+                              className="px-3 py-2 text-[12px]"
+                              onClick={() =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) + 1)
+                                }))
+                              }
+                            >
+                              +
+                            </PrimaryButton>
+                          </div>
+                        </div>
+                      </div>
                     </>
                   ) : selectedFenceType === "aluminum" ? (
                   <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
