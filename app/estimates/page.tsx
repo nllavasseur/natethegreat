@@ -943,6 +943,8 @@ function EstimatesPageInner() {
     catalog: []
   });
 
+  const [fenceBuilderPostFilter, setFenceBuilderPostFilter] = useState<"all" | "pressure" | "cedar" | "cedartone" | "rough">("all");
+
   const builtInPostOptions = useMemo(() => {
     const fromCsv = Array.isArray(woodUnitPriceItems)
       ? woodUnitPriceItems.filter((n) => /\bpost\b/i.test(String(n || "")))
@@ -953,12 +955,17 @@ function EstimatesPageInner() {
       "4x4 x 10' Post",
       "4x4 x 8' Cedar S4S Post",
       "4x4 x 10' Cedar S4S Post",
+      "4x4 x 8' Rough Sawn Cedar Post",
+      "4x4 x 10' Rough Sawn Cedar Post",
       "6x6 x 8' Pressure Treated Post",
       "6x6 x 10' Pressure Treated Post",
       "6x6 x 12' Pressure Treated Post",
       "6x6 x 8' Cedar S4S Post",
       "6x6 x 10' Cedar S4S Post",
-      "6x6 x 12' Cedar S4S Post"
+      "6x6 x 12' Cedar S4S Post",
+      "6x6 x 8' Rough Sawn Cedar Post",
+      "6x6 x 10' Rough Sawn Cedar Post",
+      "6x6 x 12' Rough Sawn Cedar Post"
     ];
   }, [woodUnitPriceItems]);
 
@@ -971,6 +978,19 @@ function EstimatesPageInner() {
     const built = builtInPostOptions.map((name) => ({ key: name, label: name }));
     return [...built, ...custom];
   }, [builtInPostOptions, fenceBuilder]);
+
+  const fenceBuilderPostOptionsFiltered = useMemo(() => {
+    const opts = Array.isArray(fenceBuilderPostOptions) ? fenceBuilderPostOptions : [];
+    if (fenceBuilderPostFilter === "all") return opts;
+    const classify = (label: string) => {
+      const v = String(label || "").toLowerCase();
+      if (v.includes("rough")) return "rough" as const;
+      if (v.includes("cedartone") || v.includes("cedar tone")) return "cedartone" as const;
+      if (v.includes("cedar")) return "cedar" as const;
+      return "pressure" as const;
+    };
+    return opts.filter((o: any) => classify(String((o as any).label || (o as any).key || "")) === fenceBuilderPostFilter);
+  }, [fenceBuilderPostFilter, fenceBuilderPostOptions]);
 
   const selectedFenceDesign = useMemo(() => {
     const id = String((fenceBuilder as any)?.selectedDesignId || "");
@@ -8542,21 +8562,30 @@ function EstimatesPageInner() {
 
                               <div className="mt-3">
                                 <div className="text-[11px] text-[var(--muted)] mb-1">Post type</div>
-                                <Select
-                                  value={String((design as any)?.postMaterialKey || "")}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    const nextDesigns = designs.map((d: any) =>
-                                      String(d?.id || "") === String(designId) ? { ...(d as any), postMaterialKey: v } : d
-                                    );
-                                    persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
-                                  }}
-                                >
-                                  <option value="">Select post type</option>
-                                  {fenceBuilderPostOptions.map((o) => (
-                                    <option key={o.key} value={o.key}>{o.label}</option>
-                                  ))}
-                                </Select>
+                                <div className="grid grid-cols-[140px_1fr] gap-2 items-center">
+                                  <Select value={fenceBuilderPostFilter} onChange={(e) => setFenceBuilderPostFilter(e.target.value as any)}>
+                                    <option value="all">All</option>
+                                    <option value="pressure">Pressure treated</option>
+                                    <option value="cedar">Cedar</option>
+                                    <option value="cedartone">CedarTone</option>
+                                    <option value="rough">Rough sawn</option>
+                                  </Select>
+                                  <Select
+                                    value={String((design as any)?.postMaterialKey || "")}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      const nextDesigns = designs.map((d: any) =>
+                                        String(d?.id || "") === String(designId) ? { ...(d as any), postMaterialKey: v } : d
+                                      );
+                                      persistFenceBuilder({ ...(fenceBuilder as any), designs: nextDesigns } as any);
+                                    }}
+                                  >
+                                    <option value="">Select post type</option>
+                                    {fenceBuilderPostOptionsFiltered.map((o) => (
+                                      <option key={o.key} value={o.key}>{o.label}</option>
+                                    ))}
+                                  </Select>
+                                </div>
                               </div>
 
                               <div className="mt-3 rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-2">
