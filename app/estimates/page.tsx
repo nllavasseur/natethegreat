@@ -1282,6 +1282,8 @@ function EstimatesPageInner() {
   const [takeoffError, setTakeoffError] = useState<string | null>(null);
   const takeoffErrorRef = useRef<string | null>(null);
 
+  const [tenPercentDiscountEnabled, setTenPercentDiscountEnabled] = useState(false);
+
   const takeoffDiagnostics = useMemo(() => {
     try {
       const baseId = baseComboCardId || null;
@@ -4390,12 +4392,13 @@ function EstimatesPageInner() {
       takeoffManualItems: (Array.isArray(takeoffManualItems) ? takeoffManualItems : []),
       takeoffPerPanelAddons: (Array.isArray(takeoffPerPanelAddons) ? takeoffPerPanelAddons : []),
       fenceBuilder,
+      tenPercentDiscountEnabled,
       totals: {
-        materialsSubtotal: Number(takeoffMaterialsAndExpensesTotal) || 0,
+        materialsSubtotal: Number(materialsDepositTotal) || 0,
         laborSubtotal: Number(laborBaseTotal) || 0,
         additionalSubtotal: Number(additionalFeesTotal) || 0,
         removalTotal: Number(removalTotal) || 0,
-        discount: 0,
+        discount: Number(tenPercentDiscountValue) || 0,
         tax: 0,
         total: Number(grandTotal) || 0,
         depositTotal: Number(materialsDepositTotal) || 0
@@ -4718,7 +4721,7 @@ function EstimatesPageInner() {
         laborSubtotal: Number(totals.laborSubtotal) || 0,
         additionalSubtotal: Number(additionalServicesSubtotal) || 0,
         removalTotal: Number(removalTotal) || 0,
-        discount: 0,
+        discount: Number(tenPercentDiscountValue) || 0,
         tax: 0,
         total: Number(grandTotal) || 0
       }
@@ -5485,10 +5488,23 @@ function EstimatesPageInner() {
     return Math.round(v * 100) / 100;
   }, [takeoffMaterialsAndExpensesBaseTotal]);
 
-  const materialsDepositTotal = useMemo(() => {
-    const v = Number(takeoffMaterialsAndExpensesTotal) || 0;
+  const tenPercentDiscountValue = useMemo(() => {
+    if (!tenPercentDiscountEnabled) return 0;
+    const base = Number(takeoffMaterialsAndExpensesTotal) || 0;
+    return Math.round((base * 0.1) * 100) / 100;
+  }, [takeoffMaterialsAndExpensesTotal, tenPercentDiscountEnabled]);
+
+  const takeoffMaterialsAndExpensesTotalDiscounted = useMemo(() => {
+    const base = Number(takeoffMaterialsAndExpensesTotal) || 0;
+    const discount = Number(tenPercentDiscountValue) || 0;
+    const v = base - discount;
     return Math.round(v * 100) / 100;
-  }, [takeoffMaterialsAndExpensesTotal]);
+  }, [takeoffMaterialsAndExpensesTotal, tenPercentDiscountValue]);
+
+  const materialsDepositTotal = useMemo(() => {
+    const v = Number(takeoffMaterialsAndExpensesTotalDiscounted) || 0;
+    return Math.round(v * 100) / 100;
+  }, [takeoffMaterialsAndExpensesTotalDiscounted]);
 
   const removalTotal = useMemo(() => {
     const lf = segments
@@ -6035,6 +6051,7 @@ function EstimatesPageInner() {
     setMaterialsDetailsOpen(false);
     setMeasureOpen(false);
     setTracePoints([]);
+    setTenPercentDiscountEnabled(false);
     setOcrBusy(false);
     setOcrError(null);
     setOcrResults([]);
@@ -6224,6 +6241,7 @@ function EstimatesPageInner() {
     const loadedData = typeof (d as any).projectPhotoDataUrl === "string" ? (d as any).projectPhotoDataUrl : null;
     setProjectPhotoDataUrl(loadedData && loadedData.startsWith("data:") ? loadedData : null);
     setProjectPhotoUrl(loadedUrl || (loadedData && loadedData.startsWith("data:") ? loadedData : null));
+    setTenPercentDiscountEnabled(Boolean((d as any).tenPercentDiscountEnabled));
     // Restore combo cards (if present). Falls back to legacy single-card fields.
     const incomingCardsRaw = (d as any).comboCards;
     const incomingActiveIdRaw = (d as any).activeComboCardId;
@@ -11149,8 +11167,16 @@ function EstimatesPageInner() {
         <div className="grid gap-2 text-sm">
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Materials &amp; expenses</span>
-            <span className="font-black">{money(takeoffMaterialsAndExpensesTotal)}</span>
+            <span className="font-black">{money(takeoffMaterialsAndExpensesTotalDiscounted)}</span>
           </div>
+
+          {tenPercentDiscountEnabled ? (
+            <div className="flex justify-between gap-2">
+              <span className="text-[var(--muted)]">10% discount</span>
+              <span className="font-black">-{money(tenPercentDiscountValue)}</span>
+            </div>
+          ) : null}
+
           <div className="flex justify-between gap-2">
             <span className="text-[var(--muted)]">Additional fees</span>
             <span className="font-black">{money(additionalFeesTotal)}</span>
@@ -11183,6 +11209,23 @@ function EstimatesPageInner() {
             <span className="font-black">TOTAL</span>
             <span className="font-black">{money(grandTotal)}</span>
           </div>
+        </div>
+
+        <div className="mt-3">
+          <button
+            type="button"
+            data-no-swipe="true"
+            onClick={() => setTenPercentDiscountEnabled((v) => !v)}
+            className={
+              "w-full rounded-xl px-3 py-2 text-[14px] md:text-sm border transition-none font-extrabold " +
+              (tenPercentDiscountEnabled
+                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+            }
+            aria-pressed={tenPercentDiscountEnabled}
+          >
+            10% discount
+          </button>
         </div>
 
       {debugTotals ? (
