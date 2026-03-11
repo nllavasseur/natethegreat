@@ -2473,7 +2473,12 @@ function EstimatesPageInner() {
       if (doubleGateKitsAdd > 0) recipeRows.push({ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" });
 
       // 2x4x8 protection: never include any 2x4 8' lines from the builder.
-      const filtered = recipeRows.filter((r) => !String(r.name || "").toLowerCase().includes("2x4 8'"));
+      const filtered = recipeRows.filter((r) => {
+        const n = String(r.name || "").toLowerCase();
+        const is2x4x8 = n.includes("2x4 8'");
+        const isRail = n.includes("rail");
+        return !(is2x4x8 && isRail);
+      });
 
       // Pickets
       if (pickets > 0) filtered.push({ name: picketName, qty: pickets, unit: "ea" });
