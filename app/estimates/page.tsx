@@ -3808,7 +3808,7 @@ function EstimatesPageInner() {
         ...walkGateItems,
         ...doubleGateItems,
         ...(concrete60Bags > 0
-          ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: fixedOrZero(concrete60Bags), unit: "bag" }]
+          ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }]
           : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
@@ -4646,15 +4646,34 @@ function EstimatesPageInner() {
 
     const contractId = String(overrideDraftId || draftId || "");
     const submittedOn = new Date().toISOString();
-    const styleTitleBase = selectedStyle?.name ? String(selectedStyle.name) : "";
     const styleTitle = (() => {
-      if (String(styleTitleBase || "").trim().toLowerCase() !== "fence builder") return styleTitleBase;
       const fb = fenceBuilder && typeof fenceBuilder === "object" ? (fenceBuilder as any) : null;
       const selectedId = fb ? String(fb.selectedDesignId || "") : "";
       const designs = fb && Array.isArray(fb.designs) ? (fb.designs as any[]) : [];
-      const design = selectedId ? (designs.find((d) => String((d as any)?.id || "") === selectedId) ?? null) : null;
-      const name = design ? String((design as any).name || "").trim() : "";
-      return name || styleTitleBase;
+      const fbDesign = selectedId ? (designs.find((d) => String((d as any)?.id || "") === selectedId) ?? null) : null;
+      const fbName = fbDesign ? String((fbDesign as any).name || "").trim() : "";
+
+      const cards = Array.isArray(comboCards) ? comboCards : [];
+      const titles = cards
+        .filter((c) => c && (c as any).selectedStyle && typeof (c as any).selectedStyle.name === "string")
+        .map((c) => {
+          const n = String((c as any).selectedStyle.name || "");
+          if (n.trim().toLowerCase() === "fence builder") return fbName || n;
+          return n;
+        })
+        .map((t) => String(t || "").trim())
+        .filter((t) => Boolean(t));
+
+      const uniq: string[] = [];
+      for (const t of titles) {
+        if (!uniq.includes(t)) uniq.push(t);
+      }
+      if (uniq.length > 1) return uniq.join(" + ");
+      if (uniq.length === 1) return uniq[0];
+
+      const styleTitleBase = selectedStyle?.name ? String(selectedStyle.name) : "";
+      if (String(styleTitleBase || "").trim().toLowerCase() !== "fence builder") return styleTitleBase;
+      return fbName || styleTitleBase;
     })();
     const totalLfValue = Number(totalLf) || 0;
     const walkGatesValue = Math.max(0, Number(walkGateCount) || 0);

@@ -156,7 +156,35 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const phoneNumber = String(draft?.phoneNumber || "");
   const email = String(draft?.email || "");
   const projectAddress = String(draft?.projectAddress || "");
-  const styleTitle = String(draft?.selectedStyle?.name || "");
+  const styleTitle = (() => {
+    const fb = draft?.fenceBuilder && typeof draft.fenceBuilder === "object" ? (draft.fenceBuilder as any) : null;
+    const selectedId = fb ? String(fb.selectedDesignId || "") : "";
+    const designs = fb && Array.isArray(fb.designs) ? (fb.designs as any[]) : [];
+    const fbDesign = selectedId ? (designs.find((d) => String((d as any)?.id || "") === selectedId) ?? null) : null;
+    const fbName = fbDesign ? String((fbDesign as any).name || "").trim() : "";
+
+    const cards = Array.isArray((draft as any)?.comboCards) ? ((draft as any).comboCards as any[]) : [];
+    const titles = cards
+      .filter((c) => c && c.selectedStyle && typeof c.selectedStyle.name === "string")
+      .map((c) => {
+        const n = String(c.selectedStyle.name || "");
+        if (n.trim().toLowerCase() === "fence builder") return fbName || n;
+        return n;
+      })
+      .map((t) => String(t || "").trim())
+      .filter((t) => Boolean(t));
+
+    const uniq: string[] = [];
+    for (const t of titles) {
+      if (!uniq.includes(t)) uniq.push(t);
+    }
+    if (uniq.length > 1) return uniq.join(" + ");
+    if (uniq.length === 1) return uniq[0];
+
+    const base = String(draft?.selectedStyle?.name || "");
+    if (base.trim().toLowerCase() !== "fence builder") return base;
+    return fbName || base;
+  })();
   const notes = String(draft?.notes || "");
 
   return {
