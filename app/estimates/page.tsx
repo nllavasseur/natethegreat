@@ -8377,15 +8377,35 @@ function EstimatesPageInner() {
               <GlassCard className="p-4 max-h-[82dvh] overflow-y-auto">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-extrabold">Fence Builder</div>
-                  <SecondaryButton
-                    data-no-swipe="true"
-                    onClick={() => {
-                      setFenceBuilderOpen(false);
-                      setFenceBuilderEditingId(null);
-                    }}
-                  >
-                    Close
-                  </SecondaryButton>
+                  <div className="flex items-center gap-2">
+                    <PrimaryButton
+                      data-no-swipe="true"
+                      onClick={() => {
+                        const editingId = String(fenceBuilderEditingId || "");
+                        const selectedId = String((fenceBuilder as any)?.selectedDesignId || "");
+                        const nextSelected = editingId || selectedId;
+                        const next: FenceBuilderState = {
+                          ...(fenceBuilder as any),
+                          selectedDesignId: nextSelected
+                        };
+                        persistFenceBuilder(next);
+                        setFenceBuilderOpen(false);
+                        setFenceBuilderEditingId(null);
+                      }}
+                      disabled={!fenceBuilderEditingId && !String((fenceBuilder as any)?.selectedDesignId || "")}
+                    >
+                      Save
+                    </PrimaryButton>
+                    <SecondaryButton
+                      data-no-swipe="true"
+                      onClick={() => {
+                        setFenceBuilderOpen(false);
+                        setFenceBuilderEditingId(null);
+                      }}
+                    >
+                      Close
+                    </SecondaryButton>
+                  </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
