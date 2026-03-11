@@ -928,6 +928,8 @@ function EstimatesPageInner() {
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
 
+  const [woodUnitPriceItems, setWoodUnitPriceItems] = useState<string[]>([]);
+
   const [fenceBuilderOpen, setFenceBuilderOpen] = useState(false);
   const [fenceBuilder, setFenceBuilder] = useState<FenceBuilderState>({
     version: 1,
@@ -937,6 +939,10 @@ function EstimatesPageInner() {
   });
 
   const builtInPostOptions = useMemo(() => {
+    const fromCsv = Array.isArray(woodUnitPriceItems)
+      ? woodUnitPriceItems.filter((n) => /\bpost\b/i.test(String(n || "")))
+      : [];
+    if (fromCsv.length) return fromCsv;
     return [
       "4x4 x 8' Post",
       "4x4 x 10' Post",
@@ -949,7 +955,7 @@ function EstimatesPageInner() {
       "6x6 x 10' Cedar S4S Post",
       "6x6 x 12' Cedar S4S Post"
     ];
-  }, []);
+  }, [woodUnitPriceItems]);
 
   const fenceBuilderPostOptions = useMemo(() => {
     const cat = Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : [];
@@ -1027,6 +1033,8 @@ function EstimatesPageInner() {
   const [fenceBuilderCatalogUnit, setFenceBuilderCatalogUnit] = useState<"ea" | "box">("ea");
 
   const builtInMaterialOptions = useMemo(() => {
+    const fromCsv = Array.isArray(woodUnitPriceItems) ? woodUnitPriceItems : [];
+    if (fromCsv.length) return fromCsv;
     return [
       "2x4x16 Pressure treated",
       "2x4x16 Cedar S4S",
@@ -1040,7 +1048,7 @@ function EstimatesPageInner() {
       "Post caps",
       "Concrete 60lb Bag"
     ];
-  }, []);
+  }, [woodUnitPriceItems]);
 
   const fenceBuilderMaterialOptions = useMemo(() => {
     const cat = Array.isArray((fenceBuilder as any)?.catalog) ? (fenceBuilder as any).catalog : [];
@@ -2101,6 +2109,7 @@ function EstimatesPageInner() {
         const headerIdx = lines.findIndex((l) => l.toLowerCase() === "item_name,unit_price");
         const start = headerIdx >= 0 ? headerIdx + 1 : 0;
         const patch: Record<string, number> = {};
+        const names: string[] = [];
         for (const line of lines.slice(start)) {
           const [itemRaw, priceRaw] = parseCsvLine(line);
           const exactName = String(itemRaw || "").trim();
@@ -2110,9 +2119,15 @@ function EstimatesPageInner() {
           if (!Number.isFinite(price)) continue;
           if (exactName) patch[exactName] = price;
           if (name) patch[name] = price;
+          if (exactName) names.push(exactName);
         }
         if (Object.keys(patch).length <= 0) return;
         setMaterialUnitPrices((prev) => ({ ...prev, ...patch }));
+        if (names.length) {
+          const unique = Array.from(new Set(names.map((n) => String(n || "").trim()).filter((n) => Boolean(n))));
+          unique.sort((a, b) => a.localeCompare(b));
+          setWoodUnitPriceItems(unique);
+        }
       })
       .catch(() => {
         // ignore
