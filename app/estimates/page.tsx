@@ -5907,11 +5907,15 @@ function EstimatesPageInner() {
   const [stylePreview, setStylePreview] = useState<{ name: string; thumb: string } | null>(null);
 
   const visibleStyleOptions = useMemo(() => {
-    return materialStyles.filter((st) => {
+    const filtered = materialStyles.filter((st) => {
       if (st.type !== selectedFenceType) return false;
       if (selectedFenceType !== "vinyl") return true;
       return (st as any).group === vinylStyleTab;
     });
+    if (selectedFenceType !== "wood") return filtered;
+    const fb = filtered.find((s) => String((s as any).name || "").trim().toLowerCase() === "fence builder");
+    if (!fb) return filtered;
+    return [fb, ...filtered.filter((s) => s !== fb)];
   }, [materialStyles, selectedFenceType, vinylStyleTab]);
 
   useEffect(() => {
