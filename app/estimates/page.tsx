@@ -5355,12 +5355,12 @@ function EstimatesPageInner() {
     const derivedAddonItems: QuoteItem[] = addons
       .filter((a) => a && typeof a === "object")
       .filter((a) => String(a.desc || "").trim().length > 0)
-      .filter((a) => panels > 0)
+      .filter(() => panels > 0)
       .map((a) => {
         const qtyPerPanel = Number(a.qtyPerPanel) || 0;
         const unitPrice = Number(a.unitPrice) || 0;
-        const qty = Math.round((qtyPerPanel * panels) * 1000) / 1000;
-        const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+        const qty = qtyPerPanel * panels;
+        const lineTotal = qty * unitPrice;
         return {
           id: String(a.id || ""),
           section: "materials",
@@ -5418,8 +5418,8 @@ function EstimatesPageInner() {
       .map((a) => {
         const qtyPerPanel = Number(a.qtyPerPanel) || 0;
         const unitPrice = Number(a.unitPrice) || 0;
-        const qty = Math.round((qtyPerPanel * panels) * 1000) / 1000;
-        const lineTotal = Math.round((qty * unitPrice) * 100) / 100;
+        const qty = qtyPerPanel * panels;
+        const lineTotal = qty * unitPrice;
         return {
           id: String(a.id || ""),
           section: "materials",
@@ -8779,6 +8779,8 @@ function EstimatesPageInner() {
                                             ))}
                                           </Select>
                                           <Input
+                                            type="number"
+                                            step="0.01"
                                             value={String(row?.qtyPerPanel ?? "")}
                                             onChange={(e) => {
                                               const n = Number(e.target.value);
@@ -8841,6 +8843,8 @@ function EstimatesPageInner() {
                                           ))}
                                         </Select>
                                         <Input
+                                          type="number"
+                                          step="0.01"
                                           value={String(row?.qtyPerPost ?? "")}
                                           onChange={(e) => {
                                             const n = Number(e.target.value);
@@ -8897,6 +8901,8 @@ function EstimatesPageInner() {
                                           ))}
                                         </Select>
                                         <Input
+                                          type="number"
+                                          step="0.01"
                                           value={String(row?.qtyPerPanel ?? "")}
                                           onChange={(e) => {
                                             const n = Number(e.target.value);
