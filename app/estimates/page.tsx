@@ -1031,6 +1031,7 @@ function EstimatesPageInner() {
   const [fenceBuilderCatalogName, setFenceBuilderCatalogName] = useState<string>("");
   const [fenceBuilderCatalogUnitPrice, setFenceBuilderCatalogUnitPrice] = useState<string>("");
   const [fenceBuilderCatalogUnit, setFenceBuilderCatalogUnit] = useState<"ea" | "box">("ea");
+  const [fenceBuilderMaterialFilter, setFenceBuilderMaterialFilter] = useState<"all" | "2x4" | "1x4" | "pickets" | "5_4" | "misc">("all");
 
   const builtInMaterialOptions = useMemo(() => {
     const fromCsv = Array.isArray(woodUnitPriceItems) ? woodUnitPriceItems : [];
@@ -1059,6 +1060,24 @@ function EstimatesPageInner() {
     const built = builtInMaterialOptions.map((name) => ({ key: name, label: name }));
     return [...built, ...custom];
   }, [builtInMaterialOptions, fenceBuilder]);
+
+  const fenceBuilderFilteredMaterialOptions = useMemo(() => {
+    const filter = fenceBuilderMaterialFilter;
+    if (filter === "all") return fenceBuilderMaterialOptions;
+
+    const classify = (key: string) => {
+      const k = String(key || "");
+      const label = k.startsWith("catalog:") ? k.slice("catalog:".length) : k;
+      const v = String(label || "").toLowerCase();
+      if (v.includes("picket")) return "pickets" as const;
+      if (v.startsWith("2x4") || v.includes("2x4 ")) return "2x4" as const;
+      if (v.startsWith("1x4") || v.includes("1x4")) return "1x4" as const;
+      if (v.startsWith("5/4") || v.includes("5/4")) return "5_4" as const;
+      return "misc" as const;
+    };
+
+    return fenceBuilderMaterialOptions.filter((o) => classify(o.key) === filter);
+  }, [fenceBuilderMaterialFilter, fenceBuilderMaterialOptions]);
 
   const fastenerOptions = useMemo(() => {
     return [
@@ -8602,6 +8621,19 @@ function EstimatesPageInner() {
 
                         <div className="mt-4">
                           <div className="text-xs font-extrabold opacity-80">Per panel components</div>
+                          <div className="mt-2">
+                            <Select
+                              value={fenceBuilderMaterialFilter}
+                              onChange={(e) => setFenceBuilderMaterialFilter(e.target.value as any)}
+                            >
+                              <option value="all">All</option>
+                              <option value="2x4">2x4</option>
+                              <option value="1x4">1x4</option>
+                              <option value="pickets">Pickets</option>
+                              <option value="5_4">5/4</option>
+                              <option value="misc">Misc</option>
+                            </Select>
+                          </div>
                           <div className="mt-2 space-y-2">
                             {(Array.isArray((fenceBuilderEditing as any)?.panelComponents) ? (fenceBuilderEditing as any).panelComponents : []).map((row: any, idx: number) => (
                               <div key={idx} className="grid grid-cols-[1fr,120px,36px] gap-2 items-center">
@@ -8618,7 +8650,7 @@ function EstimatesPageInner() {
                                   }}
                                 >
                                   <option value="">Select material</option>
-                                  {fenceBuilderMaterialOptions.map((o) => (
+                                  {fenceBuilderFilteredMaterialOptions.map((o) => (
                                     <option key={o.key} value={o.key}>{o.label}</option>
                                   ))}
                                 </Select>
@@ -8687,7 +8719,7 @@ function EstimatesPageInner() {
                                   }}
                                 >
                                   <option value="">Select material</option>
-                                  {fenceBuilderMaterialOptions.map((o) => (
+                                  {fenceBuilderFilteredMaterialOptions.map((o) => (
                                     <option key={o.key} value={o.key}>{o.label}</option>
                                   ))}
                                 </Select>
