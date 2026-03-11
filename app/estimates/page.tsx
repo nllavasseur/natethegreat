@@ -4102,7 +4102,7 @@ function EstimatesPageInner() {
       }
       return [] as QuoteItem[];
     }
-  }, [baseComboCardId, comboCards, materialUnitPrices, segments, takeoffUnitPriceOverrides]);
+  }, [baseComboCardId, comboCards, fenceBuilder, materialUnitPrices, segments, takeoffUnitPriceOverrides]);
 
   useEffect(() => {
     if ((generatedMaterials?.length || 0) > 0) {
@@ -8433,6 +8433,7 @@ function EstimatesPageInner() {
                           const designs = Array.isArray((fenceBuilder as any)?.designs) ? (fenceBuilder as any).designs : [];
                           const next: FenceBuilderState = { ...(fenceBuilder as any), selectedDesignId: id, designs };
                           persistFenceBuilder(next);
+                          setMaterialsDetailsOpen(false);
                         }}
                       >
                         Save
