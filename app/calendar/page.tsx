@@ -455,7 +455,15 @@ async function publishScheduledEstimates(params: { localList: DraftEntry[]; remo
 }
 
 function toKey(d: Date) {
-  return d.toISOString().slice(0, 10);
+  // Use local date parts (not UTC) so the calendar doesn't shift days in different timezones/DST.
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  return `${y}-${m}-${day}`;
+}
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
 }
 
 function formatTimeLocal(iso: string) {
@@ -1273,10 +1281,32 @@ export default function CalendarPage() {
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
       if (isLocked && anchorIso && anchorStart) {
-        scheduledStartById.set(String((d as any).id), anchorIso);
-        occupyRange(anchorIso, (d as any).laborDays, "sold", allowSat, allowSun);
-        const seq = workdaySequenceForJob(anchorStart as Date, span, allowSat, allowSun);
-        lastQueuedEnd = seq[span - 1];
+        // Burn down the locked/current job by elapsed workdays since the anchor.
+        // Semantics: a new day consumes *yesterday only* (elapsed counts days strictly before today0).
+        const originalSeq = workdaySequenceForJob(anchorStart as Date, span, allowSat, allowSun);
+        const elapsed = originalSeq.filter((day) => startOfDay(day).getTime() < today0.getTime()).length;
+        const remaining = Math.max(0, span - elapsed);
+
+        // If no days remain, do not occupy future capacity (job should be marked complete).
+        if (remaining <= 0) {
+          lastQueuedEnd = null;
+          return;
+        }
+
+        const todayAllowed = !isNonWorkingDayForJob(today0, allowSat, allowSun);
+        const displayStart = todayAllowed ? today0 : nextWorkdayForJob(today0, allowSat, allowSun);
+        const remainingSeq = workdaySequenceForJob(displayStart, remaining, allowSat, allowSun);
+        const end = remainingSeq[remainingSeq.length - 1];
+        const iso = toKey(remainingSeq[0]);
+
+        scheduledStartById.set(String((d as any).id), iso);
+        remainingSeq.forEach((day) => {
+          const k = toKey(day);
+          occupied.add(k);
+          const prev = occupiedEndByDay.get(k);
+          if (!prev || end.getTime() > prev.getTime()) occupiedEndByDay.set(k, end);
+        });
+        lastQueuedEnd = end;
         return;
       }
 
