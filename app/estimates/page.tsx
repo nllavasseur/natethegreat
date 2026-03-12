@@ -21,10 +21,20 @@ function emptyItem(section: SectionKey): QuoteItem {
 }
 
 function normalizeUnitPriceKey(name: string) {
-  const v = String(name || "")
-    .trim()
-    .replace(/\s+/g, " ")
-    .toLowerCase();
+  let v = String(name || "").trim().toLowerCase();
+
+  // Normalize curly quotes/apostrophes to ASCII.
+  v = v
+    .replace(/[’‘‛`´]/g, "'")
+    .replace(/[“”„]/g, '"');
+
+  // Normalize spacing and common dimension formatting.
+  v = v.replace(/\s+/g, " ");
+  v = v.replace(/\s*x\s*/g, "x");
+
+  // Keep a constrained character set so keys match across sources.
+  v = v.replace(/[^a-z0-9x'" ]+/g, " ");
+  v = v.replace(/\s+/g, " ").trim();
   return v;
 }
 
