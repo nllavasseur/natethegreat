@@ -2156,7 +2156,7 @@ function EstimatesPageInner() {
     if (typeof window === "undefined") return;
     let cancelled = false;
 
-    const woodUnitPricesVersion = "2026-03-12";
+    const woodUnitPricesVersion = "2026-03-12-2";
     fetch(`/wood_unit_prices.csv?v=${encodeURIComponent(woodUnitPricesVersion)}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.text() : ""))
       .then((raw) => {
