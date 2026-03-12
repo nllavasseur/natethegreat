@@ -10416,7 +10416,7 @@ function EstimatesPageInner() {
                         ) : null}
                       </div>
 
-                      {useHorizontalCedarTakeoff || selectedStyleKind === "wood_scalloped" ? (
+                      {useHorizontalCedarTakeoff || selectedStyleKind === "wood_scalloped" || selectedStyleKind === "wood_standard" ? (
                         <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Height</div>
                           <Select
