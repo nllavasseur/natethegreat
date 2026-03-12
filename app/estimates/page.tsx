@@ -144,7 +144,7 @@ function woodMaterialLabel(m: "Pressure treated" | "Cedar" | "Cedar tone" | "Rou
 }
 
 function woodPostItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
-  const s = postSize === 10 ? "10" : "8";
+  const s = postSize === 14 ? "14" : postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
   if (isCedarLike(postType)) return `4x4 x ${s}' Cedar S4S Post`;
   if (postType === "Cedar tone") return `4x4 x ${s}' CedarTone Post`;
   return `4x4 x ${s}' Post`;
@@ -156,7 +156,7 @@ function woodPostItemNameByDim(params: { postDim: "4x4" | "6x6"; postSize: numbe
 }
 
 function woodPost6x6ItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
-  const s = postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
+  const s = postSize === 14 ? "14" : postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
   if (isCedarLike(postType)) return `6x6 x ${s}' Cedar S4S Post`;
   if (postType === "Cedar tone") return `6x6 x ${s}' CedarTone Post`;
   return `6x6 x ${s}' Pressure Treated Post`;
@@ -935,6 +935,8 @@ function EstimatesPageInner() {
   const [selectedStyle, setSelectedStyle] = useState<{ name: string; thumb: string } | null>(null);
   const [materialsDetailsOpen, setMaterialsDetailsOpen] = useState<boolean>(false);
   const [materialsDetails, setMaterialsDetails] = useState<MaterialsDetails>(DEFAULT_MATERIALS_DETAILS);
+
+  const postSizeTouchedRef = useRef(false);
 
   const [woodUnitPriceItems, setWoodUnitPriceItems] = useState<string[]>([]);
 
@@ -1986,14 +1988,18 @@ function EstimatesPageInner() {
   useEffect(() => {
     if (selectedStyleKind !== "wood_scalloped") return;
 
+    if (postSizeTouchedRef.current) return;
+
     const desiredPostSize = 8;
     if (materialsDetails.postSize === desiredPostSize) return;
 
     setMaterialsDetails((p) => ({ ...p, postSize: desiredPostSize }));
-  }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind]);
+  }, [materialsDetails.postSize, selectedStyleKind]);
 
   useEffect(() => {
     if (!useHorizontalCedarTakeoff) return;
+
+    if (postSizeTouchedRef.current) return;
 
     const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
     const desiredPostSize = heightFt >= 6 ? 10 : 8;
@@ -5702,6 +5708,8 @@ function EstimatesPageInner() {
       setStylePickerIdx(false);
       return;
     }
+
+    postSizeTouchedRef.current = false;
     setSelectedStyle(style);
 
     const styleName = String(style.name || "").trim().toLowerCase();
@@ -10431,9 +10439,10 @@ function EstimatesPageInner() {
                           <div className="text-[11px] text-[var(--muted)] mb-1">Post size</div>
                           <Select
                             value={String(materialsDetails.postSize)}
-                            onChange={(e) =>
-                              setMaterialsDetails((p) => ({ ...p, postSize: Number(e.target.value) as 8 | 10 | 12 | 14 }))
-                            }
+                            onChange={(e) => {
+                              postSizeTouchedRef.current = true;
+                              setMaterialsDetails((p) => ({ ...p, postSize: Number(e.target.value) as 8 | 10 | 12 | 14 }));
+                            }}
                           >
                             <option value="8">8</option>
                             <option value="10">10</option>
