@@ -10343,7 +10343,7 @@ function EstimatesPageInner() {
                             disabled={!selectedStyle}
                           >
                             {(selectedStyleKind === "wood_scalloped"
-                              ? ((materialsDetails as any).scallopedUse16FtRails ? [4, 5, 6] : [4, 5])
+                              ? [4, 5, 6]
                               : [4, 5, 6]).map((h) => (
                               <option key={h} value={String(h)}>{h}'</option>
                             ))}
