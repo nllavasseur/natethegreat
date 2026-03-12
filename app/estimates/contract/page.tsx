@@ -735,7 +735,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     padding: 0 !important;
     display: flex !important;
     justify-content: center !important;
-    align-items: flex-start !important;
+    align-items: center !important;
   }
   *{
     filter:none !important;
@@ -756,7 +756,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     overflow: visible;
     zoom: 1;
     transform: scale(var(--vf-print-scale));
-    transform-origin: top left;
+    transform-origin: center;
     break-after: avoid;
     page-break-after: avoid;
   }
