@@ -819,7 +819,8 @@ export default function QuotesPage() {
         const design = designs.find((x) => String((x as any)?.id || "") === selectedId) as any;
         return String(design?.name || "").trim();
       })();
-      const title = String(fenceBuilderTitle || d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
+      const styleLabel = style.trim().toLowerCase() === "fence builder" && fenceBuilderTitle ? fenceBuilderTitle : style;
+      const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
       const material = (() => {
         const md = (d as any).materialsDetails as any;
         if (!md || typeof md !== "object") return "";
@@ -852,6 +853,7 @@ export default function QuotesPage() {
         status: (d.status ?? "estimate") as DraftEntry["status"],
         title,
         style,
+        styleLabel,
         material,
         startDate,
         endDate,
@@ -1478,7 +1480,7 @@ export default function QuotesPage() {
               {q.style || (q as any).material ? (
                 <div className="text-[15px] font-black leading-tight">
                   {String(
-                    [q.style, (q as any).material].filter((v) => Boolean(String(v || "").trim())).join(" · ")
+                    [(q as any).styleLabel ?? q.style, (q as any).material].filter((v) => Boolean(String(v || "").trim())).join(" · ")
                   )}
                 </div>
               ) : null}
