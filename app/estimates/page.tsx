@@ -3509,6 +3509,7 @@ function EstimatesPageInner() {
 
       // Rails for picture-framed family styles (7.5' centers) are style-specific.
       // Assumption from you: styles will have either topCaps OR postCaps on.
+      const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
       const pictureFramedRailsPerSection = (isFourFootPictureFramedKind
         ? (materialsDetails.postCaps ? 3 : 2)
         : (isNiko
@@ -3519,13 +3520,15 @@ function EstimatesPageInner() {
                     ? (materialsDetails.postCaps ? 5 : 4)
                     : (materialsDetails.postCaps ? 4 : 3)))));
 
+      const standardRailsPerSection16 = selectedStyleKind === "wood_standard" && heightFt <= 4 ? 2 : 3;
+
       const rails = isPictureFramed
         ? (segmentLengths.length
             ? segmentLengths.reduce((sum, len) => sum + (Math.ceil(len / 7.5) * pictureFramedRailsPerSection), 0)
             : (totalLf > 0 ? panels * pictureFramedRailsPerSection : 0))
         : (segmentLengths.length
-            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * 3), 0)
-            : (totalLf > 0 ? Math.ceil((totalLf / 15) * 3) : 0));
+            ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 15) * standardRailsPerSection16), 0)
+            : (totalLf > 0 ? Math.ceil((totalLf / 15) * standardRailsPerSection16) : 0));
 
       const pictureFramed2x4x8 = isPictureFramed ? rails : 0;
       const pictureFramed2x4x16 =
