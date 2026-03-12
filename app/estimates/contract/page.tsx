@@ -392,28 +392,7 @@ export default function EstimateContractPage() {
     const el = pageRef.current;
     if (!el) return;
 
-    // Measure actual CSS pixels-per-inch for this device/browser.
-    const ruler = document.createElement("div");
-    ruler.style.position = "fixed";
-    ruler.style.left = "0";
-    ruler.style.top = "0";
-    ruler.style.width = "1in";
-    ruler.style.height = "1in";
-    ruler.style.opacity = "0";
-    ruler.style.pointerEvents = "none";
-    document.body.appendChild(ruler);
-    const ppi = ruler.getBoundingClientRect().height || 96;
-    ruler.remove();
-
-    // Use a conservative printable height (iOS Safari is sensitive to tiny overflows).
-    // Letter height is 11in, but after print margins and internal padding the usable height is smaller.
-    const letterHeightPx = 10.4 * ppi;
-    const contentHeightPx = el.getBoundingClientRect().height;
-    if (!contentHeightPx) return;
-
-    const rawScale = letterHeightPx / contentHeightPx;
-    const scale = Math.max(0.25, Math.min(1, rawScale)) * 0.96;
-    document.documentElement.style.setProperty("--vf-print-scale", String(scale));
+    document.documentElement.style.setProperty("--vf-print-scale", "0.75");
   }, []);
 
   React.useEffect(() => {
@@ -776,8 +755,8 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     height: auto;
     overflow: visible;
     zoom: 1;
-    transform: none;
-    transform-origin: initial;
+    transform: scale(var(--vf-print-scale));
+    transform-origin: top left;
     break-after: avoid;
     page-break-after: avoid;
   }
