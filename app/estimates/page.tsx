@@ -2723,6 +2723,8 @@ function EstimatesPageInner() {
         .map((s) => Number(s.length) || 0)
         .filter((n) => n > 0);
 
+      const use16FtRails = Boolean((materialsDetails as any).shadowboxUse16FtRails);
+
       // 7.5' centers.
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
@@ -2734,10 +2736,15 @@ function EstimatesPageInner() {
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
       const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
-      const rails2x4x8 = panels * (heightFt <= 4 ? 2 : 3);
+      const railsPerSection = heightFt <= 4 ? 2 : 3;
+      const rails2x4x8 = use16FtRails ? 0 : panels * railsPerSection;
 
-      // 16' 2x4 rule
-      const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
+      // 16' 2x4 rule: ceil(segment/15) sections, multiplied by rails-per-section.
+      const rails2x4x16 = use16FtRails
+        ? (segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * railsPerSection, 0)
+          : (lf > 0 ? Math.ceil(lf / 15) * railsPerSection : 0))
+        : 0;
 
       // Pickets: (lf inches / 8) * 2
       const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
@@ -11208,26 +11215,30 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyleKind === "wood_shadowbox" ? (
+                  {selectedStyleKind === "wood_shadowbox" || selectedStyleKind === "wood_shadowbox_pickets" || selectedStyleKind === "wood_shadowbox_top_cap" ? (
                     <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Shadowbox details</div>
                       <div>
-                        <div className="text-[11px] text-[var(--muted)] mb-1">1x4 material</div>
-                        <Select
-                          value={materialsDetails.shadowboxBoardMaterial}
-                          onChange={(e) =>
-                            setMaterialsDetails((p) => ({
-                              ...p,
-                              shadowboxBoardMaterial: (e.target.value === "Pressure Treated" || e.target.value === "Cedar" || e.target.value === "Rough sawn cedar" || e.target.value === "Cedar tone")
-                                ? (e.target.value as any)
-                                : ("Pressure Treated" as any)
-                            }))
-                          }
-                        >
-                          <option value="Pressure Treated">Pressure treated</option>
-                          <option value="Cedar">Cedar</option>
-                          <option value="Rough sawn cedar">Rough sawn cedar</option>
-                        </Select>
+                        {selectedStyleKind === "wood_shadowbox" ? (
+                          <>
+                            <div className="text-[11px] text-[var(--muted)] mb-1">1x4 material</div>
+                            <Select
+                              value={materialsDetails.shadowboxBoardMaterial}
+                              onChange={(e) =>
+                                setMaterialsDetails((p) => ({
+                                  ...p,
+                                  shadowboxBoardMaterial: (e.target.value === "Pressure Treated" || e.target.value === "Cedar" || e.target.value === "Rough sawn cedar" || e.target.value === "Cedar tone")
+                                    ? (e.target.value as any)
+                                    : ("Pressure Treated" as any)
+                                }))
+                              }
+                            >
+                              <option value="Pressure Treated">Pressure treated</option>
+                              <option value="Cedar">Cedar</option>
+                              <option value="Rough sawn cedar">Rough sawn cedar</option>
+                            </Select>
+                          </>
+                        ) : null}
 
                         <div className="mt-2">
                           <button
