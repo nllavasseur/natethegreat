@@ -10456,23 +10456,26 @@ function EstimatesPageInner() {
                               value={materialsDetails.woodType}
                               onChange={(e) => {
                                 const next = e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
-                                setMaterialsDetails((p) => ({
-                                  ...p,
-                                  woodType: next,
-                                  postType: next,
-                                  railMaterial: next,
-                                  picketMaterial: next,
-                                  trimMaterial: next,
-                                  twoByTwoMaterial: next,
-                                  pictureFrameTrimMaterial: next,
-                                  horizontalCedarBoardMaterial:
-                                    next === "Cedar tone"
-                                      ? "CedarTone"
-                                      : next === "Pressure treated"
-                                        ? "Pressure Treated"
-                                        : (p.horizontalCedarBoardProfile === "1x6" ? "1x6 cedar" : "5/4 cedar"),
-                                  shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
-                                }));
+                                setMaterialsDetails((p) => {
+                                  const postWasSynced = p.postType === p.woodType;
+                                  return {
+                                    ...p,
+                                    woodType: next,
+                                    postType: postWasSynced ? next : p.postType,
+                                    railMaterial: next,
+                                    picketMaterial: next,
+                                    trimMaterial: next,
+                                    twoByTwoMaterial: next,
+                                    pictureFrameTrimMaterial: next,
+                                    horizontalCedarBoardMaterial:
+                                      next === "Cedar tone"
+                                        ? "CedarTone"
+                                        : next === "Pressure treated"
+                                          ? "Pressure Treated"
+                                          : (p.horizontalCedarBoardProfile === "1x6" ? "1x6 cedar" : "5/4 cedar"),
+                                    shadowboxBoardMaterial: (next === "Pressure treated" ? "Pressure Treated" : next)
+                                  };
+                                });
                               }}
                             >
                               <option value="Pressure treated">Pressure treated</option>
