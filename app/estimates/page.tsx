@@ -2166,8 +2166,16 @@ function EstimatesPageInner() {
     if (typeof window === "undefined") return;
     let cancelled = false;
 
-    const woodUnitPricesVersion = "2026-03-12-2";
-    fetch(`/wood_unit_prices.csv?v=${encodeURIComponent(woodUnitPricesVersion)}`, { cache: "no-store" })
+    const woodUnitPricesVersion = "2026-03-12-3";
+    fetch(`/wood_unit_prices.csv?v=${encodeURIComponent(woodUnitPricesVersion)}`,
+      {
+        cache: "no-store",
+        headers: {
+          "cache-control": "no-cache",
+          pragma: "no-cache"
+        }
+      }
+    )
       .then((r) => (r.ok ? r.text() : ""))
       .then((raw) => {
         if (!raw || cancelled) return;
