@@ -2859,8 +2859,9 @@ function EstimatesPageInner() {
       const use16FtRails = Boolean((materialsDetails as any).scallopedUse16FtRails);
       const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 5)));
       const railsPerSection16 = heightFt >= 6 ? 3 : 2;
+      const railsPerSection8 = heightFt >= 6 ? 3 : 2;
 
-      const rails2x4x8 = use16FtRails ? 0 : panels * 2;
+      const rails2x4x8 = use16FtRails ? 0 : panels * railsPerSection8;
       const rails2x4x16 = use16FtRails
         ? (segmentLengths.length
           ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * railsPerSection16, 0)
