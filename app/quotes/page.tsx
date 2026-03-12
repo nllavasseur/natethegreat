@@ -808,8 +808,18 @@ export default function QuotesPage() {
       const depositTotal = round2(Number(materialsAndExpensesTotal) || 0);
       const due = round2(Math.max(0, total - depositTotal));
 
-      const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
       const style = String(d.selectedStyle?.name || "");
+      const fenceBuilderTitle = (() => {
+        if (style.trim().toLowerCase() !== "fence builder") return "";
+        const fb = (d as any).fenceBuilder;
+        if (!fb || typeof fb !== "object") return "";
+        const selectedId = String((fb as any).selectedDesignId || "").trim();
+        if (!selectedId) return "";
+        const designs = Array.isArray((fb as any).designs) ? ((fb as any).designs as any[]) : [];
+        const design = designs.find((x) => String((x as any)?.id || "") === selectedId) as any;
+        return String(design?.name || "").trim();
+      })();
+      const title = String(fenceBuilderTitle || d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
       const material = (() => {
         const md = (d as any).materialsDetails as any;
         if (!md || typeof md !== "object") return "";
