@@ -246,6 +246,7 @@ type MaterialsDetails = {
   horizontalCedarBoardProfile: "5/4" | "1x6";
   horizontalCedarBoardMaterial: "Pressure Treated" | "5/4 cedar" | "1x6 cedar" | "CedarTone";
   shadowboxBoardMaterial: "Pressure Treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
+  shadowboxUse16FtRails: boolean;
   fiveQuarterTwoRailMeshVerticals: boolean;
   fiveQuarterTwoRailMeshCorners: boolean;
   wireMeshCornerBoardsOverride: number;
@@ -343,6 +344,7 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   horizontalCedarBoardProfile: "5/4",
   horizontalCedarBoardMaterial: "Pressure Treated",
   shadowboxBoardMaterial: "Pressure Treated",
+  shadowboxUse16FtRails: false,
   fiveQuarterTwoRailMeshVerticals: true,
   fiveQuarterTwoRailMeshCorners: true,
   wireMeshCornerBoardsOverride: -1,
@@ -2929,6 +2931,8 @@ function EstimatesPageInner() {
       const lf = Number(totalLf) || 0;
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
+      const use16FtRails = Boolean((materialsDetails as any).shadowboxUse16FtRails);
+
       // 7.5' centers.
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
@@ -2939,13 +2943,17 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
-      // Rails: sum(ceil(segment/7.5) * 3)
-      const rails2x4x8 = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * 3), 0)
-        : (lf > 0 ? Math.ceil((lf / 7.5) * 3) : 0);
-      const rails2x4x16 = segmentLengths.length
-        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
-        : (lf > 0 ? Math.ceil(lf / 15) : 0);
+      // Rails: 3 rails per section. Choose either 8' rails or 16' rails.
+      const rails2x4x8 = use16FtRails
+        ? 0
+        : (segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5) * 3, 0)
+          : (lf > 0 ? Math.ceil(lf / 7.5) * 3 : 0));
+      const rails2x4x16 = use16FtRails
+        ? (segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * 3, 0)
+          : (lf > 0 ? Math.ceil(lf / 15) * 3 : 0))
+        : 0;
 
       // 1x4 boards: ceil((segment inches / 7.5 inches) * 2)
       const shadowboxBoards = segmentLengths.length
@@ -2958,8 +2966,9 @@ function EstimatesPageInner() {
       const nailsBoxes = shadowboxBoards > 0 ? Math.ceil((shadowboxBoards * 6) / nailsPerBox) : 0;
 
       const screwsPerBox = 350;
-      const screwBoxes = (rails2x4x8 + rails2x4x16) > 0
-        ? Math.ceil(((rails2x4x8 + rails2x4x16) * 5) / screwsPerBox)
+      const railsForScrews = rails2x4x8 + rails2x4x16;
+      const screwBoxes = railsForScrews > 0
+        ? Math.ceil((railsForScrews * 5) / screwsPerBox)
         : 0;
 
       const concrete80Bags = posts * 2;
@@ -3006,6 +3015,8 @@ function EstimatesPageInner() {
       const picketSpacingIn = 8;
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
+      const use16FtRails = Boolean((materialsDetails as any).shadowboxUse16FtRails);
+
       // 7.5' centers.
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
@@ -3016,9 +3027,13 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
-      // Rails: 3x 2x4x8 per panel + 2x4x16 at ceil(segmentLength/15)
-      const rails2x4x8 = panels * 3;
-      const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
+      // Rails: 3 rails per section. Choose either 8' rails or 16' rails.
+      const rails2x4x8 = use16FtRails ? 0 : panels * 3;
+      const rails2x4x16 = use16FtRails
+        ? (segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * 3, 0)
+          : (lf > 0 ? Math.ceil(lf / 15) * 3 : 0))
+        : 0;
 
       // Pickets: use the prior shadowbox math, but output as pickets (not 1x4 boards)
       const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
@@ -11213,6 +11228,23 @@ function EstimatesPageInner() {
                           <option value="Cedar">Cedar</option>
                           <option value="Rough sawn cedar">Rough sawn cedar</option>
                         </Select>
+
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            data-no-swipe="true"
+                            onClick={() => setMaterialsDetails((p) => ({ ...p, shadowboxUse16FtRails: !p.shadowboxUse16FtRails }))}
+                            className={
+                              "w-full rounded-xl px-3 py-2 text-[14px] md:text-sm border transition-none font-extrabold " +
+                              (materialsDetails.shadowboxUse16FtRails
+                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                            }
+                            aria-pressed={materialsDetails.shadowboxUse16FtRails}
+                          >
+                            Use 16' rails
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ) : null}
