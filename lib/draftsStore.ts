@@ -16,11 +16,75 @@ const RESERVED_DRAFT_IDS = new Set([
   "vf_calendar_tasks_v1"
 ]);
 
+function draftHasMeaningfulData(d: any) {
+  try {
+    if (!d || typeof d !== "object") return false;
+    const s = (v: any) => String(v ?? "").trim();
+    const hasText =
+      Boolean(s((d as any).customerName)) ||
+      Boolean(s((d as any).projectAddress)) ||
+      Boolean(s((d as any).phoneNumber)) ||
+      Boolean(s((d as any).email)) ||
+      Boolean(s((d as any).title)) ||
+      Boolean(s((d as any).notes));
+    const hasSegments = Array.isArray((d as any).segments) && (d as any).segments.some((seg: any) => (Number(seg?.length) || 0) > 0);
+    const hasItems = Array.isArray((d as any).items) && (d as any).items.some((it: any) => (Number(it?.qty) || 0) > 0 || (Number(it?.unitPrice) || 0) > 0);
+    const hasSelectedStyle = Boolean((d as any).selectedStyle) ||
+      (Array.isArray((d as any).comboCards) && (d as any).comboCards.some((c: any) => Boolean(c?.selectedStyle)));
+    return Boolean(hasText || hasSegments || hasItems || hasSelectedStyle);
+  } catch {
+    return false;
+  }
+}
+
+function draftUpdatedAtMs(d: any) {
+  const v = Number((d as any)?.updatedAt);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
 export async function upsertDraft(params: { id: string; data: any; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
 
   try {
+    const incoming = params.data;
+    const incomingUpdatedAt = draftUpdatedAtMs(incoming);
+    const incomingHasData = draftHasMeaningfulData(incoming);
+
+    if (!RESERVED_DRAFT_IDS.has(String(params.id || ""))) {
+      try {
+        const existing = await supabase
+          .from("drafts")
+          .select("draft, updated_at")
+          .eq("workspace_id", workspaceId)
+          .eq("draft_id", params.id)
+          .maybeSingle();
+
+        if ((existing as any)?.data) {
+          const remoteDraft = (existing as any).data.draft ?? null;
+          const remoteUpdatedAtMs = (() => {
+            const raw = String((existing as any).data.updated_at ?? "");
+            const ms = raw ? Date.parse(raw) : NaN;
+            return Number.isFinite(ms) ? ms : 0;
+          })();
+          const remoteHasData = draftHasMeaningfulData(remoteDraft);
+          const remoteDraftUpdatedAt = draftUpdatedAtMs(remoteDraft);
+          const remoteEffectiveUpdatedAt = Math.max(remoteUpdatedAtMs, remoteDraftUpdatedAt);
+          const incomingEffectiveUpdatedAt = Math.max(incomingUpdatedAt, 0);
+
+          if (remoteEffectiveUpdatedAt > 0 && incomingEffectiveUpdatedAt > 0 && remoteEffectiveUpdatedAt > incomingEffectiveUpdatedAt) {
+            return { ok: false as const, reason: "stale_write" as const };
+          }
+
+          if (!incomingHasData && remoteHasData) {
+            return { ok: false as const, reason: "prevent_empty_overwrite" as const };
+          }
+        }
+      } catch {
+        // ignore safety check failures; still attempt upsert
+      }
+    }
+
     const payload: DraftRow = {
       workspace_id: workspaceId,
       draft_id: params.id,

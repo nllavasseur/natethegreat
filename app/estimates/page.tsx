@@ -295,6 +295,7 @@ type MaterialsDetails = {
   vinylThreeWayPosts: number;
   vinylPostStiffeners: number;
   railEndBracketPacks: number;
+  scallopedUse16FtRails: boolean;
   heavyDutyDoubleGateFlipLatchQty: number;
   heavyDutySlideBoltQty: number;
   concretePostMount4x4Qty: number;
@@ -391,6 +392,7 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   vinylThreeWayPosts: 0,
   vinylPostStiffeners: 0,
   railEndBracketPacks: 0,
+  scallopedUse16FtRails: false,
   heavyDutyDoubleGateFlipLatchQty: 0,
   heavyDutySlideBoltQty: 0,
   concretePostMount4x4Qty: 0
@@ -402,11 +404,12 @@ export default function EstimatesPage() {
 
 function EstimatesPageInner() {
   const router = useRouter();
+  const restoringRef = useRef(false);
+  const hydratingRemoteRef = useRef(false);
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const restoringRef = useRef(false);
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -1128,6 +1131,7 @@ function EstimatesPageInner() {
     setFenceBuilder(next);
     try {
       if (!draftId) return;
+      if (hydratingRemoteRef.current) return;
       const store = readDraftStore();
       const prev = (store as any)[draftId] ?? {};
       const merged = { ...(prev as any), fenceBuilder: next, updatedAt: Date.now() };
@@ -1982,8 +1986,7 @@ function EstimatesPageInner() {
   useEffect(() => {
     if (selectedStyleKind !== "wood_scalloped") return;
 
-    const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
-    const desiredPostSize = heightFt >= 6 ? 10 : 8;
+    const desiredPostSize = 8;
     if (materialsDetails.postSize === desiredPostSize) return;
 
     setMaterialsDetails((p) => ({ ...p, postSize: desiredPostSize }));
@@ -2853,9 +2856,16 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
-      const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
-      const railsPerPanel = heightFt <= 4 ? 2 : 3;
-      const rails2x4x8 = panels * railsPerPanel;
+      const use16FtRails = Boolean((materialsDetails as any).scallopedUse16FtRails);
+      const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 5)));
+      const railsPerSection16 = heightFt >= 6 ? 3 : 2;
+
+      const rails2x4x8 = use16FtRails ? 0 : panels * 2;
+      const rails2x4x16 = use16FtRails
+        ? (segmentLengths.length
+          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * railsPerSection16, 0)
+          : (lf > 0 ? Math.ceil(lf / 15) * railsPerSection16 : 0))
+        : 0;
 
       // Pickets: base +10 pickets, plus +5 pickets per every 100ft
       const pickets = totalLf > 0
@@ -2870,15 +2880,17 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
       // Screws: 6 per rail, 350 per box
-      const screwBoxes = rails2x4x8 > 0 ? Math.ceil((rails2x4x8 * 6) / 350) : 0;
+      const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
+        ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         { name: picketName, qty: pickets, unit: "ea" },
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
@@ -5117,6 +5129,7 @@ function EstimatesPageInner() {
     if (typeof window === "undefined") return;
     if (!draftId) return;
     if (restoringRef.current) return;
+    if (hydratingRemoteRef.current) return;
 
     const key = `${draftId}::${String(projectPhotoUrl || "")}::${String(projectPhotoPath || "")}::${String(projectPhotoDataUrl || "")}`;
     if (lastPersistedProjectPhotoRef.current === key) return;
@@ -5153,6 +5166,7 @@ function EstimatesPageInner() {
     if (typeof window === "undefined") return;
     if (!draftId) return;
     if (restoringRef.current) return;
+    if (hydratingRemoteRef.current) return;
 
     // Don't persist placeholder rows while uploads/compression are still running.
     if (preInstallPendingCount > 0) return;
@@ -5853,11 +5867,12 @@ function EstimatesPageInner() {
     } else if (styleName === "scalloped") {
       overrides = {
         woodType: "Pressure treated",
-        postSize: 10,
+        postSize: 8,
         postType: "Pressure treated",
         takeoffPreset: "standard",
-        vinylPanelHeightFt: 6,
-        topCaps: false
+        vinylPanelHeightFt: 5,
+        topCaps: false,
+        scallopedUse16FtRails: false
       };
     } else if (styleName === "shadowbox top cap") {
       overrides = {
@@ -6190,6 +6205,7 @@ function EstimatesPageInner() {
     }
     if (!d) {
       try {
+        hydratingRemoteRef.current = true;
         const remote = await fetchDraft({ id });
         if (remote.ok && remote.draft) {
           d = remote.draft as any;
@@ -6217,6 +6233,7 @@ function EstimatesPageInner() {
         }
       } catch {
       }
+      hydratingRemoteRef.current = false;
     }
     if (!d) return;
 
@@ -10307,18 +10324,47 @@ function EstimatesPageInner() {
                         ) : null}
                       </div>
 
-                      {useHorizontalCedarTakeoff ? (
+                      {useHorizontalCedarTakeoff || selectedStyleKind === "wood_scalloped" ? (
                         <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Height</div>
                           <Select
-                            value={String(Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6))))}
+                            value={String(
+                              Math.max(
+                                4,
+                                Math.min(
+                                  6,
+                                  Math.floor(
+                                    Number(materialsDetails.vinylPanelHeightFt) || (selectedStyleKind === "wood_scalloped" ? 5 : 6)
+                                  )
+                                )
+                              )
+                            )}
                             onChange={(e) => setMaterialsDetails((p) => ({ ...p, vinylPanelHeightFt: Number(e.target.value) }))}
                             disabled={!selectedStyle}
                           >
-                            {[4, 5, 6].map((h) => (
+                            {(selectedStyleKind === "wood_scalloped"
+                              ? ((materialsDetails as any).scallopedUse16FtRails ? [4, 5, 6] : [4, 5])
+                              : [4, 5, 6]).map((h) => (
                               <option key={h} value={String(h)}>{h}'</option>
                             ))}
                           </Select>
+
+                          {selectedStyleKind === "wood_scalloped" ? (
+                            <button
+                              type="button"
+                              data-no-swipe="true"
+                              onClick={() => setMaterialsDetails((p) => ({ ...p, scallopedUse16FtRails: !(p as any).scallopedUse16FtRails }))}
+                              className={
+                                "mt-2 w-full rounded-xl px-3 py-2 text-[14px] md:text-sm border transition-none font-extrabold " +
+                                ((materialsDetails as any).scallopedUse16FtRails
+                                  ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                  : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                              }
+                              aria-pressed={Boolean((materialsDetails as any).scallopedUse16FtRails)}
+                            >
+                              Use 16' rails
+                            </button>
+                          ) : null}
                         </div>
                       ) : null}
 

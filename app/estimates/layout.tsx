@@ -1,5 +1,8 @@
 import type { Viewport } from "next";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const viewport: Viewport = {
   viewportFit: "cover"
 };
