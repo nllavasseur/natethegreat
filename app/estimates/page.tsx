@@ -2723,8 +2723,6 @@ function EstimatesPageInner() {
         .map((s) => Number(s.length) || 0)
         .filter((n) => n > 0);
 
-      const use16FtRails = Boolean((materialsDetails as any).shadowboxUse16FtRails);
-
       // 7.5' centers.
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
@@ -2736,15 +2734,10 @@ function EstimatesPageInner() {
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
       const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
-      const railsPerSection = heightFt <= 4 ? 2 : 3;
-      const rails2x4x8 = use16FtRails ? 0 : panels * railsPerSection;
+      const rails2x4x8 = panels * (heightFt <= 4 ? 2 : 3);
 
-      // 16' 2x4 rule: ceil(segment/15) sections, multiplied by rails-per-section.
-      const rails2x4x16 = use16FtRails
-        ? (segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * railsPerSection, 0)
-          : (lf > 0 ? Math.ceil(lf / 15) * railsPerSection : 0))
-        : 0;
+      // 16' 2x4 rule
+      const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
 
       // Pickets: (lf inches / 8) * 2
       const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
@@ -2938,8 +2931,6 @@ function EstimatesPageInner() {
       const lf = Number(totalLf) || 0;
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
-      const use16FtRails = Boolean((materialsDetails as any).shadowboxUse16FtRails);
-
       // 7.5' centers.
       const postsBase = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0) + 1
@@ -2950,17 +2941,13 @@ function EstimatesPageInner() {
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
         : (lf > 0 ? Math.ceil(lf / 7.5) : 0);
 
-      // Rails: 3 rails per section. Choose either 8' rails or 16' rails.
-      const rails2x4x8 = use16FtRails
-        ? 0
-        : (segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5) * 3, 0)
-          : (lf > 0 ? Math.ceil(lf / 7.5) * 3 : 0));
-      const rails2x4x16 = use16FtRails
-        ? (segmentLengths.length
-          ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15) * 3, 0)
-          : (lf > 0 ? Math.ceil(lf / 15) * 3 : 0))
-        : 0;
+      // Rails: sum(ceil(segment/7.5) * 3)
+      const rails2x4x8 = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil((len / 7.5) * 3), 0)
+        : (lf > 0 ? Math.ceil((lf / 7.5) * 3) : 0);
+      const rails2x4x16 = segmentLengths.length
+        ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0)
+        : (lf > 0 ? Math.ceil(lf / 15) : 0);
 
       // 1x4 boards: ceil((segment inches / 7.5 inches) * 2)
       const shadowboxBoards = segmentLengths.length
@@ -2973,9 +2960,8 @@ function EstimatesPageInner() {
       const nailsBoxes = shadowboxBoards > 0 ? Math.ceil((shadowboxBoards * 6) / nailsPerBox) : 0;
 
       const screwsPerBox = 350;
-      const railsForScrews = rails2x4x8 + rails2x4x16;
-      const screwBoxes = railsForScrews > 0
-        ? Math.ceil((railsForScrews * 5) / screwsPerBox)
+      const screwBoxes = (rails2x4x8 + rails2x4x16) > 0
+        ? Math.ceil(((rails2x4x8 + rails2x4x16) * 5) / screwsPerBox)
         : 0;
 
       const concrete80Bags = posts * 2;
@@ -7645,6 +7631,47 @@ function EstimatesPageInner() {
                                 </div>
                               </div>
 
+                              {selectedStyleKind === "wood_shadowbox_pickets" ? (
+                                <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="text-sm font-extrabold">Rails</div>
+                                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
+                                      {materialsDetails.shadowboxUse16FtRails ? "2x4x16" : "2x4x8"}
+                                    </div>
+                                  </div>
+                                  <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, shadowboxUse16FtRails: false }))}
+                                      className={
+                                        "rounded-xl px-3 py-2 text-[14px] md:text-sm border transition-none font-extrabold " +
+                                        (!materialsDetails.shadowboxUse16FtRails
+                                          ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                      aria-pressed={!materialsDetails.shadowboxUse16FtRails}
+                                    >
+                                      2x4x8
+                                    </button>
+                                    <button
+                                      type="button"
+                                      data-no-swipe="true"
+                                      onClick={() => setMaterialsDetails((p) => ({ ...p, shadowboxUse16FtRails: true }))}
+                                      className={
+                                        "rounded-xl px-3 py-2 text-[14px] md:text-sm border transition-none font-extrabold " +
+                                        (materialsDetails.shadowboxUse16FtRails
+                                          ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
+                                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                                      }
+                                      aria-pressed={materialsDetails.shadowboxUse16FtRails}
+                                    >
+                                      2x4x16
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : null}
+
                               {(Array.isArray(takeoffManualItems) ? takeoffManualItems : []).length ? (
                                 <div className="grid gap-2">
                                   {(Array.isArray(takeoffManualItems) ? takeoffManualItems : []).map((m, mi) => (
@@ -11215,47 +11242,26 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedStyleKind === "wood_shadowbox" || selectedStyleKind === "wood_shadowbox_pickets" || selectedStyleKind === "wood_shadowbox_top_cap" ? (
+                  {selectedStyleKind === "wood_shadowbox" ? (
                     <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.58)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Shadowbox details</div>
                       <div>
-                        {selectedStyleKind === "wood_shadowbox" ? (
-                          <>
-                            <div className="text-[11px] text-[var(--muted)] mb-1">1x4 material</div>
-                            <Select
-                              value={materialsDetails.shadowboxBoardMaterial}
-                              onChange={(e) =>
-                                setMaterialsDetails((p) => ({
-                                  ...p,
-                                  shadowboxBoardMaterial: (e.target.value === "Pressure Treated" || e.target.value === "Cedar" || e.target.value === "Rough sawn cedar" || e.target.value === "Cedar tone")
-                                    ? (e.target.value as any)
-                                    : ("Pressure Treated" as any)
-                                }))
-                              }
-                            >
-                              <option value="Pressure Treated">Pressure treated</option>
-                              <option value="Cedar">Cedar</option>
-                              <option value="Rough sawn cedar">Rough sawn cedar</option>
-                            </Select>
-                          </>
-                        ) : null}
-
-                        <div className="mt-2">
-                          <button
-                            type="button"
-                            data-no-swipe="true"
-                            onClick={() => setMaterialsDetails((p) => ({ ...p, shadowboxUse16FtRails: !p.shadowboxUse16FtRails }))}
-                            className={
-                              "w-full rounded-xl px-3 py-2 text-[14px] md:text-sm border transition-none font-extrabold " +
-                              (materialsDetails.shadowboxUse16FtRails
-                                ? "bg-[rgba(255,214,10,.34)] border-[rgba(255,214,10,.65)] text-[rgba(255,244,200,.98)]"
-                                : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
-                            }
-                            aria-pressed={materialsDetails.shadowboxUse16FtRails}
-                          >
-                            Use 16' rails
-                          </button>
-                        </div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">1x4 material</div>
+                        <Select
+                          value={materialsDetails.shadowboxBoardMaterial}
+                          onChange={(e) =>
+                            setMaterialsDetails((p) => ({
+                              ...p,
+                              shadowboxBoardMaterial: (e.target.value === "Pressure Treated" || e.target.value === "Cedar" || e.target.value === "Rough sawn cedar" || e.target.value === "Cedar tone")
+                                ? (e.target.value as any)
+                                : ("Pressure Treated" as any)
+                            }))
+                          }
+                        >
+                          <option value="Pressure Treated">Pressure treated</option>
+                          <option value="Cedar">Cedar</option>
+                          <option value="Rough sawn cedar">Rough sawn cedar</option>
+                        </Select>
                       </div>
                     </div>
                   ) : null}
