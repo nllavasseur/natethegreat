@@ -3280,24 +3280,30 @@ function EstimatesPageInner() {
       const splitRailName = materialsDetails.splitRailMaterial === "Cedar tone" ? "Split rail (CedarTone)" : "Split rail";
 
       const splitRailLinePostName = materialsDetails.splitRailMaterial === "Cedar tone"
-        ? (materialsDetails.splitRailRails === 2 ? "CedarTone split rail posts (2 rail)" : "CedarTone split rail line post (3 rail)")
-        : "Split rail posts";
+        ? `CedarTone split rail line post (${railCount} rail)`
+        : `Pressure treated split rail line post (${railCount} rail)`;
       const splitRailCornerPostName = materialsDetails.splitRailMaterial === "Cedar tone"
-        ? "CedarTone split rail corner post (3 rail)"
-        : "Split rail corner post";
+        ? `CedarTone split rail corner post (${railCount} rail)`
+        : `Pressure treated split rail corner post (${railCount} rail)`;
       const splitRailEndPostName = materialsDetails.splitRailMaterial === "Cedar tone"
-        ? "CedarTone split rail end post (3 rail)"
-        : "Split rail end post";
-      const splitRailGatePostName = materialsDetails.splitRailMaterial === "Cedar tone"
-        ? "CedarTone split rail end post (3 rail)"
-        : "Split rail end post";
+        ? `CedarTone split rail end post (${railCount} rail)`
+        : `Pressure treated split rail end post (${railCount} rail)`;
+      const splitRailGatePostName = splitRailEndPostName;
 
-      const rows: Array<{ name: string; qty: number; unit: string }> = [
-        ...(splitRailPostsSummary.line > 0 ? [{ name: splitRailLinePostName, qty: splitRailPostsSummary.line, unit: "ea" }] : []),
-        ...(splitRailPostsSummary.corner > 0 ? [{ name: splitRailCornerPostName, qty: splitRailPostsSummary.corner, unit: "ea" }] : []),
-        ...(splitRailPostsSummary.end > 0 ? [{ name: splitRailEndPostName, qty: splitRailPostsSummary.end, unit: "ea" }] : []),
-        ...(splitRailPostsSummary.gateDerived > 0 ? [{ name: splitRailGatePostName, qty: splitRailPostsSummary.gateDerived, unit: "ea" }] : []),
-        { name: splitRailName, qty: rails, unit: "ea" },
+      const splitRailPostsPriceKey = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? null
+        : (railCount === 2 ? "Pressure treated split rail posts (2 rail)" : null);
+
+      const splitRailRailsPriceKey = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? "CedarTone split rail rails"
+        : "Pressure treated split rail rails";
+
+      const rows: Array<{ name: string; qty: number; unit: string; priceKey?: string }> = [
+        ...(splitRailPostsSummary.line > 0 ? [{ name: splitRailLinePostName, qty: splitRailPostsSummary.line, unit: "ea", priceKey: splitRailPostsPriceKey ?? splitRailLinePostName }] : []),
+        ...(splitRailPostsSummary.corner > 0 ? [{ name: splitRailCornerPostName, qty: splitRailPostsSummary.corner, unit: "ea", priceKey: splitRailPostsPriceKey ?? splitRailCornerPostName }] : []),
+        ...(splitRailPostsSummary.end > 0 ? [{ name: splitRailEndPostName, qty: splitRailPostsSummary.end, unit: "ea", priceKey: splitRailPostsPriceKey ?? splitRailEndPostName }] : []),
+        ...(splitRailPostsSummary.gateDerived > 0 ? [{ name: splitRailGatePostName, qty: splitRailPostsSummary.gateDerived, unit: "ea", priceKey: splitRailPostsPriceKey ?? splitRailGatePostName }] : []),
+        { name: splitRailName, qty: rails, unit: "ea", priceKey: splitRailRailsPriceKey },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
@@ -10377,7 +10383,9 @@ function EstimatesPageInner() {
                         </div>
                       ) : null}
 
-                      {selectedFenceType === "wood" && String(selectedStyle?.name || "").trim().toLowerCase() !== "fence builder" ? (
+                      {selectedFenceType === "wood" &&
+                      String(selectedStyle?.name || "").trim().toLowerCase() !== "fence builder" &&
+                      selectedStyleKind !== "wood_split_rail" ? (
                         <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-2">Wood material set</div>
                           <div>
@@ -10571,7 +10579,7 @@ function EstimatesPageInner() {
                                 </div>
                               </div>
                             </div>
-                          ) : (
+                          ) : selectedStyleKind === "wood_split_rail" ? null : (
                             <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                               <div className="text-[11px] text-[var(--muted)] mb-2">Rails & pickets</div>
                               <div className="grid grid-cols-2 gap-3">
@@ -10802,7 +10810,7 @@ function EstimatesPageInner() {
                       ) : null}
 
                       {selectedFenceType === "wood" && selectedStyleKind === "wood_split_rail" ? (
-                        <div>
+                        <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                           <div className="text-[11px] text-[var(--muted)] mb-1">Split rail material</div>
                           <Select
                             value={materialsDetails.splitRailMaterial}
@@ -10945,118 +10953,8 @@ function EstimatesPageInner() {
                     </div>
                   ) : null}
 
-                  {selectedFenceType === "wood" && String(selectedStyle?.name || "").trim().toLowerCase() !== "fence builder" ? (
-                    <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
-                      <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
-                      <div>
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty double gate flip latch ($30.98)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) - 1)
-                              }))
-                            }
-                          >
-                            -
-                          </PrimaryButton>
-                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                            {Math.max(0, Math.floor(Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0))}
-                          </div>
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) + 1)
-                              }))
-                            }
-                          >
-                            +
-                          </PrimaryButton>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty slide bolt ($10.98)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) - 1)
-                              }))
-                            }
-                          >
-                            -
-                          </PrimaryButton>
-                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                            {Math.max(0, Math.floor(Number(materialsDetails.heavyDutySlideBoltQty) || 0))}
-                          </div>
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) + 1)
-                              }))
-                            }
-                          >
-                            +
-                          </PrimaryButton>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <div className="text-[11px] text-[var(--muted)] mb-1">Concrete 4x4 post mount ($31.86)</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) - 1)
-                              }))
-                            }
-                          >
-                            -
-                          </PrimaryButton>
-                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
-                            {Math.max(0, Math.floor(Number(materialsDetails.concretePostMount4x4Qty) || 0))}
-                          </div>
-                          <PrimaryButton
-                            type="button"
-                            data-no-swipe="true"
-                            className="px-3 py-2 text-[12px]"
-                            onClick={() =>
-                              setMaterialsDetails((p) => ({
-                                ...p,
-                                concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) + 1)
-                              }))
-                            }
-                          >
-                            +
-                          </PrimaryButton>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
                   {selectedStyleKind === "wood_split_rail" ? (
-                    <div className="rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Split rail details</div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -11177,6 +11075,116 @@ function EstimatesPageInner() {
                         <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2">
                           <div className="text-[11px] text-[var(--muted)]">Line posts</div>
                           <div className="text-[14px] font-black">{splitRailPostsSummary.line}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedFenceType === "wood" && String(selectedStyle?.name || "").trim().toLowerCase() !== "fence builder" ? (
+                    <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Hardware</div>
+                      <div>
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty double gate flip latch ($30.98)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutyDoubleGateFlipLatchQty: Math.max(0, Math.floor(Number(p.heavyDutyDoubleGateFlipLatchQty) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Heavy duty slide bolt ($10.98)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.heavyDutySlideBoltQty) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                heavyDutySlideBoltQty: Math.max(0, Math.floor(Number(p.heavyDutySlideBoltQty) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
+                        </div>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="text-[11px] text-[var(--muted)] mb-1">Concrete 4x4 post mount ($31.86)</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) - 1)
+                              }))
+                            }
+                          >
+                            -
+                          </PrimaryButton>
+                          <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] px-3 py-2 text-center font-black">
+                            {Math.max(0, Math.floor(Number(materialsDetails.concretePostMount4x4Qty) || 0))}
+                          </div>
+                          <PrimaryButton
+                            type="button"
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() =>
+                              setMaterialsDetails((p) => ({
+                                ...p,
+                                concretePostMount4x4Qty: Math.max(0, Math.floor(Number(p.concretePostMount4x4Qty) || 0) + 1)
+                              }))
+                            }
+                          >
+                            +
+                          </PrimaryButton>
                         </div>
                       </div>
                     </div>
