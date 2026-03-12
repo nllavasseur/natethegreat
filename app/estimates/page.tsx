@@ -2025,8 +2025,12 @@ function EstimatesPageInner() {
   const [materialUnitPrices, setMaterialUnitPrices] = useState<Record<string, number>>({
     "4x4 x 8' Post": 11.28,
     "4x4 x 10' Post": 16.88,
+    "4x4 x 12' Post": 20.48,
     "4x4 x 8' Cedar S4S Post": 45.99,
     "4x4 x 10' Cedar S4S Post": 57.59,
+    "4x4 x 12' Cedar S4S Post": 70.99,
+    "4x4 x 12' CedarTone Post": 23.49,
+    "4x4 x 12' Rough Sawn Cedar Post": 68.99,
     "6x6 x 8' Cedar S4S Post": 145.99,
     "6x6 x 10' Cedar S4S Post": 166.79,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
