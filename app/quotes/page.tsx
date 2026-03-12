@@ -1136,7 +1136,8 @@ export default function QuotesPage() {
             const firstUnscheduledEstimate = stack.cards.find(
               (c) => (c as any).status === "estimate" && !String((c as any).scheduledAt || "").trim()
             ) as any;
-            const stackCallTel = normalizePhone(String((firstUnscheduledEstimate as any)?.phoneNumber || ""));
+            const firstPending = stack.cards.find((c) => (c as any).status === "pending") as any;
+            const stackCallTel = normalizePhone(String((firstPending as any)?.phoneNumber || (firstUnscheduledEstimate as any)?.phoneNumber || ""));
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"
               : stack.cards.some((c) => (c as any).status === "pending")
@@ -1193,7 +1194,7 @@ export default function QuotesPage() {
                           <span className="h-3 w-3 rounded-full bg-[rgba(255,80,80,.95)] animate-pulse block" />
                         </div>
                       ) : null}
-                      {stackStatus === "estimate" && !hasScheduled ? (
+                      {(stackStatus === "estimate" && !hasScheduled) || stackStatus === "pending" ? (
                         <button
                           type="button"
                           data-no-swipe="true"
@@ -1397,36 +1398,6 @@ export default function QuotesPage() {
                       </button>
                     </div>
                   </div>
-                ) : q.status === "pending" ? (
-                  <div className="flex-1 flex justify-center">
-                    <button
-                      type="button"
-                      data-no-swipe="true"
-                      data-keep-open="true"
-                      disabled={!normalizePhone((q as any).phoneNumber || "")}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        bumpSuppressNav();
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        bumpSuppressNav();
-                        const tel = normalizePhone((q as any).phoneNumber || "");
-                        if (!tel) return;
-                        window.location.href = `tel:${tel}`;
-                      }}
-                      className={
-                        "rounded-full border px-3 py-1 text-[11px] font-extrabold " +
-                        (normalizePhone((q as any).phoneNumber || "")
-                          ? "bg-[rgba(31,200,120,.22)] border-[rgba(31,200,120,.40)] text-white"
-                          : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
-                      }
-                    >
-                      Call
-                    </button>
-                  </div>
                 ) : (
                   <div className="flex-1" />
                 )}
@@ -1493,6 +1464,15 @@ export default function QuotesPage() {
                   {confirmDeleteId === q.id ? "Confirm" : "Delete"}
                 </button>
               </div>
+
+              {q.style || (q as any).material ? (
+                <div className="text-[15px] font-black leading-tight">
+                  {String(
+                    [q.style, (q as any).material].filter((v) => Boolean(String(v || "").trim())).join(" · ")
+                  )}
+                </div>
+              ) : null}
+
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-extrabold truncate">{q.title}</div>
                 <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
@@ -1525,20 +1505,6 @@ export default function QuotesPage() {
                       <img src={String((q as any).layoutSrc || "")} alt="Fence layout" className="absolute inset-0 w-full h-full object-cover" />
                     </div>
                   </button>
-                </div>
-              ) : null}
-              {q.style || (q as any).material ? (
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {q.style ? (
-                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
-                      Style: {q.style}
-                    </div>
-                  ) : null}
-                  {(q as any).material ? (
-                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)]">
-                      Material type: {(q as any).material}
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
               <div className="text-[11px] text-[var(--muted)]">
