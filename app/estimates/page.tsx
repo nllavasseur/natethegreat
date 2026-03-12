@@ -3031,7 +3031,7 @@ function EstimatesPageInner() {
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
       const screwBoxes = (rails2x4x8 + rails2x4x16) > 0 ? Math.ceil(((rails2x4x8 + rails2x4x16) * 6) / 350) : 0;
 
-      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: 10, postType: materialsDetails.postType });
+      const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
       const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
       const picketName = woodPicketName(materialsDetails.picketMaterial);
