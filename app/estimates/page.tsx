@@ -145,7 +145,8 @@ function woodMaterialLabel(m: "Pressure treated" | "Cedar" | "Cedar tone" | "Rou
 
 function woodPostItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   const s = postSize === 14 ? "14" : postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
-  if (isCedarLike(postType)) return `4x4 x ${s}' Cedar S4S Post`;
+  if (postType === "Rough sawn cedar") return `4x4 x ${s}' Rough Sawn Cedar Post`;
+  if (postType === "Cedar") return `4x4 x ${s}' Cedar S4S Post`;
   if (postType === "Cedar tone") return `4x4 x ${s}' CedarTone Post`;
   return `4x4 x ${s}' Post`;
 }
@@ -157,7 +158,8 @@ function woodPostItemNameByDim(params: { postDim: "4x4" | "6x6"; postSize: numbe
 
 function woodPost6x6ItemName(postSize: number, postType: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   const s = postSize === 14 ? "14" : postSize === 12 ? "12" : postSize === 10 ? "10" : "8";
-  if (isCedarLike(postType)) return `6x6 x ${s}' Cedar S4S Post`;
+  if (postType === "Rough sawn cedar") return `6x6 x ${s}' Rough Sawn Cedar Post`;
+  if (postType === "Cedar") return `6x6 x ${s}' Cedar S4S Post`;
   if (postType === "Cedar tone") return `6x6 x ${s}' CedarTone Post`;
   return `6x6 x ${s}' Pressure Treated Post`;
 }
