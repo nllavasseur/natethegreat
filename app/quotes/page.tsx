@@ -502,10 +502,16 @@ export default function QuotesPage() {
               if (!r) return d;
               const jt = (r as any).job_tasks;
               const js = (r as any).job_task_snooze;
+              const jl = (r as any).job_task_labels;
+              const jh = (r as any).job_task_hidden;
+              const jc = (r as any).job_custom_tasks;
               return {
                 ...d,
                 ...(jt != null ? { jobTasks: jt } : {}),
-                ...(js != null ? { jobTaskSnooze: js } : {})
+                ...(js != null ? { jobTaskSnooze: js } : {}),
+                ...(jl != null ? { jobTaskLabels: jl } : {}),
+                ...(jh != null ? { jobTaskHidden: jh } : {}),
+                ...(jc != null ? { jobCustomTasks: jc } : {})
               };
             });
 
@@ -588,10 +594,16 @@ export default function QuotesPage() {
                     if (!r) return d;
                     const jt = (r as any).job_tasks;
                     const js = (r as any).job_task_snooze;
+                    const jl = (r as any).job_task_labels;
+                    const jh = (r as any).job_task_hidden;
+                    const jc = (r as any).job_custom_tasks;
                     return {
                       ...d,
                       ...(jt != null ? { jobTasks: jt } : {}),
-                      ...(js != null ? { jobTaskSnooze: js } : {})
+                      ...(js != null ? { jobTaskSnooze: js } : {}),
+                      ...(jl != null ? { jobTaskLabels: jl } : {}),
+                      ...(jh != null ? { jobTaskHidden: jh } : {}),
+                      ...(jc != null ? { jobCustomTasks: jc } : {})
                     };
                   });
 

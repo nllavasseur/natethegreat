@@ -15,10 +15,23 @@ export type JobTaskSnooze = {
   call811?: number;
 };
 
+export type JobTaskLabels = Partial<Record<keyof JobTasks, string>>;
+export type JobTaskHidden = Partial<Record<keyof JobTasks, boolean>>;
+
+export type CustomJobTask = {
+  id: string;
+  label: string;
+  done?: boolean;
+  createdAt?: number;
+};
+
 type JobTasksRow = {
   draft_id: string;
   job_tasks?: any;
   job_task_snooze?: any;
+  job_task_labels?: any;
+  job_task_hidden?: any;
+  job_custom_tasks?: any;
 };
 
 export async function fetchJobTasks(params: { draftIds: string[]; workspaceId?: string }) {
@@ -30,7 +43,7 @@ export async function fetchJobTasks(params: { draftIds: string[]; workspaceId?: 
   try {
     const res = await supabase
       .from("job_tasks")
-      .select("draft_id, job_tasks, job_task_snooze")
+      .select("draft_id, job_tasks, job_task_snooze, job_task_labels, job_task_hidden, job_custom_tasks")
       .eq("workspace_id", workspaceId)
       .in("draft_id", draftIds);
 
@@ -38,7 +51,10 @@ export async function fetchJobTasks(params: { draftIds: string[]; workspaceId?: 
     const rows = (((res as any)?.data ?? []) as any[]).map((r) => ({
       draft_id: String((r as any)?.draft_id || ""),
       job_tasks: (r as any)?.job_tasks ?? undefined,
-      job_task_snooze: (r as any)?.job_task_snooze ?? undefined
+      job_task_snooze: (r as any)?.job_task_snooze ?? undefined,
+      job_task_labels: (r as any)?.job_task_labels ?? undefined,
+      job_task_hidden: (r as any)?.job_task_hidden ?? undefined,
+      job_custom_tasks: (r as any)?.job_custom_tasks ?? undefined
     })) as JobTasksRow[];
 
     return { ok: true as const, rows };
@@ -51,7 +67,15 @@ export async function fetchJobTasks(params: { draftIds: string[]; workspaceId?: 
   }
 }
 
-export async function upsertJobTasks(params: { draftId: string; jobTasks?: JobTasks; jobTaskSnooze?: JobTaskSnooze; workspaceId?: string }) {
+export async function upsertJobTasks(params: {
+  draftId: string;
+  jobTasks?: JobTasks;
+  jobTaskSnooze?: JobTaskSnooze;
+  jobTaskLabels?: JobTaskLabels;
+  jobTaskHidden?: JobTaskHidden;
+  jobCustomTasks?: CustomJobTask[];
+  workspaceId?: string;
+}) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
   const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
   const draftId = String(params.draftId || "");
@@ -63,7 +87,10 @@ export async function upsertJobTasks(params: { draftId: string; jobTasks?: JobTa
       draft_id: draftId,
       updated_at: new Date().toISOString(),
       job_tasks: params.jobTasks ?? null,
-      job_task_snooze: params.jobTaskSnooze ?? null
+      job_task_snooze: params.jobTaskSnooze ?? null,
+      job_task_labels: params.jobTaskLabels ?? null,
+      job_task_hidden: params.jobTaskHidden ?? null,
+      job_custom_tasks: params.jobCustomTasks ?? null
     };
 
     const { error } = await supabase

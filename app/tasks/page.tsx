@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
-import { upsertJobTasks } from "@/lib/jobTasksStore";
+import { fetchJobTasks, upsertJobTasks } from "@/lib/jobTasksStore";
 
 type JobTasks = {
   collectDeposit?: boolean;
@@ -168,6 +168,40 @@ export default function TasksPage() {
 
       const merged = mergeDraftLists(latestLocalList, remoteList);
       if (!cancelled) setDrafts(merged);
+
+      try {
+        const ids = merged.map((d) => String((d as any)?.id || "")).filter(Boolean);
+        const tasksRes = await fetchJobTasks({ draftIds: ids });
+        if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
+          const byIdTasks = new Map<string, any>();
+          for (const r of (tasksRes as any).rows as any[]) {
+            const rid = String((r as any)?.draft_id || "");
+            if (!rid) continue;
+            byIdTasks.set(rid, r);
+          }
+
+          setDrafts((prev) =>
+            (Array.isArray(prev) ? prev : []).map((d: any) => {
+              const r = byIdTasks.get(String(d?.id || ""));
+              if (!r) return d;
+              const jt = (r as any).job_tasks;
+              const js = (r as any).job_task_snooze;
+              const jl = (r as any).job_task_labels;
+              const jh = (r as any).job_task_hidden;
+              const jc = (r as any).job_custom_tasks;
+              return {
+                ...d,
+                ...(jt != null ? { jobTasks: jt } : {}),
+                ...(js != null ? { jobTaskSnooze: js } : {}),
+                ...(jl != null ? { jobTaskLabels: jl } : {}),
+                ...(jh != null ? { jobTaskHidden: jh } : {}),
+                ...(jc != null ? { jobCustomTasks: jc } : {})
+              };
+            })
+          );
+        }
+      } catch {
+      }
     })();
 
     return () => {
@@ -256,7 +290,14 @@ export default function TasksPage() {
       }
 
       try {
-        void upsertJobTasks({ draftId: jobId, jobTasks: (next as any).jobTasks, jobTaskSnooze: (next as any).jobTaskSnooze });
+        void upsertJobTasks({
+          draftId: jobId,
+          jobTasks: (next as any).jobTasks,
+          jobTaskSnooze: (next as any).jobTaskSnooze,
+          jobTaskLabels: (next as any).jobTaskLabels,
+          jobTaskHidden: (next as any).jobTaskHidden,
+          jobCustomTasks: (next as any).jobCustomTasks
+        });
       } catch {
       }
     } catch {
@@ -310,7 +351,14 @@ export default function TasksPage() {
       }
 
       try {
-        void upsertJobTasks({ draftId: jobId, jobTasks: (next as any).jobTasks, jobTaskSnooze: (next as any).jobTaskSnooze });
+        void upsertJobTasks({
+          draftId: jobId,
+          jobTasks: (next as any).jobTasks,
+          jobTaskSnooze: (next as any).jobTaskSnooze,
+          jobTaskLabels: (next as any).jobTaskLabels,
+          jobTaskHidden: (next as any).jobTaskHidden,
+          jobCustomTasks: (next as any).jobCustomTasks
+        });
       } catch {
       }
     } catch {
@@ -339,7 +387,14 @@ export default function TasksPage() {
       }
 
       try {
-        void upsertJobTasks({ draftId: jobId, jobTasks: (next as any).jobTasks, jobTaskSnooze: (next as any).jobTaskSnooze });
+        void upsertJobTasks({
+          draftId: jobId,
+          jobTasks: (next as any).jobTasks,
+          jobTaskSnooze: (next as any).jobTaskSnooze,
+          jobTaskLabels: (next as any).jobTaskLabels,
+          jobTaskHidden: (next as any).jobTaskHidden,
+          jobCustomTasks: (next as any).jobCustomTasks
+        });
       } catch {
       }
     } catch {
