@@ -329,11 +329,8 @@ export default function EstimateContractPage() {
       const address = String((d as any)?.estimate?.projectAddress || "").trim();
       const style = String((d as any)?.estimate?.styleTitle || "").trim();
 
-      const primary = estName || customer || address || style || "Estimate";
-      const secondary = estName ? (customer || address || style) : (address || style);
-
-      const joined = [primary, secondary].filter((x) => Boolean(String(x || "").trim())).join(" - ");
-      return joined || "Estimate";
+      if (estName) return estName;
+      return customer || address || style || "Estimate";
     } catch {
       return "Estimate";
     }
