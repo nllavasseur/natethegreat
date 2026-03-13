@@ -1279,7 +1279,7 @@ export default function CalendarPage() {
       // is allowed to constrain scheduling; prior estimate scheduling should not.
       const requested = String((d as any).holdDate || "");
 
-      const isLocked = (d as any).queueLocked === true;
+      const isLocked = (d as any).queueLocked !== false;
       const anchorIso = isLocked ? (lockAnchorIso(d) || legacyAnchorIso(d)) : "";
       const anchorStart = anchorIso ? new Date(anchorIso + "T12:00:00") : null;
 
