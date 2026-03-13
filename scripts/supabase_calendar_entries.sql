@@ -42,6 +42,8 @@ create index if not exists calendar_entries_workspace_status_idx
 create index if not exists calendar_entries_workspace_queue_idx
   on public.calendar_entries (workspace_id, queue_rank);
 
+drop function if exists public.vf_calendar_entry_from_draft(jsonb);
+
 create or replace function public.vf_calendar_entry_from_draft(d jsonb)
 returns table(
   status text,
