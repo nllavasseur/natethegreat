@@ -476,6 +476,11 @@ function formatTimeLocal(iso: string) {
   }
 }
 
+function localNoonForIsoDate(isoDate: string) {
+  const d = String(isoDate || "").slice(0, 10);
+  return d ? new Date(d + "T12:00:00") : null;
+}
+
 function totalLfFromDraft(d: DraftEntry) {
   const segments = Array.isArray((d as any).segments) ? ((d as any).segments as Array<{ length: number }>) : [];
   return segments.reduce((sum, s) => sum + (Number(s.length) || 0), 0);
@@ -644,8 +649,8 @@ export default function CalendarPage() {
     const windowEnd = new Date(cursorMonthStart);
     windowEnd.setMonth(windowEnd.getMonth() + 1);
     windowEnd.setDate(windowEnd.getDate() + 45);
-    const windowStartIso = windowStart.toISOString().slice(0, 10);
-    const windowEndIso = windowEnd.toISOString().slice(0, 10);
+    const windowStartIso = toKey(windowStart);
+    const windowEndIso = toKey(windowEnd);
     const windowKey = `${windowStartIso}_${windowEndIso}`;
 
     const refreshLocal = () => {
@@ -1538,7 +1543,7 @@ export default function CalendarPage() {
 
       const dt =
         hasSched
-          ? new Date(sched)
+          ? localNoonForIsoDate(sched)
           : iso
             ? new Date(iso + "T12:00:00")
             : null;
@@ -1696,7 +1701,7 @@ export default function CalendarPage() {
           const start = new Date(startIso + "T12:00:00");
           const seq = workdaySequenceForJob(start, Math.max(1, labor || 0), allowSat, allowSun);
           const last = seq[seq.length - 1];
-          const endIso = last instanceof Date && Number.isFinite(last.getTime()) ? last.toISOString().slice(0, 10) : "";
+          const endIso = last instanceof Date && Number.isFinite(last.getTime()) ? toKey(last) : "";
           let sat = false;
           let sun = false;
           seq.forEach((d) => {
@@ -2001,7 +2006,7 @@ export default function CalendarPage() {
                             : (j as any).installDate
                               ? `Start ${(j as any).installDate}`
                               : ""}
-                          {(j as any).status === "estimate" ? "" : (j as any).end ? ` · End ${(j as any).end.toISOString().slice(0, 10)}` : ""}
+                          {(j as any).status === "estimate" ? "" : (j as any).end ? ` · End ${toKey((j as any).end)}` : ""}
                         </div>
 
                         <div className="text-[11px] text-[var(--muted)] mt-1">
