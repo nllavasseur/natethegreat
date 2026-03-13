@@ -535,7 +535,7 @@ export default function EstimateContractPage() {
           </div>
         </header>
 
-        <div className="docTitleCentered">{estimateDisplayName || "Estimate"}</div>
+        <div className="docTitleCentered">Estimate</div>
 
         <div className="rule" />
 
@@ -550,7 +550,7 @@ export default function EstimateContractPage() {
         </section>
 
         <div className="styleBar">
-          <div className="styleBarText">{estimate.styleTitle}</div>
+          <div className="styleBarText">{estimateDisplayName || estimate.styleTitle}</div>
         </div>
 
         <div className="descHeader">
