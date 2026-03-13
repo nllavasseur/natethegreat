@@ -7,6 +7,7 @@ import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/compo
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import { deleteDraftRemote, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
+import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import type { QuoteItem } from "@/lib/types";
 
@@ -484,6 +485,41 @@ export default function QuotesPage() {
       } catch {
       }
 
+      try {
+        const ids = mergedLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
+        const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
+        if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
+          const byIdTasks = new Map<string, any>();
+          for (const r of (tasksRes as any).rows as any[]) {
+            const rid = String((r as any)?.draft_id || "");
+            if (!rid) continue;
+            byIdTasks.set(rid, r);
+          }
+
+          setDrafts((prev) => {
+            const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
+              const r = byIdTasks.get(String(d?.id || ""));
+              if (!r) return d;
+              const jt = (r as any).job_tasks;
+              const js = (r as any).job_task_snooze;
+              return {
+                ...d,
+                ...(jt != null ? { jobTasks: jt } : {}),
+                ...(js != null ? { jobTaskSnooze: js } : {})
+              };
+            });
+
+            try {
+              writeQuotesDraftsCache(next as any);
+            } catch {
+            }
+
+            return next as any;
+          });
+        }
+      } catch {
+      }
+
       if (usedSnapshot) {
         void (async () => {
           try {
@@ -532,6 +568,41 @@ export default function QuotesPage() {
             if (!cancelled) setDrafts(mergedAllLite);
             try {
               writeQuotesDraftsCache(mergedAllLite);
+            } catch {
+            }
+
+            try {
+              const ids = mergedAllLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
+              const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
+              if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
+                const byIdTasks = new Map<string, any>();
+                for (const r of (tasksRes as any).rows as any[]) {
+                  const rid = String((r as any)?.draft_id || "");
+                  if (!rid) continue;
+                  byIdTasks.set(rid, r);
+                }
+
+                setDrafts((prev) => {
+                  const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
+                    const r = byIdTasks.get(String(d?.id || ""));
+                    if (!r) return d;
+                    const jt = (r as any).job_tasks;
+                    const js = (r as any).job_task_snooze;
+                    return {
+                      ...d,
+                      ...(jt != null ? { jobTasks: jt } : {}),
+                      ...(js != null ? { jobTaskSnooze: js } : {})
+                    };
+                  });
+
+                  try {
+                    writeQuotesDraftsCache(next as any);
+                  } catch {
+                  }
+
+                  return next as any;
+                });
+              }
             } catch {
             }
           } catch {

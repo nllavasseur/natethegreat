@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { upsertJobTasks } from "@/lib/jobTasksStore";
 
 type JobTasks = {
   collectDeposit?: boolean;
@@ -253,6 +254,11 @@ export default function TasksPage() {
         void upsertDraft({ id: jobId, data: next });
       } catch {
       }
+
+      try {
+        void upsertJobTasks({ draftId: jobId, jobTasks: (next as any).jobTasks, jobTaskSnooze: (next as any).jobTaskSnooze });
+      } catch {
+      }
     } catch {
     }
   }
@@ -302,6 +308,11 @@ export default function TasksPage() {
         void upsertDraft({ id: jobId, data: next });
       } catch {
       }
+
+      try {
+        void upsertJobTasks({ draftId: jobId, jobTasks: (next as any).jobTasks, jobTaskSnooze: (next as any).jobTaskSnooze });
+      } catch {
+      }
     } catch {
     }
   }
@@ -324,6 +335,11 @@ export default function TasksPage() {
       setDrafts((prev) => prev.map((d) => (d.id === jobId ? { ...d, ...next } : d)));
       try {
         void upsertDraft({ id: jobId, data: next });
+      } catch {
+      }
+
+      try {
+        void upsertJobTasks({ draftId: jobId, jobTasks: (next as any).jobTasks, jobTaskSnooze: (next as any).jobTaskSnooze });
       } catch {
       }
     } catch {
