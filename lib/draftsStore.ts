@@ -324,41 +324,58 @@ export async function fetchCalendarEntries(params: {
   const soldTake = Number.isFinite(soldLimit) && soldLimit > 0 ? Math.min(600, Math.max(50, soldLimit)) : 250;
 
   try {
-    const selectCols =
+    const selectColsWithPhone =
+      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,phone_number,project_address,selected_style";
+    const selectColsNoPhone =
       "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,project_address,selected_style";
 
-    const [windowRes, soldRes, unscheduledRes] = await Promise.all([
-      supabase
-        .from("calendar_entries")
-        .select(selectCols)
-        .eq("workspace_id", workspaceId)
-        .in("status", ["estimate", "pending", "sold"])
-        .gte("scheduled_iso", params.windowStartIso)
-        .lte("scheduled_iso", params.windowEndIso),
-      supabase
-        .from("calendar_entries")
-        .select(selectCols)
-        .eq("workspace_id", workspaceId)
-        .eq("status", "sold")
-        .eq("calendar_hidden", false)
-        .order("queue_rank", { ascending: true, nullsFirst: false })
-        .order("updated_at", { ascending: false })
-        .limit(soldTake)
-      ,
-      supabase
-        .from("calendar_entries")
-        .select(selectCols)
-        .eq("workspace_id", workspaceId)
-        .eq("status", "estimate")
-        .eq("calendar_hidden", false)
-        .is("scheduled_iso", null)
-        .order("updated_at", { ascending: false })
-        .limit(500)
-    ]);
+    const fetchAll = async (selectCols: string) => {
+      const [windowRes, soldRes, unscheduledRes] = await Promise.all([
+        supabase
+          .from("calendar_entries")
+          .select(selectCols)
+          .eq("workspace_id", workspaceId)
+          .in("status", ["estimate", "pending", "sold"])
+          .gte("scheduled_iso", params.windowStartIso)
+          .lte("scheduled_iso", params.windowEndIso),
+        supabase
+          .from("calendar_entries")
+          .select(selectCols)
+          .eq("workspace_id", workspaceId)
+          .eq("status", "sold")
+          .eq("calendar_hidden", false)
+          .order("queue_rank", { ascending: true, nullsFirst: false })
+          .order("updated_at", { ascending: false })
+          .limit(soldTake),
+        supabase
+          .from("calendar_entries")
+          .select(selectCols)
+          .eq("workspace_id", workspaceId)
+          .eq("status", "estimate")
+          .eq("calendar_hidden", false)
+          .is("scheduled_iso", null)
+          .order("updated_at", { ascending: false })
+          .limit(500)
+      ]);
+      if (windowRes.error) throw windowRes.error;
+      if (soldRes.error) throw soldRes.error;
+      if (unscheduledRes.error) throw unscheduledRes.error;
+      return [windowRes, soldRes, unscheduledRes] as const;
+    };
 
-    if (windowRes.error) throw windowRes.error;
-    if (soldRes.error) throw soldRes.error;
-    if (unscheduledRes.error) throw unscheduledRes.error;
+    let windowRes: any;
+    let soldRes: any;
+    let unscheduledRes: any;
+    try {
+      [windowRes, soldRes, unscheduledRes] = await fetchAll(selectColsWithPhone);
+    } catch (e: any) {
+      const msg = String(e?.message || e || "").toLowerCase();
+      if (msg.includes("phone_number") && (msg.includes("column") || msg.includes("field") || msg.includes("does not exist"))) {
+        [windowRes, soldRes, unscheduledRes] = await fetchAll(selectColsNoPhone);
+      } else {
+        throw e;
+      }
+    }
 
     const rows = [...(windowRes.data ?? []), ...(soldRes.data ?? []), ...(unscheduledRes.data ?? [])] as CalendarEntryRow[];
 
@@ -384,6 +401,7 @@ export async function fetchCalendarEntries(params: {
         estimateAssignee: (r as any)?.estimate_assignee ?? undefined,
         customerName: (r as any)?.customer_name ?? undefined,
         title: (r as any)?.title ?? undefined,
+        phoneNumber: (r as any)?.phone_number ?? undefined,
         projectAddress: (r as any)?.project_address ?? undefined,
         selectedStyle: (r as any)?.selected_style ?? undefined
       };
