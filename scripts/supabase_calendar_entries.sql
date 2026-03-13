@@ -24,6 +24,7 @@ create table if not exists public.calendar_entries (
 
   customer_name text null,
   title text null,
+  phone_number text null,
   project_address text null,
   selected_style jsonb null,
 
@@ -54,6 +55,7 @@ returns table(
   estimate_assignee text,
   customer_name text,
   title text,
+  phone_number text,
   project_address text,
   selected_style jsonb,
   created_at_ms bigint,
@@ -76,6 +78,7 @@ as $$
     nullif(d->>'estimateAssignee','') as estimate_assignee,
     nullif(d->>'customerName','') as customer_name,
     nullif(d->>'title','') as title,
+    nullif(d->>'phoneNumber','') as phone_number,
     nullif(d->>'projectAddress','') as project_address,
     d->'selectedStyle' as selected_style,
     nullif((d->>'createdAt')::bigint, null) as created_at_ms,
@@ -108,14 +111,14 @@ begin
     status, calendar_hidden,
     scheduled_iso, install_date, start_date, hold_date,
     labor_days, queue_rank, allow_saturday, allow_sunday, estimate_assignee,
-    customer_name, title, project_address, selected_style
+    customer_name, title, phone_number, project_address, selected_style
   ) values (
     new.workspace_id, did, new.updated_at,
     v.created_at_ms, v.updated_at_ms,
     v.status, coalesce(v.calendar_hidden,false),
     v.scheduled_iso, v.install_date, v.start_date, v.hold_date,
     v.labor_days, v.queue_rank, v.allow_saturday, v.allow_sunday, v.estimate_assignee,
-    v.customer_name, v.title, v.project_address, v.selected_style
+    v.customer_name, v.title, v.phone_number, v.project_address, v.selected_style
   )
   on conflict (workspace_id, draft_id) do update set
     updated_at = excluded.updated_at,
@@ -134,6 +137,7 @@ begin
     estimate_assignee = excluded.estimate_assignee,
     customer_name = excluded.customer_name,
     title = excluded.title,
+    phone_number = excluded.phone_number,
     project_address = excluded.project_address,
     selected_style = excluded.selected_style;
 
@@ -153,7 +157,7 @@ insert into public.calendar_entries (
   status, calendar_hidden,
   scheduled_iso, install_date, start_date, hold_date,
   labor_days, queue_rank, allow_saturday, allow_sunday, estimate_assignee,
-  customer_name, title, project_address, selected_style
+  customer_name, title, phone_number, project_address, selected_style
 )
 select
   d.workspace_id,
@@ -174,6 +178,7 @@ select
   v.estimate_assignee,
   v.customer_name,
   v.title,
+  v.phone_number,
   v.project_address,
   v.selected_style
 from public.drafts d
