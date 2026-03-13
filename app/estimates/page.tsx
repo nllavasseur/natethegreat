@@ -424,6 +424,7 @@ function EstimatesPageInner() {
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [estimateName, setEstimateName] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -4417,6 +4418,7 @@ function EstimatesPageInner() {
     return {
       id,
       createdAt,
+      title: String(estimateName || "").trim() || undefined,
       customerName,
       projectAddress,
       phoneNumber,
@@ -6196,6 +6198,7 @@ function EstimatesPageInner() {
     setStylePickerIdx(false);
     setMaterialsDetailsOpen(false);
     setDraftId(null);
+    setEstimateName("");
     setCustomerName(String(d.customerName ?? ""));
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
@@ -6299,6 +6302,7 @@ function EstimatesPageInner() {
 
     const snapDraftId = source === "snapshot" && typeof (d as any).draftId === "string" ? String((d as any).draftId) : null;
     setDraftId(source === "snapshot" ? snapDraftId : id);
+    setEstimateName(String((d as any).title ?? ""));
     setCustomerName(String(d.customerName ?? ""));
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
@@ -6880,6 +6884,10 @@ function EstimatesPageInner() {
       <GlassCard className="p-0 overflow-hidden">
         <div className="p-4">
           <div className="grid md:grid-cols-2 gap-3">
+            <div>
+              <div className="text-[11px] text-[var(--muted)] mb-1">Estimate name</div>
+              <Input value={estimateName} onChange={(e) => setEstimateName(e.target.value)} placeholder="Estimate name" />
+            </div>
             <div>
               <div className="text-[11px] text-[var(--muted)] mb-1">Customer</div>
               <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Customer name" />

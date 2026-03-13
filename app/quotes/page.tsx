@@ -903,7 +903,9 @@ export default function QuotesPage() {
         return String(design?.name || "").trim();
       })();
       const styleLabel = style.trim().toLowerCase() === "fence builder" && fenceBuilderTitle ? fenceBuilderTitle : style;
-      const title = String(d.title || d.customerName || d.projectAddress || d.selectedStyle?.name || "Quote");
+      const estimateTitle = String(d.title || "").trim();
+      const customerLabel = String(d.customerName || "").trim();
+      const title = estimateTitle || customerLabel || String(d.projectAddress || d.selectedStyle?.name || "Quote");
       const material = (() => {
         const md = (d as any).materialsDetails as any;
         if (!md || typeof md !== "object") return "";
@@ -1569,7 +1571,12 @@ export default function QuotesPage() {
               ) : null}
 
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-extrabold truncate">{q.title}</div>
+                <div className="min-w-0">
+                  <div className="text-sm font-extrabold truncate">{q.title}</div>
+                  {String((q as any).customerName || "").trim() && String((q as any).title || "").trim() ? (
+                    <div className="text-[11px] text-[var(--muted)] truncate">{String((q as any).customerName || "")}</div>
+                  ) : null}
+                </div>
                 <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
               </div>
               {String((q as any).layoutSrc || "") ? (
