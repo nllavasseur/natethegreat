@@ -4712,6 +4712,7 @@ function EstimatesPageInner() {
 
     const contractId = String(overrideDraftId || draftId || "");
     const submittedOn = new Date().toISOString();
+    const contractEstimateName = String(estimateName || "").trim();
     const styleTitle = (() => {
       const fb = fenceBuilder && typeof fenceBuilder === "object" ? (fenceBuilder as any) : null;
       const selectedId = fb ? String(fb.selectedDesignId || "") : "";
@@ -4759,6 +4760,7 @@ function EstimatesPageInner() {
       },
       estimate: {
         id: contractId,
+        name: contractEstimateName || undefined,
         submittedOn,
         customer: { name: customerName, phone: phoneNumber, email },
         projectAddress,

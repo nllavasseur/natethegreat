@@ -162,6 +162,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     ? round2(persistedTotal)
     : round2(materialsAndExpensesDiscounted + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
 
+  const estimateName = String((draft as any)?.title || "").trim();
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
   const email = String(draft?.email || "");
@@ -209,6 +210,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     },
     estimate: {
       id: String(draftId || ""),
+      name: estimateName || undefined,
       submittedOn: new Date().toISOString(),
       customer: { name: customerName, phone: phoneNumber, email },
       projectAddress,
@@ -252,6 +254,7 @@ type ContractData = {
   };
   estimate: {
     id: string;
+    name?: string;
     submittedOn: string;
     customer: { name: string; phone: string; email: string };
     projectAddress: string;
@@ -317,6 +320,24 @@ export default function EstimateContractPage() {
   const pageRef = React.useRef<HTMLElement | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
   const [embed, setEmbed] = React.useState(false);
+
+  const computeDocTitle = React.useCallback((d: ContractData | null) => {
+    try {
+      if (!d) return "Estimate";
+      const estName = String((d as any)?.estimate?.name || "").trim();
+      const customer = String((d as any)?.estimate?.customer?.name || "").trim();
+      const address = String((d as any)?.estimate?.projectAddress || "").trim();
+      const style = String((d as any)?.estimate?.styleTitle || "").trim();
+
+      const primary = estName || customer || address || style || "Estimate";
+      const secondary = estName ? (customer || address || style) : (address || style);
+
+      const joined = [primary, secondary].filter((x) => Boolean(String(x || "").trim())).join(" - ");
+      return joined || "Estimate";
+    } catch {
+      return "Estimate";
+    }
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -388,6 +409,14 @@ export default function EstimateContractPage() {
     setPortalReady(true);
   }, []);
 
+  React.useEffect(() => {
+    try {
+      document.title = computeDocTitle(data);
+    } catch {
+      // ignore
+    }
+  }, [computeDocTitle, data]);
+
   const setPrintScale = React.useCallback(() => {
     const el = pageRef.current;
     if (!el) return;
@@ -402,9 +431,14 @@ export default function EstimateContractPage() {
   }, [setPrintScale]);
 
   const handlePrint = React.useCallback(() => {
+    try {
+      document.title = computeDocTitle(data);
+    } catch {
+      // ignore
+    }
     setPrintScale();
     requestAnimationFrame(() => window.print());
-  }, [setPrintScale]);
+  }, [computeDocTitle, data, setPrintScale]);
 
   const handleEmail = React.useCallback(() => {
     try {
