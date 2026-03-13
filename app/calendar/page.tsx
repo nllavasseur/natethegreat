@@ -1277,15 +1277,20 @@ export default function CalendarPage() {
 
       // For SOLD jobs, queue is the control center. Only an explicit hold date
       // is allowed to constrain scheduling; prior estimate scheduling should not.
-      const requested = String((d as any).holdDate || "");
+      const holdRequested = String((d as any).holdDate || "");
 
-      const isLocked = (d as any).queueLocked !== false;
+      const lockTs = Number((d as any).queueLockedAt);
+      const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
+      const isLocked = (d as any).queueLocked === true || hasLockTs;
+
       const anchorIso = isLocked ? (lockAnchorIso(d) || legacyAnchorIso(d)) : "";
       const anchorStart = anchorIso ? new Date(anchorIso + "T12:00:00") : null;
+      const anchorStarted = Boolean(anchorStart) && startOfDay(anchorStart as Date).getTime() <= today0.getTime();
+      const requested = holdRequested || (isLocked ? anchorIso : "");
 
       // If a sold job has started, keep it anchored unless the user explicitly
       // changes it by setting a hold date.
-      if (isLocked && anchorIso && anchorStart) {
+      if (isLocked && anchorStarted && anchorIso && anchorStart) {
         // Burn down the locked/current job by elapsed workdays since the anchor.
         // Semantics: a new day consumes *yesterday only* (elapsed counts days strictly before today0).
         const originalSeq = workdaySequenceForJob(anchorStart as Date, span, allowSat, allowSun);
