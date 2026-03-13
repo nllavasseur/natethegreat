@@ -1029,16 +1029,13 @@ export default function QuotesPage() {
   const customerStacks = useMemo(() => {
     const normalizeKey = (raw: unknown) => String(raw || "").trim().replace(/\s+/g, " ");
     const keyFor = (q: any) => {
-      const name = normalizeKey((q as any).title);
       const customer = normalizeKey((q as any).customerName);
-      const primary = customer || name;
-      return primary ? primary.toLowerCase() : "";
+      return customer ? customer.toLowerCase() : "";
     };
 
     const displayNameFor = (q: any) => {
       const customer = normalizeKey((q as any).customerName);
-      const name = normalizeKey((q as any).title);
-      return customer || name || "(No customer name)";
+      return customer || "(No customer name)";
     };
 
     const order: Array<{ key: string; label: string; cards: any[] }> = [];
