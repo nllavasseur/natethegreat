@@ -1569,14 +1569,19 @@ export default function QuotesPage() {
                 </div>
               ) : null}
 
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-sm font-extrabold truncate">{q.title}</div>
+              <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+                <div className="min-w-0" />
+                <div className="min-w-0 text-center">
+                  <div className="text-sm font-extrabold truncate">
+                    {String((q as any).estimateTitle || "").trim() ? String((q as any).estimateTitle || "") : q.title}
+                  </div>
                   {String((q as any).customerName || "").trim() && String((q as any).estimateTitle || "").trim() ? (
                     <div className="text-[11px] text-[var(--muted)] truncate">{String((q as any).customerName || "")}</div>
                   ) : null}
                 </div>
-                <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
+                <div className="flex items-start justify-end">
+                  <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
+                </div>
               </div>
               {String((q as any).layoutSrc || "") ? (
                 <div className="mt-2">
