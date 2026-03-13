@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { deleteDraftRemote, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
+import { deleteDraftRemote, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import type { QuoteItem } from "@/lib/types";
@@ -166,54 +166,54 @@ export default function QuotesPage() {
 
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
-      const store = readDraftStore();
-      const existing = store[id] ?? drafts.find((d) => d.id === id);
-      const nextStatus =
-        scheduledAt && String(scheduledAt).trim() !== ""
-          ? "estimate"
-          : (existing as any)?.status;
-      if (!existing) {
-        store[id] = {
-          id,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-          calendarHidden: false,
-          ...(nextStatus ? { status: nextStatus } : {})
-        };
-      } else {
-        store[id] = {
+      const sid = String(id);
+      void (async () => {
+        const store = readDraftStore();
+        let existing: any = store[sid] ?? drafts.find((d) => d.id === sid);
+
+        if (!existing) {
+          try {
+            const remote = await fetchDraft({ id: sid });
+            if (remote.ok && remote.draft) existing = remote.draft as any;
+          } catch {
+          }
+        }
+        if (!existing) return;
+
+        const nextStatus =
+          scheduledAt && String(scheduledAt).trim() !== ""
+            ? "estimate"
+            : (existing as any)?.status;
+
+        store[sid] = {
           ...existing,
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
           updatedAt: Date.now(),
           calendarHidden: false,
           ...(nextStatus ? { status: nextStatus } : {})
         };
-      }
-      store[id] = {
-        ...store[id],
-        scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-        updatedAt: Date.now()
-      };
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-      try {
-        void upsertDraft({ id, data: store[id] });
-      } catch {
-      }
-      setDrafts((prev) =>
-        prev.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-                updatedAt: Date.now(),
-                calendarHidden: false,
-                ...(nextStatus ? { status: nextStatus as any } : {})
-              }
-            : d
-        )
-      );
-      notifyDraftsChanged();
+
+        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+        try {
+          await upsertDraft({ id: sid, data: store[sid] });
+        } catch {
+        }
+
+        setDrafts((prev) =>
+          prev.map((d) =>
+            d.id === sid
+              ? {
+                  ...d,
+                  scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+                  updatedAt: Date.now(),
+                  calendarHidden: false,
+                  ...(nextStatus ? { status: nextStatus as any } : {})
+                }
+              : d
+          )
+        );
+        notifyDraftsChanged();
+      })();
     } catch {
       // ignore
     }
@@ -221,31 +221,45 @@ export default function QuotesPage() {
 
   function setDraftEstimateAssignee(id: string, assignee: DraftEntry["estimateAssignee"] | null) {
     try {
-      const store = readDraftStore();
-      const existing = store[id] ?? drafts.find((d) => d.id === id);
-      if (!existing) return;
-      store[id] = {
-        ...existing,
-        estimateAssignee: assignee ?? undefined,
-        updatedAt: Date.now()
-      };
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-      try {
-        void upsertDraft({ id, data: store[id] });
-      } catch {
-      }
-      setDrafts((prev) =>
-        prev.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                estimateAssignee: assignee ?? undefined,
-                updatedAt: Date.now()
-              }
-            : d
-        )
-      );
-      notifyDraftsChanged();
+      const sid = String(id);
+      void (async () => {
+        const store = readDraftStore();
+        let existing: any = store[sid] ?? drafts.find((d) => d.id === sid);
+
+        if (!existing) {
+          try {
+            const remote = await fetchDraft({ id: sid });
+            if (remote.ok && remote.draft) existing = remote.draft as any;
+          } catch {
+          }
+        }
+        if (!existing) return;
+
+        store[sid] = {
+          ...existing,
+          estimateAssignee: assignee ?? undefined,
+          updatedAt: Date.now()
+        };
+
+        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+        try {
+          await upsertDraft({ id: sid, data: store[sid] });
+        } catch {
+        }
+
+        setDrafts((prev) =>
+          prev.map((d) =>
+            d.id === sid
+              ? {
+                  ...d,
+                  estimateAssignee: assignee ?? undefined,
+                  updatedAt: Date.now()
+                }
+              : d
+          )
+        );
+        notifyDraftsChanged();
+      })();
     } catch {
       // ignore
     }
