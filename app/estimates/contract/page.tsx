@@ -475,6 +475,9 @@ export default function EstimateContractPage() {
   const sharedTotal = Number(estimate.sharedTotal ?? 0);
   const descriptionText = `${estimate.styleTitle}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`;
   const estimateDisplayName = String((estimate as any)?.name || "").trim();
+  const descriptionDisplayText = estimateDisplayName
+    ? `${estimateDisplayName}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`
+    : descriptionText;
   const acceptanceText =
     "The above prices, specifications and conditions are satisfactory and hereby accepted. You are authorized to do the work as specified.\n" +
     "By signing below you agree to have Vasseur Fencing complete all listed line items above in this document.\n" +
@@ -558,7 +561,7 @@ export default function EstimateContractPage() {
           <div className="descHeaderRight">Quantity LF</div>
         </div>
         <div className="descRow">
-          <div className="descRowLeft">{estimateDisplayName || descriptionText}</div>
+          <div className="descRowLeft">{descriptionDisplayText}</div>
           <div className="descRowRight">{Math.round(totalLf)}</div>
         </div>
 
