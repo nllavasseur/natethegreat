@@ -6883,7 +6883,7 @@ function EstimatesPageInner() {
         </div>
       </div>
 
-      <GlassCard className="p-0 overflow-hidden">
+      <GlassCard className="p-0">
         <div className="p-4">
           <div className="grid md:grid-cols-2 gap-3">
             <div>
