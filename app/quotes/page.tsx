@@ -1357,7 +1357,7 @@ export default function QuotesPage() {
                           : "")
                       }
                     >
-              <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 mb-2">
                 <div className="relative">
                   <button
                     type="button"
@@ -1451,114 +1451,116 @@ export default function QuotesPage() {
                   ) : null}
                 </div>
 
-                {q.status === "estimate" ? (
-                  <div className="flex-1 flex justify-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        data-no-swipe="true"
-                        data-keep-open="true"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          bumpSuppressNav();
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          bumpSuppressNav();
-                          setOpenStatusId(null);
-                          setConfirmDeleteId(null);
-                          const store = readDraftStore();
-                          const cur = store[q.id] as any;
-                          const fromState = drafts.find((d) => d.id === q.id) as any;
-                          const existing = String(cur?.scheduledAt || fromState?.scheduledAt || (q as any)?.scheduledAt || "");
-                          const existingAssignee = String(
-                            cur?.estimateAssignee || fromState?.estimateAssignee || (q as any)?.estimateAssignee || ""
-                          );
-                          setScheduleForId(q.id);
-                          if (existing) {
-                            setScheduleDate(toDateLocalValue(existing));
-                            setScheduleTime(toTimeLocalValue(existing));
-                          } else {
-                            setScheduleDate(defaultScheduleDateValue());
-                            setScheduleTime(defaultScheduleTimeValue());
-                          }
-                          setScheduleAssignee(existingAssignee === "nate" || existingAssignee === "cam" ? (existingAssignee as any) : "");
-                        }}
-                        className={
-                          "rounded-full border px-2.5 py-1 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
+                <div className="min-w-0 text-center">
+                  <div className="text-[12px] font-extrabold truncate">
+                    {String((q as any).estimateTitle || "").trim() ? String((q as any).estimateTitle || "") : q.title}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  {q.status === "estimate" ? (
+                    <button
+                      type="button"
+                      data-no-swipe="true"
+                      data-keep-open="true"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        bumpSuppressNav();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        bumpSuppressNav();
+                        setOpenStatusId(null);
+                        setConfirmDeleteId(null);
+                        const store = readDraftStore();
+                        const cur = store[q.id] as any;
+                        const fromState = drafts.find((d) => d.id === q.id) as any;
+                        const existing = String(cur?.scheduledAt || fromState?.scheduledAt || (q as any)?.scheduledAt || "");
+                        const existingAssignee = String(
+                          cur?.estimateAssignee || fromState?.estimateAssignee || (q as any)?.estimateAssignee || ""
+                        );
+                        setScheduleForId(q.id);
+                        if (existing) {
+                          setScheduleDate(toDateLocalValue(existing));
+                          setScheduleTime(toTimeLocalValue(existing));
+                        } else {
+                          setScheduleDate(defaultScheduleDateValue());
+                          setScheduleTime(defaultScheduleTimeValue());
                         }
-                      >
-                        {q.scheduledAt ? "Scheduled" : "Schedule"}
-                      </button>
+                        setScheduleAssignee(existingAssignee === "nate" || existingAssignee === "cam" ? (existingAssignee as any) : "");
+                      }}
+                      className={
+                        "rounded-full border px-2.5 py-1 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
+                      }
+                    >
+                      {q.scheduledAt ? "Scheduled" : "Schedule"}
+                    </button>
+                  ) : null}
+
+                  {Number((q as any).preInstallPhotoCount) > 0 ? (
+                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] whitespace-nowrap">
+                      📎 {Number((q as any).preInstallPhotoCount) || 0}
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex-1" />
-                )}
+                  ) : null}
 
-                {Number((q as any).preInstallPhotoCount) > 0 ? (
-                  <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] whitespace-nowrap">
-                    📎 {Number((q as any).preInstallPhotoCount) || 0}
-                  </div>
-                ) : null}
-
-                <button
-                  type="button"
-                  data-no-swipe="true"
-                  data-keep-open="true"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    bumpSuppressNav();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    bumpSuppressNav();
-                    setOpenStatusId(null);
-                    setConfirmDeleteId(null);
-                    window.location.href = `/estimates/contract?draft=${encodeURIComponent(q.id)}`;
-                  }}
-                  className="rounded-full border px-2 py-1 text-[11px] font-extrabold bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.90)]"
-                >
-                  Contract
-                </button>
-
-                <button
-                  type="button"
-                  data-no-swipe="true"
-                  data-keep-open="true"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    bumpSuppressNav();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    bumpSuppressNav();
-                    setOpenStatusId(null);
-                    if (confirmDeleteId === q.id) {
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    data-keep-open="true"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      bumpSuppressNav();
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      bumpSuppressNav();
+                      setOpenStatusId(null);
                       setConfirmDeleteId(null);
-                      setDeletingId(q.id);
-                      window.setTimeout(() => {
-                        deleteDraft(q.id);
-                      }, 220);
-                    } else {
-                      setConfirmDeleteId(q.id);
+                      window.location.href = `/estimates/contract?draft=${encodeURIComponent(q.id)}`;
+                    }}
+                    className="rounded-full border px-2 py-1 text-[11px] font-extrabold bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.90)]"
+                  >
+                    Contract
+                  </button>
+
+                  <button
+                    type="button"
+                    data-no-swipe="true"
+                    data-keep-open="true"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      bumpSuppressNav();
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      bumpSuppressNav();
+                      setOpenStatusId(null);
+                      if (confirmDeleteId === q.id) {
+                        setConfirmDeleteId(null);
+                        setDeletingId(q.id);
+                        window.setTimeout(() => {
+                          deleteDraft(q.id);
+                        }, 220);
+                      } else {
+                        setConfirmDeleteId(q.id);
+                      }
+                    }}
+                    className={
+                      "rounded-full border px-2 py-1 text-[11px] font-extrabold " +
+                      (confirmDeleteId === q.id
+                        ? "bg-[rgba(255,80,80,.30)] border-[rgba(255,80,80,.55)] text-white"
+                        : "bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.85)]")
                     }
-                  }}
-                  className={
-                    "rounded-full border px-2 py-1 text-[11px] font-extrabold " +
-                    (confirmDeleteId === q.id
-                      ? "bg-[rgba(255,80,80,.30)] border-[rgba(255,80,80,.55)] text-white"
-                      : "bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.85)]")
-                  }
-                >
-                  {confirmDeleteId === q.id ? "Confirm" : "Delete"}
-                </button>
+                  >
+                    {confirmDeleteId === q.id ? "Confirm" : "Delete"}
+                  </button>
+                </div>
               </div>
 
               {q.style || (q as any).material ? (
@@ -1569,19 +1571,8 @@ export default function QuotesPage() {
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-                <div className="min-w-0" />
-                <div className="min-w-0 text-center">
-                  <div className="text-sm font-extrabold truncate">
-                    {String((q as any).estimateTitle || "").trim() ? String((q as any).estimateTitle || "") : q.title}
-                  </div>
-                  {String((q as any).customerName || "").trim() && String((q as any).estimateTitle || "").trim() ? (
-                    <div className="text-[11px] text-[var(--muted)] truncate">{String((q as any).customerName || "")}</div>
-                  ) : null}
-                </div>
-                <div className="flex items-start justify-end">
-                  <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
-                </div>
+              <div className="flex items-center justify-end">
+                <div className="text-sm font-black whitespace-nowrap">{money(q.due)}</div>
               </div>
               {String((q as any).layoutSrc || "") ? (
                 <div className="mt-2">
