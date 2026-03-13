@@ -1452,7 +1452,7 @@ export default function QuotesPage() {
                 </div>
 
                 <div className="min-w-0 text-center">
-                  <div className="text-[12px] font-extrabold truncate">
+                  <div className="text-[14px] font-extrabold truncate">
                     {String((q as any).estimateTitle || "").trim() ? String((q as any).estimateTitle || "") : q.title}
                   </div>
                 </div>
