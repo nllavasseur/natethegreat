@@ -937,6 +937,8 @@ export default function QuotesPage() {
         id: String(d.id),
         status: (d.status ?? "estimate") as DraftEntry["status"],
         title,
+        estimateTitle,
+        customerName: String((d as any).customerName || ""),
         style,
         styleLabel,
         material,
@@ -1570,7 +1572,7 @@ export default function QuotesPage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-sm font-extrabold truncate">{q.title}</div>
-                  {String((q as any).customerName || "").trim() && String((q as any).title || "").trim() ? (
+                  {String((q as any).customerName || "").trim() && String((q as any).estimateTitle || "").trim() ? (
                     <div className="text-[11px] text-[var(--muted)] truncate">{String((q as any).customerName || "")}</div>
                   ) : null}
                 </div>
