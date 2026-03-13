@@ -31,6 +31,8 @@ create table if not exists public.calendar_entries (
   primary key (workspace_id, draft_id)
 );
 
+alter table public.calendar_entries add column if not exists phone_number text;
+
 create index if not exists calendar_entries_workspace_scheduled_idx
   on public.calendar_entries (workspace_id, scheduled_iso);
 
@@ -183,4 +185,23 @@ select
   v.selected_style
 from public.drafts d
 cross join lateral public.vf_calendar_entry_from_draft(d.draft) v
-on conflict (workspace_id, draft_id) do nothing;
+on conflict (workspace_id, draft_id) do update set
+  updated_at = excluded.updated_at,
+  created_at_ms = excluded.created_at_ms,
+  updated_at_ms = excluded.updated_at_ms,
+  status = excluded.status,
+  calendar_hidden = excluded.calendar_hidden,
+  scheduled_iso = excluded.scheduled_iso,
+  install_date = excluded.install_date,
+  start_date = excluded.start_date,
+  hold_date = excluded.hold_date,
+  labor_days = excluded.labor_days,
+  queue_rank = excluded.queue_rank,
+  allow_saturday = excluded.allow_saturday,
+  allow_sunday = excluded.allow_sunday,
+  estimate_assignee = excluded.estimate_assignee,
+  customer_name = excluded.customer_name,
+  title = excluded.title,
+  phone_number = excluded.phone_number,
+  project_address = excluded.project_address,
+  selected_style = excluded.selected_style;
