@@ -1640,6 +1640,76 @@ export default function CalendarPage() {
       };
     });
 
+    // Final defensive pass (global): guarantee that non-estimate jobs never share a day.
+    // This matches the workflow expectation that installs have capacity=1.
+    const placed = new Set<string>();
+    const placedEndByDay = new Map<string, Date>();
+    blockedDays.set.forEach((k) => {
+      placed.add(k);
+      const dt = new Date(k + "T12:00:00");
+      placedEndByDay.set(k, dt);
+    });
+
+    const resolveNoOverlap = (start: Date, span: number, allowSat: boolean, allowSun: boolean) => {
+      let candidate = start;
+      for (let guard = 0; guard < 366; guard++) {
+        const seq = workdaySequenceForJob(candidate, Math.max(1, span), allowSat, allowSun);
+        const firstConflict = seq.find((day) => placed.has(toKey(day)));
+        if (!firstConflict) return { seq, start: seq[0], end: seq[seq.length - 1] };
+        const conflictEnd = placedEndByDay.get(toKey(firstConflict)) || firstConflict;
+        candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
+      }
+      const fallback = workdaySequenceForJob(candidate, Math.max(1, span), allowSat, allowSun);
+      return { seq: fallback, start: fallback[0], end: fallback[fallback.length - 1] };
+    };
+
+    // Place installs in deterministic order: sold queue order first, then by current start date.
+    const installs = allScheduled
+      .filter((j: any) => {
+        if ((j as any).calendarHidden) return false;
+        const st = (j as any).status as DraftEntry["status"];
+        if (st === "estimate" || st === "void" || st === "complete" || st === "pending") return false;
+        return (j as any).install instanceof Date && Number.isFinite(((j as any).install as Date).getTime());
+      })
+      .slice()
+      .sort((a: any, b: any) => {
+        const as = String((a as any).status);
+        const bs = String((b as any).status);
+        const aSold = as === "sold";
+        const bSold = bs === "sold";
+        if (aSold !== bSold) return aSold ? -1 : 1;
+        if (aSold && bSold) {
+          const ar = Number((a as any).queueRank ?? Number.POSITIVE_INFINITY);
+          const br = Number((b as any).queueRank ?? Number.POSITIVE_INFINITY);
+          if (ar !== br) return ar - br;
+        }
+        const at = ((a as any).install as Date).getTime();
+        const bt = ((b as any).install as Date).getTime();
+        if (at !== bt) return at - bt;
+        return String((a as any).id || "").localeCompare(String((b as any).id || ""));
+      });
+
+    installs.forEach((j: any) => {
+      const allowSat = asBool((j as any).allowSaturday);
+      const allowSun = asBool((j as any).allowSunday);
+      const span = Math.max(1, Number((j as any).spanDays) || 1);
+      const start = (j as any).install as Date;
+      const resolved = resolveNoOverlap(start, span, allowSat, allowSun);
+
+      (j as any).install = resolved.start;
+      (j as any).installDate = toKey(resolved.start);
+      (j as any).startDate = toKey(resolved.start);
+      (j as any).end = resolved.end;
+      (j as any).spanDays = span;
+
+      resolved.seq.forEach((day) => {
+        const k = toKey(day);
+        placed.add(k);
+        const prev = placedEndByDay.get(k);
+        if (!prev || resolved.end.getTime() > prev.getTime()) placedEndByDay.set(k, resolved.end);
+      });
+    });
+
     const scheduled = allScheduled.filter(
       (d): d is DraftEntry & { install: Date; installDate: string; end: Date; spanDays: number } => {
         if ((d as any).calendarHidden) return false;
