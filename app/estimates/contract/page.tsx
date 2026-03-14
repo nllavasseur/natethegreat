@@ -784,7 +784,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     width: 8.1in;
     max-width: 100%;
     margin: 0;
-    padding:0.04in 0.28in;
+    padding:0in 0.28in;
     background:#fff;
     box-shadow:none;
     height: auto;
