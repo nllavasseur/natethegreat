@@ -791,7 +791,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     overflow: visible;
     zoom: 1;
     transform: scale(var(--vf-print-scale));
-    transform-origin: center;
+    transform-origin: top center;
     break-after: avoid;
     page-break-after: avoid;
   }
