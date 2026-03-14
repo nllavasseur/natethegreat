@@ -770,7 +770,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     padding: 0 !important;
     display: flex !important;
     justify-content: center !important;
-    align-items: center !important;
+    align-items: flex-start !important;
   }
   *{
     filter:none !important;
