@@ -1685,7 +1685,9 @@ export default function CalendarPage() {
       const allowSun = asBool((j as any).allowSunday);
       const style = String(j.selectedStyle?.name || "");
       const lf = totalLfFromDraft(j);
-      const labor = computeSpanDays((j as any).laborDays) || 0;
+      const labor = Number.isFinite(Number((j as any).spanDays)) && Number((j as any).spanDays) > 0
+        ? Number((j as any).spanDays)
+        : (computeSpanDays((j as any).laborDays) || 0);
       const hold = String((j as any).holdDate || "").slice(0, 10);
       const startDt = (j as any).install instanceof Date && Number.isFinite(((j as any).install as Date).getTime())
         ? ((j as any).install as Date)
@@ -1784,7 +1786,11 @@ export default function CalendarPage() {
       const color = effectiveJobColors.get(j.id) ?? "rgba(255,255,255,.25)";
       const start = (j as any).install instanceof Date ? ((j as any).install as Date) : new Date(j.installDate + "T12:00:00");
       const status = (j as any).status as DraftEntry["status"];
-      const span = status === "estimate" ? 1 : computeSpanDays((j as any).laborDays);
+      const span = status === "estimate"
+        ? 1
+        : (Number.isFinite(Number((j as any).spanDays)) && Number((j as any).spanDays) > 0
+          ? Number((j as any).spanDays)
+          : computeSpanDays((j as any).laborDays));
       const allowSat = asBool((j as any).allowSaturday);
       const allowSun = asBool((j as any).allowSunday);
       const seqRaw = status === "estimate" ? [start] : workdaySequenceForJob(start, span, allowSat, allowSun);
