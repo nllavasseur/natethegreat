@@ -1286,6 +1286,8 @@ function EstimatesPageInner() {
 
   const [takeoffManualItems, setTakeoffManualItems] = useState<QuoteItem[]>([]);
   const [takeoffManualDraft, setTakeoffManualDraft] = useState(() => ({ desc: "", qty: "", unitPrice: "" }));
+  const [takeoffManualMaterialPickerOpen, setTakeoffManualMaterialPickerOpen] = useState(false);
+  const [takeoffManualMaterialPickerQuery, setTakeoffManualMaterialPickerQuery] = useState("");
 
   const [takeoffPerPanelAddons, setTakeoffPerPanelAddons] = useState<
     Array<{ id: string; desc: string; qtyPerPanel: number; unitPrice: number }>
@@ -7593,7 +7595,83 @@ function EstimatesPageInner() {
                               <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] px-2 py-2">
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="text-sm font-extrabold">Manual line items</div>
+                                  <SecondaryButton
+                                    data-no-swipe="true"
+                                    className="px-3 py-2 text-[12px]"
+                                    onClick={() => {
+                                      setTakeoffManualMaterialPickerOpen((v) => !v);
+                                      setTakeoffManualMaterialPickerQuery("");
+                                    }}
+                                  >
+                                    Pick material
+                                  </SecondaryButton>
                                 </div>
+
+                                {takeoffManualMaterialPickerOpen ? (
+                                  <div className="mt-2 rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.12)] px-2 py-2">
+                                    <div className="flex items-end justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <div className="text-[11px] text-[var(--muted)] mb-1">Search materials</div>
+                                        <Input
+                                          value={takeoffManualMaterialPickerQuery}
+                                          onChange={(e) => setTakeoffManualMaterialPickerQuery(e.target.value)}
+                                          placeholder="Type to filter"
+                                        />
+                                      </div>
+                                      <SecondaryButton
+                                        data-no-swipe="true"
+                                        className="px-3 py-2 text-[12px]"
+                                        onClick={() => {
+                                          setTakeoffManualMaterialPickerOpen(false);
+                                          setTakeoffManualMaterialPickerQuery("");
+                                        }}
+                                      >
+                                        Close
+                                      </SecondaryButton>
+                                    </div>
+
+                                    <div className="mt-2 max-h-[220px] overflow-auto rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.04)]">
+                                      {Object.entries(materialUnitPrices)
+                                        .filter(([k]) => {
+                                          const q = String(takeoffManualMaterialPickerQuery || "").trim().toLowerCase();
+                                          if (!q) return true;
+                                          return String(k || "").toLowerCase().includes(q);
+                                        })
+                                        .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+                                        .slice(0, 200)
+                                        .map(([name, price]) => (
+                                          <button
+                                            key={name}
+                                            type="button"
+                                            data-no-swipe="true"
+                                            className="w-full text-left px-3 py-2 border-b border-[rgba(255,255,255,.08)] hover:bg-[rgba(255,255,255,.06)]"
+                                            onClick={() => {
+                                              const pickedName = String(name || "").trim();
+                                              const pickedPrice = Number(price) || 0;
+                                              setTakeoffManualDraft((p) => ({
+                                                ...p,
+                                                desc: pickedName,
+                                                unitPrice: String(pickedPrice)
+                                              }));
+                                              setTakeoffManualDraft((p) => {
+                                                const qty = String(p.qty || "").trim();
+                                                if (qty) return p;
+                                                return { ...p, qty: "1" };
+                                              });
+                                              setTakeoffManualMaterialPickerOpen(false);
+                                              setTakeoffManualMaterialPickerQuery("");
+                                            }}
+                                          >
+                                            <div className="flex items-center justify-between gap-3">
+                                              <div className="text-sm font-extrabold truncate min-w-0">{name}</div>
+                                              <div className="text-[12px] font-black">{money(Number(price) || 0)}</div>
+                                            </div>
+                                          </button>
+                                        ))}
+                                    </div>
+                                  </div>
+                                ) : null}
+
                                 <div className="mt-2 grid grid-cols-12 gap-2 items-end">
                                   <div className="col-span-12">
                                     <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
