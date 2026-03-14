@@ -1485,7 +1485,23 @@ export default function CalendarPage() {
       const iso = String((d as any).installDate || (d as any).startDate || "").slice(0, 10);
       if (!iso) return;
       scheduledStartById.set(String((d as any).id), iso);
-      occupyRange(iso, (d as any).laborDays, "sold", asBool((d as any).allowSaturday), asBool((d as any).allowSunday));
+
+      // IMPORTANT: soldQueue already computed a collision-free schedule and an effective spanDays.
+      // Month view must use that spanDays instead of recomputing from laborDays, otherwise jobs can
+      // appear to overlap.
+      const span = Number((d as any).spanDays);
+      const spanDays = Number.isFinite(span) && span > 0 ? span : computeSpanDays((d as any).laborDays);
+      const allowSat = asBool((d as any).allowSaturday);
+      const allowSun = asBool((d as any).allowSunday);
+      const start = new Date(iso + "T12:00:00");
+      const seq = workdaySequenceForJob(start, spanDays, allowSat, allowSun);
+      const end = seq[seq.length - 1];
+      seq.forEach((day) => {
+        const k = toKey(day);
+        occupied.add(k);
+        const prev = occupiedEndByDay.get(k);
+        if (!prev || end.getTime() > prev.getTime()) occupiedEndByDay.set(k, end);
+      });
     });
 
     // Schedule non-sold capacity jobs AFTER sold queue so they can't backfill hold gaps.
@@ -1556,7 +1572,11 @@ export default function CalendarPage() {
           : iso
             ? new Date(iso + "T12:00:00")
             : null;
-      const spanDays = hasSched || status === "estimate" ? 1 : computeSpanDays((d as any).laborDays);
+      const spanDays = hasSched || status === "estimate"
+        ? 1
+        : (Number.isFinite(Number((d as any).spanDays)) && Number((d as any).spanDays) > 0
+          ? Number((d as any).spanDays)
+          : computeSpanDays((d as any).laborDays));
       const allowSat = asBool((d as any).allowSaturday);
       const allowSun = asBool((d as any).allowSunday);
       const end = dt
