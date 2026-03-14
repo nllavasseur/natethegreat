@@ -771,7 +771,6 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     display: flex !important;
     justify-content: center !important;
     align-items: flex-start !important;
-    padding-top: 0.20in !important;
   }
   *{
     filter:none !important;
@@ -785,7 +784,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     width: 8.1in;
     max-width: 100%;
     margin: 0;
-    padding: 0.60in 0.28in 0.12in;
+    padding: 0.12in 0.28in;
     background:#fff;
     box-shadow:none;
     height: auto;
