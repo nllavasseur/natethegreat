@@ -1701,7 +1701,9 @@ export default function CalendarPage() {
           return false;
         }
       })();
-      const locked = (j as any).queueLocked !== false;
+      const lockTs = Number((j as any).queueLockedAt);
+      const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
+      const locked = (j as any).queueLocked === true || hasLockTs;
       const dotColor = installColorMap.get(j.id) ?? colorForInstallId(j.id);
 
       const seqInfo = (() => {
@@ -2266,7 +2268,7 @@ export default function CalendarPage() {
                   const isHi = highlightQueueId === j.id;
                   const isCurrentQueueJob = idx === 0;
                   const isActiveForUi = isCurrentQueueJob && hasStarted;
-                  const canInteractLock = isActiveForUi;
+                  const canInteractLock = isCurrentQueueJob;
                   return (
                     <div
                       key={j.id}
@@ -2369,9 +2371,15 @@ export default function CalendarPage() {
                                   : "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.14)] hover:bg-[rgba(31,200,120,.18)]"
                                 : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50")
                             }
-                            title={isActiveForUi ? (locked ? "Active (locked)" : "Unlocked (rebases)") : "Locks once job starts"}
+                            title={
+                              isCurrentQueueJob
+                                ? locked
+                                  ? "Locked (anchored)"
+                                  : "Unlocked (can slide)"
+                                : "Only the #1 job can be locked"
+                            }
                           >
-                            {isActiveForUi ? (locked ? "Active" : "Unlocked") : "Lock"}
+                            {locked ? "Locked" : "Unlock"}
                           </button>
 
                           <button
