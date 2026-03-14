@@ -1288,6 +1288,8 @@ function EstimatesPageInner() {
   const [takeoffManualDraft, setTakeoffManualDraft] = useState(() => ({ desc: "", qty: "", unitPrice: "" }));
   const [takeoffManualMaterialPickerOpen, setTakeoffManualMaterialPickerOpen] = useState(false);
   const [takeoffManualMaterialPickerQuery, setTakeoffManualMaterialPickerQuery] = useState("");
+  const [takeoffManualDescSuggestOpen, setTakeoffManualDescSuggestOpen] = useState(false);
+  const takeoffManualDescSuggestCloseTimeoutRef = useRef<any>(null);
 
   const [takeoffPerPanelAddons, setTakeoffPerPanelAddons] = useState<
     Array<{ id: string; desc: string; qtyPerPanel: number; unitPrice: number }>
@@ -7675,11 +7677,77 @@ function EstimatesPageInner() {
                                 <div className="mt-2 grid grid-cols-12 gap-2 items-end">
                                   <div className="col-span-12">
                                     <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
-                                    <Input
-                                      value={takeoffManualDraft.desc}
-                                      onChange={(e) => setTakeoffManualDraft((p) => ({ ...p, desc: e.target.value }))}
-                                      placeholder="Description"
-                                    />
+                                    <div className="relative">
+                                      <Input
+                                        value={takeoffManualDraft.desc}
+                                        onChange={(e) => {
+                                          const next = e.target.value;
+                                          setTakeoffManualDraft((p) => ({ ...p, desc: next }));
+                                          if (takeoffManualDescSuggestCloseTimeoutRef.current) {
+                                            clearTimeout(takeoffManualDescSuggestCloseTimeoutRef.current);
+                                            takeoffManualDescSuggestCloseTimeoutRef.current = null;
+                                          }
+                                          setTakeoffManualDescSuggestOpen(Boolean(String(next || "").trim()));
+                                        }}
+                                        onFocus={() => {
+                                          if (takeoffManualDescSuggestCloseTimeoutRef.current) {
+                                            clearTimeout(takeoffManualDescSuggestCloseTimeoutRef.current);
+                                            takeoffManualDescSuggestCloseTimeoutRef.current = null;
+                                          }
+                                          setTakeoffManualDescSuggestOpen(Boolean(String(takeoffManualDraft.desc || "").trim()));
+                                        }}
+                                        onBlur={() => {
+                                          takeoffManualDescSuggestCloseTimeoutRef.current = setTimeout(() => {
+                                            setTakeoffManualDescSuggestOpen(false);
+                                          }, 140);
+                                        }}
+                                        placeholder="Description"
+                                      />
+
+                                      {takeoffManualDescSuggestOpen ? (
+                                        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-[220px] overflow-auto rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.40)] backdrop-blur">
+                                          {Object.entries(materialUnitPrices)
+                                            .filter(([k]) => {
+                                              const q = String(takeoffManualDraft.desc || "").trim().toLowerCase();
+                                              if (!q) return false;
+                                              return String(k || "").toLowerCase().includes(q);
+                                            })
+                                            .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+                                            .slice(0, 10)
+                                            .map(([name, price]) => (
+                                              <button
+                                                key={name}
+                                                type="button"
+                                                data-no-swipe="true"
+                                                className="w-full text-left px-3 py-2 border-b border-[rgba(255,255,255,.10)] hover:bg-[rgba(255,255,255,.08)]"
+                                                onMouseDown={(e) => {
+                                                  e.preventDefault();
+                                                }}
+                                                onClick={() => {
+                                                  const pickedName = String(name || "").trim();
+                                                  const pickedPrice = Number(price) || 0;
+                                                  setTakeoffManualDraft((p) => ({
+                                                    ...p,
+                                                    desc: pickedName,
+                                                    unitPrice: String(pickedPrice)
+                                                  }));
+                                                  setTakeoffManualDraft((p) => {
+                                                    const qty = String(p.qty || "").trim();
+                                                    if (qty) return p;
+                                                    return { ...p, qty: "1" };
+                                                  });
+                                                  setTakeoffManualDescSuggestOpen(false);
+                                                }}
+                                              >
+                                                <div className="flex items-center justify-between gap-3">
+                                                  <div className="text-sm font-extrabold truncate min-w-0">{name}</div>
+                                                  <div className="text-[12px] font-black">{money(Number(price) || 0)}</div>
+                                                </div>
+                                              </button>
+                                            ))}
+                                        </div>
+                                      ) : null}
+                                    </div>
                                   </div>
                                   <div className="col-span-4">
                                     <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
