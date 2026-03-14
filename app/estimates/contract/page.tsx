@@ -329,6 +329,7 @@ export default function EstimateContractPage() {
       const address = String((d as any)?.estimate?.projectAddress || "").trim();
       const style = String((d as any)?.estimate?.styleTitle || "").trim();
 
+      if (customer && estName) return `${customer}, (${estName})`;
       if (estName) return estName;
       return customer || address || style || "Estimate";
     } catch {
