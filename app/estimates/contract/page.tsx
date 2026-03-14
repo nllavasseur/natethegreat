@@ -699,7 +699,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:0 0 2px; line-height:1; }
 .contact{ text-align:right; font-size:9px; line-height:1.2; }
 .contactBold{ font-weight:800; }
-.rule{ height:2px; background:#000; opacity:.6; margin:2px 0; }
+.rule{ height:2px; background:#000; opacity:.6; margin:1px 0; }
 .submittedBlock{ text-align:center; font-size:9px; line-height:1.2; margin: 0 0 3px; }
 .submittedLabel{ font-weight:800; display:inline; margin-right:4px; }
 .submittedValue{ font-weight:600; }
@@ -791,10 +791,14 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     overflow: visible;
     zoom: 1;
     transform: scale(var(--vf-print-scale));
-    transform-origin: center;
+    transform-origin: top center;
     break-after: avoid;
     page-break-after: avoid;
   }
+
+  .topHeader{ gap: 2px; }
+  .headerImage{ height: 92px; }
+  .docTitleCentered{ margin: 0 0 1px; }
 }
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }
 
