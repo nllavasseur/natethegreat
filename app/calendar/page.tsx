@@ -1266,6 +1266,7 @@ export default function CalendarPage() {
       );
 
     const scheduledStartById = new Map<string, string>();
+    const effectiveSpanById = new Map<string, number>();
 
     const maxDate = (a: Date, b: Date) => (a.getTime() >= b.getTime() ? a : b);
 
@@ -1310,6 +1311,7 @@ export default function CalendarPage() {
         const iso = toKey(remainingSeq[0]);
 
         scheduledStartById.set(String((d as any).id), iso);
+        effectiveSpanById.set(String((d as any).id), remaining);
         remainingSeq.forEach((day) => {
           const k = toKey(day);
           occupied.add(k);
@@ -1343,6 +1345,7 @@ export default function CalendarPage() {
         if (!firstConflict) {
           const iso = toKey(seq[0]);
           scheduledStartById.set(String((d as any).id), iso);
+          effectiveSpanById.set(String((d as any).id), span);
           const end = seq[seq.length - 1];
           seq.forEach((day) => {
             const k = toKey(day);
@@ -1362,7 +1365,8 @@ export default function CalendarPage() {
       .map((d) => {
         const iso = scheduledStartById.get(String((d as any).id)) || "";
         const install = iso ? new Date(iso + "T12:00:00") : null;
-        const spanDays = computeSpanDays((d as any).laborDays);
+        const fallbackSpan = computeSpanDays((d as any).laborDays);
+        const spanDays = Math.max(1, Number(effectiveSpanById.get(String((d as any).id)) || fallbackSpan) || fallbackSpan);
         const allowSat = asBool((d as any).allowSaturday);
         const allowSun = asBool((d as any).allowSunday);
         const end = install ? workdaySequenceForJob(install, spanDays, allowSat, allowSun)[spanDays - 1] : null;
