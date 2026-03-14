@@ -787,6 +787,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     padding: 0in 0.28in;
     background:#fff;
     box-shadow:none;
+    position: relative;
     height: auto;
     overflow: visible;
     zoom: 1;
@@ -794,6 +795,19 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     transform-origin: top center;
     break-after: avoid;
     page-break-after: avoid;
+  }
+
+  /* iOS Print/PDF often ignores attempts to move the system page edge.
+     Draw an explicit border INSIDE the document so it is controllable. */
+  .page::before{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    bottom:0;
+    border:1px solid rgba(0,0,0,.55);
+    pointer-events:none;
   }
 
   .topHeader{ gap: 2px; }
