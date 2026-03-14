@@ -690,16 +690,16 @@ const PRINT_CSS = `
 :root{ --green:#244B2A; --brown:#8A5A2B; --text:#111; --light:#F4F4F4; --mid:#E6E6E6; --vf-print-scale:1; }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; background:#fff; }
-.page{ width: 8.5in; margin: 0 auto; padding: 0.60in 0.28in 0.14in; }
+.page{ width: 8.5in; margin: 0 auto; padding: 0.10in 0.28in 0.14in; }
 .controls{ padding:10px; display:flex; justify-content:center; }
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; font-weight:600; }
 .noPrint{ display:block; }
 .topHeader{ display:grid; grid-template-columns: 3.2in 1fr; align-items:start; gap:6px; }
-.headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:0; }
+.headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:-4px; }
 .docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:0 0 2px; line-height:1; }
 .contact{ text-align:right; font-size:9px; line-height:1.2; }
 .contactBold{ font-weight:800; }
-.rule{ height:2px; background:#000; opacity:.6; margin:1px 0; }
+.rule{ height:2px; background:#000; opacity:.6; margin:2px 0; }
 .submittedBlock{ text-align:center; font-size:9px; line-height:1.2; margin: 0 0 3px; }
 .submittedLabel{ font-weight:800; display:inline; margin-right:4px; }
 .submittedValue{ font-weight:600; }
@@ -757,7 +757,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   box-shadow: 0 12px 30px rgba(0,0,0,.35);
 }
 @media print{
-  @page{ size: letter; margin: 0in; }
+  @page{ size: letter; margin: 0.20in; }
   .noPrint{ display:none !important; }
   html, body{
     width: 100% !important;
@@ -770,7 +770,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     padding: 0 !important;
     display: flex !important;
     justify-content: center !important;
-    align-items: flex-start !important;
+    align-items: center !important;
   }
   *{
     filter:none !important;
@@ -783,22 +783,20 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     box-sizing: border-box;
     width: 8.1in;
     max-width: 100%;
-    margin: -0.15in 0 0;
-    padding: 0in 0.28in;
+    margin: 0;
+    padding:0.12in 0.28in;
     background:#fff;
     box-shadow:none;
     height: auto;
     overflow: visible;
     zoom: 1;
     transform: scale(var(--vf-print-scale));
-    transform-origin: top center;
+    transform-origin: center;
     break-after: avoid;
     page-break-after: avoid;
   }
 
-  .topHeader{ gap: 2px; }
-  .headerImage{ height: 92px; }
-  .docTitleCentered{ margin: 0 0 1px; }
+  .topHeader{ margin-top: 0.25in; }
 }
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }
 
@@ -810,7 +808,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     width: min(720px, calc(100vw - 48px));
     max-width: 720px;
     padding: 22px;
-    margin-top: 0;
+    margin-top: 8px;
     margin-bottom: 84px;
   }
 }
