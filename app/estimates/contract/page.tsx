@@ -695,9 +695,9 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; font-weight:600; }
 .noPrint{ display:block; }
 .topHeader{ display:grid; grid-template-columns: 3.2in 1fr; align-items:start; gap:6px; }
-.headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:0; }
+.headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:-4px; }
 .docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:0 0 2px; line-height:1; }
-.contact{ text-align:right; font-size:9px; line-height:1.2; }
+.contact{ text-align:right; font-size:9px; line-height:1.2; margin-top:-4px; }
 .contactBold{ font-weight:800; }
 .rule{ height:2px; background:#000; opacity:.6; margin:2px 0; }
 .submittedBlock{ text-align:center; font-size:9px; line-height:1.2; margin: 0 0 3px; }
