@@ -4099,7 +4099,7 @@ function EstimatesPageInner() {
       );
       const totalDoubleGates = Math.max(0, woodGateSegments.filter((s: any) => (s as any).gateType === "double").length);
 
-      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, meta?: { cardId?: string | null; shared?: boolean }) => {
+      const ensureQty = (name: string, unit: QuoteItem["unit"], qty: number, meta?: { cardId?: string | null; cardIds?: string[]; shared?: boolean }) => {
         const k = `${canonicalMaterialsMergeKey(name)}__${unit}`;
         if (qty <= 0) {
           merged.delete(k);
@@ -4110,7 +4110,11 @@ function EstimatesPageInner() {
           prev.qty = qty;
           prev.name = name;
           prev.unit = unit;
-          if (meta && Object.prototype.hasOwnProperty.call(meta, "cardId")) {
+          if (meta && Object.prototype.hasOwnProperty.call(meta, "cardIds")) {
+            const raw = Array.isArray(meta.cardIds) ? meta.cardIds : [];
+            const nextIds = raw.map((x) => String(x || "").trim()).filter((x) => Boolean(x));
+            (prev as any).__cardIds = Array.from(new Set(nextIds));
+          } else if (meta && Object.prototype.hasOwnProperty.call(meta, "cardId")) {
             const nextId = typeof meta.cardId === "string" ? meta.cardId : "";
             (prev as any).__cardIds = nextId ? [nextId] : [];
           }
@@ -4120,7 +4124,9 @@ function EstimatesPageInner() {
           prev.lineTotal = Math.round((Number(qty) || 0) * (Number(prev.unitPrice) || 0) * 100) / 100;
         } else {
           const unitPrice = getUnitPriceFromMap({ materialUnitPrices, name });
-          const nextId = typeof meta?.cardId === "string" ? meta.cardId : "";
+          const nextIds = Array.isArray(meta?.cardIds)
+            ? Array.from(new Set(meta.cardIds.map((x) => String(x || "").trim()).filter((x) => Boolean(x))))
+            : (typeof meta?.cardId === "string" ? [meta.cardId] : []);
           merged.set(k, {
             section: "materials",
             name,
@@ -4128,7 +4134,7 @@ function EstimatesPageInner() {
             unit,
             unitPrice,
             lineTotal: Math.round(qty * unitPrice * 100) / 100,
-            __cardIds: nextId ? [nextId] : [],
+            __cardIds: nextIds,
             __shared: Boolean(meta?.shared)
           } as any);
         }
@@ -4142,9 +4148,12 @@ function EstimatesPageInner() {
         ? "Cedar S4S Gate Framing"
         : "Rough Sawn Cedar Gate Framing";
 
-      ensureQty(selectedGateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, woodGateMeta);
+      const gateFramingMeta = resolvedWoodGateCardIds.length > 1
+        ? { cardIds: resolvedWoodGateCardIds, shared: false }
+        : woodGateMeta;
+      ensureQty(selectedGateFramingName, "ea", totalWalkGates * 5 + totalDoubleGates * 10, gateFramingMeta as any);
       // Prevent duplicates when railMaterial changes (or when takeoff has already added the other name).
-      ensureQty(otherGateFramingName, "ea", 0, woodGateMeta);
+      ensureQty(otherGateFramingName, "ea", 0, gateFramingMeta as any);
 
       ensureQty("Disposal", "ea", 1);
       ensureQty("Delivery", "ea", 1);
@@ -4154,14 +4163,23 @@ function EstimatesPageInner() {
       const feeOrder: Record<string, number> = { Disposal: 0, Delivery: 1, "Equipment Fees": 2 };
       const indexed = out.map((r, idx) => ({ r, idx }));
       indexed.sort((a, b) => {
-        const ai = feeOrder[a.r.name];
-        const bi = feeOrder[b.r.name];
-        const aIsFee = Number.isFinite(ai);
-        const bIsFee = Number.isFinite(bi);
+        const aName = String((a.r as any).name || "");
+        const bName = String((b.r as any).name || "");
         const aCardIds = Array.isArray((a.r as any).__cardIds) ? ((a.r as any).__cardIds as string[]) : [];
         const bCardIds = Array.isArray((b.r as any).__cardIds) ? ((b.r as any).__cardIds as string[]) : [];
         const aIsSharedMaterial = aCardIds.length > 1;
         const bIsSharedMaterial = bCardIds.length > 1;
+        const isGateFraming = (n: string) => /\bgate\s+framing\b/i.test(String(n || ""));
+        const isConcrete = (n: string) => /\bconcrete\b/i.test(String(n || ""));
+        const aIsSharedGateFraming = aIsSharedMaterial && isGateFraming(aName);
+        const bIsSharedGateFraming = bIsSharedMaterial && isGateFraming(bName);
+        if (aIsSharedGateFraming && isConcrete(bName)) return -1;
+        if (bIsSharedGateFraming && isConcrete(aName)) return 1;
+
+        const ai = feeOrder[a.r.name];
+        const bi = feeOrder[b.r.name];
+        const aIsFee = Number.isFinite(ai);
+        const bIsFee = Number.isFinite(bi);
 
         const group = (isSharedMaterial: boolean, isFee: boolean) => (isFee ? 2 : isSharedMaterial ? 1 : 0);
         const ag = group(aIsSharedMaterial, aIsFee);
