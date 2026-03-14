@@ -757,7 +757,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   box-shadow: 0 12px 30px rgba(0,0,0,.35);
 }
 @media print{
-  @page{ size: letter; margin: 0.10in; }
+  @page{ size: letter; margin: 0in; }
   .noPrint{ display:none !important; }
   html, body{
     width: 100% !important;
@@ -784,7 +784,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     width: 8.1in;
     max-width: 100%;
     margin: 0;
-    padding: 0.05in 0.28in;
+    padding: 0in 0.28in;
     background:#fff;
     box-shadow:none;
     height: auto;
