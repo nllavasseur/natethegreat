@@ -690,7 +690,7 @@ const PRINT_CSS = `
 :root{ --green:#244B2A; --brown:#8A5A2B; --text:#111; --light:#F4F4F4; --mid:#E6E6E6; --vf-print-scale:1; }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; background:#fff; }
-.page{ width: 8.5in; margin: 0 auto; padding: 0.45in 0.28in 0.14in; }
+.page{ width: 8.5in; margin: 0 auto; padding: 0.60in 0.28in 0.14in; }
 .controls{ padding:10px; display:flex; justify-content:center; }
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; font-weight:600; }
 .noPrint{ display:block; }
