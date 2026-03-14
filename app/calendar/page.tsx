@@ -1390,6 +1390,51 @@ export default function CalendarPage() {
       a.install.getTime() - b.install.getTime()
     );
 
+    // Final defensive pass: guarantee sold jobs never share a day.
+    // Even if earlier logic drifts, we always push later jobs forward until there is no collision.
+    const placedOccupied = new Set<string>();
+    const placedEndByDay = new Map<string, Date>();
+
+    // Seed with blocked days so sold jobs cannot overlap blocked capacity.
+    blockedDays.set.forEach((k) => {
+      placedOccupied.add(k);
+      const dt = new Date(k + "T12:00:00");
+      placedEndByDay.set(k, dt);
+    });
+
+    const resolveConflictStart = (start: Date, spanDays: number, allowSat: boolean, allowSun: boolean) => {
+      let candidate = start;
+      for (let guard = 0; guard < 366; guard++) {
+        const seq = workdaySequenceForJob(candidate, Math.max(1, spanDays), allowSat, allowSun);
+        const firstConflict = seq.find((day) => placedOccupied.has(toKey(day)));
+        if (!firstConflict) return { start: seq[0], end: seq[seq.length - 1], seq };
+        const conflictEnd = placedEndByDay.get(toKey(firstConflict)) || firstConflict;
+        candidate = nextWorkdayForJob(addDays(conflictEnd, 1), allowSat, allowSun);
+      }
+      const fallbackSeq = workdaySequenceForJob(candidate, Math.max(1, spanDays), allowSat, allowSun);
+      return { start: fallbackSeq[0], end: fallbackSeq[fallbackSeq.length - 1], seq: fallbackSeq };
+    };
+
+    sold.forEach((j) => {
+      const allowSat = asBool((j as any).allowSaturday);
+      const allowSun = asBool((j as any).allowSunday);
+      const spanDays = Math.max(1, Number((j as any).spanDays) || 1);
+      const proposed = (j as any).install instanceof Date ? ((j as any).install as Date) : new Date(String((j as any).installDate || "") + "T12:00:00");
+      const start = Number.isFinite(proposed.getTime()) ? proposed : today0;
+      const resolved = resolveConflictStart(start, spanDays, allowSat, allowSun);
+
+      (j as any).install = resolved.start;
+      (j as any).installDate = toKey(resolved.start);
+      (j as any).end = resolved.end;
+
+      resolved.seq.forEach((day) => {
+        const k = toKey(day);
+        placedOccupied.add(k);
+        const prev = placedEndByDay.get(k);
+        if (!prev || resolved.end.getTime() > prev.getTime()) placedEndByDay.set(k, resolved.end);
+      });
+    });
+
     return sold;
   }, [blockedDays.set, drafts, isNonWorkingDayForJob, nextWorkdayForJob, today0, workdaySequenceForJob]);
 
