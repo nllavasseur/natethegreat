@@ -4400,6 +4400,10 @@ function EstimatesPageInner() {
     const allowSaturday = typeof (existingSchedule as any)?.allowSaturday === "boolean" ? (existingSchedule as any).allowSaturday : undefined;
     const allowSunday = typeof (existingSchedule as any)?.allowSunday === "boolean" ? (existingSchedule as any).allowSunday : undefined;
     const calendarHidden = typeof (existingSchedule as any)?.calendarHidden === "boolean" ? (existingSchedule as any).calendarHidden : undefined;
+    const queueLocked = typeof (existingSchedule as any)?.queueLocked === "boolean" ? (existingSchedule as any).queueLocked : undefined;
+    const queueLockedAt = Number.isFinite(Number((existingSchedule as any)?.queueLockedAt))
+      ? Number((existingSchedule as any).queueLockedAt)
+      : undefined;
     const originalLaborDays = Number.isFinite(Number((existingSchedule as any)?.originalLaborDays))
       ? Number((existingSchedule as any).originalLaborDays)
       : undefined;
@@ -4475,6 +4479,8 @@ function EstimatesPageInner() {
       allowSunday,
       calendarHidden,
       queueRank,
+      queueLocked,
+      queueLockedAt,
       originalLaborDays,
       updatedAt: Date.now()
     };
