@@ -795,6 +795,9 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     break-after: avoid;
     page-break-after: avoid;
   }
+
+  .topHeader{ gap:4px; }
+  .headerImage{ height:108px; }
 }
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }
 
