@@ -6,6 +6,7 @@ import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, up
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
 import {
+  adjustLaborDays as adjustLaborDaysPipeline,
   moveSoldJobRelative as moveSoldJobRelativePipeline,
   moveSoldJobToPosition as moveSoldJobToPositionPipeline,
   resetLaborDays as resetLaborDaysPipeline,
