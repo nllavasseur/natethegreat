@@ -3,7 +3,8 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { money } from "@/lib/money";
-import { fetchDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchDraft } from "@/lib/draftsStore";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { computeMaterialsAndExpensesTotal } from "@/lib/totals";
 import type { QuoteItem } from "@/lib/types";
 
@@ -320,6 +321,7 @@ export default function EstimateContractPage() {
   const pageRef = React.useRef<HTMLElement | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
   const [embed, setEmbed] = React.useState(false);
+  const [draftId, setDraftId] = React.useState<string>("");
 
   const computeDocTitle = React.useCallback((d: ContractData | null) => {
     try {
@@ -338,6 +340,99 @@ export default function EstimateContractPage() {
   }, []);
 
   React.useEffect(() => {
+    if (!draftId) return;
+    let cancelled = false;
+
+    const refresh = async () => {
+      try {
+        const remote = await fetchDraft({ id: draftId });
+        if (cancelled) return;
+        if (remote.ok && remote.draft) {
+          if ((remote.draft as any).contract) {
+            const c = (remote.draft as any).contract as ContractData;
+            const estName = String(((remote.draft as any)?.title ?? (remote.draft as any)?.estimateName ?? (remote.draft as any)?.name ?? "") || "").trim();
+            if (estName && !String((c as any)?.estimate?.name || "").trim()) {
+              setData({
+                ...(c as any),
+                estimate: {
+                  ...((c as any).estimate || {}),
+                  name: estName
+                }
+              } as any);
+            } else {
+              setData(c);
+            }
+            return;
+          }
+          setData(buildContractFromDraft(draftId, remote.draft));
+        }
+      } catch {
+      }
+    };
+
+    const debouncedRefresh = (() => {
+      let t: any = null;
+      return () => {
+        try {
+          if (t) window.clearTimeout(t);
+          t = window.setTimeout(() => {
+            if (cancelled) return;
+            void refresh();
+          }, 150);
+        } catch {
+          if (!cancelled) void refresh();
+        }
+      };
+    })();
+
+    let realtimeChannel: any = null;
+    try {
+      if (supabaseConfigured) {
+        realtimeChannel = supabase
+          .channel(`vf-contract-${draftId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "drafts",
+              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID},draft_id=eq.${draftId}`
+            },
+            () => debouncedRefresh()
+          )
+          .subscribe();
+      }
+    } catch {
+      realtimeChannel = null;
+    }
+
+    const onVisibility = () => {
+      try {
+        if (document.visibilityState === "visible") debouncedRefresh();
+      } catch {
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const pollId = window.setInterval(() => {
+      try {
+        if (document.visibilityState === "visible") debouncedRefresh();
+      } catch {
+      }
+    }, 30000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      document.removeEventListener("visibilitychange", onVisibility);
+      try {
+        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      } catch {
+      }
+    };
+  }, [draftId]);
+
+  React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
@@ -349,7 +444,7 @@ export default function EstimateContractPage() {
           setEmbed(false);
         }
 
-        const draftId = (() => {
+        const nextDraftId = (() => {
           try {
             const q = new URLSearchParams(window.location.search);
             return String(q.get("draft") || "").trim();
@@ -357,8 +452,9 @@ export default function EstimateContractPage() {
             return "";
           }
         })();
-        if (draftId) {
-          const remote = await fetchDraft({ id: draftId });
+        if (!cancelled) setDraftId(nextDraftId);
+        if (nextDraftId) {
+          const remote = await fetchDraft({ id: nextDraftId });
           if (!cancelled && remote.ok && remote.draft) {
             if ((remote.draft as any).contract) {
               const c = (remote.draft as any).contract as ContractData;
@@ -376,14 +472,14 @@ export default function EstimateContractPage() {
               }
               return;
             }
-            setData(buildContractFromDraft(draftId, remote.draft));
+            setData(buildContractFromDraft(nextDraftId, remote.draft));
             return;
           }
 
           // Fallback: local-only draft (not in Supabase) or offline.
           try {
             const store = readDraftStore();
-            const local = store?.[draftId];
+            const local = store?.[nextDraftId];
             if (!cancelled && local) {
               if ((local as any).contract) {
                 const c = (local as any).contract as ContractData;
@@ -401,7 +497,7 @@ export default function EstimateContractPage() {
                 }
                 return;
               }
-              setData(buildContractFromDraft(draftId, local));
+              setData(buildContractFromDraft(nextDraftId, local));
               return;
             }
           } catch {
