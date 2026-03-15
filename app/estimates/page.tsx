@@ -10684,7 +10684,7 @@ function EstimatesPageInner() {
                         </div>
                       ) : null}
 
-                      {String(selectedStyle?.name || "").trim().toLowerCase() !== "fence builder" ? (
+                      {String(selectedStyle?.name || "").trim().toLowerCase() !== "fence builder" && selectedStyleKind !== "wood_split_rail" ? (
                       <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                         <div className="text-[11px] text-[var(--muted)] mb-2">Posts</div>
                         <div className="grid grid-cols-3 gap-3">
