@@ -162,7 +162,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     ? round2(persistedTotal)
     : round2(materialsAndExpensesDiscounted + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
 
-  const estimateName = String((draft as any)?.title || "").trim();
+  const estimateName = String(((draft as any)?.title ?? (draft as any)?.estimateName ?? (draft as any)?.name ?? "") || "").trim();
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
   const email = String(draft?.email || "");
@@ -361,7 +361,19 @@ export default function EstimateContractPage() {
           const remote = await fetchDraft({ id: draftId });
           if (!cancelled && remote.ok && remote.draft) {
             if ((remote.draft as any).contract) {
-              setData((remote.draft as any).contract as ContractData);
+              const c = (remote.draft as any).contract as ContractData;
+              const estName = String(((remote.draft as any)?.title ?? (remote.draft as any)?.estimateName ?? (remote.draft as any)?.name ?? "") || "").trim();
+              if (estName && !String((c as any)?.estimate?.name || "").trim()) {
+                setData({
+                  ...(c as any),
+                  estimate: {
+                    ...((c as any).estimate || {}),
+                    name: estName
+                  }
+                } as any);
+              } else {
+                setData(c);
+              }
               return;
             }
             setData(buildContractFromDraft(draftId, remote.draft));
@@ -374,7 +386,19 @@ export default function EstimateContractPage() {
             const local = store?.[draftId];
             if (!cancelled && local) {
               if ((local as any).contract) {
-                setData((local as any).contract as ContractData);
+                const c = (local as any).contract as ContractData;
+                const estName = String(((local as any)?.title ?? (local as any)?.estimateName ?? (local as any)?.name ?? "") || "").trim();
+                if (estName && !String((c as any)?.estimate?.name || "").trim()) {
+                  setData({
+                    ...(c as any),
+                    estimate: {
+                      ...((c as any).estimate || {}),
+                      name: estName
+                    }
+                  } as any);
+                } else {
+                  setData(c);
+                }
                 return;
               }
               setData(buildContractFromDraft(draftId, local));
