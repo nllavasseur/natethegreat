@@ -6,9 +6,10 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { deleteDraftRemote, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, deleteDraftRemote, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import type { QuoteItem } from "@/lib/types";
 
 type DraftEntry = {
@@ -637,14 +638,82 @@ export default function QuotesPage() {
       }
     };
 
+    const debouncedLoad = (() => {
+      let t: any = null;
+      return () => {
+        try {
+          if (t) window.clearTimeout(t);
+          t = window.setTimeout(() => {
+            if (cancelled) return;
+            void load();
+          }, 150);
+        } catch {
+          if (!cancelled) void load();
+        }
+      };
+    })();
+
     void load();
 
+    let realtimeChannel: any = null;
+    try {
+      if (supabaseConfigured) {
+        realtimeChannel = supabase
+          .channel("vf-quotes")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "quotes_entries",
+              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID}`
+            },
+            () => debouncedLoad()
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "calendar_entries",
+              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID}`
+            },
+            () => debouncedLoad()
+          )
+          .subscribe();
+      }
+    } catch {
+      realtimeChannel = null;
+    }
+
+    const onVisibility = () => {
+      try {
+        if (document.visibilityState === "visible") debouncedLoad();
+      } catch {
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const pollId = window.setInterval(() => {
+      try {
+        if (document.visibilityState === "visible") debouncedLoad();
+      } catch {
+      }
+    }, 30000);
+
     const onChanged = () => {
-      void load();
+      debouncedLoad();
     };
     window.addEventListener("vf-drafts-changed", onChanged);
+
     return () => {
       cancelled = true;
+      window.clearInterval(pollId);
+      document.removeEventListener("visibilitychange", onVisibility);
+      try {
+        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      } catch {
+      }
       window.removeEventListener("vf-drafts-changed", onChanged);
     };
   }, []);

@@ -2,11 +2,10 @@
 
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
-import { fetchCalendarEntries, fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
-import { supabaseConfigured } from "@/lib/supabaseClient";
+import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
 import {
-  adjustLaborDays as adjustLaborDaysPipeline,
   moveSoldJobRelative as moveSoldJobRelativePipeline,
   moveSoldJobToPosition as moveSoldJobToPositionPipeline,
   resetLaborDays as resetLaborDaysPipeline,
@@ -865,6 +864,43 @@ export default function CalendarPage() {
       refreshDebounceRef.current = window.setTimeout(() => refresh(), 150);
     };
 
+    let realtimeChannel: any = null;
+    try {
+      if (supabaseConfigured) {
+        realtimeChannel = supabase
+          .channel(`vf-calendar-${windowKey}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "calendar_entries",
+              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID}`
+            },
+            () => debouncedRefresh()
+          )
+          .subscribe();
+      }
+    } catch {
+      realtimeChannel = null;
+    }
+
+    const onVisibility = () => {
+      try {
+        if (document.visibilityState === "visible") debouncedRefresh();
+      } catch {
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const pollId = window.setInterval(() => {
+      try {
+        if (document.visibilityState === "visible") debouncedRefresh();
+      } catch {
+      }
+    }, 30000);
+
     const onStorage = (e: StorageEvent) => {
       if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1" && e.key !== "vf_calendar_tasks_v1") return;
       debouncedRefresh();
@@ -876,6 +912,12 @@ export default function CalendarPage() {
     return () => {
       cancelled = true;
       if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
+      window.clearInterval(pollId);
+      document.removeEventListener("visibilitychange", onVisibility);
+      try {
+        if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      } catch {
+      }
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("vf-drafts-changed", onDraftsChanged as any);
     };
