@@ -335,7 +335,7 @@ export async function fetchCalendarEntries(params: {
           .from("calendar_entries")
           .select(selectCols)
           .eq("workspace_id", workspaceId)
-          .in("status", ["estimate", "pending", "sold"])
+          .in("status", ["estimate", "pending", "sold", "complete"])
           .gte("scheduled_iso", params.windowStartIso)
           .lte("scheduled_iso", params.windowEndIso),
         supabase
