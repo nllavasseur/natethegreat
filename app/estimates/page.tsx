@@ -3326,7 +3326,9 @@ function EstimatesPageInner() {
       const splitRailEndPostName = materialsDetails.splitRailMaterial === "Cedar tone"
         ? `CedarTone split rail end post (${railCount} rail)`
         : `Pressure treated split rail end post (${railCount} rail)`;
-      const splitRailGatePostName = splitRailEndPostName;
+      const splitRailGatePostName = materialsDetails.splitRailMaterial === "Cedar tone"
+        ? `CedarTone split rail gate post (${railCount} rail)`
+        : `Pressure treated split rail gate post (${railCount} rail)`;
 
       const splitRailPostsPriceKey = materialsDetails.splitRailMaterial === "Cedar tone"
         ? null
