@@ -166,6 +166,72 @@ export default function QuotesPage() {
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
+  const orderRef = useRef<Record<string, number>>({});
+  const orderMaxRef = useRef(0);
+
+  const applyStableOrder = (list: DraftEntry[]) => {
+    const arr = Array.isArray(list) ? list : [];
+
+    if (typeof window !== "undefined" && Object.keys(orderRef.current || {}).length === 0) {
+      try {
+        const raw = window.sessionStorage.getItem("vf_quotes_order_v1");
+        const ids = raw ? (JSON.parse(raw) as any) : null;
+        if (Array.isArray(ids)) {
+          const nextMap: Record<string, number> = {};
+          let max = 0;
+          for (const idRaw of ids) {
+            const id = String(idRaw || "").trim();
+            if (!id) continue;
+            nextMap[id] = max;
+            max++;
+          }
+          orderRef.current = nextMap;
+          orderMaxRef.current = max;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const map = orderRef.current || {};
+    let max = orderMaxRef.current || 0;
+    let changed = false;
+
+    for (const d of arr) {
+      const id = String((d as any)?.id || "");
+      if (!id) continue;
+      if (map[id] == null) {
+        map[id] = max;
+        max++;
+        changed = true;
+      }
+    }
+
+    orderRef.current = map;
+    orderMaxRef.current = max;
+
+    if (changed && typeof window !== "undefined") {
+      try {
+        const ids = Object.entries(map)
+          .sort((a, b) => (a[1] ?? 0) - (b[1] ?? 0))
+          .map(([id]) => id);
+        window.sessionStorage.setItem("vf_quotes_order_v1", JSON.stringify(ids));
+      } catch {
+        // ignore
+      }
+    }
+
+    return [...arr].sort((a, b) => {
+      const ai = map[String((a as any)?.id || "")] ?? Number.MAX_SAFE_INTEGER;
+      const bi = map[String((b as any)?.id || "")] ?? Number.MAX_SAFE_INTEGER;
+      return ai - bi;
+    });
+  };
+
+  const setDraftsStable = (list: DraftEntry[]) => {
+    setDrafts(applyStableOrder(list));
+  };
+
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
       const sid = String(id);
@@ -202,17 +268,19 @@ export default function QuotesPage() {
         }
 
         setDrafts((prev) =>
-          prev.map((d) =>
-            d.id === sid
-              ? {
-                  ...d,
-                  scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-                  updatedAt: Date.now(),
-                  calendarHidden: false,
-                  ...(nextStatus ? { status: nextStatus as any } : {})
-                }
-              : d
-          )
+          applyStableOrder(
+            prev.map((d) =>
+              d.id === sid
+                ? {
+                    ...d,
+                    scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+                    updatedAt: Date.now(),
+                    calendarHidden: false,
+                    ...(nextStatus ? { status: nextStatus as any } : {})
+                  }
+                : d
+            ) as any
+          ) as any
         );
         notifyDraftsChanged();
       })();
@@ -250,15 +318,17 @@ export default function QuotesPage() {
         }
 
         setDrafts((prev) =>
-          prev.map((d) =>
-            d.id === sid
-              ? {
-                  ...d,
-                  estimateAssignee: assignee ?? undefined,
-                  updatedAt: Date.now()
-                }
-              : d
-          )
+          applyStableOrder(
+            prev.map((d) =>
+              d.id === sid
+                ? {
+                    ...d,
+                    estimateAssignee: assignee ?? undefined,
+                    updatedAt: Date.now()
+                  }
+                : d
+            ) as any
+          ) as any
         );
         notifyDraftsChanged();
       })();
@@ -420,7 +490,7 @@ export default function QuotesPage() {
       try {
         const cached = readQuotesDraftsCache();
         if (!cancelled && Array.isArray(cached) && cached.length) {
-          setDrafts(cached.filter((d) => !tombstones[String((d as any)?.id || "")]));
+          setDraftsStable(cached.filter((d) => !tombstones[String((d as any)?.id || "")]));
         }
       } catch {
       }
@@ -432,7 +502,7 @@ export default function QuotesPage() {
           const localList = Object.values(localStore)
             .map((d) => toQuotesDraftLite({ ...(d as any) } as any))
             .filter((d) => !tombstones[String((d as any)?.id || "")]);
-          if (!cancelled) setDrafts(localList);
+          if (!cancelled) setDraftsStable(localList);
           try {
             writeQuotesDraftsCache(localList);
           } catch {
@@ -495,7 +565,7 @@ export default function QuotesPage() {
       const mergedLite = (Array.isArray(merged) ? merged : [])
         .filter((d) => !tombstones[String((d as any)?.id || "")])
         .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
-      if (!cancelled) setDrafts(mergedLite);
+      if (!cancelled) setDraftsStable(mergedLite);
       try {
         writeQuotesDraftsCache(mergedLite);
       } catch {
@@ -563,7 +633,7 @@ export default function QuotesPage() {
                   writeQuotesDraftsCache(next as any);
                 } catch {
                 }
-                return next as any;
+                return applyStableOrder(next as any) as any;
               });
             } catch {
             }
@@ -607,7 +677,7 @@ export default function QuotesPage() {
             } catch {
             }
 
-            return next as any;
+            return applyStableOrder(next as any) as any;
           });
         }
       } catch {
@@ -658,7 +728,7 @@ export default function QuotesPage() {
               .filter((d) => !tombstones[String((d as any)?.id || "")])
               .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
 
-            if (!cancelled) setDrafts(mergedAllLite);
+            if (!cancelled) setDraftsStable(mergedAllLite);
             try {
               writeQuotesDraftsCache(mergedAllLite);
             } catch {
@@ -699,7 +769,7 @@ export default function QuotesPage() {
                   } catch {
                   }
 
-                  return next as any;
+                  return applyStableOrder(next as any) as any;
                 });
               }
             } catch {
@@ -812,7 +882,8 @@ export default function QuotesPage() {
       if (!existing) return;
       void setStatusFromQuotes({ id, status, draftSnapshot: existing as any });
       setDrafts((prev) =>
-        prev.map((d) =>
+        applyStableOrder(
+          prev.map((d) =>
           d.id === id
             ? {
                 ...d,
@@ -822,6 +893,7 @@ export default function QuotesPage() {
                 installDate: status === "void" ? undefined : d.installDate
               }
             : d
+          )
         )
       );
     } catch {
@@ -864,7 +936,7 @@ export default function QuotesPage() {
           writeQuotesDraftsCache(next as any);
         } catch {
         }
-        return next as any;
+        return applyStableOrder(next as any) as any;
       });
       setConfirmDeleteId(null);
       setDeletingId(null);
@@ -885,7 +957,7 @@ export default function QuotesPage() {
       } catch {
       }
       setDrafts((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, startDate, installDate: startDate, calendarHidden: false } : d))
+        applyStableOrder(prev.map((d) => (d.id === id ? { ...d, startDate, installDate: startDate, calendarHidden: false } : d)) as any) as any
       );
       notifyDraftsChanged();
     } catch {
@@ -903,7 +975,9 @@ export default function QuotesPage() {
         void upsertDraft({ id, data: store[id] });
       } catch {
       }
-      setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, startDate: undefined, installDate: undefined, calendarHidden: true } : d)));
+      setDrafts((prev) =>
+        applyStableOrder(prev.map((d) => (d.id === id ? { ...d, startDate: undefined, installDate: undefined, calendarHidden: true } : d)) as any) as any
+      );
       notifyDraftsChanged();
     } catch {
       // ignore
@@ -1168,41 +1242,7 @@ export default function QuotesPage() {
       });
     })();
 
-    if (statusFilter === "sold") {
-      const indexed = withSearch.map((c, idx) => ({ c, idx }));
-      indexed.sort((a, b) => {
-        const ar = Number((a.c as any).queueRank ?? Number.POSITIVE_INFINITY);
-        const br = Number((b.c as any).queueRank ?? Number.POSITIVE_INFINITY);
-        const aRank = Number.isFinite(ar) ? ar : Number.POSITIVE_INFINITY;
-        const bRank = Number.isFinite(br) ? br : Number.POSITIVE_INFINITY;
-        if (aRank !== bRank) return aRank - bRank;
-
-        const au = Number((a.c as any).updatedAt ?? (a.c as any).createdAt ?? 0);
-        const bu = Number((b.c as any).updatedAt ?? (b.c as any).createdAt ?? 0);
-        const aTime = Number.isFinite(au) ? au : 0;
-        const bTime = Number.isFinite(bu) ? bu : 0;
-        if (aTime !== bTime) return aTime - bTime;
-
-        return a.idx - b.idx;
-      });
-      return indexed.map((x) => x.c);
-    }
-
-    if (statusFilter !== "estimate") return withSearch;
-
-    const indexed = withSearch.map((c, idx) => ({ c, idx }));
-    const parseMs = (iso: string) => {
-      if (!iso) return Number.POSITIVE_INFINITY;
-      const ms = Date.parse(iso);
-      return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
-    };
-    indexed.sort((a, b) => {
-      const am = parseMs(String((a.c as any).scheduledAt || ""));
-      const bm = parseMs(String((b.c as any).scheduledAt || ""));
-      if (am !== bm) return am - bm;
-      return a.idx - b.idx;
-    });
-    return indexed.map((x) => x.c);
+    return withSearch;
   }, [cards, completedSearchQuery, searchQuery, statusFilter]);
 
   const customerStacks = useMemo(() => {
