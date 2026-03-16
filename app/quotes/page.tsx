@@ -501,6 +501,77 @@ export default function QuotesPage() {
       }
 
       try {
+        const isSparse = (d: any) => {
+          try {
+            const status = String(d?.status ?? "");
+            const hasCustomer = String(d?.customerName || "").trim() !== "";
+            const hasTitle = String(d?.title || "").trim() !== "";
+            const hasAddress = String(d?.projectAddress || "").trim() !== "";
+            const hasItems = Array.isArray(d?.items) && d.items.length > 0;
+            const hasTakeoff = Array.isArray(d?.takeoffMaterials) && d.takeoffMaterials.length > 0;
+            const hasTotals = d?.totals != null;
+            if (hasCustomer || hasTitle || hasAddress) return false;
+            if (hasItems || hasTakeoff || hasTotals) return false;
+            return status === "pending" || status === "estimate" || status === "sold" || status === "complete";
+          } catch {
+            return false;
+          }
+        };
+
+        const sparseIds = mergedLite
+          .filter((d: any) => isSparse(d))
+          .map((d: any) => String(d?.id || ""))
+          .filter(Boolean)
+          .slice(0, 25);
+
+        if (sparseIds.length) {
+          void (async () => {
+            try {
+              const results = await Promise.all(
+                sparseIds.map(async (id) => {
+                  try {
+                    const res = await withTimeout(fetchDraft({ id }) as any, 3500);
+                    if (!(res as any)?.ok || !(res as any)?.draft) return null;
+                    return { id, draft: (res as any).draft as any };
+                  } catch {
+                    return null;
+                  }
+                })
+              );
+
+              const hydrated = results.filter(Boolean) as Array<{ id: string; draft: any }>;
+              if (!hydrated.length || cancelled) return;
+
+              try {
+                const store = readDraftStore();
+                for (const h of hydrated) {
+                  store[h.id] = { ...(store[h.id] || {}), ...(h.draft || {}) };
+                }
+                window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+              } catch {
+              }
+
+              setDrafts((prev) => {
+                const byIdHydrated = new Map(hydrated.map((h) => [h.id, h.draft] as const));
+                const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
+                  const hd = byIdHydrated.get(String(d?.id || ""));
+                  if (!hd) return d;
+                  return toQuotesDraftLite({ ...(d as any), ...(hd as any) } as any);
+                });
+                try {
+                  writeQuotesDraftsCache(next as any);
+                } catch {
+                }
+                return next as any;
+              });
+            } catch {
+            }
+          })();
+        }
+      } catch {
+      }
+
+      try {
         const ids = mergedLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
         const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
         if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
