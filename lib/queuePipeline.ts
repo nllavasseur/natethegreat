@@ -41,6 +41,25 @@ function notifyDraftsChanged() {
   }
 }
 
+function writeQuotesStatusCache(id: string, status: QueueDraft["status"], ts: number) {
+  if (typeof window === "undefined") return;
+  try {
+    const key = "vf_quotes_status_cache_v1";
+    const raw = window.localStorage.getItem(key);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    const map = parsed && typeof parsed === "object" ? parsed : {};
+    const sid = String(id);
+    const prev = map[sid];
+    const prevTs = Number(prev?.ts || 0);
+    if (!prev || ts >= prevTs) {
+      map[sid] = { status, ts };
+      window.localStorage.setItem(key, JSON.stringify(map));
+    }
+  } catch {
+    // ignore
+  }
+}
+
 function readStore(): Record<string, QueueDraft> {
   if (typeof window === "undefined") return {};
   try {
@@ -106,6 +125,8 @@ export async function setStatusFromQuotes(params: {
   const prev = ensureStoreEntry(store, sid, params.draftSnapshot);
   const prevStatus = String((prev as any)?.status || "") as any;
 
+  const ts = now();
+
   const next: QueueDraft = {
     ...prev,
     id: sid,
@@ -116,7 +137,7 @@ export async function setStatusFromQuotes(params: {
     startDate: status === "sold" || status === "void" ? undefined : (prev as any).startDate,
     installDate: status === "sold" || status === "void" ? undefined : (prev as any).installDate,
     queueLockedAt: status === "sold" ? (prev as any).queueLockedAt : undefined,
-    updatedAt: now()
+    updatedAt: ts
   };
 
   // Quotes is the only author of SOLD + enqueue.
@@ -129,6 +150,7 @@ export async function setStatusFromQuotes(params: {
 
   store[sid] = next;
   writeStore(store);
+  writeQuotesStatusCache(sid, status, ts);
   await safeUpsert(sid, next);
   notifyDraftsChanged();
   return { ok: true as const, draft: next };
