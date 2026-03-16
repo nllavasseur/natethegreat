@@ -923,15 +923,22 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }
 
 @media screen{
-  body{ background:#fff; }
+  html, body{ height: 100%; }
+  body{
+    background:#fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px 0 140px;
+  }
   .page{
     box-shadow: 0 10px 30px rgba(0,0,0,.12);
     background:#fff;
     width: min(720px, calc(100vw - 48px));
     max-width: 720px;
     padding: 22px;
-    margin-top: 8px;
-    margin-bottom: 84px;
+    margin: 0;
   }
 }
 `;
