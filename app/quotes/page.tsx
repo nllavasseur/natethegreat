@@ -58,6 +58,7 @@ type DraftEntry = {
 const QUOTES_DRAFTS_CACHE_KEY = "vf_quotes_drafts_cache_v1";
 const QUOTES_DELETED_TOMBSTONES_KEY = "vf_quotes_deleted_tombstones_v1";
 const QUOTES_STATUS_CACHE_KEY = "vf_quotes_status_cache_v1";
+const QUOTES_REMOTE_IDS_CACHE_KEY = "vf_quotes_remote_ids_cache_v1";
 
 function readQuotesStatusCache(): Record<string, { status: DraftEntry["status"]; ts: number }> {
   if (typeof window === "undefined") return {};
@@ -75,6 +76,28 @@ function writeQuotesStatusCache(next: Record<string, { status: DraftEntry["statu
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(QUOTES_STATUS_CACHE_KEY, JSON.stringify(next || {}));
+  } catch {
+  }
+}
+
+function readQuotesRemoteIdsCache(): { ids: string[]; updatedAt: number } {
+  if (typeof window === "undefined") return { ids: [], updatedAt: 0 };
+  try {
+    const raw = window.localStorage.getItem(QUOTES_REMOTE_IDS_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    const ids = Array.isArray(parsed?.ids) ? (parsed.ids as any[]).map((x) => String(x || "").trim()).filter(Boolean) : [];
+    const updatedAt = Number(parsed?.updatedAt) || 0;
+    return { ids, updatedAt: Number.isFinite(updatedAt) ? updatedAt : 0 };
+  } catch {
+    return { ids: [], updatedAt: 0 };
+  }
+}
+
+function writeQuotesRemoteIdsCache(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const cleaned = (Array.isArray(ids) ? ids : []).map((x) => String(x || "").trim()).filter(Boolean);
+    window.localStorage.setItem(QUOTES_REMOTE_IDS_CACHE_KEY, JSON.stringify({ updatedAt: Date.now(), ids: cleaned }));
   } catch {
   }
 }
@@ -509,6 +532,26 @@ export default function QuotesPage() {
     const load = async () => {
       const tombstones = readDeletedQuoteTombstones();
       const statusCache = readQuotesStatusCache();
+      const remoteIdsCache = readQuotesRemoteIdsCache();
+      const remoteIdsSet = new Set((remoteIdsCache.ids || []).map((x) => String(x || "").trim()).filter(Boolean));
+      const allowLocalOnlyMs = 10 * 60 * 1000;
+
+      const filterGhosts = (list: DraftEntry[]) => {
+        const arr = Array.isArray(list) ? list : [];
+        // If we have no knowledge of remote IDs yet, do not filter aggressively.
+        if (!remoteIdsSet.size) return arr;
+        const now = Date.now();
+        return arr.filter((d: any) => {
+          const id = String(d?.id || "");
+          if (!id) return false;
+          if (remoteIdsSet.has(id)) return true;
+          const createdAt = Number(d?.createdAt) || 0;
+          const updatedAt = Number(d?.updatedAt) || 0;
+          const t = Math.max(Number.isFinite(createdAt) ? createdAt : 0, Number.isFinite(updatedAt) ? updatedAt : 0);
+          return t > 0 && now - t <= allowLocalOnlyMs;
+        });
+      };
+
       const applyStatusCache = (list: DraftEntry[]) => {
         const arr = Array.isArray(list) ? list : [];
         return arr.map((d) => {
@@ -524,7 +567,7 @@ export default function QuotesPage() {
       try {
         const cached = readQuotesDraftsCache();
         if (!cancelled && Array.isArray(cached) && cached.length) {
-          setDraftsStable(applyStatusCache(cached.filter((d) => !tombstones[String((d as any)?.id || "")])));
+          setDraftsStable(filterGhosts(applyStatusCache(cached.filter((d) => !tombstones[String((d as any)?.id || "")]))));
         }
       } catch {
       }
@@ -536,7 +579,7 @@ export default function QuotesPage() {
           const localList = Object.values(localStore)
             .map((d) => toQuotesDraftLite({ ...(d as any) } as any))
             .filter((d) => !tombstones[String((d as any)?.id || "")]);
-          if (!cancelled) setDraftsStable(applyStatusCache(localList));
+          if (!cancelled) setDraftsStable(filterGhosts(applyStatusCache(localList)));
           try {
             writeQuotesDraftsCache(localList);
           } catch {
@@ -602,6 +645,11 @@ export default function QuotesPage() {
       if (!cancelled) setDraftsStable(mergedLite);
       try {
         writeQuotesDraftsCache(mergedLite);
+      } catch {
+      }
+
+      try {
+        writeQuotesRemoteIdsCache(mergedLite.map((d: any) => String(d?.id || "")).filter(Boolean));
       } catch {
       }
 
@@ -780,6 +828,11 @@ export default function QuotesPage() {
             if (!cancelled) setDraftsStable(mergedAllLite);
             try {
               writeQuotesDraftsCache(mergedAllLite);
+            } catch {
+            }
+
+            try {
+              writeQuotesRemoteIdsCache(mergedAllLite.map((d: any) => String(d?.id || "")).filter(Boolean));
             } catch {
             }
 
