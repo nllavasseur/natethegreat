@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Vasseur Estimator",
     short_name: "Estimator",
     description: "Vasseur Estimator",
-    start_url: "/estimates",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     background_color: "#9C621F",

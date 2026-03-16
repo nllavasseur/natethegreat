@@ -141,6 +141,131 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
   const headerRef = React.useRef<HTMLDivElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
 
+  const prevPathRef = React.useRef<string>("");
+  const restorePathRef = React.useRef<string>("");
+
+  const isRestorablePath = React.useCallback((p: string) => {
+    if (!p) return false;
+    if (p.startsWith("/auth")) return false;
+    if (p.startsWith("/estimates/contract")) return false;
+    if (p.startsWith("/quotes/print")) return false;
+    return true;
+  }, []);
+
+  const saveScrollForPath = React.useCallback((p: string) => {
+    if (typeof window === "undefined") return;
+    if (!isRestorablePath(p)) return;
+    try {
+      window.sessionStorage.setItem(`vf_scroll_y:${p}`, String(Math.max(0, Math.round(window.scrollY || 0))));
+    } catch {
+      // ignore
+    }
+  }, [isRestorablePath]);
+
+  const restoreScrollForPath = React.useCallback((p: string) => {
+    if (typeof window === "undefined") return;
+    if (!isRestorablePath(p)) return;
+    let y: number | null = null;
+    try {
+      const raw = window.sessionStorage.getItem(`vf_scroll_y:${p}`);
+      const n = raw == null ? NaN : Number(raw);
+      if (Number.isFinite(n)) y = Math.max(0, Math.round(n));
+    } catch {
+      y = null;
+    }
+    if (y == null) return;
+
+    try {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            window.scrollTo({ top: y as number, left: 0, behavior: "auto" });
+          } catch {
+            try {
+              window.scrollTo(0, y as number);
+            } catch {
+              // ignore
+            }
+          }
+        });
+      });
+    } catch {
+      try {
+        window.scrollTo(0, y);
+      } catch {
+        // ignore
+      }
+    }
+  }, [isRestorablePath]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onPopState = () => {
+      try {
+        const p = window.location.pathname || "";
+        if (isRestorablePath(p)) restorePathRef.current = p;
+      } catch {
+        // ignore
+      }
+    };
+
+    const onPageShow = () => {
+      try {
+        const p = window.location.pathname || "";
+        if (isRestorablePath(p)) restoreScrollForPath(p);
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [isRestorablePath, restoreScrollForPath]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const currentPath = pathname || window.location.pathname;
+    const prev = prevPathRef.current;
+    if (prev && prev !== currentPath) saveScrollForPath(prev);
+    prevPathRef.current = currentPath;
+
+    if (isRestorablePath(currentPath)) {
+      try {
+        window.localStorage.setItem("vf_last_route_v1", currentPath);
+      } catch {
+        // ignore
+      }
+    }
+
+    const shouldRestore = restorePathRef.current === currentPath;
+    if (shouldRestore) {
+      restorePathRef.current = "";
+      restoreScrollForPath(currentPath);
+    }
+  }, [pathname, isRestorablePath, restoreScrollForPath, saveScrollForPath]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onPageHide = () => {
+      try {
+        const p = pathname || window.location.pathname;
+        saveScrollForPath(p);
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [pathname, saveScrollForPath]);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     if (hideChrome) {
@@ -194,16 +319,12 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                     <button
                       key={t.href}
                       type="button"
-                      onPointerDown={(e) => {
-                        try {
-                          window.location.href = t.href;
-                        } catch (err) {
-                          // ignore
-                        }
-                      }}
                       onClick={() => {
                         try {
-                          window.location.href = t.href;
+                          const currentPath = pathname || "";
+                          saveScrollForPath(currentPath);
+                          restorePathRef.current = t.href;
+                          router.push(t.href);
                         } catch {
                           try {
                             window.location.href = t.href;
