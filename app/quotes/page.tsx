@@ -57,6 +57,27 @@ type DraftEntry = {
 
 const QUOTES_DRAFTS_CACHE_KEY = "vf_quotes_drafts_cache_v1";
 const QUOTES_DELETED_TOMBSTONES_KEY = "vf_quotes_deleted_tombstones_v1";
+const QUOTES_STATUS_CACHE_KEY = "vf_quotes_status_cache_v1";
+
+function readQuotesStatusCache(): Record<string, { status: DraftEntry["status"]; ts: number }> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(QUOTES_STATUS_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Record<string, { status: DraftEntry["status"]; ts: number }>;
+  } catch {
+    return {};
+  }
+}
+
+function writeQuotesStatusCache(next: Record<string, { status: DraftEntry["status"]; ts: number }>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(QUOTES_STATUS_CACHE_KEY, JSON.stringify(next || {}));
+  } catch {
+  }
+}
 
 function readDeletedQuoteTombstones(): Record<string, number> {
   if (typeof window === "undefined") return {};
@@ -487,10 +508,23 @@ export default function QuotesPage() {
 
     const load = async () => {
       const tombstones = readDeletedQuoteTombstones();
+      const statusCache = readQuotesStatusCache();
+      const applyStatusCache = (list: DraftEntry[]) => {
+        const arr = Array.isArray(list) ? list : [];
+        return arr.map((d) => {
+          const id = String((d as any)?.id || "");
+          if (!id) return d;
+          const cached = statusCache[id];
+          if (!cached || !cached.status) return d;
+          const ts = getTs(d);
+          if (Number(cached.ts) > ts) return { ...(d as any), status: cached.status, updatedAt: Math.max(ts, Number(cached.ts) || 0) } as any;
+          return d;
+        });
+      };
       try {
         const cached = readQuotesDraftsCache();
         if (!cancelled && Array.isArray(cached) && cached.length) {
-          setDraftsStable(cached.filter((d) => !tombstones[String((d as any)?.id || "")]));
+          setDraftsStable(applyStatusCache(cached.filter((d) => !tombstones[String((d as any)?.id || "")])));
         }
       } catch {
       }
@@ -502,7 +536,7 @@ export default function QuotesPage() {
           const localList = Object.values(localStore)
             .map((d) => toQuotesDraftLite({ ...(d as any) } as any))
             .filter((d) => !tombstones[String((d as any)?.id || "")]);
-          if (!cancelled) setDraftsStable(localList);
+          if (!cancelled) setDraftsStable(applyStatusCache(localList));
           try {
             writeQuotesDraftsCache(localList);
           } catch {
@@ -568,6 +602,21 @@ export default function QuotesPage() {
       if (!cancelled) setDraftsStable(mergedLite);
       try {
         writeQuotesDraftsCache(mergedLite);
+      } catch {
+      }
+
+      try {
+        const nextStatusCache = { ...(statusCache as any) } as Record<string, { status: DraftEntry["status"]; ts: number }>;
+        for (const d of mergedLite as any[]) {
+          const id = String((d as any)?.id || "");
+          if (!id) continue;
+          const s = (d as any)?.status as any;
+          if (!s) continue;
+          const ts = getTs(d);
+          const prev = nextStatusCache[id];
+          if (!prev || ts >= Number(prev.ts || 0)) nextStatusCache[id] = { status: s, ts };
+        }
+        writeQuotesStatusCache(nextStatusCache);
       } catch {
       }
 
@@ -735,6 +784,21 @@ export default function QuotesPage() {
             }
 
             try {
+              const nextStatusCache = readQuotesStatusCache();
+              for (const d of mergedAllLite as any[]) {
+                const id = String((d as any)?.id || "");
+                if (!id) continue;
+                const s = (d as any)?.status as any;
+                if (!s) continue;
+                const ts = getTs(d);
+                const prev = nextStatusCache[id];
+                if (!prev || ts >= Number(prev.ts || 0)) nextStatusCache[id] = { status: s, ts };
+              }
+              writeQuotesStatusCache(nextStatusCache);
+            } catch {
+            }
+
+            try {
               const ids = mergedAllLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
               const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
               if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
@@ -880,6 +944,18 @@ export default function QuotesPage() {
     try {
       const existing = readDraftStore()[id] ?? drafts.find((d) => d.id === id);
       if (!existing) return;
+
+      try {
+        const now = Date.now();
+        const cache = readQuotesStatusCache();
+        const prev = cache[id];
+        if (!prev || now >= Number(prev.ts || 0)) {
+          cache[id] = { status, ts: now };
+          writeQuotesStatusCache(cache);
+        }
+      } catch {
+      }
+
       void setStatusFromQuotes({ id, status, draftSnapshot: existing as any });
       setDrafts((prev) =>
         applyStableOrder(
@@ -904,6 +980,17 @@ export default function QuotesPage() {
   function deleteDraft(id: string) {
     try {
       const now = Date.now();
+
+      try {
+        const cache = readQuotesStatusCache();
+        const prev = cache[id];
+        if (!prev || now >= Number(prev.ts || 0)) {
+          cache[id] = { status: "void", ts: now };
+          writeQuotesStatusCache(cache);
+        }
+      } catch {
+      }
+
       const store = readDraftStore();
       const existing: any = store[id] ?? drafts.find((d) => d.id === id);
       if (!existing) return;
