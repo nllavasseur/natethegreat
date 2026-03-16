@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { DEFAULT_WORKSPACE_ID, deleteDraftRemote, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
@@ -36,6 +36,7 @@ type DraftEntry = {
   startDate?: string;
   laborDays?: number;
   calendarHidden?: boolean;
+  deletedAt?: number;
   preInstallPhotos?: unknown;
   jobTasks?: {
     collectDeposit?: boolean;
@@ -830,22 +831,41 @@ export default function QuotesPage() {
 
   function deleteDraft(id: string) {
     try {
-      try {
-        const prevTombstones = readDeletedQuoteTombstones();
-        writeDeletedQuoteTombstones({ ...prevTombstones, [String(id)]: Date.now() });
-      } catch {
-      }
+      const now = Date.now();
       const store = readDraftStore();
-      if (store[id]) {
-        const next = { ...store };
-        delete next[id];
-        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(next));
-      }
+      const existing: any = store[id] ?? drafts.find((d) => d.id === id);
+      if (!existing) return;
+
+      const nextDraft = {
+        ...existing,
+        status: "void",
+        deletedAt: now,
+        updatedAt: now,
+        calendarHidden: true,
+        startDate: undefined,
+        installDate: undefined
+      };
+
       try {
-        void deleteDraftRemote({ id });
+        store[id] = nextDraft;
+        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
       } catch {
       }
-      setDrafts((prev) => prev.filter((d) => d.id !== id));
+
+      try {
+        void upsertDraft({ id, data: nextDraft });
+      } catch {
+      }
+
+      setDrafts((prev) => {
+        const updated = (Array.isArray(prev) ? prev : []).map((d) => (d.id === id ? toQuotesDraftLite(nextDraft as any) : d));
+        const next = statusFilter === "void" ? updated : updated.filter((d) => d.id !== id);
+        try {
+          writeQuotesDraftsCache(next as any);
+        } catch {
+        }
+        return next as any;
+      });
       setConfirmDeleteId(null);
       setDeletingId(null);
       notifyDraftsChanged();
@@ -894,7 +914,7 @@ export default function QuotesPage() {
     if (s === "pending") return "Pending";
     if (s === "sold") return "Sold";
     if (s === "complete") return "Complete";
-    if (s === "void") return "Void";
+    if (s === "void") return "Trash";
     return "Estimate";
   }
 
@@ -1121,7 +1141,10 @@ export default function QuotesPage() {
   const filteredCards = useMemo(() => {
     const q = String((statusFilter === "complete" ? completedSearchQuery : searchQuery) || "").trim().toLowerCase();
     const byStatus = statusFilter === "all"
-      ? cards.filter((c) => (c.status ?? "estimate") !== "complete")
+      ? cards.filter((c) => {
+          const s = (c.status ?? "estimate") as any;
+          return s !== "complete" && s !== "void";
+        })
       : cards.filter((c) => (c.status ?? "estimate") === statusFilter);
 
     const withSearch = (() => {
