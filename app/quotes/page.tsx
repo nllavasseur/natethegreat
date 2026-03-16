@@ -1301,6 +1301,26 @@ export default function QuotesPage() {
 
   const filteredCards = useMemo(() => {
     const q = String((statusFilter === "complete" ? completedSearchQuery : searchQuery) || "").trim().toLowerCase();
+    const recency = (c: any) => {
+      const u = Number((c as any).updatedAt ?? 0);
+      const cr = Number((c as any).createdAt ?? 0);
+      const ut = Number.isFinite(u) ? u : 0;
+      const ct = Number.isFinite(cr) ? cr : 0;
+      return Math.max(ut, ct);
+    };
+    const parseIsoMs = (iso: string) => {
+      const s = String(iso || "").trim();
+      if (!s) return Number.POSITIVE_INFINITY;
+      const ms = Date.parse(s);
+      return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+    };
+    const parseDayMs = (day: string) => {
+      const s = String(day || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return Number.POSITIVE_INFINITY;
+      const ms = Date.parse(`${s}T12:00:00`);
+      return Number.isFinite(ms) ? ms : Number.POSITIVE_INFINITY;
+    };
+
     const byStatus = statusFilter === "all"
       ? cards.filter((c) => {
           const s = (c.status ?? "estimate") as any;
@@ -1328,6 +1348,86 @@ export default function QuotesPage() {
         return hay.includes(q);
       });
     })();
+
+    const indexed = withSearch.map((c, idx) => ({ c, idx }));
+
+    if (statusFilter === "all") {
+      indexed.sort((a, b) => {
+        const ar = recency(a.c);
+        const br = recency(b.c);
+        if (ar !== br) return br - ar;
+        return a.idx - b.idx;
+      });
+      return indexed.map((x) => x.c);
+    }
+
+    if (statusFilter === "estimate") {
+      const scheduled: Array<{ c: any; idx: number }> = [];
+      const unscheduled: Array<{ c: any; idx: number }> = [];
+
+      for (const it of indexed) {
+        const iso = String((it.c as any).scheduledAt || "").trim();
+        if (iso) scheduled.push(it);
+        else unscheduled.push(it);
+      }
+
+      scheduled.sort((a, b) => {
+        const am = parseIsoMs(String((a.c as any).scheduledAt || ""));
+        const bm = parseIsoMs(String((b.c as any).scheduledAt || ""));
+        if (am !== bm) return am - bm;
+        const ar = recency(a.c);
+        const br = recency(b.c);
+        if (ar !== br) return br - ar;
+        return a.idx - b.idx;
+      });
+
+      unscheduled.sort((a, b) => {
+        const ar = recency(a.c);
+        const br = recency(b.c);
+        if (ar !== br) return br - ar;
+        return a.idx - b.idx;
+      });
+
+      return [...scheduled, ...unscheduled].map((x) => x.c);
+    }
+
+    if (statusFilter === "sold") {
+      indexed.sort((a, b) => {
+        const am = parseDayMs(String((a.c as any).installDate || (a.c as any).startDate || ""));
+        const bm = parseDayMs(String((b.c as any).installDate || (b.c as any).startDate || ""));
+        if (am !== bm) return am - bm;
+        const ar = recency(a.c);
+        const br = recency(b.c);
+        if (ar !== br) return br - ar;
+        return a.idx - b.idx;
+      });
+      return indexed.map((x) => x.c);
+    }
+
+    if (statusFilter === "void") {
+      indexed.sort((a, b) => {
+        const ad = Number((a.c as any).deletedAt ?? 0);
+        const bd = Number((b.c as any).deletedAt ?? 0);
+        const aDel = Number.isFinite(ad) ? ad : 0;
+        const bDel = Number.isFinite(bd) ? bd : 0;
+        if (aDel !== bDel) return bDel - aDel;
+        const ar = recency(a.c);
+        const br = recency(b.c);
+        if (ar !== br) return br - ar;
+        return a.idx - b.idx;
+      });
+      return indexed.map((x) => x.c);
+    }
+
+    if (statusFilter === "pending" || statusFilter === "complete") {
+      indexed.sort((a, b) => {
+        const ar = recency(a.c);
+        const br = recency(b.c);
+        if (ar !== br) return br - ar;
+        return a.idx - b.idx;
+      });
+      return indexed.map((x) => x.c);
+    }
 
     return withSearch;
   }, [cards, completedSearchQuery, searchQuery, statusFilter]);
