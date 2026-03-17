@@ -2849,7 +2849,7 @@ function EstimatesPageInner() {
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
-      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, (materialsDetails.topCapMaterial || materialsDetails.railMaterial) as any);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
         { name: postName, qty: posts, unit: "ea" },
@@ -10655,11 +10655,13 @@ function EstimatesPageInner() {
                                 const next = e.target.value as "Pressure treated" | "Cedar" | "Rough sawn cedar" | "Cedar tone";
                                 setMaterialsDetails((p) => {
                                   const postWasSynced = p.postType === p.woodType;
+                                  const topCapWasSynced = (p.topCapMaterial || p.woodType) === p.woodType;
                                   return {
                                     ...p,
                                     woodType: next,
                                     postType: postWasSynced ? next : p.postType,
                                     railMaterial: next,
+                                    topCapMaterial: topCapWasSynced ? next : p.topCapMaterial,
                                     picketMaterial: next,
                                     trimMaterial: next,
                                     twoByTwoMaterial: next,
