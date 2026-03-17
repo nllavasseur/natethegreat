@@ -2779,7 +2779,7 @@ function EstimatesPageInner() {
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
-      const rail16Name = woodRail2x4Name(16, materialsDetails.railMaterial);
+      const rail16Name = woodRail2x4Name(16, (materialsDetails.topCapMaterial || materialsDetails.railMaterial) as any);
       const picketName = woodPicketName(materialsDetails.picketMaterial);
 
       const rows: Array<{ name: string; qty: number; unit: string }> = [
@@ -11192,6 +11192,21 @@ function EstimatesPageInner() {
                               <div className="text-[11px] text-[var(--muted)]">Tap</div>
                             </div>
                           </button>
+
+                          {materialsDetails.topCaps ? (
+                            <div className="mt-2">
+                              <div className="text-[11px] text-[var(--muted)] mb-1">2x4x16 top cap wood type</div>
+                              <Select
+                                value={materialsDetails.topCapMaterial}
+                                onChange={(e) => setMaterialsDetails((p) => ({ ...p, topCapMaterial: e.target.value as any }))}
+                              >
+                                <option value="Pressure treated">Pressure treated</option>
+                                <option value="Cedar">Cedar</option>
+                                <option value="Rough sawn cedar">Rough sawn cedar</option>
+                                <option value="Cedar tone">Cedar tone</option>
+                              </Select>
+                            </div>
+                          ) : null}
                         </div>
 
                         <div>
