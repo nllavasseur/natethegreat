@@ -1246,7 +1246,7 @@ export default function QuotesPage() {
       const removalLf = segments
         .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
         .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
-      const removalTotal = round2(removalLf > 0 ? removalLf * 6 : 0);
+      const removalTotal = round2(removalLf > 0 ? removalLf * 5 : 0);
 
       const laborBaseTotal = items
         .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")

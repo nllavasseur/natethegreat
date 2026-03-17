@@ -59,7 +59,7 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       const lf = segments
         .filter((s) => Boolean((s as any)?.removal) || Boolean((s as any)?.removed))
         .reduce((sum, s) => sum + (Number((s as any)?.length) || 0), 0);
-      const v = lf > 0 ? lf * 6 : 0;
+      const v = lf > 0 ? lf * 5 : 0;
       return Math.round(v * 100) / 100;
     } catch {
       return 0;

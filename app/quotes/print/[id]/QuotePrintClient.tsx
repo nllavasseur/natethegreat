@@ -80,7 +80,7 @@ export default function QuotePrintClient({ id, printCss }: { id: string; printCs
   const removalLf = segments
     .filter((s: any) => Boolean(s?.removed) || Boolean(s?.removal))
     .reduce((sum: number, s: any) => sum + (Number(s?.length) || 0), 0);
-  const removalTotal = Math.round(removalLf * 6 * 100) / 100;
+  const removalTotal = Math.round(removalLf * 5 * 100) / 100;
 
   const laborBaseTotal = items
     .filter((i) => i.section === "labor" && String(i.name || "") === "Days labor")

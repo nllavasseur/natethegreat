@@ -222,7 +222,7 @@ export default function QuoteDetailPage() {
   const removalLf = segments
     .filter((s: any) => Boolean((s as any).removed) || Boolean((s as any).removal))
     .reduce((sum, s) => sum + (Number((s as any).length) || 0), 0);
-  const removalTotalComputed = Math.round(removalLf * 6 * 100) / 100;
+  const removalTotalComputed = Math.round(removalLf * 5 * 100) / 100;
 
   const feeNames = new Set(["Disposal", "Delivery", "Equipment Fees"]);
   const materialsSubtotal = items.filter((i) => i.section === "materials").reduce((sum, i) => sum + (Number(i.lineTotal) || 0), 0);

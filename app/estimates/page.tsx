@@ -5607,7 +5607,7 @@ function EstimatesPageInner() {
     const lf = segments
       .filter((s: any) => Boolean((s as any).removal) || Boolean((s as any).removed))
       .reduce((sum: number, s: any) => sum + (Number(s.length) || 0), 0);
-    const v = lf > 0 ? lf * 6 : 0;
+    const v = lf > 0 ? lf * 5 : 0;
     return Math.round(v * 100) / 100;
   }, [segments]);
 
