@@ -210,6 +210,8 @@ export default function QuotesPage() {
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
+  const hasSeededFromCacheRef = useRef(false);
+
   const orderRef = useRef<Record<string, number>>({});
   const orderMaxRef = useRef(0);
 
@@ -568,18 +570,21 @@ export default function QuotesPage() {
         const cached = readQuotesDraftsCache();
         if (!cancelled && Array.isArray(cached) && cached.length) {
           setDraftsStable(filterGhosts(applyStatusCache(cached.filter((d) => !tombstones[String((d as any)?.id || "")]))));
+          hasSeededFromCacheRef.current = true;
         }
       } catch {
       }
 
       window.setTimeout(() => {
         if (cancelled) return;
+        if (hasSeededFromCacheRef.current) return;
         try {
           const localStore = readDraftStore();
           const localList = Object.values(localStore)
             .map((d) => toQuotesDraftLite({ ...(d as any) } as any))
             .filter((d) => !tombstones[String((d as any)?.id || "")]);
           if (!cancelled) setDraftsStable(filterGhosts(applyStatusCache(localList)));
+          hasSeededFromCacheRef.current = true;
           try {
             writeQuotesDraftsCache(localList);
           } catch {
@@ -642,20 +647,21 @@ export default function QuotesPage() {
       const mergedLite = (Array.isArray(merged) ? merged : [])
         .filter((d) => !tombstones[String((d as any)?.id || "")])
         .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
-      if (!cancelled) setDraftsStable(mergedLite);
+      const mergedLitePatched = applyStatusCache(mergedLite);
+      if (!cancelled) setDraftsStable(mergedLitePatched);
       try {
-        writeQuotesDraftsCache(mergedLite);
+        writeQuotesDraftsCache(mergedLitePatched);
       } catch {
       }
 
       try {
-        writeQuotesRemoteIdsCache(mergedLite.map((d: any) => String(d?.id || "")).filter(Boolean));
+        writeQuotesRemoteIdsCache(mergedLitePatched.map((d: any) => String(d?.id || "")).filter(Boolean));
       } catch {
       }
 
       try {
         const nextStatusCache = { ...(statusCache as any) } as Record<string, { status: DraftEntry["status"]; ts: number }>;
-        for (const d of mergedLite as any[]) {
+        for (const d of mergedLitePatched as any[]) {
           const id = String((d as any)?.id || "");
           if (!id) continue;
           const s = (d as any)?.status as any;
@@ -825,20 +831,22 @@ export default function QuotesPage() {
               .filter((d) => !tombstones[String((d as any)?.id || "")])
               .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
 
-            if (!cancelled) setDraftsStable(mergedAllLite);
+            const mergedAllLitePatched = applyStatusCache(mergedAllLite);
+
+            if (!cancelled) setDraftsStable(mergedAllLitePatched);
             try {
-              writeQuotesDraftsCache(mergedAllLite);
+              writeQuotesDraftsCache(mergedAllLitePatched);
             } catch {
             }
 
             try {
-              writeQuotesRemoteIdsCache(mergedAllLite.map((d: any) => String(d?.id || "")).filter(Boolean));
+              writeQuotesRemoteIdsCache(mergedAllLitePatched.map((d: any) => String(d?.id || "")).filter(Boolean));
             } catch {
             }
 
             try {
               const nextStatusCache = readQuotesStatusCache();
-              for (const d of mergedAllLite as any[]) {
+              for (const d of mergedAllLitePatched as any[]) {
                 const id = String((d as any)?.id || "");
                 if (!id) continue;
                 const s = (d as any)?.status as any;
