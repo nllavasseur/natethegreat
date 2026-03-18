@@ -212,6 +212,7 @@ export default function QuotesPage() {
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
   const hasSeededFromCacheRef = useRef(false);
+  const hasBackfilledSoldRef = useRef(false);
 
   const orderRef = useRef<Record<string, number>>({});
   const orderMaxRef = useRef(0);
@@ -682,6 +683,122 @@ export default function QuotesPage() {
 
       try {
         writeQuotesRemoteIdsCache(mergedLitePatched.map((d: any) => String(d?.id || "")).filter(Boolean));
+      } catch {
+      }
+
+      try {
+        if (supabaseConfigured && !hasBackfilledSoldRef.current) {
+          hasBackfilledSoldRef.current = true;
+          void (async () => {
+            try {
+              const selectCols =
+                "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,labor_days,queue_rank,estimate_assignee,customer_name,title,phone_number,project_address,selected_style_name,project_photo_url,preinstall_count,totals,job_tasks,job_task_snooze";
+
+              const pageSize = 1000;
+              let from = 0;
+              const sold: DraftEntry[] = [];
+
+              for (let guard = 0; guard < 30; guard += 1) {
+                const res = await supabase
+                  .from("quotes_entries")
+                  .select(selectCols)
+                  .eq("workspace_id", DEFAULT_WORKSPACE_ID)
+                  .eq("status", "sold")
+                  .order("updated_at", { ascending: false })
+                  .range(from, from + pageSize - 1);
+
+                if ((res as any)?.error) break;
+
+                const rows = ((res as any)?.data ?? []) as any[];
+                for (const r of rows) {
+                  const id = String((r as any)?.draft_id || "");
+                  if (!id) continue;
+                  const updatedAtMs = Number((r as any)?.updated_at_ms);
+                  const createdAtMs = Number((r as any)?.created_at_ms);
+                  sold.push({
+                    id,
+                    createdAt: Number.isFinite(createdAtMs) && createdAtMs > 0 ? createdAtMs : undefined,
+                    updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
+                    status: (r as any)?.status ?? undefined,
+                    calendarHidden: (r as any)?.calendar_hidden ?? undefined,
+                    scheduledAt: (r as any)?.scheduled_iso ?? undefined,
+                    installDate: (r as any)?.install_date ?? undefined,
+                    startDate: (r as any)?.start_date ?? undefined,
+                    laborDays: (r as any)?.labor_days ?? undefined,
+                    queueRank: (r as any)?.queue_rank ?? undefined,
+                    estimateAssignee: (r as any)?.estimate_assignee ?? undefined,
+                    customerName: (r as any)?.customer_name ?? undefined,
+                    title: (r as any)?.title ?? undefined,
+                    phoneNumber: (r as any)?.phone_number ?? undefined,
+                    projectAddress: (r as any)?.project_address ?? undefined,
+                    selectedStyle: (r as any)?.selected_style_name ? { name: (r as any)?.selected_style_name } : undefined,
+                    projectPhotoUrl: (r as any)?.project_photo_url ?? undefined,
+                    preInstallPhotos:
+                      typeof (r as any)?.preinstall_count === "number"
+                        ? new Array(Math.max(0, (r as any).preinstall_count)).fill({ src: "", note: "", createdAt: 0 })
+                        : undefined,
+                    totals: (r as any)?.totals ?? undefined,
+                    jobTasks: (r as any)?.job_tasks ?? undefined,
+                    jobTaskSnooze: (r as any)?.job_task_snooze ?? undefined
+                  } as any);
+                }
+
+                if (rows.length < pageSize) break;
+                from += pageSize;
+              }
+
+              if (cancelled) return;
+              const soldLite = sold.map((d) => toQuotesDraftLite({ ...(d as any) } as any));
+              if (!soldLite.length) return;
+
+              setDrafts((prev) => {
+                const prevList = Array.isArray(prev) ? prev : [];
+                const byId = new Map<string, DraftEntry>();
+                for (const d of prevList) {
+                  const id = String((d as any)?.id || "");
+                  if (!id) continue;
+                  byId.set(id, d as any);
+                }
+
+                for (const d of soldLite as any[]) {
+                  const id = String((d as any)?.id || "");
+                  if (!id) continue;
+                  const prevOne = byId.get(id);
+                  if (!prevOne) {
+                    byId.set(id, d as any);
+                    continue;
+                  }
+                  if (getTs(d) > getTs(prevOne)) {
+                    const mergedNext: DraftEntry = { ...(prevOne as any), ...(d as any) } as any;
+                    if ((d as any).jobTasks == null && (prevOne as any).jobTasks != null) (mergedNext as any).jobTasks = (prevOne as any).jobTasks;
+                    if ((d as any).jobTaskSnooze == null && (prevOne as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prevOne as any).jobTaskSnooze;
+                    if ((d as any).jobTaskLabels == null && (prevOne as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prevOne as any).jobTaskLabels;
+                    if ((d as any).jobTaskHidden == null && (prevOne as any).jobTaskHidden != null) (mergedNext as any).jobTaskHidden = (prevOne as any).jobTaskHidden;
+                    if ((d as any).jobCustomTasks == null && (prevOne as any).jobCustomTasks != null) (mergedNext as any).jobCustomTasks = (prevOne as any).jobCustomTasks;
+                    byId.set(id, mergedNext);
+                  }
+                }
+
+                const merged = Array.from(byId.values()).sort((a, b) => getTs(b) - getTs(a));
+                const mergedLiteNext = merged.map((d) => toQuotesDraftLite({ ...(d as any) } as any));
+                const mergedLitePatchedNext = applyStatusCache(mergedLiteNext);
+
+                try {
+                  writeQuotesDraftsCache(mergedLitePatchedNext as any);
+                } catch {
+                }
+
+                try {
+                  writeQuotesRemoteIdsCache(mergedLitePatchedNext.map((d: any) => String(d?.id || "")).filter(Boolean));
+                } catch {
+                }
+
+                return applyStableOrder(mergedLitePatchedNext as any) as any;
+              });
+            } catch {
+            }
+          })();
+        }
       } catch {
       }
 
