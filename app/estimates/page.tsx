@@ -189,6 +189,12 @@ function woodPicketName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar to
   return "6' Pressure Treated Dog Ear Pickets";
 }
 
+function picketEffectiveSpacingIn(raw: any) {
+  const base = Math.max(0.5, Number(raw) || 0);
+  if (base >= 7) return base;
+  return base + 1.5;
+}
+
 function woodTrimName(trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
   if (trimMaterial === "Rough sawn cedar") return "1x4 x 8' Rough Sawn Cedar Trim";
   if (isCedarLike(trimMaterial)) return "1x4 x 8' Cedar Trim";
@@ -1281,6 +1287,10 @@ function EstimatesPageInner() {
     Array<{ id: string; desc: string; qtyPerPanel: number; unitPrice: number }>
   >([]);
   const [takeoffPerPanelDraft, setTakeoffPerPanelDraft] = useState(() => ({ desc: "", qtyPerPanel: "", unitPrice: "" }));
+  const [takeoffPerPanelMaterialPickerOpen, setTakeoffPerPanelMaterialPickerOpen] = useState(false);
+  const [takeoffPerPanelMaterialPickerQuery, setTakeoffPerPanelMaterialPickerQuery] = useState("");
+  const [takeoffPerPanelDescSuggestOpen, setTakeoffPerPanelDescSuggestOpen] = useState(false);
+  const takeoffPerPanelDescSuggestCloseTimeoutRef = useRef<any>(null);
 
   const [saving, setSaving] = useState(false);
   const [savingAsNew, setSavingAsNew] = useState(false);
@@ -2407,11 +2417,12 @@ function EstimatesPageInner() {
 
       const picketsEnabled = Boolean((design as any).picketsEnabled);
       const picketSpacingIn = Math.max(0.5, Number((design as any).picketSpacingIn) || 5.5);
+      const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
       const picketMaterial = (String((design as any).picketMaterial || "Pressure treated") as any) as
         "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
 
       const pickets = picketsEnabled && totalLf > 0
-        ? (Math.ceil((totalLf * 12) / picketSpacingIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5)
+        ? (Math.ceil((totalLf * 12) / picketSpacingEffectiveIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5)
         : 0;
       const picketName = woodPicketName(picketMaterial);
       const nailsPerBox = woodNailsBoxQty(picketMaterial);
@@ -2731,6 +2742,7 @@ function EstimatesPageInner() {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
       const picketSpacingIn = 8;
+      const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
       const segmentLengths = segments
         .filter((s) => !s.removed)
         .map((s) => Number(s.length) || 0)
@@ -2753,7 +2765,7 @@ function EstimatesPageInner() {
       const rails2x4x16 = segmentLengths.length ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 15), 0) : 0;
 
       // Pickets: (lf inches / 8) * 2
-      const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
+      const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingEffectiveIn) * 2) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -2868,6 +2880,7 @@ function EstimatesPageInner() {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
       const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : 5.5) as 5.5 | 8;
+      const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
       // 7.5' centers.
@@ -2894,7 +2907,7 @@ function EstimatesPageInner() {
 
       // Pickets: base +10 pickets, plus +5 pickets per every 100ft
       const pickets = totalLf > 0
-        ? (Math.ceil((totalLf * 12) / picketSpacingIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5)
+        ? (Math.ceil((totalLf * 12) / picketSpacingEffectiveIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5)
         : 0;
 
       const concrete80Bags = posts * 2;
@@ -3019,6 +3032,7 @@ function EstimatesPageInner() {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
       const picketSpacingIn = 8;
+      const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
       const use16FtRails = Boolean((materialsDetails as any).shadowboxUse16FtRails);
@@ -3042,7 +3056,7 @@ function EstimatesPageInner() {
         : 0;
 
       // Pickets: use the prior shadowbox math, but output as pickets (not 1x4 boards)
-      const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingIn) * 2) : 0;
+      const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingEffectiveIn) * 2) : 0;
 
       const concrete80Bags = posts * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -3486,6 +3500,7 @@ function EstimatesPageInner() {
       const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
 
       const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : 5.5) as 5.5 | 8;
+      const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
 
       const panels = segmentLengths.length
         ? segmentLengths.reduce((sum, len) => sum + Math.ceil(len / 7.5), 0)
@@ -3541,7 +3556,7 @@ function EstimatesPageInner() {
         ? (boardOnBoardBasePickets + 10 + extraPicketBundles * 5)
         : isBoardOnBoard
             ? boardOnBoardBasePickets
-            : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5 : 0);
+            : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingEffectiveIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5 : 0);
 
       const concrete80Bags = postsFence * 2;
       const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
@@ -10350,16 +10365,159 @@ function EstimatesPageInner() {
                   {selectedFenceType === "wood" ? (
                     <>
                       <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3 lg:col-span-2">
-                        <div className="text-[11px] text-[var(--muted)] mb-2">Per-panel add-ons</div>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[11px] text-[var(--muted)] mb-2">Per-panel add-ons</div>
+                          <SecondaryButton
+                            data-no-swipe="true"
+                            className="px-3 py-2 text-[12px]"
+                            onClick={() => {
+                              setTakeoffPerPanelMaterialPickerOpen((v) => !v);
+                              setTakeoffPerPanelMaterialPickerQuery("");
+                            }}
+                          >
+                            Pick material
+                          </SecondaryButton>
+                        </div>
+
+                        {takeoffPerPanelMaterialPickerOpen ? (
+                          <div className="mt-2 rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.12)] px-2 py-2">
+                            <div className="flex items-end justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-[11px] text-[var(--muted)] mb-1">Search materials</div>
+                                <Input
+                                  value={takeoffPerPanelMaterialPickerQuery}
+                                  onChange={(e) => setTakeoffPerPanelMaterialPickerQuery(e.target.value)}
+                                  placeholder="Type to filter"
+                                />
+                              </div>
+                              <SecondaryButton
+                                data-no-swipe="true"
+                                className="px-3 py-2 text-[12px]"
+                                onClick={() => {
+                                  setTakeoffPerPanelMaterialPickerOpen(false);
+                                  setTakeoffPerPanelMaterialPickerQuery("");
+                                }}
+                              >
+                                Close
+                              </SecondaryButton>
+                            </div>
+
+                            <div className="mt-2 max-h-[220px] overflow-auto rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.04)]">
+                              {Object.entries(materialUnitPrices)
+                                .filter(([k]) => {
+                                  const q = String(takeoffPerPanelMaterialPickerQuery || "").trim().toLowerCase();
+                                  if (!q) return true;
+                                  return String(k || "").toLowerCase().includes(q);
+                                })
+                                .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+                                .slice(0, 200)
+                                .map(([name, price]) => (
+                                  <button
+                                    key={name}
+                                    type="button"
+                                    data-no-swipe="true"
+                                    className="w-full text-left px-3 py-2 border-b border-[rgba(255,255,255,.08)] hover:bg-[rgba(255,255,255,.06)]"
+                                    onClick={() => {
+                                      const pickedName = String(name || "").trim();
+                                      const pickedPrice = Number(price) || 0;
+                                      setTakeoffPerPanelDraft((p) => ({
+                                        ...p,
+                                        desc: pickedName,
+                                        unitPrice: String(pickedPrice)
+                                      }));
+                                      setTakeoffPerPanelDraft((p) => {
+                                        const qty = String(p.qtyPerPanel || "").trim();
+                                        if (qty) return p;
+                                        return { ...p, qtyPerPanel: "1" };
+                                      });
+                                      setTakeoffPerPanelMaterialPickerOpen(false);
+                                      setTakeoffPerPanelMaterialPickerQuery("");
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="text-sm font-extrabold truncate min-w-0">{name}</div>
+                                      <div className="text-[12px] font-black">{money(Number(price) || 0)}</div>
+                                    </div>
+                                  </button>
+                                ))}
+                            </div>
+                          </div>
+                        ) : null}
 
                         <div className="mt-2 grid grid-cols-12 gap-2 items-end">
                           <div className="col-span-12">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Description</div>
-                            <Input
-                              value={takeoffPerPanelDraft.desc}
-                              onChange={(e) => setTakeoffPerPanelDraft((p) => ({ ...p, desc: e.target.value }))}
-                              placeholder="Description"
-                            />
+                            <div className="relative">
+                              <Input
+                                value={takeoffPerPanelDraft.desc}
+                                onChange={(e) => {
+                                  const next = e.target.value;
+                                  setTakeoffPerPanelDraft((p) => ({ ...p, desc: next }));
+                                  if (takeoffPerPanelDescSuggestCloseTimeoutRef.current) {
+                                    clearTimeout(takeoffPerPanelDescSuggestCloseTimeoutRef.current);
+                                    takeoffPerPanelDescSuggestCloseTimeoutRef.current = null;
+                                  }
+                                  setTakeoffPerPanelDescSuggestOpen(Boolean(String(next || "").trim()));
+                                }}
+                                onFocus={() => {
+                                  if (takeoffPerPanelDescSuggestCloseTimeoutRef.current) {
+                                    clearTimeout(takeoffPerPanelDescSuggestCloseTimeoutRef.current);
+                                    takeoffPerPanelDescSuggestCloseTimeoutRef.current = null;
+                                  }
+                                  setTakeoffPerPanelDescSuggestOpen(Boolean(String(takeoffPerPanelDraft.desc || "").trim()));
+                                }}
+                                onBlur={() => {
+                                  takeoffPerPanelDescSuggestCloseTimeoutRef.current = setTimeout(() => {
+                                    setTakeoffPerPanelDescSuggestOpen(false);
+                                  }, 140);
+                                }}
+                                placeholder="Description"
+                              />
+
+                              {takeoffPerPanelDescSuggestOpen ? (
+                                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 max-h-[220px] overflow-auto rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(0,0,0,.40)] backdrop-blur">
+                                  {Object.entries(materialUnitPrices)
+                                    .filter(([k]) => {
+                                      const q = String(takeoffPerPanelDraft.desc || "").trim().toLowerCase();
+                                      if (!q) return false;
+                                      return String(k || "").toLowerCase().includes(q);
+                                    })
+                                    .sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+                                    .slice(0, 10)
+                                    .map(([name, price]) => (
+                                      <button
+                                        key={name}
+                                        type="button"
+                                        data-no-swipe="true"
+                                        className="w-full text-left px-3 py-2 border-b border-[rgba(255,255,255,.10)] hover:bg-[rgba(255,255,255,.08)]"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                        }}
+                                        onClick={() => {
+                                          const pickedName = String(name || "").trim();
+                                          const pickedPrice = Number(price) || 0;
+                                          setTakeoffPerPanelDraft((p) => ({
+                                            ...p,
+                                            desc: pickedName,
+                                            unitPrice: String(pickedPrice)
+                                          }));
+                                          setTakeoffPerPanelDraft((p) => {
+                                            const qty = String(p.qtyPerPanel || "").trim();
+                                            if (qty) return p;
+                                            return { ...p, qtyPerPanel: "1" };
+                                          });
+                                          setTakeoffPerPanelDescSuggestOpen(false);
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between gap-3">
+                                          <div className="text-sm font-extrabold truncate min-w-0">{name}</div>
+                                          <div className="text-[12px] font-black">{money(Number(price) || 0)}</div>
+                                        </div>
+                                      </button>
+                                    ))}
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
                           <div className="col-span-4">
                             <div className="text-[11px] text-[var(--muted)] mb-1">Qty / panel</div>
@@ -10797,8 +10955,8 @@ function EstimatesPageInner() {
                                           setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
                                         }}
                                       >
-                                        <option value="5.5">Standard spacing</option>
-                                        <option value="8">2.5" spacing</option>
+                                        <option value="5.5">1.5" gap (7" on-center)</option>
+                                        <option value="8">2.5" gap (8" on-center)</option>
                                       </Select>
                                     </div>
                                   </div>
@@ -10812,8 +10970,8 @@ function EstimatesPageInner() {
                                         setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
                                       }}
                                     >
-                                      <option value="5.5">Standard spacing</option>
-                                      <option value="8">2.5" spacing</option>
+                                      <option value="5.5">1.5" gap (7" on-center)</option>
+                                      <option value="8">2.5" gap (8" on-center)</option>
                                     </Select>
                                   </div>
                                 )
