@@ -1625,6 +1625,34 @@ export default function QuotesPage() {
                           Call
                         </button>
                       ) : null}
+                      {stackStatus === "estimate" && !hasScheduled ? (
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          data-keep-open="true"
+                          disabled={!stackCallTel}
+                          onPointerDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            bumpSuppressNav();
+                            if (!stackCallTel) return;
+                            window.location.href = `sms:${stackCallTel}`;
+                          }}
+                          className={
+                            "rounded-full border px-3 py-1 text-[11px] font-extrabold whitespace-nowrap " +
+                            (stackCallTel
+                              ? "bg-[rgba(60,140,255,.22)] border-[rgba(60,140,255,.42)] text-white"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.10)] text-[rgba(255,255,255,.35)]")
+                          }
+                        >
+                          Message
+                        </button>
+                      ) : null}
                       {hasScheduled && stackStatus !== "pending" ? (
                         <div className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.30)] px-2 py-1 text-[11px] font-extrabold text-white whitespace-nowrap">
                           Scheduled
