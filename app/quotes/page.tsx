@@ -427,6 +427,22 @@ export default function QuotesPage() {
     return "17:30";
   }
 
+  function scheduledAtToPrefill(iso: string) {
+    try {
+      const raw = String(iso || "").trim();
+      if (!raw) return null;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        return { date: raw, time: defaultScheduleTimeValue() };
+      }
+      const date = toDateLocalValue(raw);
+      const time = toTimeLocalValue(raw);
+      if (!date) return null;
+      return { date, time: time || defaultScheduleTimeValue() };
+    } catch {
+      return null;
+    }
+  }
+
   function computeSpanDays(laborDays: unknown) {
     const n = Number(laborDays);
     if (!Number.isFinite(n) || n <= 0) return 0;
@@ -1768,14 +1784,15 @@ export default function QuotesPage() {
                         const store = readDraftStore();
                         const cur = store[q.id] as any;
                         const fromState = drafts.find((d) => d.id === q.id) as any;
-                        const existing = String(cur?.scheduledAt || fromState?.scheduledAt || (q as any)?.scheduledAt || "");
+                        const existing = String((q as any)?.scheduledAt || fromState?.scheduledAt || cur?.scheduledAt || "");
                         const existingAssignee = String(
-                          cur?.estimateAssignee || fromState?.estimateAssignee || (q as any)?.estimateAssignee || ""
+                          (q as any)?.estimateAssignee || fromState?.estimateAssignee || cur?.estimateAssignee || ""
                         );
                         setScheduleForId(q.id);
-                        if (existing) {
-                          setScheduleDate(toDateLocalValue(existing));
-                          setScheduleTime(toTimeLocalValue(existing));
+                        const prefill = scheduledAtToPrefill(existing);
+                        if (prefill) {
+                          setScheduleDate(prefill.date);
+                          setScheduleTime(prefill.time);
                         } else {
                           setScheduleDate(defaultScheduleDateValue());
                           setScheduleTime(defaultScheduleTimeValue());
