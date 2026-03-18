@@ -37,6 +37,28 @@ function draftHasMeaningfulData(d: any) {
   }
 }
 
+function draftHasPatchIntent(d: any) {
+  try {
+    if (!d || typeof d !== "object") return false;
+    const s = (v: any) => String(v ?? "").trim();
+    return Boolean(
+      s((d as any).status) ||
+        s((d as any).scheduledAt) ||
+        s((d as any).startDate) ||
+        s((d as any).installDate) ||
+        (d as any).calendarHidden != null ||
+        (d as any).laborDays != null ||
+        (d as any).queueRank != null ||
+        s((d as any).estimateAssignee) ||
+        s((d as any).holdDate) ||
+        (d as any).queueLocked != null ||
+        (d as any).queueLockedAt != null
+    );
+  } catch {
+    return false;
+  }
+}
+
 function draftUpdatedAtMs(d: any) {
   const v = Number((d as any)?.updatedAt);
   return Number.isFinite(v) && v > 0 ? v : 0;
@@ -74,10 +96,12 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
           const incomingEffectiveUpdatedAt = Math.max(incomingUpdatedAt, 0);
 
           if (remoteEffectiveUpdatedAt > 0 && incomingEffectiveUpdatedAt > 0 && remoteEffectiveUpdatedAt > incomingEffectiveUpdatedAt) {
-            return { ok: false as const, reason: "stale_write" as const };
+            if (!draftHasPatchIntent(incoming)) {
+              return { ok: false as const, reason: "stale_write" as const };
+            }
           }
 
-          if (!incomingHasData && remoteHasData) {
+          if (!incomingHasData && remoteHasData && !draftHasPatchIntent(incoming)) {
             return { ok: false as const, reason: "prevent_empty_overwrite" as const };
           }
 
@@ -128,6 +152,7 @@ type QuotesEntryRow = {
   status?: string | null;
   calendar_hidden?: boolean | null;
   scheduled_iso?: string | null;
+  scheduled_at?: string | null;
   install_date?: string | null;
   start_date?: string | null;
   labor_days?: number | null;
@@ -153,7 +178,7 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
 
   try {
     const selectCols =
-      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,labor_days,queue_rank,estimate_assignee,customer_name,title,phone_number,project_address,selected_style_name,project_photo_url,preinstall_count,totals,job_tasks,job_task_snooze";
+      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,scheduled_at,install_date,start_date,labor_days,queue_rank,estimate_assignee,customer_name,title,phone_number,project_address,selected_style_name,project_photo_url,preinstall_count,totals,job_tasks,job_task_snooze";
 
     const res = await supabase
       .from("quotes_entries")
@@ -177,7 +202,7 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
           updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
           status: (r as any)?.status ?? undefined,
           calendarHidden: (r as any)?.calendar_hidden ?? undefined,
-          scheduledAt: (r as any)?.scheduled_iso ?? undefined,
+          scheduledAt: (r as any)?.scheduled_at ?? (r as any)?.scheduled_iso ?? undefined,
           installDate: (r as any)?.install_date ?? undefined,
           startDate: (r as any)?.start_date ?? undefined,
           laborDays: (r as any)?.labor_days ?? undefined,
