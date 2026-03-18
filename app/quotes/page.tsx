@@ -568,6 +568,10 @@ export default function QuotesPage() {
         return arr.filter((d: any) => {
           const id = String(d?.id || "");
           if (!id) return false;
+
+          const status = String(d?.status || "estimate");
+          if (status === "sold" || status === "complete") return true;
+
           if (remoteIdsSet.has(id)) return true;
           const createdAt = Number(d?.createdAt) || 0;
           const updatedAt = Number(d?.updatedAt) || 0;
@@ -590,7 +594,7 @@ export default function QuotesPage() {
       };
       try {
         const cached = readQuotesDraftsCache();
-        if (!cancelled && Array.isArray(cached) && cached.length) {
+        if (!cancelled && !hasSeededFromCacheRef.current && Array.isArray(cached) && cached.length) {
           setDraftsStable(filterGhosts(applyStatusCache(cached.filter((d) => !tombstones[String((d as any)?.id || "")]))));
           hasSeededFromCacheRef.current = true;
         }
@@ -983,12 +987,14 @@ export default function QuotesPage() {
     };
     document.addEventListener("visibilitychange", onVisibility);
 
-    const pollId = window.setInterval(() => {
-      try {
-        if (document.visibilityState === "visible") debouncedLoad();
-      } catch {
-      }
-    }, 30000);
+    const pollId = !supabaseConfigured
+      ? window.setInterval(() => {
+          try {
+            if (document.visibilityState === "visible") debouncedLoad();
+          } catch {
+          }
+        }, 120000)
+      : null;
 
     const onChanged = () => {
       debouncedLoad();
@@ -997,7 +1003,7 @@ export default function QuotesPage() {
 
     return () => {
       cancelled = true;
-      window.clearInterval(pollId);
+      if (pollId) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisibility);
       try {
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
@@ -1697,7 +1703,21 @@ export default function QuotesPage() {
         </div>
       ) : null}
 
-      <SectionTitle title="Recent quotes" />
+      <SectionTitle
+        title="Recent quotes"
+        right={
+          <SecondaryButton
+            onClick={() => {
+              try {
+                notifyDraftsChanged();
+              } catch {
+              }
+            }}
+          >
+            Refresh
+          </SecondaryButton>
+        }
+      />
       <GlassCard className="p-4">
         <div className="mb-3">
           <input

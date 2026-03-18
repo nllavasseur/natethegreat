@@ -669,7 +669,12 @@ export default function CalendarPage() {
       try {
         // Fast path: seed UI from lightweight cache so the calendar can render immediately.
         const cached = readCalendarDraftsCache();
-        if (!cancelled && Array.isArray(cached) && cached.length) setDrafts(cached);
+        if (!cancelled && Array.isArray(cached) && cached.length)
+          setDrafts((prev) => {
+            const prevList = Array.isArray(prev) ? prev : [];
+            if (prevList.length > 0) return prevList;
+            return cached;
+          });
       } catch {
       }
 
@@ -699,7 +704,13 @@ export default function CalendarPage() {
       try {
         const store = readDraftStore();
         const localDrafts = Object.values(store).map((d) => toCalendarDraftLite(d));
-        if (!cancelled) setDrafts(localDrafts);
+        if (!cancelled)
+          setDrafts((prev) => {
+            const prevList = Array.isArray(prev) ? prev : [];
+            if (prevList.length === 0) return localDrafts;
+            const merged = mergeDraftLists(prevList as any, localDrafts as any);
+            return (Array.isArray(merged) ? merged : []) as any;
+          });
         try {
           writeCalendarDraftsCache(localDrafts);
         } catch {
@@ -907,12 +918,14 @@ export default function CalendarPage() {
 
     document.addEventListener("visibilitychange", onVisibility);
 
-    const pollId = window.setInterval(() => {
-      try {
-        if (document.visibilityState === "visible") debouncedRefresh();
-      } catch {
-      }
-    }, 30000);
+    const pollId = !supabaseConfigured
+      ? window.setInterval(() => {
+          try {
+            if (document.visibilityState === "visible") debouncedRefresh();
+          } catch {
+          }
+        }, 120000)
+      : null;
 
     const onStorage = (e: StorageEvent) => {
       if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1" && e.key !== "vf_calendar_tasks_v1") return;
@@ -925,7 +938,7 @@ export default function CalendarPage() {
     return () => {
       cancelled = true;
       if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
-      window.clearInterval(pollId);
+      if (pollId) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisibility);
       try {
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
@@ -3026,6 +3039,16 @@ export default function CalendarPage() {
           </SecondaryButton>
           <div className="text-sm font-extrabold">{label}</div>
           <div className="flex items-center gap-2">
+            <SecondaryButton
+              onClick={() => {
+                try {
+                  notifyDraftsChanged();
+                } catch {
+                }
+              }}
+            >
+              Refresh
+            </SecondaryButton>
             <button
               type="button"
               data-no-swipe="true"
