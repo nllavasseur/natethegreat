@@ -50,6 +50,7 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
     const incoming = params.data;
     const incomingUpdatedAt = draftUpdatedAtMs(incoming);
     const incomingHasData = draftHasMeaningfulData(incoming);
+    let nextDraft = incoming;
 
     if (!RESERVED_DRAFT_IDS.has(String(params.id || ""))) {
       try {
@@ -79,6 +80,26 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
           if (!incomingHasData && remoteHasData) {
             return { ok: false as const, reason: "prevent_empty_overwrite" as const };
           }
+
+          try {
+            if (remoteDraft && typeof remoteDraft === "object" && incoming && typeof incoming === "object") {
+              const merged: any = { ...(remoteDraft as any), ...(incoming as any) };
+              if ((incoming as any).items == null && (remoteDraft as any).items != null) merged.items = (remoteDraft as any).items;
+              if ((incoming as any).takeoffMaterials == null && (remoteDraft as any).takeoffMaterials != null)
+                merged.takeoffMaterials = (remoteDraft as any).takeoffMaterials;
+              if ((incoming as any).takeoffManualItems == null && (remoteDraft as any).takeoffManualItems != null)
+                merged.takeoffManualItems = (remoteDraft as any).takeoffManualItems;
+              if ((incoming as any).totals == null && (remoteDraft as any).totals != null) merged.totals = (remoteDraft as any).totals;
+              if ((incoming as any).segments == null && (remoteDraft as any).segments != null) merged.segments = (remoteDraft as any).segments;
+              if ((incoming as any).contract == null && (remoteDraft as any).contract != null) merged.contract = (remoteDraft as any).contract;
+              if ((incoming as any).photos == null && (remoteDraft as any).photos != null) merged.photos = (remoteDraft as any).photos;
+              if ((incoming as any).preInstallPhotos == null && (remoteDraft as any).preInstallPhotos != null)
+                merged.preInstallPhotos = (remoteDraft as any).preInstallPhotos;
+              nextDraft = merged;
+            }
+          } catch {
+            nextDraft = incoming;
+          }
         }
       } catch {
         // ignore safety check failures; still attempt upsert
@@ -88,7 +109,7 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
     const payload: DraftRow = {
       workspace_id: workspaceId,
       draft_id: params.id,
-      draft: params.data
+      draft: nextDraft
     };
 
     const { error } = await supabase.from("drafts").upsert(payload, { onConflict: "workspace_id,draft_id" });
