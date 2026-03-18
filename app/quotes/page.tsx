@@ -557,28 +557,10 @@ export default function QuotesPage() {
 
       const tombstones = readDeletedQuoteTombstones();
       const statusCache = readQuotesStatusCache();
-      const remoteIdsCache = readQuotesRemoteIdsCache();
-      const remoteIdsSet = new Set((remoteIdsCache.ids || []).map((x) => String(x || "").trim()).filter(Boolean));
-      const allowLocalOnlyMs = 10 * 60 * 1000;
 
       const filterGhosts = (list: DraftEntry[]) => {
         const arr = Array.isArray(list) ? list : [];
-        // If we have no knowledge of remote IDs yet, do not filter aggressively.
-        if (!remoteIdsSet.size) return arr;
-        const now = Date.now();
-        return arr.filter((d: any) => {
-          const id = String(d?.id || "");
-          if (!id) return false;
-
-          const status = String(d?.status || "estimate");
-          if (status === "sold" || status === "complete") return true;
-
-          if (remoteIdsSet.has(id)) return true;
-          const createdAt = Number(d?.createdAt) || 0;
-          const updatedAt = Number(d?.updatedAt) || 0;
-          const t = Math.max(Number.isFinite(createdAt) ? createdAt : 0, Number.isFinite(updatedAt) ? updatedAt : 0);
-          return t > 0 && now - t <= allowLocalOnlyMs;
-        });
+        return arr;
       };
 
       const applyStatusCache = (list: DraftEntry[]) => {
@@ -696,14 +678,13 @@ export default function QuotesPage() {
 
               const pageSize = 1000;
               let from = 0;
-              const sold: DraftEntry[] = [];
+              const allBackfilled: DraftEntry[] = [];
 
               for (let guard = 0; guard < 30; guard += 1) {
                 const res = await supabase
                   .from("quotes_entries")
                   .select(selectCols)
                   .eq("workspace_id", DEFAULT_WORKSPACE_ID)
-                  .eq("status", "sold")
                   .order("updated_at", { ascending: false })
                   .range(from, from + pageSize - 1);
 
@@ -713,9 +694,10 @@ export default function QuotesPage() {
                 for (const r of rows) {
                   const id = String((r as any)?.draft_id || "");
                   if (!id) continue;
+                  if (tombstones[String(id)]) continue;
                   const updatedAtMs = Number((r as any)?.updated_at_ms);
                   const createdAtMs = Number((r as any)?.created_at_ms);
-                  sold.push({
+                  allBackfilled.push({
                     id,
                     createdAt: Number.isFinite(createdAtMs) && createdAtMs > 0 ? createdAtMs : undefined,
                     updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
@@ -747,9 +729,51 @@ export default function QuotesPage() {
                 from += pageSize;
               }
 
+              try {
+                const pageSizeDrafts = 1000;
+                let fromDrafts = 0;
+                for (let guard = 0; guard < 30; guard += 1) {
+                  const resDrafts = await supabase
+                    .from("drafts")
+                    .select("draft_id,draft,updated_at")
+                    .eq("workspace_id", DEFAULT_WORKSPACE_ID)
+                    .order("updated_at", { ascending: false })
+                    .range(fromDrafts, fromDrafts + pageSizeDrafts - 1);
+
+                  if ((resDrafts as any)?.error) break;
+
+                  const rowsDrafts = ((resDrafts as any)?.data ?? []) as any[];
+                  for (const r of rowsDrafts) {
+                    const rawDraft = (r as any)?.draft ?? {};
+                    const id = String((r as any)?.draft_id ?? rawDraft?.id ?? "");
+                    if (!id) continue;
+                    if (tombstones[String(id)]) continue;
+                    const kind = String((rawDraft as any)?.kind || "");
+                    if (kind === "calendar_blockouts" || kind === "calendar_tasks") continue;
+
+                    const updatedAt = (() => {
+                      const raw = String((r as any)?.updated_at ?? "");
+                      if (!raw) return undefined;
+                      const ms = Date.parse(raw);
+                      return Number.isFinite(ms) ? ms : undefined;
+                    })();
+
+                    allBackfilled.push({
+                      ...(rawDraft as any),
+                      id,
+                      ...(typeof updatedAt === "number" ? { updatedAt } : {})
+                    } as any);
+                  }
+
+                  if (rowsDrafts.length < pageSizeDrafts) break;
+                  fromDrafts += pageSizeDrafts;
+                }
+              } catch {
+              }
+
               if (cancelled) return;
-              const soldLite = sold.map((d) => toQuotesDraftLite({ ...(d as any) } as any));
-              if (!soldLite.length) return;
+              const backfilledLite = allBackfilled.map((d) => toQuotesDraftLite({ ...(d as any) } as any));
+              if (!backfilledLite.length) return;
 
               setDrafts((prev) => {
                 const prevList = Array.isArray(prev) ? prev : [];
@@ -760,7 +784,7 @@ export default function QuotesPage() {
                   byId.set(id, d as any);
                 }
 
-                for (const d of soldLite as any[]) {
+                for (const d of backfilledLite as any[]) {
                   const id = String((d as any)?.id || "");
                   if (!id) continue;
                   const prevOne = byId.get(id);
@@ -1453,7 +1477,10 @@ export default function QuotesPage() {
         if (style === "Horizontal Cedar") return String(md.horizontalCedarBoardMaterial || "");
         return String(md.woodType || "");
       })();
-      const status = (d.status ?? "estimate") as DraftEntry["status"];
+      const statusRaw = String((d as any).status ?? "estimate").trim().toLowerCase();
+      const status = (statusRaw === "pending" || statusRaw === "estimate" || statusRaw === "sold" || statusRaw === "complete" || statusRaw === "void"
+        ? statusRaw
+        : "estimate") as DraftEntry["status"];
       const phoneNumber = String((d as any).phoneNumber || "");
       const startDate = String((d as any).startDate || d.installDate || "");
       const laborDays = Number((d as any).laborDays);
@@ -1529,10 +1556,10 @@ export default function QuotesPage() {
 
     const byStatus = statusFilter === "all"
       ? cards.filter((c) => {
-          const s = (c.status ?? "estimate") as any;
+          const s = String((c as any).status ?? "estimate").trim().toLowerCase() as any;
           return s !== "complete" && s !== "void";
         })
-      : cards.filter((c) => (c.status ?? "estimate") === statusFilter);
+      : cards.filter((c) => String((c as any).status ?? "estimate").trim().toLowerCase() === statusFilter);
 
     const withSearch = (() => {
       if (!q) return byStatus;
