@@ -12,6 +12,8 @@ create table if not exists public.calendar_entries (
   calendar_hidden boolean not null default false,
 
   scheduled_iso text null,
+  scheduled_day text null,
+  scheduled_at text null,
   install_date text null,
   start_date text null,
   hold_date text null,
@@ -32,9 +34,14 @@ create table if not exists public.calendar_entries (
 );
 
 alter table public.calendar_entries add column if not exists phone_number text;
+alter table public.calendar_entries add column if not exists scheduled_day text;
+alter table public.calendar_entries add column if not exists scheduled_at text;
 
 create index if not exists calendar_entries_workspace_scheduled_idx
   on public.calendar_entries (workspace_id, scheduled_iso);
+
+create index if not exists calendar_entries_workspace_scheduled_day_idx
+  on public.calendar_entries (workspace_id, scheduled_day);
 
 create index if not exists calendar_entries_workspace_status_idx
   on public.calendar_entries (workspace_id, status);
@@ -42,6 +49,10 @@ create index if not exists calendar_entries_workspace_status_idx
 create index if not exists calendar_entries_workspace_queue_idx
   on public.calendar_entries (workspace_id, queue_rank);
 
+-- If you are upgrading an existing function, Postgres cannot CREATE OR REPLACE
+-- when the OUT/return row type changes. Drop dependent objects first.
+drop trigger if exists vf_sync_calendar_entry_trigger on public.drafts;
+drop function if exists public.vf_sync_calendar_entry();
 drop function if exists public.vf_calendar_entry_from_draft(jsonb);
 
 create or replace function public.vf_calendar_entry_from_draft(d jsonb)
@@ -49,6 +60,8 @@ returns table(
   status text,
   calendar_hidden boolean,
   scheduled_iso text,
+  scheduled_day text,
+  scheduled_at text,
   install_date text,
   start_date text,
   hold_date text,
@@ -72,6 +85,8 @@ as $$
     nullif(d->>'status','') as status,
     coalesce((d->>'calendarHidden')::boolean,false) as calendar_hidden,
     nullif(left(coalesce(d->>'scheduledAt',''),10),'') as scheduled_iso,
+    nullif(left(coalesce(d->>'scheduledAt',''),10),'') as scheduled_day,
+    nullif(coalesce(d->>'scheduledAt',''),'') as scheduled_at,
     nullif(left(coalesce(d->>'installDate',''),10),'') as install_date,
     nullif(left(coalesce(d->>'startDate',''),10),'') as start_date,
     nullif(left(coalesce(d->>'holdDate',''),10),'') as hold_date,
@@ -113,14 +128,14 @@ begin
     workspace_id, draft_id, updated_at,
     created_at_ms, updated_at_ms,
     status, calendar_hidden,
-    scheduled_iso, install_date, start_date, hold_date,
+    scheduled_iso, scheduled_day, scheduled_at, install_date, start_date, hold_date,
     labor_days, queue_rank, allow_saturday, allow_sunday, estimate_assignee,
     customer_name, title, phone_number, project_address, selected_style
   ) values (
     new.workspace_id, did, new.updated_at,
     v.created_at_ms, v.updated_at_ms,
     v.status, coalesce(v.calendar_hidden,false),
-    v.scheduled_iso, v.install_date, v.start_date, v.hold_date,
+    v.scheduled_iso, v.scheduled_day, v.scheduled_at, v.install_date, v.start_date, v.hold_date,
     v.labor_days, v.queue_rank, v.allow_saturday, v.allow_sunday, v.estimate_assignee,
     v.customer_name, v.title, v.phone_number, v.project_address, v.selected_style
   )
@@ -131,6 +146,8 @@ begin
     status = excluded.status,
     calendar_hidden = excluded.calendar_hidden,
     scheduled_iso = excluded.scheduled_iso,
+    scheduled_day = excluded.scheduled_day,
+    scheduled_at = excluded.scheduled_at,
     install_date = excluded.install_date,
     start_date = excluded.start_date,
     hold_date = excluded.hold_date,
@@ -159,7 +176,7 @@ insert into public.calendar_entries (
   workspace_id, draft_id, updated_at,
   created_at_ms, updated_at_ms,
   status, calendar_hidden,
-  scheduled_iso, install_date, start_date, hold_date,
+  scheduled_iso, scheduled_day, scheduled_at, install_date, start_date, hold_date,
   labor_days, queue_rank, allow_saturday, allow_sunday, estimate_assignee,
   customer_name, title, phone_number, project_address, selected_style
 )
@@ -172,6 +189,8 @@ select
   v.status,
   coalesce(v.calendar_hidden,false),
   v.scheduled_iso,
+  v.scheduled_day,
+  v.scheduled_at,
   v.install_date,
   v.start_date,
   v.hold_date,
@@ -194,6 +213,8 @@ on conflict (workspace_id, draft_id) do update set
   status = excluded.status,
   calendar_hidden = excluded.calendar_hidden,
   scheduled_iso = excluded.scheduled_iso,
+  scheduled_day = excluded.scheduled_day,
+  scheduled_at = excluded.scheduled_at,
   install_date = excluded.install_date,
   start_date = excluded.start_date,
   hold_date = excluded.hold_date,

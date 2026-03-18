@@ -9,6 +9,7 @@ import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import { DEFAULT_WORKSPACE_ID, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
+import { getQuotesDraftsSession, setQuotesDraftsSession } from "@/lib/sessionDraftsCache";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import type { QuoteItem } from "@/lib/types";
 
@@ -194,7 +195,7 @@ function readDraftStore(): Record<string, DraftEntry> {
 }
 
 export default function QuotesPage() {
-  const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  const [drafts, setDrafts] = useState<DraftEntry[]>(() => getQuotesDraftsSession<DraftEntry[]>() ?? []);
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [completedSearchQuery, setCompletedSearchQuery] = useState("");
@@ -275,8 +276,20 @@ export default function QuotesPage() {
   };
 
   const setDraftsStable = (list: DraftEntry[]) => {
-    setDrafts(applyStableOrder(list));
+    const next = applyStableOrder(list);
+    setDrafts(next);
+    try {
+      if (Array.isArray(next) && next.length) setQuotesDraftsSession(next);
+    } catch {
+    }
   };
+
+  useEffect(() => {
+    try {
+      if (Array.isArray(drafts) && drafts.length) setQuotesDraftsSession(drafts);
+    } catch {
+    }
+  }, [drafts]);
 
   function setDraftScheduledAt(id: string, scheduledAt: string | null) {
     try {
@@ -532,6 +545,15 @@ export default function QuotesPage() {
     };
 
     const load = async () => {
+      try {
+        const session = getQuotesDraftsSession<DraftEntry[]>();
+        if (!hasSeededFromCacheRef.current && Array.isArray(session) && session.length) {
+          setDraftsStable(session);
+          hasSeededFromCacheRef.current = true;
+        }
+      } catch {
+      }
+
       const tombstones = readDeletedQuoteTombstones();
       const statusCache = readQuotesStatusCache();
       const remoteIdsCache = readQuotesRemoteIdsCache();

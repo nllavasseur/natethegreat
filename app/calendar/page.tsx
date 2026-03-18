@@ -3,6 +3,7 @@
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { getCalendarDraftsSession, setCalendarDraftsSession } from "@/lib/sessionDraftsCache";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
 import {
@@ -468,7 +469,11 @@ function pad2(n: number) {
 
 function formatTimeLocal(iso: string) {
   try {
-    const dt = new Date(iso);
+    const raw = String(iso || "").trim();
+    // If we only have a date-only value (yyyy-mm-dd), do not render a time.
+    // JS parses date-only as UTC midnight which shows the wrong local time (e.g. ~8pm).
+    if (raw.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+    const dt = new Date(raw);
     if (!Number.isFinite(dt.getTime())) return "";
     return dt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   } catch {
@@ -564,7 +569,7 @@ export default function CalendarPage() {
   const [dayPreviewOpen, setDayPreviewOpen] = React.useState(false);
   const suppressDayPreviewOpenUntilRef = React.useRef(0);
   const localMutationEpochRef = React.useRef(0);
-  const [drafts, setDrafts] = React.useState<DraftEntry[]>([]);
+  const [drafts, setDrafts] = React.useState<DraftEntry[]>(() => getCalendarDraftsSession<DraftEntry[]>() ?? []);
   const [blockOuts, setBlockOuts] = React.useState<BlockOut[]>([]);
   const [portalReady, setPortalReady] = React.useState(false);
   const [blockOpen, setBlockOpen] = React.useState(false);
@@ -597,6 +602,13 @@ export default function CalendarPage() {
   const queueAnchorRef = React.useRef<{ id: string; anchorTop: number } | null>(null);
 
   const refreshDebounceRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    try {
+      if (Array.isArray(drafts) && drafts.length) setCalendarDraftsSession(drafts);
+    } catch {
+    }
+  }, [drafts]);
 
   const withTimeout = React.useCallback(async <T,>(p: Promise<T>, ms: number) => {
     return await Promise.race([

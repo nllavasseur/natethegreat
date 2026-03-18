@@ -325,19 +325,19 @@ export async function fetchCalendarEntries(params: {
 
   try {
     const selectColsWithPhone =
-      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,phone_number,project_address,selected_style";
+      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,scheduled_day,scheduled_at,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,phone_number,project_address,selected_style";
     const selectColsNoPhone =
-      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,project_address,selected_style";
+      "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,scheduled_day,scheduled_at,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,project_address,selected_style";
 
-    const fetchAll = async (selectCols: string) => {
+    const fetchAll = async (selectCols: string, hasScheduledDay: boolean) => {
       const [windowRes, soldRes, unscheduledRes] = await Promise.all([
         supabase
           .from("calendar_entries")
           .select(selectCols)
           .eq("workspace_id", workspaceId)
           .in("status", ["estimate", "pending", "sold", "complete"])
-          .gte("scheduled_iso", params.windowStartIso)
-          .lte("scheduled_iso", params.windowEndIso),
+          .gte(hasScheduledDay ? "scheduled_day" : "scheduled_iso", params.windowStartIso)
+          .lte(hasScheduledDay ? "scheduled_day" : "scheduled_iso", params.windowEndIso),
         supabase
           .from("calendar_entries")
           .select(selectCols)
@@ -367,11 +367,24 @@ export async function fetchCalendarEntries(params: {
     let soldRes: any;
     let unscheduledRes: any;
     try {
-      [windowRes, soldRes, unscheduledRes] = await fetchAll(selectColsWithPhone);
+      [windowRes, soldRes, unscheduledRes] = await fetchAll(selectColsWithPhone, true);
     } catch (e: any) {
       const msg = String(e?.message || e || "").toLowerCase();
-      if (msg.includes("phone_number") && (msg.includes("column") || msg.includes("field") || msg.includes("does not exist"))) {
-        [windowRes, soldRes, unscheduledRes] = await fetchAll(selectColsNoPhone);
+      const missingPhone = msg.includes("phone_number") && (msg.includes("column") || msg.includes("field") || msg.includes("does not exist"));
+      const missingScheduledDay = msg.includes("scheduled_day") && (msg.includes("column") || msg.includes("field") || msg.includes("does not exist"));
+      const missingScheduledAt = msg.includes("scheduled_at") && (msg.includes("column") || msg.includes("field") || msg.includes("does not exist"));
+      if (missingPhone || missingScheduledDay || missingScheduledAt) {
+        // Fall back to legacy table schemas by reducing selected columns and filtering on scheduled_iso.
+        const legacyColsWithPhone =
+          "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,phone_number,project_address,selected_style";
+        const legacyColsNoPhone =
+          "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,hold_date,labor_days,queue_rank,allow_saturday,allow_sunday,estimate_assignee,customer_name,title,project_address,selected_style";
+
+        if (missingPhone) {
+          [windowRes, soldRes, unscheduledRes] = await fetchAll(legacyColsNoPhone, false);
+        } else {
+          [windowRes, soldRes, unscheduledRes] = await fetchAll(legacyColsWithPhone, false);
+        }
       } else {
         throw e;
       }
@@ -390,7 +403,7 @@ export async function fetchCalendarEntries(params: {
         updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
         status: (r as any)?.status ?? undefined,
         calendarHidden: (r as any)?.calendar_hidden ?? undefined,
-        scheduledAt: (r as any)?.scheduled_iso ?? undefined,
+        scheduledAt: (r as any)?.scheduled_at ?? (r as any)?.scheduled_iso ?? undefined,
         installDate: (r as any)?.install_date ?? undefined,
         startDate: (r as any)?.start_date ?? undefined,
         holdDate: (r as any)?.hold_date ?? undefined,
