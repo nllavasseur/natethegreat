@@ -199,6 +199,8 @@ export default function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [completedSearchQuery, setCompletedSearchQuery] = useState("");
+  const [repairing, setRepairing] = useState(false);
+  const [repairMsg, setRepairMsg] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
@@ -527,6 +529,51 @@ export default function QuotesPage() {
       window.dispatchEvent(new Event("vf-drafts-changed"));
     } catch {
       // ignore
+    }
+  }
+
+  async function repairSync() {
+    if (repairing) return;
+    setRepairing(true);
+    setRepairMsg("");
+    try {
+      const store = readDraftStore();
+      const list = Object.values(store)
+        .map((d: any) => ({ ...(d as any), id: String((d as any)?.id || "") }))
+        .filter((d: any) => Boolean(String(d?.id || "")));
+
+      const candidates = list
+        .filter((d: any) => {
+          const status = String(d?.status || "estimate").trim().toLowerCase();
+          if (status === "void") return false;
+          const hasTotals = d?.totals != null;
+          const hasItems = Array.isArray(d?.items) && d.items.length > 0;
+          const hasTakeoff = Array.isArray(d?.takeoffMaterials) && d.takeoffMaterials.length > 0;
+          const hasManual = Array.isArray(d?.takeoffManualItems) && d.takeoffManualItems.length > 0;
+          return hasTotals || hasItems || hasTakeoff || hasManual;
+        })
+        .slice(0, 400);
+
+      for (let i = 0; i < candidates.length; i += 8) {
+        const batch = candidates.slice(i, i + 8);
+        await Promise.all(
+          batch.map(async (d: any) => {
+            try {
+              const id = String(d?.id || "");
+              if (!id) return;
+              await upsertDraft({ id, data: d });
+            } catch {
+            }
+          })
+        );
+      }
+
+      setRepairMsg(`Published ${candidates.length}`);
+    } catch {
+      setRepairMsg("Repair failed");
+    } finally {
+      setRepairing(false);
+      notifyDraftsChanged();
     }
   }
 
@@ -1993,16 +2040,22 @@ export default function QuotesPage() {
       <SectionTitle
         title="Recent quotes"
         right={
-          <SecondaryButton
-            onClick={() => {
-              try {
-                notifyDraftsChanged();
-              } catch {
-              }
-            }}
-          >
-            Refresh
-          </SecondaryButton>
+          <div className="flex items-center gap-2">
+            {repairMsg ? <div className="text-[11px] text-[var(--muted)] font-extrabold">{repairMsg}</div> : null}
+            <SecondaryButton
+              onClick={() => {
+                try {
+                  notifyDraftsChanged();
+                } catch {
+                }
+              }}
+            >
+              Refresh
+            </SecondaryButton>
+            <SecondaryButton onClick={repairSync} disabled={repairing}>
+              {repairing ? "Repairing…" : "Repair Sync"}
+            </SecondaryButton>
+          </div>
         }
       />
       <GlassCard className="p-4">
