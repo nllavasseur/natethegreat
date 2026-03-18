@@ -94,14 +94,33 @@ export default function QuoteDetailPage() {
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      const store = readDraftStore();
+      const local = store[id] ?? null;
+
       const remote = await fetchDraft({ id });
       if (cancelled) return;
       if (remote.ok && remote.draft) {
-        setDraft(remote.draft);
+        const r = remote.draft as any;
+        const l = local as any;
+        const merged: DraftEntry = {
+          ...(l || {}),
+          ...(r || {}),
+          id: String((r as any)?.id || (l as any)?.id || id),
+          createdAt: Number((r as any)?.createdAt ?? (l as any)?.createdAt ?? Date.now())
+        } as any;
+
+        if ((r as any)?.items == null && (l as any)?.items != null) (merged as any).items = (l as any).items;
+        if ((r as any)?.segments == null && (l as any)?.segments != null) (merged as any).segments = (l as any).segments;
+        if ((r as any)?.contract == null && (l as any)?.contract != null) (merged as any).contract = (l as any).contract;
+        if ((r as any)?.photos == null && (l as any)?.photos != null) (merged as any).photos = (l as any).photos;
+        if ((r as any)?.projectPhotoUrl == null && (l as any)?.projectPhotoUrl != null) (merged as any).projectPhotoUrl = (l as any).projectPhotoUrl;
+        if ((r as any)?.projectPhotoPath == null && (l as any)?.projectPhotoPath != null) (merged as any).projectPhotoPath = (l as any).projectPhotoPath;
+        if ((r as any)?.preInstallPhotos == null && (l as any)?.preInstallPhotos != null) (merged as any).preInstallPhotos = (l as any).preInstallPhotos;
+
+        setDraft(merged);
         return;
       }
-      const store = readDraftStore();
-      setDraft(store[id] ?? null);
+      setDraft(local);
     })();
     return () => {
       cancelled = true;

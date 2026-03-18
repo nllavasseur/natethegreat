@@ -213,6 +213,8 @@ export default function QuotesPage() {
 
   const hasSeededFromCacheRef = useRef(false);
   const hasBackfilledSoldRef = useRef(false);
+  const hasPublishedLocalRef = useRef(false);
+  const hasHydratedPricingRef = useRef(false);
 
   const orderRef = useRef<Record<string, number>>({});
   const orderMaxRef = useRef(0);
@@ -626,6 +628,64 @@ export default function QuotesPage() {
 
       const remoteList = remoteListRaw.filter((d) => !tombstones[String((d as any)?.id || "")]);
 
+      try {
+        if (supabaseConfigured && !hasPublishedLocalRef.current) {
+          hasPublishedLocalRef.current = true;
+
+          const remoteById = new Map<string, DraftEntry>();
+          for (const d of Array.isArray(remoteListRaw) ? remoteListRaw : []) {
+            const id = String((d as any)?.id || "");
+            if (!id) continue;
+            remoteById.set(id, d as any);
+          }
+
+          const localFull = (Array.isArray(localList) ? localList : [])
+            .filter((d: any) => !tombstones[String((d as any)?.id || "")])
+            .filter((d: any) => {
+              const id = String((d as any)?.id || "");
+              if (!id) return false;
+              const kind = String((d as any)?.kind || "");
+              if (kind === "calendar_blockouts" || kind === "calendar_tasks") return false;
+              return true;
+            });
+
+          const publish = localFull
+            .filter((d: any) => {
+              const id = String((d as any)?.id || "");
+              if (!id) return false;
+
+              const status = String((d as any)?.status || "estimate").trim().toLowerCase();
+              if (status === "void") return false;
+
+              const remoteOne = remoteById.get(id);
+              const localTs = getTs(d);
+              const remoteTs = getTs(remoteOne);
+              if (!remoteOne) return localTs > 0;
+              return localTs > remoteTs;
+            })
+            .slice(0, 120);
+
+          if (publish.length) {
+            void (async () => {
+              for (let i = 0; i < publish.length; i += 8) {
+                const batch = publish.slice(i, i + 8);
+                await Promise.all(
+                  batch.map(async (d: any) => {
+                    try {
+                      const id = String((d as any)?.id || "");
+                      if (!id) return;
+                      await upsertDraft({ id, data: d });
+                    } catch {
+                    }
+                  })
+                );
+              }
+            })();
+          }
+        }
+      } catch {
+      }
+
       const byId = new Map<string, DraftEntry>();
       for (const d of Array.isArray(localList) ? localList : []) {
         const id = String((d as any)?.id || "");
@@ -643,6 +703,12 @@ export default function QuotesPage() {
 
         if (getTs(d) > getTs(prev)) {
           const mergedNext: DraftEntry = { ...(prev as any), ...(d as any) } as any;
+          if ((d as any).items == null && (prev as any).items != null) (mergedNext as any).items = (prev as any).items;
+          if ((d as any).takeoffMaterials == null && (prev as any).takeoffMaterials != null)
+            (mergedNext as any).takeoffMaterials = (prev as any).takeoffMaterials;
+          if ((d as any).takeoffManualItems == null && (prev as any).takeoffManualItems != null)
+            (mergedNext as any).takeoffManualItems = (prev as any).takeoffManualItems;
+          if ((d as any).totals == null && (prev as any).totals != null) (mergedNext as any).totals = (prev as any).totals;
           if ((d as any).jobTasks == null && (prev as any).jobTasks != null) (mergedNext as any).jobTasks = (prev as any).jobTasks;
           if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prev as any).jobTaskSnooze;
           if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prev as any).jobTaskLabels;
@@ -665,6 +731,71 @@ export default function QuotesPage() {
 
       try {
         writeQuotesRemoteIdsCache(mergedLitePatched.map((d: any) => String(d?.id || "")).filter(Boolean));
+      } catch {
+      }
+
+      try {
+        if (!hasHydratedPricingRef.current) {
+          const missingPricingIds = (Array.isArray(mergedLitePatched) ? mergedLitePatched : [])
+            .filter((d: any) => {
+              const status = String(d?.status || "estimate").trim().toLowerCase();
+              if (status === "void") return false;
+              const hasTotals = d?.totals != null;
+              const hasItems = Array.isArray(d?.items) && d.items.length > 0;
+              const hasTakeoff = Array.isArray(d?.takeoffMaterials) && d.takeoffMaterials.length > 0;
+              const hasManual = Array.isArray(d?.takeoffManualItems) && d.takeoffManualItems.length > 0;
+              return !hasTotals && !hasItems && !hasTakeoff && !hasManual;
+            })
+            .map((d: any) => String(d?.id || ""))
+            .filter(Boolean)
+            .slice(0, 60);
+
+          if (missingPricingIds.length) {
+            hasHydratedPricingRef.current = true;
+            void (async () => {
+              try {
+                const results = await Promise.all(
+                  missingPricingIds.map(async (id) => {
+                    try {
+                      const res = await withTimeout(fetchDraft({ id }) as any, 4500);
+                      if (!(res as any)?.ok || !(res as any)?.draft) return null;
+                      return { id, draft: (res as any).draft as any };
+                    } catch {
+                      return null;
+                    }
+                  })
+                );
+
+                const hydrated = results.filter(Boolean) as Array<{ id: string; draft: any }>;
+                if (!hydrated.length || cancelled) return;
+
+                try {
+                  const store = readDraftStore();
+                  for (const h of hydrated) {
+                    store[h.id] = { ...(store[h.id] || {}), ...(h.draft || {}) };
+                  }
+                  window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+                } catch {
+                }
+
+                setDrafts((prev) => {
+                  const byIdHydrated = new Map(hydrated.map((h) => [h.id, h.draft] as const));
+                  const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
+                    const hd = byIdHydrated.get(String(d?.id || ""));
+                    if (!hd) return d;
+                    return toQuotesDraftLite({ ...(d as any), ...(hd as any) } as any);
+                  });
+                  try {
+                    writeQuotesDraftsCache(next as any);
+                  } catch {
+                  }
+                  return applyStableOrder(next as any) as any;
+                });
+              } catch {
+              }
+            })();
+          }
+        }
       } catch {
       }
 
@@ -794,6 +925,12 @@ export default function QuotesPage() {
                   }
                   if (getTs(d) > getTs(prevOne)) {
                     const mergedNext: DraftEntry = { ...(prevOne as any), ...(d as any) } as any;
+                    if ((d as any).items == null && (prevOne as any).items != null) (mergedNext as any).items = (prevOne as any).items;
+                    if ((d as any).takeoffMaterials == null && (prevOne as any).takeoffMaterials != null)
+                      (mergedNext as any).takeoffMaterials = (prevOne as any).takeoffMaterials;
+                    if ((d as any).takeoffManualItems == null && (prevOne as any).takeoffManualItems != null)
+                      (mergedNext as any).takeoffManualItems = (prevOne as any).takeoffManualItems;
+                    if ((d as any).totals == null && (prevOne as any).totals != null) (mergedNext as any).totals = (prevOne as any).totals;
                     if ((d as any).jobTasks == null && (prevOne as any).jobTasks != null) (mergedNext as any).jobTasks = (prevOne as any).jobTasks;
                     if ((d as any).jobTaskSnooze == null && (prevOne as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prevOne as any).jobTaskSnooze;
                     if ((d as any).jobTaskLabels == null && (prevOne as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prevOne as any).jobTaskLabels;
@@ -984,6 +1121,12 @@ export default function QuotesPage() {
 
               if (getTs(d) > getTs(prev)) {
                 const mergedNext: DraftEntry = { ...(prev as any), ...(d as any) } as any;
+                if ((d as any).items == null && (prev as any).items != null) (mergedNext as any).items = (prev as any).items;
+                if ((d as any).takeoffMaterials == null && (prev as any).takeoffMaterials != null)
+                  (mergedNext as any).takeoffMaterials = (prev as any).takeoffMaterials;
+                if ((d as any).takeoffManualItems == null && (prev as any).takeoffManualItems != null)
+                  (mergedNext as any).takeoffManualItems = (prev as any).takeoffManualItems;
+                if ((d as any).totals == null && (prev as any).totals != null) (mergedNext as any).totals = (prev as any).totals;
                 if ((d as any).jobTasks == null && (prev as any).jobTasks != null) (mergedNext as any).jobTasks = (prev as any).jobTasks;
                 if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prev as any).jobTaskSnooze;
                 if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prev as any).jobTaskLabels;
