@@ -1146,20 +1146,6 @@ function EstimatesPageInner() {
 
   function persistFenceBuilder(next: FenceBuilderState) {
     setFenceBuilder(next);
-    try {
-      if (!draftId) return;
-      if (hydratingRemoteRef.current) return;
-      const store = readDraftStore();
-      const prev = (store as any)[draftId] ?? {};
-      const merged = { ...(prev as any), fenceBuilder: next, updatedAt: Date.now() };
-      (store as any)[draftId] = merged;
-      writeDraftStore(store);
-      try {
-        void upsertDraft({ id: draftId, data: merged });
-      } catch {
-      }
-    } catch {
-    }
   }
 
   const [extraPosts, setExtraPosts] = useState<number>(0);
@@ -4311,6 +4297,7 @@ function EstimatesPageInner() {
         materialsDetails,
         extraPosts,
         ...comboPayload,
+        fenceBuilder,
         materialUnitPrices,
         takeoffUnitPriceOverrides,
         laborDays,
@@ -4370,6 +4357,7 @@ function EstimatesPageInner() {
     extraPosts,
     comboCards,
     activeComboCardId,
+    fenceBuilder,
     materialUnitPrices,
     takeoffUnitPriceOverrides,
     laborDays,
@@ -4593,7 +4581,7 @@ function EstimatesPageInner() {
       setDraftId(id);
 
       try {
-        await upsertDraft({ id, data: store[id] });
+        await upsertDraft({ id, data: { ...(store[id] as any), _allowDestructiveUpdate: true } });
       } catch {
         // ignore
       }
@@ -4688,7 +4676,7 @@ function EstimatesPageInner() {
       setDraftId(id);
 
       try {
-        await upsertDraft({ id, data: store[id] });
+        await upsertDraft({ id, data: { ...(store[id] as any), _allowDestructiveUpdate: true } });
       } catch {
         // ignore
       }
@@ -5206,96 +5194,6 @@ function EstimatesPageInner() {
       cancelled = true;
     };
   }, [draftId, projectPhotoDataUrl, projectPhotoPath, projectPhotoUrl]);
-
-  const lastPersistedProjectPhotoRef = useRef<string>("");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!draftId) return;
-    if (restoringRef.current) return;
-    if (hydratingRemoteRef.current) return;
-
-    const key = `${draftId}::${String(projectPhotoUrl || "")}::${String(projectPhotoPath || "")}::${String(projectPhotoDataUrl || "")}`;
-    if (lastPersistedProjectPhotoRef.current === key) return;
-    lastPersistedProjectPhotoRef.current = key;
-
-    try {
-      const store = readDraftStore();
-      const prev = (store as any)[draftId] ?? {};
-      const next = {
-        ...prev,
-        projectPhotoUrl: typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl,
-        projectPhotoPath,
-        projectPhotoDataUrl: typeof projectPhotoDataUrl === "string" && projectPhotoDataUrl.startsWith("data:") ? projectPhotoDataUrl : null,
-        updatedAt: Date.now()
-      };
-      (store as any)[draftId] = next;
-      try {
-        writeDraftStore(store);
-      } catch {
-        // ignore
-      }
-      try {
-        void upsertDraft({ id: draftId, data: next });
-      } catch {
-        // ignore
-      }
-    } catch {
-      // ignore
-    }
-  }, [draftId, projectPhotoUrl, projectPhotoPath, projectPhotoDataUrl]);
-
-  const lastPersistedPreInstallRef = useRef<string>("");
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!draftId) return;
-    if (restoringRef.current) return;
-    if (hydratingRemoteRef.current) return;
-
-    // Don't persist placeholder rows while uploads/compression are still running.
-    if (preInstallPendingCount > 0) return;
-    if (preInstallPhotos.some((p) => !String((p as any)?.src || "").trim())) return;
-
-    const key = JSON.stringify(preInstallPhotos);
-    if (lastPersistedPreInstallRef.current === key) return;
-    lastPersistedPreInstallRef.current = key;
-
-    const t = window.setTimeout(() => {
-      try {
-        const sanitized = sanitizePhotosForStorage({
-          projectPhotoDataUrl: null,
-          preInstallPhotos: (Array.isArray(preInstallPhotos) ? preInstallPhotos : []).map((p: any) => ({
-            src: String(p?.src || ""),
-            note: String(p?.note || ""),
-            createdAt: Number(p?.createdAt) || Date.now()
-          }))
-        });
-        const preInstallForStorage = mergePreInstallForStorage(preInstallPhotos, sanitized.preInstallPhotos);
-
-        const store = readDraftStore();
-        const prev = (store as any)[draftId] ?? {};
-        const next = {
-          ...prev,
-          preInstallPhotos: preInstallForStorage,
-          updatedAt: Date.now()
-        };
-        (store as any)[draftId] = next;
-        try {
-          writeDraftStore(store);
-        } catch {
-          // ignore
-        }
-        try {
-          void upsertDraft({ id: draftId, data: next });
-        } catch {
-          // ignore
-        }
-      } catch {
-        // ignore
-      }
-    }, 250);
-
-    return () => window.clearTimeout(t);
-  }, [draftId, preInstallPhotos, preInstallPendingCount]);
 
   useEffect(() => {
     const read = () => {
@@ -6741,26 +6639,6 @@ function EstimatesPageInner() {
       // Best-effort local preview cache (can fail on iOS when storage is full).
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      } catch {
-        // ignore
-      }
-
-      // Persist contract onto the draft so the contract page can fetch it remotely.
-      try {
-        const store = readDraftStore();
-        const prev = (store as any)[id] ?? {};
-        (store as any)[id] = {
-          ...prev,
-          ...buildDraftData(id),
-          contract: payload,
-          updatedAt: Date.now()
-        };
-        writeDraftStore(store);
-        try {
-          void upsertDraft({ id, data: (store as any)[id] });
-        } catch {
-          // ignore
-        }
       } catch {
         // ignore
       }

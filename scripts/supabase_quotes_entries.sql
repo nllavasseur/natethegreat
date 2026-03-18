@@ -59,6 +59,160 @@ drop trigger if exists vf_sync_quotes_entry_trigger on public.drafts;
 drop function if exists public.vf_sync_quotes_entry();
 drop function if exists public.vf_quotes_entry_from_draft(jsonb);
 
+drop trigger if exists vf_guard_drafts_destructive_trigger on public.drafts;
+drop function if exists public.vf_guard_drafts_destructive_update();
+
+create or replace function public.vf_guard_drafts_destructive_update()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  allow_destructive boolean;
+  is_reserved boolean;
+  removed_fields text;
+begin
+  if (tg_op <> 'UPDATE') then
+    return new;
+  end if;
+
+  is_reserved := (coalesce(new.draft_id,'') in ('vf_calendar_blockouts_v1','vf_calendar_tasks_v1'))
+    or (coalesce(new.draft->>'kind','') in ('calendar_blockouts','calendar_tasks'));
+  if (is_reserved) then
+    return new;
+  end if;
+
+  allow_destructive := coalesce((new.draft->>'_allowDestructiveUpdate')::boolean, false);
+  if (allow_destructive) then
+    -- Never persist the bypass flag.
+    new.draft := new.draft - '_allowDestructiveUpdate';
+    return new;
+  end if;
+
+  -- Never persist the bypass flag.
+  new.draft := new.draft - '_allowDestructiveUpdate';
+
+  removed_fields := '';
+
+  if (
+    jsonb_typeof(old.draft->'items') = 'array'
+    and jsonb_array_length(old.draft->'items') > 0
+    and not (
+      jsonb_typeof(new.draft->'items') = 'array'
+      and jsonb_array_length(new.draft->'items') > 0
+    )
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'items';
+  end if;
+
+  if (
+    jsonb_typeof(old.draft->'takeoffMaterials') = 'array'
+    and jsonb_array_length(old.draft->'takeoffMaterials') > 0
+    and not (
+      jsonb_typeof(new.draft->'takeoffMaterials') = 'array'
+      and jsonb_array_length(new.draft->'takeoffMaterials') > 0
+    )
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'takeoffMaterials';
+  end if;
+
+  if (
+    jsonb_typeof(old.draft->'takeoffManualItems') = 'array'
+    and jsonb_array_length(old.draft->'takeoffManualItems') > 0
+    and not (
+      jsonb_typeof(new.draft->'takeoffManualItems') = 'array'
+      and jsonb_array_length(new.draft->'takeoffManualItems') > 0
+    )
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'takeoffManualItems';
+  end if;
+
+  if (
+    (old.draft ? 'totals')
+    and old.draft->'totals' is not null
+    and jsonb_typeof(old.draft->'totals') = 'object'
+    and not (
+      (new.draft ? 'totals')
+      and new.draft->'totals' is not null
+      and jsonb_typeof(new.draft->'totals') = 'object'
+    )
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'totals';
+  end if;
+
+  if (
+    jsonb_typeof(old.draft->'photos') = 'array'
+    and jsonb_array_length(old.draft->'photos') > 0
+    and not (
+      jsonb_typeof(new.draft->'photos') = 'array'
+      and jsonb_array_length(new.draft->'photos') > 0
+    )
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'photos';
+  end if;
+
+  if (
+    jsonb_typeof(old.draft->'preInstallPhotos') = 'array'
+    and jsonb_array_length(old.draft->'preInstallPhotos') > 0
+    and not (
+      jsonb_typeof(new.draft->'preInstallPhotos') = 'array'
+      and jsonb_array_length(new.draft->'preInstallPhotos') > 0
+    )
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'preInstallPhotos';
+  end if;
+
+  if (
+    coalesce(old.draft->>'projectPhotoUrl','') <> ''
+    and coalesce(new.draft->>'projectPhotoUrl','') = ''
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'projectPhotoUrl';
+  end if;
+
+  if (
+    coalesce(old.draft->>'projectPhotoDataUrl','') <> ''
+    and coalesce(new.draft->>'projectPhotoDataUrl','') = ''
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'projectPhotoDataUrl';
+  end if;
+
+  if (
+    (old.draft ? 'contract')
+    and old.draft->'contract' is not null
+    and not ((new.draft ? 'contract') and new.draft->'contract' is not null)
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'contract';
+  end if;
+
+  if (
+    (old.draft ? 'fenceBuilder')
+    and old.draft->'fenceBuilder' is not null
+    and not ((new.draft ? 'fenceBuilder') and new.draft->'fenceBuilder' is not null)
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'fenceBuilder';
+  end if;
+
+  if (
+    (old.draft ? 'jobTasks')
+    and old.draft->'jobTasks' is not null
+    and not ((new.draft ? 'jobTasks') and new.draft->'jobTasks' is not null)
+  ) then
+    removed_fields := removed_fields || case when removed_fields = '' then '' else ',' end || 'jobTasks';
+  end if;
+
+  if (removed_fields <> '') then
+    raise exception 'Destructive drafts update blocked for draft_id=% (removed fields: %). Include _allowDestructiveUpdate=true to override.', coalesce(new.draft_id,''), removed_fields
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger vf_guard_drafts_destructive_trigger
+before update on public.drafts
+for each row execute procedure public.vf_guard_drafts_destructive_update();
+
 create or replace function public.vf_quotes_entry_from_draft(d jsonb)
 returns table(
   status text,

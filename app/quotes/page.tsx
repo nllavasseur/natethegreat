@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { DEFAULT_WORKSPACE_ID, fetchDraft, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import { getQuotesDraftsSession, setQuotesDraftsSession } from "@/lib/sessionDraftsCache";
@@ -25,6 +25,7 @@ type DraftEntry = {
   estimateAssignee?: "nate" | "cam";
   projectPhotoUrl?: string | null;
   projectPhotoDataUrl?: string | null;
+  preInstallCount?: number;
   materialsDetails?: {
     woodType?: string;
     horizontalCedarBoardMaterial?: string;
@@ -199,8 +200,6 @@ export default function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [completedSearchQuery, setCompletedSearchQuery] = useState("");
-  const [repairing, setRepairing] = useState(false);
-  const [repairMsg, setRepairMsg] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
@@ -214,9 +213,6 @@ export default function QuotesPage() {
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
   const hasSeededFromCacheRef = useRef(false);
-  const hasBackfilledSoldRef = useRef(false);
-  const hasPublishedLocalRef = useRef(false);
-  const hasHydratedPricingRef = useRef(false);
 
   const orderRef = useRef<Record<string, number>>({});
   const orderMaxRef = useRef(0);
@@ -301,15 +297,7 @@ export default function QuotesPage() {
       const sid = String(id);
       void (async () => {
         const store = readDraftStore();
-        let existing: any = store[sid] ?? drafts.find((d) => d.id === sid);
-
-        if (!existing) {
-          try {
-            const remote = await fetchDraft({ id: sid });
-            if (remote.ok && remote.draft) existing = remote.draft as any;
-          } catch {
-          }
-        }
+        const existing: any = drafts.find((d) => d.id === sid) ?? store[sid];
         if (!existing) return;
 
         const nextStatus =
@@ -317,17 +305,15 @@ export default function QuotesPage() {
             ? "estimate"
             : (existing as any)?.status;
 
-        store[sid] = {
+        const nextDraft = {
           ...existing,
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
           updatedAt: Date.now(),
           calendarHidden: false,
           ...(nextStatus ? { status: nextStatus } : {})
         };
-
-        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
         try {
-          await upsertDraft({ id: sid, data: store[sid] });
+          await upsertDraft({ id: sid, data: nextDraft });
         } catch {
         }
 
@@ -358,26 +344,16 @@ export default function QuotesPage() {
       const sid = String(id);
       void (async () => {
         const store = readDraftStore();
-        let existing: any = store[sid] ?? drafts.find((d) => d.id === sid);
-
-        if (!existing) {
-          try {
-            const remote = await fetchDraft({ id: sid });
-            if (remote.ok && remote.draft) existing = remote.draft as any;
-          } catch {
-          }
-        }
+        const existing: any = drafts.find((d) => d.id === sid) ?? store[sid];
         if (!existing) return;
 
-        store[sid] = {
+        const nextDraft = {
           ...existing,
           estimateAssignee: assignee ?? undefined,
           updatedAt: Date.now()
         };
-
-        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
         try {
-          await upsertDraft({ id: sid, data: store[sid] });
+          await upsertDraft({ id: sid, data: nextDraft });
         } catch {
         }
 
@@ -532,51 +508,6 @@ export default function QuotesPage() {
     }
   }
 
-  async function repairSync() {
-    if (repairing) return;
-    setRepairing(true);
-    setRepairMsg("");
-    try {
-      const store = readDraftStore();
-      const list = Object.values(store)
-        .map((d: any) => ({ ...(d as any), id: String((d as any)?.id || "") }))
-        .filter((d: any) => Boolean(String(d?.id || "")));
-
-      const candidates = list
-        .filter((d: any) => {
-          const status = String(d?.status || "estimate").trim().toLowerCase();
-          if (status === "void") return false;
-          const hasTotals = d?.totals != null;
-          const hasItems = Array.isArray(d?.items) && d.items.length > 0;
-          const hasTakeoff = Array.isArray(d?.takeoffMaterials) && d.takeoffMaterials.length > 0;
-          const hasManual = Array.isArray(d?.takeoffManualItems) && d.takeoffManualItems.length > 0;
-          return hasTotals || hasItems || hasTakeoff || hasManual;
-        })
-        .slice(0, 400);
-
-      for (let i = 0; i < candidates.length; i += 8) {
-        const batch = candidates.slice(i, i + 8);
-        await Promise.all(
-          batch.map(async (d: any) => {
-            try {
-              const id = String(d?.id || "");
-              if (!id) return;
-              await upsertDraft({ id, data: d });
-            } catch {
-            }
-          })
-        );
-      }
-
-      setRepairMsg(`Published ${candidates.length}`);
-    } catch {
-      setRepairMsg("Repair failed");
-    } finally {
-      setRepairing(false);
-      notifyDraftsChanged();
-    }
-  }
-
   useEffect(() => {
     let cancelled = false;
     const getTs = (d: any) => Number(d?.updatedAt ?? d?.createdAt) || 0;
@@ -675,73 +606,6 @@ export default function QuotesPage() {
 
       const remoteList = remoteListRaw.filter((d) => !tombstones[String((d as any)?.id || "")]);
 
-      try {
-        if (supabaseConfigured && !hasPublishedLocalRef.current) {
-          hasPublishedLocalRef.current = true;
-
-          const remoteById = new Map<string, DraftEntry>();
-          for (const d of Array.isArray(remoteListRaw) ? remoteListRaw : []) {
-            const id = String((d as any)?.id || "");
-            if (!id) continue;
-            remoteById.set(id, d as any);
-          }
-
-          const localFull = (Array.isArray(localList) ? localList : [])
-            .filter((d: any) => !tombstones[String((d as any)?.id || "")])
-            .filter((d: any) => {
-              const id = String((d as any)?.id || "");
-              if (!id) return false;
-              const kind = String((d as any)?.kind || "");
-              if (kind === "calendar_blockouts" || kind === "calendar_tasks") return false;
-              return true;
-            });
-
-          const publish = localFull
-            .filter((d: any) => {
-              const id = String((d as any)?.id || "");
-              if (!id) return false;
-
-              const status = String((d as any)?.status || "estimate").trim().toLowerCase();
-              if (status === "void") return false;
-
-              const isFinal = status === "sold" || status === "complete";
-              if (isFinal) {
-                const hasTotals = (d as any)?.totals != null;
-                const hasItems = Array.isArray((d as any)?.items) && (d as any).items.length > 0;
-                const hasTakeoff = Array.isArray((d as any)?.takeoffMaterials) && (d as any).takeoffMaterials.length > 0;
-                const hasManual = Array.isArray((d as any)?.takeoffManualItems) && (d as any).takeoffManualItems.length > 0;
-                if (!hasTotals && !hasItems && !hasTakeoff && !hasManual) return false;
-              }
-
-              const remoteOne = remoteById.get(id);
-              const localTs = getTs(d);
-              const remoteTs = getTs(remoteOne);
-              if (!remoteOne) return localTs > 0;
-              return localTs > remoteTs;
-            })
-            .slice(0, 120);
-
-          if (publish.length) {
-            void (async () => {
-              for (let i = 0; i < publish.length; i += 8) {
-                const batch = publish.slice(i, i + 8);
-                await Promise.all(
-                  batch.map(async (d: any) => {
-                    try {
-                      const id = String((d as any)?.id || "");
-                      if (!id) return;
-                      await upsertDraft({ id, data: d });
-                    } catch {
-                    }
-                  })
-                );
-              }
-            })();
-          }
-        }
-      } catch {
-      }
-
       const byId = new Map<string, DraftEntry>();
       for (const d of Array.isArray(localList) ? localList : []) {
         const id = String((d as any)?.id || "");
@@ -791,235 +655,6 @@ export default function QuotesPage() {
       }
 
       try {
-        if (!hasHydratedPricingRef.current) {
-          const missingPricingIds = (Array.isArray(mergedLitePatched) ? mergedLitePatched : [])
-            .filter((d: any) => {
-              const status = String(d?.status || "estimate").trim().toLowerCase();
-              if (status === "void") return false;
-              const hasTotals = d?.totals != null;
-              const hasItems = Array.isArray(d?.items) && d.items.length > 0;
-              const hasTakeoff = Array.isArray(d?.takeoffMaterials) && d.takeoffMaterials.length > 0;
-              const hasManual = Array.isArray(d?.takeoffManualItems) && d.takeoffManualItems.length > 0;
-              return !hasTotals && !hasItems && !hasTakeoff && !hasManual;
-            })
-            .map((d: any) => String(d?.id || ""))
-            .filter(Boolean)
-            .slice(0, 60);
-
-          if (missingPricingIds.length) {
-            hasHydratedPricingRef.current = true;
-            void (async () => {
-              try {
-                const results = await Promise.all(
-                  missingPricingIds.map(async (id) => {
-                    try {
-                      const res = await withTimeout(fetchDraft({ id }) as any, 4500);
-                      if (!(res as any)?.ok || !(res as any)?.draft) return null;
-                      return { id, draft: (res as any).draft as any };
-                    } catch {
-                      return null;
-                    }
-                  })
-                );
-
-                const hydrated = results.filter(Boolean) as Array<{ id: string; draft: any }>;
-                if (!hydrated.length || cancelled) return;
-
-                try {
-                  const store = readDraftStore();
-                  for (const h of hydrated) {
-                    store[h.id] = { ...(store[h.id] || {}), ...(h.draft || {}) };
-                  }
-                  window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-                } catch {
-                }
-
-                setDrafts((prev) => {
-                  const byIdHydrated = new Map(hydrated.map((h) => [h.id, h.draft] as const));
-                  const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
-                    const hd = byIdHydrated.get(String(d?.id || ""));
-                    if (!hd) return d;
-                    return toQuotesDraftLite({ ...(d as any), ...(hd as any) } as any);
-                  });
-                  try {
-                    writeQuotesDraftsCache(next as any);
-                  } catch {
-                  }
-                  return applyStableOrder(next as any) as any;
-                });
-              } catch {
-              }
-            })();
-          }
-        }
-      } catch {
-      }
-
-      try {
-        if (supabaseConfigured && !hasBackfilledSoldRef.current) {
-          hasBackfilledSoldRef.current = true;
-          void (async () => {
-            try {
-              const selectCols =
-                "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,install_date,start_date,labor_days,queue_rank,estimate_assignee,customer_name,title,phone_number,project_address,selected_style_name,project_photo_url,preinstall_count,totals,job_tasks,job_task_snooze";
-
-              const pageSize = 1000;
-              let from = 0;
-              const allBackfilled: DraftEntry[] = [];
-
-              for (let guard = 0; guard < 30; guard += 1) {
-                const res = await supabase
-                  .from("quotes_entries")
-                  .select(selectCols)
-                  .eq("workspace_id", DEFAULT_WORKSPACE_ID)
-                  .order("updated_at", { ascending: false })
-                  .range(from, from + pageSize - 1);
-
-                if ((res as any)?.error) break;
-
-                const rows = ((res as any)?.data ?? []) as any[];
-                for (const r of rows) {
-                  const id = String((r as any)?.draft_id || "");
-                  if (!id) continue;
-                  if (tombstones[String(id)]) continue;
-                  const updatedAtMs = Number((r as any)?.updated_at_ms);
-                  const createdAtMs = Number((r as any)?.created_at_ms);
-                  allBackfilled.push({
-                    id,
-                    createdAt: Number.isFinite(createdAtMs) && createdAtMs > 0 ? createdAtMs : undefined,
-                    updatedAt: Number.isFinite(updatedAtMs) && updatedAtMs > 0 ? updatedAtMs : undefined,
-                    status: (r as any)?.status ?? undefined,
-                    calendarHidden: (r as any)?.calendar_hidden ?? undefined,
-                    scheduledAt: (r as any)?.scheduled_iso ?? undefined,
-                    installDate: (r as any)?.install_date ?? undefined,
-                    startDate: (r as any)?.start_date ?? undefined,
-                    laborDays: (r as any)?.labor_days ?? undefined,
-                    queueRank: (r as any)?.queue_rank ?? undefined,
-                    estimateAssignee: (r as any)?.estimate_assignee ?? undefined,
-                    customerName: (r as any)?.customer_name ?? undefined,
-                    title: (r as any)?.title ?? undefined,
-                    phoneNumber: (r as any)?.phone_number ?? undefined,
-                    projectAddress: (r as any)?.project_address ?? undefined,
-                    selectedStyle: (r as any)?.selected_style_name ? { name: (r as any)?.selected_style_name } : undefined,
-                    projectPhotoUrl: (r as any)?.project_photo_url ?? undefined,
-                    preInstallPhotos:
-                      typeof (r as any)?.preinstall_count === "number"
-                        ? new Array(Math.max(0, (r as any).preinstall_count)).fill({ src: "", note: "", createdAt: 0 })
-                        : undefined,
-                    totals: (r as any)?.totals ?? undefined,
-                    jobTasks: (r as any)?.job_tasks ?? undefined,
-                    jobTaskSnooze: (r as any)?.job_task_snooze ?? undefined
-                  } as any);
-                }
-
-                if (rows.length < pageSize) break;
-                from += pageSize;
-              }
-
-              try {
-                const pageSizeDrafts = 1000;
-                let fromDrafts = 0;
-                for (let guard = 0; guard < 30; guard += 1) {
-                  const resDrafts = await supabase
-                    .from("drafts")
-                    .select("draft_id,draft,updated_at")
-                    .eq("workspace_id", DEFAULT_WORKSPACE_ID)
-                    .order("updated_at", { ascending: false })
-                    .range(fromDrafts, fromDrafts + pageSizeDrafts - 1);
-
-                  if ((resDrafts as any)?.error) break;
-
-                  const rowsDrafts = ((resDrafts as any)?.data ?? []) as any[];
-                  for (const r of rowsDrafts) {
-                    const rawDraft = (r as any)?.draft ?? {};
-                    const id = String((r as any)?.draft_id ?? rawDraft?.id ?? "");
-                    if (!id) continue;
-                    if (tombstones[String(id)]) continue;
-                    const kind = String((rawDraft as any)?.kind || "");
-                    if (kind === "calendar_blockouts" || kind === "calendar_tasks") continue;
-
-                    const updatedAt = (() => {
-                      const raw = String((r as any)?.updated_at ?? "");
-                      if (!raw) return undefined;
-                      const ms = Date.parse(raw);
-                      return Number.isFinite(ms) ? ms : undefined;
-                    })();
-
-                    allBackfilled.push({
-                      ...(rawDraft as any),
-                      id,
-                      ...(typeof updatedAt === "number" ? { updatedAt } : {})
-                    } as any);
-                  }
-
-                  if (rowsDrafts.length < pageSizeDrafts) break;
-                  fromDrafts += pageSizeDrafts;
-                }
-              } catch {
-              }
-
-              if (cancelled) return;
-              const backfilledLite = allBackfilled.map((d) => toQuotesDraftLite({ ...(d as any) } as any));
-              if (!backfilledLite.length) return;
-
-              setDrafts((prev) => {
-                const prevList = Array.isArray(prev) ? prev : [];
-                const byId = new Map<string, DraftEntry>();
-                for (const d of prevList) {
-                  const id = String((d as any)?.id || "");
-                  if (!id) continue;
-                  byId.set(id, d as any);
-                }
-
-                for (const d of backfilledLite as any[]) {
-                  const id = String((d as any)?.id || "");
-                  if (!id) continue;
-                  const prevOne = byId.get(id);
-                  if (!prevOne) {
-                    byId.set(id, d as any);
-                    continue;
-                  }
-                  if (getTs(d) > getTs(prevOne)) {
-                    const mergedNext: DraftEntry = { ...(prevOne as any), ...(d as any) } as any;
-                    if ((d as any).items == null && (prevOne as any).items != null) (mergedNext as any).items = (prevOne as any).items;
-                    if ((d as any).takeoffMaterials == null && (prevOne as any).takeoffMaterials != null)
-                      (mergedNext as any).takeoffMaterials = (prevOne as any).takeoffMaterials;
-                    if ((d as any).takeoffManualItems == null && (prevOne as any).takeoffManualItems != null)
-                      (mergedNext as any).takeoffManualItems = (prevOne as any).takeoffManualItems;
-                    if ((d as any).totals == null && (prevOne as any).totals != null) (mergedNext as any).totals = (prevOne as any).totals;
-                    if ((d as any).jobTasks == null && (prevOne as any).jobTasks != null) (mergedNext as any).jobTasks = (prevOne as any).jobTasks;
-                    if ((d as any).jobTaskSnooze == null && (prevOne as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prevOne as any).jobTaskSnooze;
-                    if ((d as any).jobTaskLabels == null && (prevOne as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prevOne as any).jobTaskLabels;
-                    if ((d as any).jobTaskHidden == null && (prevOne as any).jobTaskHidden != null) (mergedNext as any).jobTaskHidden = (prevOne as any).jobTaskHidden;
-                    if ((d as any).jobCustomTasks == null && (prevOne as any).jobCustomTasks != null) (mergedNext as any).jobCustomTasks = (prevOne as any).jobCustomTasks;
-                    byId.set(id, mergedNext);
-                  }
-                }
-
-                const merged = Array.from(byId.values()).sort((a, b) => getTs(b) - getTs(a));
-                const mergedLiteNext = merged.map((d) => toQuotesDraftLite({ ...(d as any) } as any));
-                const mergedLitePatchedNext = applyStatusCache(mergedLiteNext);
-
-                try {
-                  writeQuotesDraftsCache(mergedLitePatchedNext as any);
-                } catch {
-                }
-
-                try {
-                  writeQuotesRemoteIdsCache(mergedLitePatchedNext.map((d: any) => String(d?.id || "")).filter(Boolean));
-                } catch {
-                }
-
-                return applyStableOrder(mergedLitePatchedNext as any) as any;
-              });
-            } catch {
-            }
-          })();
-        }
-      } catch {
-      }
-
-      try {
         const nextStatusCache = { ...(statusCache as any) } as Record<string, { status: DraftEntry["status"]; ts: number }>;
         for (const d of mergedLitePatched as any[]) {
           const id = String((d as any)?.id || "");
@@ -1031,77 +666,6 @@ export default function QuotesPage() {
           if (!prev || ts >= Number(prev.ts || 0)) nextStatusCache[id] = { status: s, ts };
         }
         writeQuotesStatusCache(nextStatusCache);
-      } catch {
-      }
-
-      try {
-        const isSparse = (d: any) => {
-          try {
-            const status = String(d?.status ?? "");
-            const hasCustomer = String(d?.customerName || "").trim() !== "";
-            const hasTitle = String(d?.title || "").trim() !== "";
-            const hasAddress = String(d?.projectAddress || "").trim() !== "";
-            const hasItems = Array.isArray(d?.items) && d.items.length > 0;
-            const hasTakeoff = Array.isArray(d?.takeoffMaterials) && d.takeoffMaterials.length > 0;
-            const hasTotals = d?.totals != null;
-            if (hasCustomer || hasTitle || hasAddress) return false;
-            if (hasItems || hasTakeoff || hasTotals) return false;
-            return status === "pending" || status === "estimate" || status === "sold" || status === "complete";
-          } catch {
-            return false;
-          }
-        };
-
-        const sparseIds = mergedLite
-          .filter((d: any) => isSparse(d))
-          .map((d: any) => String(d?.id || ""))
-          .filter(Boolean)
-          .slice(0, 25);
-
-        if (sparseIds.length) {
-          void (async () => {
-            try {
-              const results = await Promise.all(
-                sparseIds.map(async (id) => {
-                  try {
-                    const res = await withTimeout(fetchDraft({ id }) as any, 3500);
-                    if (!(res as any)?.ok || !(res as any)?.draft) return null;
-                    return { id, draft: (res as any).draft as any };
-                  } catch {
-                    return null;
-                  }
-                })
-              );
-
-              const hydrated = results.filter(Boolean) as Array<{ id: string; draft: any }>;
-              if (!hydrated.length || cancelled) return;
-
-              try {
-                const store = readDraftStore();
-                for (const h of hydrated) {
-                  store[h.id] = { ...(store[h.id] || {}), ...(h.draft || {}) };
-                }
-                window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-              } catch {
-              }
-
-              setDrafts((prev) => {
-                const byIdHydrated = new Map(hydrated.map((h) => [h.id, h.draft] as const));
-                const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
-                  const hd = byIdHydrated.get(String(d?.id || ""));
-                  if (!hd) return d;
-                  return toQuotesDraftLite({ ...(d as any), ...(hd as any) } as any);
-                });
-                try {
-                  writeQuotesDraftsCache(next as any);
-                } catch {
-                }
-                return applyStableOrder(next as any) as any;
-              });
-            } catch {
-            }
-          })();
-        }
       } catch {
       }
 
@@ -1144,130 +708,6 @@ export default function QuotesPage() {
           });
         }
       } catch {
-      }
-
-      if (usedSnapshot) {
-        void (async () => {
-          try {
-            const remoteAll = await withTimeout(fetchDrafts({ limit: 1800 }) as any, 12000);
-            if (!(remoteAll as any)?.ok) return;
-            const remoteAllListRaw = (((remoteAll as any).drafts as DraftEntry[]) || []).filter(
-              (d) => !tombstones[String((d as any)?.id || "")]
-            );
-
-            const latestStore = readDraftStore();
-            const latestLocalList = Object.values(latestStore)
-              .map((d) => ({ ...d }))
-              .filter((d) => !tombstones[String((d as any)?.id || "")]);
-
-            const byIdAll = new Map<string, DraftEntry>();
-            for (const d of Array.isArray(latestLocalList) ? latestLocalList : []) {
-              const id = String((d as any)?.id || "");
-              if (!id) continue;
-              byIdAll.set(id, d as any);
-            }
-            for (const d of Array.isArray(remoteAllListRaw) ? remoteAllListRaw : []) {
-              const id = String((d as any)?.id || "");
-              if (!id) continue;
-              const prev = byIdAll.get(id);
-              if (!prev) {
-                byIdAll.set(id, d as any);
-                continue;
-              }
-
-              if (getTs(d) > getTs(prev)) {
-                const mergedNext: DraftEntry = { ...(prev as any), ...(d as any) } as any;
-                if ((d as any).items == null && (prev as any).items != null) (mergedNext as any).items = (prev as any).items;
-                if ((d as any).takeoffMaterials == null && (prev as any).takeoffMaterials != null)
-                  (mergedNext as any).takeoffMaterials = (prev as any).takeoffMaterials;
-                if ((d as any).takeoffManualItems == null && (prev as any).takeoffManualItems != null)
-                  (mergedNext as any).takeoffManualItems = (prev as any).takeoffManualItems;
-                if ((d as any).totals == null && (prev as any).totals != null) (mergedNext as any).totals = (prev as any).totals;
-                if ((d as any).jobTasks == null && (prev as any).jobTasks != null) (mergedNext as any).jobTasks = (prev as any).jobTasks;
-                if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) (mergedNext as any).jobTaskSnooze = (prev as any).jobTaskSnooze;
-                if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) (mergedNext as any).jobTaskLabels = (prev as any).jobTaskLabels;
-                if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) (mergedNext as any).jobTaskHidden = (prev as any).jobTaskHidden;
-                if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) (mergedNext as any).jobCustomTasks = (prev as any).jobCustomTasks;
-                byIdAll.set(id, mergedNext);
-              }
-            }
-
-            const mergedAll = Array.from(byIdAll.values()).sort((a, b) => getTs(b) - getTs(a));
-            const mergedAllLite = (Array.isArray(mergedAll) ? mergedAll : [])
-              .filter((d) => !tombstones[String((d as any)?.id || "")])
-              .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
-
-            const mergedAllLitePatched = applyStatusCache(mergedAllLite);
-
-            if (!cancelled) setDraftsStable(mergedAllLitePatched);
-            try {
-              writeQuotesDraftsCache(mergedAllLitePatched);
-            } catch {
-            }
-
-            try {
-              writeQuotesRemoteIdsCache(mergedAllLitePatched.map((d: any) => String(d?.id || "")).filter(Boolean));
-            } catch {
-            }
-
-            try {
-              const nextStatusCache = readQuotesStatusCache();
-              for (const d of mergedAllLitePatched as any[]) {
-                const id = String((d as any)?.id || "");
-                if (!id) continue;
-                const s = (d as any)?.status as any;
-                if (!s) continue;
-                const ts = getTs(d);
-                const prev = nextStatusCache[id];
-                if (!prev || ts >= Number(prev.ts || 0)) nextStatusCache[id] = { status: s, ts };
-              }
-              writeQuotesStatusCache(nextStatusCache);
-            } catch {
-            }
-
-            try {
-              const ids = mergedAllLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
-              const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
-              if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
-                const byIdTasks = new Map<string, any>();
-                for (const r of (tasksRes as any).rows as any[]) {
-                  const rid = String((r as any)?.draft_id || "");
-                  if (!rid) continue;
-                  byIdTasks.set(rid, r);
-                }
-
-                setDrafts((prev) => {
-                  const next = (Array.isArray(prev) ? prev : []).map((d: any) => {
-                    const r = byIdTasks.get(String(d?.id || ""));
-                    if (!r) return d;
-                    const jt = (r as any).job_tasks;
-                    const js = (r as any).job_task_snooze;
-                    const jl = (r as any).job_task_labels;
-                    const jh = (r as any).job_task_hidden;
-                    const jc = (r as any).job_custom_tasks;
-                    return {
-                      ...d,
-                      ...(jt != null ? { jobTasks: jt } : {}),
-                      ...(js != null ? { jobTaskSnooze: js } : {}),
-                      ...(jl != null ? { jobTaskLabels: jl } : {}),
-                      ...(jh != null ? { jobTaskHidden: jh } : {}),
-                      ...(jc != null ? { jobCustomTasks: jc } : {})
-                    };
-                  });
-
-                  try {
-                    writeQuotesDraftsCache(next as any);
-                  } catch {
-                  }
-
-                  return applyStableOrder(next as any) as any;
-                });
-              }
-            } catch {
-            }
-          } catch {
-          }
-        })();
       }
     };
 
@@ -1421,7 +861,7 @@ export default function QuotesPage() {
       }
 
       const store = readDraftStore();
-      const existing: any = store[id] ?? drafts.find((d) => d.id === id);
+      const existing: any = drafts.find((d) => d.id === id) ?? store[id];
       if (!existing) return;
 
       const nextDraft = {
@@ -1433,12 +873,6 @@ export default function QuotesPage() {
         startDate: undefined,
         installDate: undefined
       };
-
-      try {
-        store[id] = nextDraft;
-        window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
-      } catch {
-      }
 
       try {
         void upsertDraft({ id, data: nextDraft });
@@ -1465,11 +899,11 @@ export default function QuotesPage() {
   function setDraftStartDate(id: string, startDate: string | undefined) {
     try {
       const store = readDraftStore();
-      if (!store[id]) return;
-      store[id] = { ...store[id], startDate, installDate: startDate, calendarHidden: false };
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      const existing: any = drafts.find((d) => d.id === id) ?? store[id];
+      if (!existing) return;
+      const nextDraft = { ...existing, startDate, installDate: startDate, calendarHidden: false, updatedAt: Date.now() };
       try {
-        void upsertDraft({ id, data: store[id] });
+        void upsertDraft({ id, data: nextDraft });
       } catch {
       }
       setDrafts((prev) =>
@@ -1484,11 +918,11 @@ export default function QuotesPage() {
   function removeFromCalendar(id: string) {
     try {
       const store = readDraftStore();
-      if (!store[id]) return;
-      store[id] = { ...store[id], startDate: undefined, installDate: undefined, calendarHidden: true };
-      window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+      const existing: any = drafts.find((d) => d.id === id) ?? store[id];
+      if (!existing) return;
+      const nextDraft = { ...existing, startDate: undefined, installDate: undefined, calendarHidden: true, updatedAt: Date.now() };
       try {
-        void upsertDraft({ id, data: store[id] });
+        void upsertDraft({ id, data: nextDraft });
       } catch {
       }
       setDrafts((prev) =>
@@ -1686,7 +1120,12 @@ export default function QuotesPage() {
       const roundedHalfDays = computeRoundedHalfDays(laborDays);
       const spanDays = computeSpanDays(laborDays);
       const endDate = startDate && spanDays > 0 ? addDaysIso(startDate, spanDays - 1) : "";
-      const preInstallPhotoCount = normalizePreInstallPhotos((d as any).preInstallPhotos).length;
+      const preInstallPhotoCount = (() => {
+        const normalized = normalizePreInstallPhotos((d as any).preInstallPhotos);
+        if (normalized.length > 0) return normalized.length;
+        const c = Number((d as any).preInstallCount);
+        return Number.isFinite(c) && c > 0 ? Math.max(0, Math.floor(c)) : 0;
+      })();
       const hasIncompleteTasks = soldJobHasIncompleteTasks(d as any);
       const queueRank = Number((d as any).queueRank);
       const updatedAt = Number((d as any).updatedAt);
@@ -2050,7 +1489,6 @@ export default function QuotesPage() {
         title="Recent quotes"
         right={
           <div className="flex items-center gap-2">
-            {repairMsg ? <div className="text-[11px] text-[var(--muted)] font-extrabold">{repairMsg}</div> : null}
             <SecondaryButton
               onClick={() => {
                 try {
@@ -2060,9 +1498,6 @@ export default function QuotesPage() {
               }}
             >
               Refresh
-            </SecondaryButton>
-            <SecondaryButton onClick={repairSync} disabled={repairing}>
-              {repairing ? "Repairing…" : "Repair Sync"}
             </SecondaryButton>
           </div>
         }

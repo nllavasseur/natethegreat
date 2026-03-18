@@ -189,7 +189,7 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
           projectAddress: (r as any)?.project_address ?? undefined,
           selectedStyle: (r as any)?.selected_style_name ? { name: (r as any)?.selected_style_name } : undefined,
           projectPhotoUrl: (r as any)?.project_photo_url ?? undefined,
-          preInstallPhotos: typeof (r as any)?.preinstall_count === "number" ? new Array(Math.max(0, (r as any).preinstall_count)).fill({ src: "", note: "", createdAt: 0 }) : undefined,
+          preInstallCount: typeof (r as any)?.preinstall_count === "number" ? Math.max(0, (r as any).preinstall_count) : undefined,
           totals: (r as any)?.totals ?? undefined,
           jobTasks: (r as any)?.job_tasks ?? undefined,
           jobTaskSnooze: (r as any)?.job_task_snooze ?? undefined
