@@ -1544,7 +1544,12 @@ export default function QuotesPage() {
             const stackCustomerName = String(
               (firstPending as any)?.customerName || (firstUnscheduledEstimate as any)?.customerName || stack.label || ""
             ).trim();
-            const stackSmsBody = stackCustomerName ? `Hi ${stackCustomerName}` : "Hi";
+            const stackFirstName = (() => {
+              const cleaned = String(stackCustomerName || "").replace(/,+/g, " ").trim();
+              if (!cleaned) return "";
+              return cleaned.split(/\s+/g).filter(Boolean)[0] || "";
+            })();
+            const stackSmsBody = stackFirstName ? `Hi ${stackFirstName}` : "Hi";
             const stackSmsHref = `sms:${stackCallTel}?&body=${encodeURIComponent(stackSmsBody)}`;
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"

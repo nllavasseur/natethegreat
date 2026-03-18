@@ -310,8 +310,10 @@ export default function QuoteDetailPage() {
   const canNavigate = String(draft?.projectAddress || "").trim().length > 0;
 
   const smsBody = (() => {
-    const name = String(draft?.customerName || "").trim();
-    return name ? `Hi ${name}` : "Hi";
+    const full = String(draft?.customerName || "").trim();
+    const cleaned = full.replace(/,+/g, " ").trim();
+    const first = cleaned ? (cleaned.split(/\s+/g).filter(Boolean)[0] || "") : "";
+    return first ? `Hi ${first}` : "Hi";
   })();
   const smsHref = `sms:${phoneDigits}?&body=${encodeURIComponent(smsBody)}`;
 
