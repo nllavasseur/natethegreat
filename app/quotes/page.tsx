@@ -704,6 +704,15 @@ export default function QuotesPage() {
               const status = String((d as any)?.status || "estimate").trim().toLowerCase();
               if (status === "void") return false;
 
+              const isFinal = status === "sold" || status === "complete";
+              if (isFinal) {
+                const hasTotals = (d as any)?.totals != null;
+                const hasItems = Array.isArray((d as any)?.items) && (d as any).items.length > 0;
+                const hasTakeoff = Array.isArray((d as any)?.takeoffMaterials) && (d as any).takeoffMaterials.length > 0;
+                const hasManual = Array.isArray((d as any)?.takeoffManualItems) && (d as any).takeoffManualItems.length > 0;
+                if (!hasTotals && !hasItems && !hasTakeoff && !hasManual) return false;
+              }
+
               const remoteOne = remoteById.get(id);
               const localTs = getTs(d);
               const remoteTs = getTs(remoteOne);
