@@ -1541,6 +1541,11 @@ export default function QuotesPage() {
             ) as any;
             const firstPending = stack.cards.find((c) => (c as any).status === "pending") as any;
             const stackCallTel = normalizePhone(String((firstPending as any)?.phoneNumber || (firstUnscheduledEstimate as any)?.phoneNumber || ""));
+            const stackCustomerName = String(
+              (firstPending as any)?.customerName || (firstUnscheduledEstimate as any)?.customerName || stack.label || ""
+            ).trim();
+            const stackSmsBody = stackCustomerName ? `Hi ${stackCustomerName}` : "Hi";
+            const stackSmsHref = `sms:${stackCallTel}?&body=${encodeURIComponent(stackSmsBody)}`;
             const stackStatus = stack.cards.some((c) => (c as any).status === "sold")
               ? "sold"
               : stack.cards.some((c) => (c as any).status === "pending")
@@ -1641,7 +1646,7 @@ export default function QuotesPage() {
                             e.stopPropagation();
                             bumpSuppressNav();
                             if (!stackCallTel) return;
-                            window.location.href = `sms:${stackCallTel}`;
+                            window.location.href = stackSmsHref;
                           }}
                           className={
                             "rounded-full border px-3 py-1 text-[11px] font-extrabold whitespace-nowrap " +

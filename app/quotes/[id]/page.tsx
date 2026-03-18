@@ -309,6 +309,12 @@ export default function QuoteDetailPage() {
   const canMessage = phoneDigits.length >= 7;
   const canNavigate = String(draft?.projectAddress || "").trim().length > 0;
 
+  const smsBody = (() => {
+    const name = String(draft?.customerName || "").trim();
+    return name ? `Hi ${name}` : "Hi";
+  })();
+  const smsHref = `sms:${phoneDigits}?&body=${encodeURIComponent(smsBody)}`;
+
   function viewContract() {
     try {
       if (draft?.contract) {
@@ -706,7 +712,7 @@ export default function QuoteDetailPage() {
                   disabled={!canMessage}
                   onClick={() => {
                     if (!canMessage) return;
-                    window.location.href = `sms:${phoneDigits}`;
+                    window.location.href = smsHref;
                   }}
                 >
                   Message
