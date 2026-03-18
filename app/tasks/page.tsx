@@ -66,6 +66,26 @@ function writeDraftStore(store: Record<string, DraftEntry>) {
   }
 }
 
+function pickNonEmpty(...vals: any[]) {
+  for (const v of vals) {
+    const s = String(v ?? "").trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function mergeIdentityFields(base: DraftEntry, a?: DraftEntry | null, b?: DraftEntry | null) {
+  const next: DraftEntry = { ...(base as any) };
+  next.customerName = pickNonEmpty((next as any).customerName, a?.customerName, b?.customerName) || undefined;
+  next.projectAddress = pickNonEmpty((next as any).projectAddress, a?.projectAddress, b?.projectAddress) || undefined;
+  next.title = pickNonEmpty((next as any).title, a?.title, b?.title) || undefined;
+  next.status = (next.status ?? a?.status ?? b?.status) as any;
+  next.scheduledAt = pickNonEmpty((next as any).scheduledAt, a?.scheduledAt, b?.scheduledAt) || undefined;
+  next.queueRank = (next.queueRank ?? (a as any)?.queueRank ?? (b as any)?.queueRank) as any;
+  next.calendarHidden = (next.calendarHidden ?? (a as any)?.calendarHidden ?? (b as any)?.calendarHidden) as any;
+  return next;
+}
+
 function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
   const byId = new Map<string, DraftEntry>();
   local.forEach((d) => {
@@ -77,24 +97,25 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
     const id = String(d.id);
     const prev = byId.get(id);
     if (!prev) {
-      byId.set(id, { ...d });
+      byId.set(id, mergeIdentityFields({ ...d }, d, null));
       return;
     }
     const prevTs = Number((prev as any).updatedAt ?? (prev as any).createdAt ?? 0) || 0;
     const nextTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
-    if (nextTs > prevTs) {
-      const merged: DraftEntry = { ...prev, ...d };
 
-      // Guardrails: never let a remote draft that is missing task-related fields wipe out
-      // locally-entered task data.
-      if ((d as any).jobTasks == null && (prev as any).jobTasks != null) merged.jobTasks = (prev as any).jobTasks;
-      if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged.jobTaskSnooze = (prev as any).jobTaskSnooze;
-      if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged.jobTaskLabels = (prev as any).jobTaskLabels;
-      if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged.jobTaskHidden = (prev as any).jobTaskHidden;
-      if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged.jobCustomTasks = (prev as any).jobCustomTasks;
+    const remoteIsNewer = nextTs > prevTs;
+    const mergedBase: DraftEntry = remoteIsNewer ? ({ ...prev, ...d } as any) : ({ ...d, ...prev } as any);
+    const merged = mergeIdentityFields(mergedBase, prev, d);
 
-      byId.set(id, merged);
-    }
+    // Guardrails: never let a remote draft that is missing task-related fields wipe out
+    // locally-entered task data.
+    if ((d as any).jobTasks == null && (prev as any).jobTasks != null) merged.jobTasks = (prev as any).jobTasks;
+    if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged.jobTaskSnooze = (prev as any).jobTaskSnooze;
+    if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged.jobTaskLabels = (prev as any).jobTaskLabels;
+    if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged.jobTaskHidden = (prev as any).jobTaskHidden;
+    if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged.jobCustomTasks = (prev as any).jobCustomTasks;
+
+    byId.set(id, merged);
   });
   return Array.from(byId.values());
 }
@@ -127,7 +148,7 @@ function dueLevelForTask(args: { taskKey: keyof JobTasks; scheduledAt?: string; 
 }
 
 function jobTitle(d: DraftEntry) {
-  return String(d.title || d.customerName || d.projectAddress || "Job");
+  return String(d.customerName || d.projectAddress || d.title || "Job");
 }
 
 export default function TasksPage() {
