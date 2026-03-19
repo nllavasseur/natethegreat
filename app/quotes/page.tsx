@@ -195,6 +195,14 @@ function readDraftStore(): Record<string, DraftEntry> {
   }
 }
 
+ function writeDraftStore(store: Record<string, DraftEntry>) {
+   if (typeof window === "undefined") return;
+   try {
+     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+   } catch {
+   }
+ }
+
 export default function QuotesPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>(() => getQuotesDraftsSession<DraftEntry[]>() ?? []);
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
@@ -321,8 +329,12 @@ export default function QuotesPage() {
       const sid = String(id);
       void (async () => {
         const store = readDraftStore();
-        const existing: any = drafts.find((d) => d.id === sid) ?? store[sid];
+        const existingFromStore: any = store[sid];
+        const existingFromList: any = drafts.find((d) => d.id === sid);
+        const existing: any = existingFromStore ?? existingFromList;
         if (!existing) return;
+
+        const now = Date.now();
 
         const nextStatus =
           scheduledAt && String(scheduledAt).trim() !== ""
@@ -330,32 +342,42 @@ export default function QuotesPage() {
             : (existing as any)?.status;
 
         const nextDraft = {
-          ...existing,
+          ...(existingFromList ? { ...(existingFromList as any) } : {}),
+          ...(existingFromStore ? { ...(existingFromStore as any) } : {}),
           scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-          updatedAt: Date.now(),
+          updatedAt: now,
           calendarHidden: false,
           ...(nextStatus ? { status: nextStatus } : {})
         };
+
+        try {
+          store[sid] = nextDraft as any;
+          writeDraftStore(store as any);
+        } catch {
+        }
         try {
           await upsertDraft({ id: sid, data: nextDraft });
         } catch {
         }
 
-        setDrafts((prev) =>
-          applyStableOrder(
-            prev.map((d) =>
-              d.id === sid
-                ? {
-                    ...d,
-                    scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
-                    updatedAt: Date.now(),
-                    calendarHidden: false,
-                    ...(nextStatus ? { status: nextStatus as any } : {})
-                  }
-                : d
-            ) as any
-          ) as any
-        );
+        setDrafts((prev) => {
+          const updated = (Array.isArray(prev) ? prev : []).map((d) =>
+            d.id === sid
+              ? {
+                  ...d,
+                  scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+                  updatedAt: now,
+                  calendarHidden: false,
+                  ...(nextStatus ? { status: nextStatus as any } : {})
+                }
+              : d
+          ) as any;
+          try {
+            writeQuotesDraftsCache(updated as any);
+          } catch {
+          }
+          return applyStableOrder(updated as any) as any;
+        });
         notifyDraftsChanged();
       })();
     } catch {
@@ -368,32 +390,46 @@ export default function QuotesPage() {
       const sid = String(id);
       void (async () => {
         const store = readDraftStore();
-        const existing: any = drafts.find((d) => d.id === sid) ?? store[sid];
+        const existingFromStore: any = store[sid];
+        const existingFromList: any = drafts.find((d) => d.id === sid);
+        const existing: any = existingFromStore ?? existingFromList;
         if (!existing) return;
 
+        const now = Date.now();
+
         const nextDraft = {
-          ...existing,
+          ...(existingFromList ? { ...(existingFromList as any) } : {}),
+          ...(existingFromStore ? { ...(existingFromStore as any) } : {}),
           estimateAssignee: assignee ?? undefined,
-          updatedAt: Date.now()
+          updatedAt: now
         };
+
+        try {
+          store[sid] = nextDraft as any;
+          writeDraftStore(store as any);
+        } catch {
+        }
         try {
           await upsertDraft({ id: sid, data: nextDraft });
         } catch {
         }
 
-        setDrafts((prev) =>
-          applyStableOrder(
-            prev.map((d) =>
-              d.id === sid
-                ? {
-                    ...d,
-                    estimateAssignee: assignee ?? undefined,
-                    updatedAt: Date.now()
-                  }
-                : d
-            ) as any
-          ) as any
-        );
+        setDrafts((prev) => {
+          const updated = (Array.isArray(prev) ? prev : []).map((d) =>
+            d.id === sid
+              ? {
+                  ...d,
+                  estimateAssignee: assignee ?? undefined,
+                  updatedAt: now
+                }
+              : d
+          ) as any;
+          try {
+            writeQuotesDraftsCache(updated as any);
+          } catch {
+          }
+          return applyStableOrder(updated as any) as any;
+        });
         notifyDraftsChanged();
       })();
     } catch {
