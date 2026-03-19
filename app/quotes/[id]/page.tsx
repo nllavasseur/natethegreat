@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import { createPortal } from "react-dom";
@@ -621,12 +620,11 @@ export default function QuoteDetailPage() {
                 className="block w-full text-left"
               >
                 <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
-                  <NextImage
+                  <img
                     src={projectPhotoSrc}
                     alt=""
-                    fill
-                    sizes="(max-width: 980px) 92vw, 980px"
-                    className="object-cover"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    draggable={false}
                   />
                 </div>
               </button>
@@ -646,7 +644,12 @@ export default function QuoteDetailPage() {
                       className="block w-full text-left"
                     >
                       <div className="relative w-full aspect-square rounded-2xl overflow-hidden border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]">
-                        <NextImage src={p.src} alt="" fill sizes="120px" className="object-cover" />
+                        <img
+                          src={p.src}
+                          alt=""
+                          className="absolute inset-0 w-full h-full object-cover"
+                          draggable={false}
+                        />
                       </div>
                     </button>
                     {p.note ? (
