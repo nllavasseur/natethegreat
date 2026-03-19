@@ -1,6 +1,19 @@
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
-export const DEFAULT_WORKSPACE_ID = "b0fbbfe6-9ee1-4e1b-bb9a-cb51ef240df7";
+export const DEFAULT_WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID || "b0fbbfe6-9ee1-4e1b-bb9a-cb51ef240df7";
+
+export function resolveWorkspaceId(workspaceId?: string) {
+  const explicit = String(workspaceId ?? "").trim();
+  if (explicit) return explicit;
+  if (typeof window !== "undefined") {
+    try {
+      const stored = String(window.localStorage.getItem("vf_workspace_id") || "").trim();
+      if (stored) return stored;
+    } catch {
+    }
+  }
+  return String(DEFAULT_WORKSPACE_ID || "").trim();
+}
 
 export const DRAFT_PHOTOS_BUCKET = "draft-photos";
 
@@ -66,7 +79,7 @@ function draftUpdatedAtMs(d: any) {
 
 export async function upsertDraft(params: { id: string; data: any; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
 
   try {
     const incoming = params.data;
@@ -172,7 +185,7 @@ type QuotesEntryRow = {
 
 export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?: number }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
-  const workspaceId = params?.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params?.workspaceId);
   const limit = Number((params as any)?.limit);
   const take = Number.isFinite(limit) && limit > 0 ? Math.min(2000, Math.max(50, limit)) : 900;
 
@@ -234,7 +247,7 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
 
 export async function deleteDraftRemote(params: { id: string; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
 
   try {
     const { error } = await supabase
@@ -251,7 +264,7 @@ export async function deleteDraftRemote(params: { id: string; workspaceId?: stri
 
 export async function fetchDrafts(params?: { workspaceId?: string; limit?: number }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
-  const workspaceId = params?.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params?.workspaceId);
   const limit = Number((params as any)?.limit);
 
   try {
@@ -294,7 +307,7 @@ export async function fetchDrafts(params?: { workspaceId?: string; limit?: numbe
 
 export async function fetchDraft(params: { id: string; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, draft: null as any };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
 
   const sid = String(params.id || "");
   if (RESERVED_DRAFT_IDS.has(sid)) {
@@ -365,7 +378,7 @@ export async function fetchCalendarEntries(params: {
   soldLimit?: number;
 }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
   const soldLimit = Number(params.soldLimit);
   const soldTake = Number.isFinite(soldLimit) && soldLimit > 0 ? Math.min(600, Math.max(50, soldLimit)) : 250;
 
@@ -489,7 +502,7 @@ export async function uploadDraftPhoto(params: {
   workspaceId?: string;
 }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, url: "", path: "" };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
 
   try {
     const ts = Date.now();

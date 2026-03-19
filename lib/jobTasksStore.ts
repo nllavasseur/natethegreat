@@ -1,5 +1,5 @@
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
-import { DEFAULT_WORKSPACE_ID } from "@/lib/draftsStore";
+import { resolveWorkspaceId } from "@/lib/draftsStore";
 
 export type JobTasks = {
   collectDeposit?: boolean;
@@ -36,7 +36,7 @@ type JobTasksRow = {
 
 export async function fetchJobTasks(params: { draftIds: string[]; workspaceId?: string }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, rows: [] as JobTasksRow[] };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
   const draftIds = (Array.isArray(params.draftIds) ? params.draftIds : []).map((id) => String(id || "")).filter(Boolean);
   if (draftIds.length === 0) return { ok: true as const, rows: [] as JobTasksRow[] };
 
@@ -77,7 +77,7 @@ export async function upsertJobTasks(params: {
   workspaceId?: string;
 }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const };
-  const workspaceId = params.workspaceId ?? DEFAULT_WORKSPACE_ID;
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
   const draftId = String(params.draftId || "");
   if (!draftId) return { ok: false as const, reason: "missing_draft_id" as const };
 

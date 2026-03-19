@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
-import { DEFAULT_WORKSPACE_ID, fetchDrafts, fetchQuotesEntries, upsertDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchDrafts, fetchQuotesEntries, resolveWorkspaceId, upsertDraft } from "@/lib/draftsStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import { getQuotesDraftsSession, setQuotesDraftsSession } from "@/lib/sessionDraftsCache";
@@ -765,6 +765,7 @@ export default function QuotesPage() {
     let realtimeChannel: any = null;
     try {
       if (supabaseConfigured) {
+        const workspaceId = resolveWorkspaceId();
         realtimeChannel = supabase
           .channel("vf-quotes")
           .on(
@@ -773,7 +774,7 @@ export default function QuotesPage() {
               event: "*",
               schema: "public",
               table: "quotes_entries",
-              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID}`
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
             () => debouncedLoad()
           )
@@ -783,7 +784,7 @@ export default function QuotesPage() {
               event: "*",
               schema: "public",
               table: "calendar_entries",
-              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID}`
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
             () => debouncedLoad()
           )
