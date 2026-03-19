@@ -212,6 +212,27 @@ export default function QuotesPage() {
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
+  const diagEnabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return new URLSearchParams(window.location.search).has("diag");
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const [remoteDiag, setRemoteDiag] = useState<
+    | {
+        at: number;
+        supabaseConfigured: boolean;
+        workspaceId: string;
+        quotesEntries?: { ok: boolean; reason?: string; count: number; error?: string };
+        draftsFallback?: { ok: boolean; reason?: string; count: number; error?: string };
+        jobTasks?: { ok: boolean; reason?: string; count: number; error?: string };
+      }
+    | null
+  >(null);
+
   const loadInFlightRef = useRef(false);
   const loadQueuedRef = useRef(false);
 
@@ -620,13 +641,58 @@ export default function QuotesPage() {
         if ((snap as any)?.ok && Array.isArray((snap as any)?.drafts)) {
           remoteListRaw = ((snap as any).drafts as DraftEntry[]) || [];
           usedSnapshot = true;
+          if (diagEnabled) {
+            setRemoteDiag((prev) => ({
+              ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+              at: Date.now(),
+              supabaseConfigured,
+              workspaceId: resolveWorkspaceId(),
+              quotesEntries: { ok: true, count: remoteListRaw.length }
+            }));
+          }
+        } else if (diagEnabled) {
+          setRemoteDiag((prev) => ({
+            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+            at: Date.now(),
+            supabaseConfigured,
+            workspaceId: resolveWorkspaceId(),
+            quotesEntries: {
+              ok: false,
+              reason: String((snap as any)?.reason || ""),
+              count: 0,
+              error: (snap as any)?.error ? String(((snap as any).error as any)?.message || (snap as any).error || "") : undefined
+            }
+          }));
         }
-      } catch {
+      } catch (e: any) {
+        if (diagEnabled) {
+          setRemoteDiag((prev) => ({
+            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+            at: Date.now(),
+            supabaseConfigured,
+            workspaceId: resolveWorkspaceId(),
+            quotesEntries: { ok: false, reason: "error", count: 0, error: String(e?.message || e || "") }
+          }));
+        }
       }
 
       if (!usedSnapshot) {
         const remote = await fetchDrafts({ limit: 450 });
         remoteListRaw = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+        if (diagEnabled) {
+          setRemoteDiag((prev) => ({
+            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+            at: Date.now(),
+            supabaseConfigured,
+            workspaceId: resolveWorkspaceId(),
+            draftsFallback: {
+              ok: Boolean((remote as any)?.ok),
+              reason: String((remote as any)?.reason || ""),
+              count: remoteListRaw.length,
+              error: (remote as any)?.error ? String(((remote as any).error as any)?.message || (remote as any).error || "") : undefined
+            }
+          }));
+        }
       }
 
       const remoteList = remoteListRaw.filter((d) => !tombstones[String((d as any)?.id || "")]);
@@ -698,6 +764,15 @@ export default function QuotesPage() {
         const ids = mergedLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
         const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
         if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
+          if (diagEnabled) {
+            setRemoteDiag((prev) => ({
+              ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+              at: Date.now(),
+              supabaseConfigured,
+              workspaceId: resolveWorkspaceId(),
+              jobTasks: { ok: true, count: Number((tasksRes as any)?.rows?.length || 0) }
+            }));
+          }
           const byIdTasks = new Map<string, any>();
           for (const r of (tasksRes as any).rows as any[]) {
             const rid = String((r as any)?.draft_id || "");
@@ -733,6 +808,15 @@ export default function QuotesPage() {
           });
         }
       } catch {
+        if (diagEnabled) {
+          setRemoteDiag((prev) => ({
+            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+            at: Date.now(),
+            supabaseConfigured,
+            workspaceId: resolveWorkspaceId(),
+            jobTasks: { ok: false, reason: "error", count: 0 }
+          }));
+        }
       }
 
       loadInFlightRef.current = false;
@@ -1368,6 +1452,37 @@ export default function QuotesPage() {
 
   return (
     <div style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 136px)" }}>
+      {diagEnabled ? (
+        <div className="px-4 pt-3">
+          <div className="max-w-[980px] mx-auto">
+            <div className="rounded-2xl border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.06)] px-3 py-2 text-[12px] text-[rgba(255,255,255,.88)]">
+              <div className="font-black">Diagnostics</div>
+              <div className="mt-1 grid gap-1">
+                <div>supabaseConfigured: {String(Boolean(remoteDiag?.supabaseConfigured ?? supabaseConfigured))}</div>
+                <div>workspaceId: {String(remoteDiag?.workspaceId ?? resolveWorkspaceId() ?? "")}</div>
+                {remoteDiag?.quotesEntries ? (
+                  <div>
+                    quotes_entries: {remoteDiag.quotesEntries.ok ? "ok" : "fail"} ({remoteDiag.quotesEntries.count})
+                    {remoteDiag.quotesEntries.error ? ` — ${remoteDiag.quotesEntries.error}` : ""}
+                  </div>
+                ) : null}
+                {remoteDiag?.draftsFallback ? (
+                  <div>
+                    drafts fallback: {remoteDiag.draftsFallback.ok ? "ok" : "fail"} ({remoteDiag.draftsFallback.count})
+                    {remoteDiag.draftsFallback.error ? ` — ${remoteDiag.draftsFallback.error}` : ""}
+                  </div>
+                ) : null}
+                {remoteDiag?.jobTasks ? (
+                  <div>
+                    job_tasks: {remoteDiag.jobTasks.ok ? "ok" : "fail"} ({remoteDiag.jobTasks.count})
+                    {remoteDiag.jobTasks.error ? ` — ${remoteDiag.jobTasks.error}` : ""}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {scheduleForId ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center p-4"
