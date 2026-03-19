@@ -634,20 +634,37 @@ export default function QuotesPage() {
         .filter((d) => !tombstones[String((d as any)?.id || "")]);
 
       let remoteListRaw: DraftEntry[] = [];
-      let usedSnapshot = false;
+      const remoteTs = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
+      const mergeRemote = (a: DraftEntry[], b: DraftEntry[]) => {
+        const out = [...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])];
+        const byId = new Map<string, DraftEntry>();
+        for (const d of out) {
+          const id = String((d as any)?.id || "");
+          if (!id) continue;
+          const prev = byId.get(id);
+          if (!prev) {
+            byId.set(id, d);
+            continue;
+          }
+          if (remoteTs(d) > remoteTs(prev)) byId.set(id, d);
+        }
+        return Array.from(byId.values());
+      };
+
+      let snapshotList: DraftEntry[] = [];
+      let draftsList: DraftEntry[] = [];
 
       try {
         const snap = await withTimeout(fetchQuotesEntries({ limit: 900 }) as any, 3500);
         if ((snap as any)?.ok && Array.isArray((snap as any)?.drafts)) {
-          remoteListRaw = ((snap as any).drafts as DraftEntry[]) || [];
-          usedSnapshot = true;
+          snapshotList = ((snap as any).drafts as DraftEntry[]) || [];
           if (diagEnabled) {
             setRemoteDiag((prev) => ({
               ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
               at: Date.now(),
               supabaseConfigured,
               workspaceId: resolveWorkspaceId(),
-              quotesEntries: { ok: true, count: remoteListRaw.length }
+              quotesEntries: { ok: true, count: snapshotList.length }
             }));
           }
         } else if (diagEnabled) {
@@ -676,9 +693,9 @@ export default function QuotesPage() {
         }
       }
 
-      if (!usedSnapshot) {
-        const remote = await fetchDrafts({ limit: 450 });
-        remoteListRaw = remote.ok ? (remote.drafts as DraftEntry[]) : [];
+      try {
+        const remote = await withTimeout(fetchDrafts({ limit: 900 }) as any, 3500);
+        draftsList = (remote as any)?.ok ? (((remote as any).drafts as DraftEntry[]) || []) : [];
         if (diagEnabled) {
           setRemoteDiag((prev) => ({
             ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
@@ -688,12 +705,24 @@ export default function QuotesPage() {
             draftsFallback: {
               ok: Boolean((remote as any)?.ok),
               reason: String((remote as any)?.reason || ""),
-              count: remoteListRaw.length,
+              count: draftsList.length,
               error: (remote as any)?.error ? String(((remote as any).error as any)?.message || (remote as any).error || "") : undefined
             }
           }));
         }
+      } catch (e: any) {
+        if (diagEnabled) {
+          setRemoteDiag((prev) => ({
+            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+            at: Date.now(),
+            supabaseConfigured,
+            workspaceId: resolveWorkspaceId(),
+            draftsFallback: { ok: false, reason: "error", count: 0, error: String(e?.message || e || "") }
+          }));
+        }
       }
+
+      remoteListRaw = mergeRemote(snapshotList, draftsList);
 
       const remoteList = remoteListRaw.filter((d) => !tombstones[String((d as any)?.id || "")]);
 
