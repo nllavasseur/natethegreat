@@ -2,7 +2,7 @@
 
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
-import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, upsertDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, resolveWorkspaceId, upsertDraft } from "@/lib/draftsStore";
 import { getCalendarDraftsSession, setCalendarDraftsSession } from "@/lib/sessionDraftsCache";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
@@ -600,8 +600,6 @@ export default function CalendarPage() {
   const highlightTimeoutRef = React.useRef<number | null>(null);
   const queueListRef = React.useRef<HTMLDivElement | null>(null);
   const queueAnchorRef = React.useRef<{ id: string; anchorTop: number } | null>(null);
-
-  const refreshDebounceRef = React.useRef<number | null>(null);
   const debouncedRefreshFnRef = React.useRef<(() => void) | null>(null);
   const remoteRefreshInFlightRef = React.useRef(false);
   const remoteRefreshQueuedRef = React.useRef(false);
@@ -894,16 +892,49 @@ export default function CalendarPage() {
       window.setTimeout(() => hydrateLocalFull(), 0);
     }
 
-    const debouncedRefresh = () => {
-      if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
-      refreshDebounceRef.current = window.setTimeout(() => refresh(), 150);
-    };
+    const requestRefresh = (() => {
+      const cooldownMs = 4000;
+      let lastAt = 0;
+      let t: any = null;
+      let pending = false;
 
-    debouncedRefreshFnRef.current = debouncedRefresh;
+      const run = () => {
+        if (cancelled) return;
+        lastAt = Date.now();
+        pending = false;
+        refresh();
+      };
+
+      return () => {
+        if (cancelled) return;
+        pending = true;
+        const now = Date.now();
+        const dt = now - lastAt;
+        if (dt >= cooldownMs && !remoteRefreshInFlightRef.current) {
+          if (t) {
+            window.clearTimeout(t);
+            t = null;
+          }
+          run();
+          return;
+        }
+        if (t) return;
+        const wait = Math.max(150, cooldownMs - Math.max(0, dt));
+        t = window.setTimeout(() => {
+          t = null;
+          if (cancelled) return;
+          if (!pending) return;
+          run();
+        }, wait);
+      };
+    })();
+
+    debouncedRefreshFnRef.current = requestRefresh;
 
     let realtimeChannel: any = null;
     try {
       if (supabaseConfigured) {
+        const workspaceId = resolveWorkspaceId();
         realtimeChannel = supabase
           .channel(`vf-calendar-${windowKey}`)
           .on(
@@ -912,9 +943,9 @@ export default function CalendarPage() {
               event: "*",
               schema: "public",
               table: "calendar_entries",
-              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID}`
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
-            () => debouncedRefresh()
+            () => requestRefresh()
           )
           .subscribe();
       }
@@ -924,7 +955,7 @@ export default function CalendarPage() {
 
     const onVisibility = () => {
       try {
-        if (document.visibilityState === "visible") debouncedRefresh();
+        if (document.visibilityState === "visible") requestRefresh();
       } catch {
       }
     };
@@ -934,7 +965,7 @@ export default function CalendarPage() {
     const pollId = !supabaseConfigured
       ? window.setInterval(() => {
           try {
-            if (document.visibilityState === "visible") debouncedRefresh();
+            if (document.visibilityState === "visible") requestRefresh();
           } catch {
           }
         }, 120000)
@@ -942,15 +973,14 @@ export default function CalendarPage() {
 
     const onStorage = (e: StorageEvent) => {
       if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1" && e.key !== "vf_calendar_tasks_v1") return;
-      debouncedRefresh();
+      requestRefresh();
     };
-    const onDraftsChanged = () => debouncedRefresh();
+    const onDraftsChanged = () => requestRefresh();
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("vf-drafts-changed", onDraftsChanged as any);
     return () => {
       cancelled = true;
-      if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
       if (pollId) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisibility);
       try {
@@ -3052,16 +3082,6 @@ export default function CalendarPage() {
           </SecondaryButton>
           <div className="text-sm font-extrabold">{label}</div>
           <div className="flex items-center gap-2">
-            <SecondaryButton
-              onClick={() => {
-                try {
-                  notifyDraftsChanged();
-                } catch {
-                }
-              }}
-            >
-              Refresh
-            </SecondaryButton>
             <button
               type="button"
               data-no-swipe="true"

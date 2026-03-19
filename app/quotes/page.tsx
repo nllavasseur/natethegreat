@@ -894,18 +894,39 @@ export default function QuotesPage() {
       }
     };
 
-    const debouncedLoad = (() => {
+    const requestLoad = (() => {
+      const cooldownMs = 4000;
+      let lastAt = 0;
       let t: any = null;
+      let pending = false;
+
+      const run = () => {
+        if (cancelled) return;
+        lastAt = Date.now();
+        pending = false;
+        void load();
+      };
+
       return () => {
-        try {
-          if (t) window.clearTimeout(t);
-          t = window.setTimeout(() => {
-            if (cancelled) return;
-            void load();
-          }, 150);
-        } catch {
-          if (!cancelled) void load();
+        if (cancelled) return;
+        pending = true;
+        const now = Date.now();
+        const dt = now - lastAt;
+        if (dt >= cooldownMs && !loadInFlightRef.current) {
+          if (t) {
+            window.clearTimeout(t);
+            t = null;
+          }
+          run();
+          return;
         }
+        if (t) return;
+        const wait = Math.max(150, cooldownMs - Math.max(0, dt));
+        t = window.setTimeout(() => {
+          t = null;
+          if (!pending) return;
+          run();
+        }, wait);
       };
     })();
 
@@ -925,7 +946,7 @@ export default function QuotesPage() {
               table: "quotes_entries",
               filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
-            () => debouncedLoad()
+            () => requestLoad()
           )
           .on(
             "postgres_changes",
@@ -935,7 +956,7 @@ export default function QuotesPage() {
               table: "calendar_entries",
               filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
-            () => debouncedLoad()
+            () => requestLoad()
           )
           .subscribe();
       }
@@ -945,7 +966,7 @@ export default function QuotesPage() {
 
     const onVisibility = () => {
       try {
-        if (document.visibilityState === "visible") debouncedLoad();
+        if (document.visibilityState === "visible") requestLoad();
       } catch {
       }
     };
@@ -954,14 +975,14 @@ export default function QuotesPage() {
     const pollId = !supabaseConfigured
       ? window.setInterval(() => {
           try {
-            if (document.visibilityState === "visible") debouncedLoad();
+            if (document.visibilityState === "visible") requestLoad();
           } catch {
           }
         }, 120000)
       : null;
 
     const onChanged = () => {
-      debouncedLoad();
+      requestLoad();
     };
     window.addEventListener("vf-drafts-changed", onChanged);
 
@@ -1700,23 +1721,7 @@ export default function QuotesPage() {
         </div>
       ) : null}
 
-      <SectionTitle
-        title="Recent quotes"
-        right={
-          <div className="flex items-center gap-2">
-            <SecondaryButton
-              onClick={() => {
-                try {
-                  notifyDraftsChanged();
-                } catch {
-                }
-              }}
-            >
-              Refresh
-            </SecondaryButton>
-          </div>
-        }
-      />
+      <SectionTitle title="Recent quotes" />
       <GlassCard className="p-4">
         <div className="mb-3">
           <input
