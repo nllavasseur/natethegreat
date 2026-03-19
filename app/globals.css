@@ -67,3 +67,10 @@ body{
 * { -webkit-tap-highlight-color: transparent; }
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 10px; }
+
+@supports (-webkit-touch-callout: none) {
+  .backdrop-blur-ios{
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
