@@ -24,6 +24,7 @@ export function SectionTitle({ title, right }: { title: string; right?: React.Re
 export function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
+      type={props.type ?? "button"}
       {...props}
       className={clsx(
         "rounded-xl px-4 py-2 text-sm font-extrabold border border-[rgba(255,255,255,.16)]",
@@ -37,6 +38,7 @@ export function PrimaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElemen
 export function SecondaryButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
+      type={props.type ?? "button"}
       {...props}
       className={clsx(
         "rounded-xl px-4 py-2 text-sm font-extrabold border border-[rgba(255,255,255,.16)]",

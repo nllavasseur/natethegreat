@@ -602,6 +602,9 @@ export default function CalendarPage() {
   const queueAnchorRef = React.useRef<{ id: string; anchorTop: number } | null>(null);
 
   const refreshDebounceRef = React.useRef<number | null>(null);
+  const debouncedRefreshFnRef = React.useRef<(() => void) | null>(null);
+  const remoteRefreshInFlightRef = React.useRef(false);
+  const remoteRefreshQueuedRef = React.useRef(false);
 
   React.useEffect(() => {
     try {
@@ -650,7 +653,7 @@ export default function CalendarPage() {
   const requestCloseDayPreview = React.useCallback(() => {
     suppressDayPreviewOpenUntilRef.current = Date.now() + 450;
     setDayPreviewOpen(false);
-  }, []);
+  }, [cursor]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -664,6 +667,20 @@ export default function CalendarPage() {
     const windowStartIso = toKey(windowStart);
     const windowEndIso = toKey(windowEnd);
     const windowKey = `${windowStartIso}_${windowEndIso}`;
+
+    const readLocalLiteList = () => {
+      try {
+        const cachedEntries = readCalendarEntriesCache(windowKey);
+        if (Array.isArray(cachedEntries) && cachedEntries.length) return cachedEntries.map((d) => ({ ...(d as any) }));
+      } catch {
+      }
+      try {
+        const cached = readCalendarDraftsCache();
+        if (Array.isArray(cached) && cached.length) return cached.map((d) => ({ ...(d as any) }));
+      } catch {
+      }
+      return [] as DraftEntry[];
+    };
 
     const refreshLocal = () => {
       try {
@@ -720,10 +737,15 @@ export default function CalendarPage() {
     };
 
     const refreshRemote = async () => {
+      if (remoteRefreshInFlightRef.current) {
+        remoteRefreshQueuedRef.current = true;
+        return;
+      }
+      remoteRefreshInFlightRef.current = true;
+
       // Do remote fetch/merge in the background. On poor service this can take a while,
       // but the UI should already be populated from localStorage.
-      const store = readDraftStore();
-      const localList = Object.values(store).map((d) => ({ ...d }));
+      const localList = readLocalLiteList();
       const localBlocks = readBlockOutStore();
       const localTasks = readTaskStore();
 
@@ -802,17 +824,9 @@ export default function CalendarPage() {
 
       // Re-read local store right before merge so recent local mutations (toggles, locks, moves)
       // can't be overwritten by a stale snapshot captured before the remote fetch finished.
-      const latestStore = readDraftStore();
-      const latestLocalList = Object.values(latestStore).map((d) => ({ ...d }));
+      const latestLocalList = readLocalLiteList();
 
       const merged = mergeDraftLists(latestLocalList, remoteList);
-
-      // If an estimate was scheduled on this device but hasn't made it to Supabase yet,
-      // publish it so other devices (iPad) see the same calendar.
-      try {
-        void publishScheduledEstimates({ localList: latestLocalList, remoteList });
-      } catch {
-      }
 
       const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toCalendarDraftLite(d));
       if (!cancelled) setDrafts(mergedLite);
@@ -838,28 +852,12 @@ export default function CalendarPage() {
       }
       if (!cancelled) setBlockOuts(mergedBlocks);
 
-      try {
-        // Always publish blockout changes (including deletions that result in an empty list).
-        const same = JSON.stringify(mergedBlocks) === JSON.stringify(remoteBlocks);
-        if (!same) void upsertBlockOutsRemote(mergedBlocks);
-      } catch {
-      }
-
       const mergedTasks = mergeTaskLists(localTasks, remoteTasks);
       try {
         writeTaskStore(mergedTasks);
       } catch {
       }
       if (!cancelled) setTasks(mergedTasks);
-
-      try {
-        const mergedHas = Array.isArray(mergedTasks) && mergedTasks.length > 0;
-        if (mergedHas) {
-          const same = JSON.stringify(mergedTasks) === JSON.stringify(remoteTasks);
-          if (!same) void upsertTasksRemote(mergedTasks);
-        }
-      } catch {
-      }
 
       try {
         if (!cancelled) {
@@ -871,22 +869,37 @@ export default function CalendarPage() {
         }
       } catch {
       }
+
+      remoteRefreshInFlightRef.current = false;
+      if (remoteRefreshQueuedRef.current) {
+        remoteRefreshQueuedRef.current = false;
+        window.setTimeout(() => void refreshRemote(), 0);
+      }
     };
 
     const refresh = () => {
       refreshLocal();
-      void refreshRemote();
+      window.setTimeout(() => void refreshRemote(), 0);
     };
 
     refresh();
 
-    // Defer full local parse until after first paint.
-    window.setTimeout(() => hydrateLocalFull(), 0);
+    // Defer full local parse until after first paint, and only when calendar caches are empty.
+    try {
+      const cached = readCalendarDraftsCache();
+      const cachedEntries = readCalendarEntriesCache(windowKey);
+      const shouldHydrate = !(Array.isArray(cached) && cached.length) && !(Array.isArray(cachedEntries) && cachedEntries.length);
+      if (shouldHydrate) window.setTimeout(() => hydrateLocalFull(), 0);
+    } catch {
+      window.setTimeout(() => hydrateLocalFull(), 0);
+    }
 
     const debouncedRefresh = () => {
       if (refreshDebounceRef.current) window.clearTimeout(refreshDebounceRef.current);
       refreshDebounceRef.current = window.setTimeout(() => refresh(), 150);
     };
+
+    debouncedRefreshFnRef.current = debouncedRefresh;
 
     let realtimeChannel: any = null;
     try {

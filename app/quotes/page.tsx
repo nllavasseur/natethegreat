@@ -212,6 +212,9 @@ export default function QuotesPage() {
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
 
+  const loadInFlightRef = useRef(false);
+  const loadQueuedRef = useRef(false);
+
   const hasSeededFromCacheRef = useRef(false);
 
   const orderRef = useRef<Record<string, number>>({});
@@ -542,6 +545,12 @@ export default function QuotesPage() {
     };
 
     const load = async () => {
+      if (loadInFlightRef.current) {
+        loadQueuedRef.current = true;
+        return;
+      }
+      loadInFlightRef.current = true;
+
       try {
         const session = getQuotesDraftsSession<DraftEntry[]>();
         if (!hasSeededFromCacheRef.current && Array.isArray(session) && session.length) {
@@ -724,6 +733,15 @@ export default function QuotesPage() {
           });
         }
       } catch {
+      }
+
+      loadInFlightRef.current = false;
+      if (loadQueuedRef.current && !cancelled) {
+        loadQueuedRef.current = false;
+        window.setTimeout(() => {
+          if (cancelled) return;
+          void load();
+        }, 0);
       }
     };
 
