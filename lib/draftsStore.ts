@@ -186,6 +186,7 @@ type QuotesEntryRow = {
 export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?: number }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
   const workspaceId = resolveWorkspaceId(params?.workspaceId);
+  const defaultWorkspaceId = String(DEFAULT_WORKSPACE_ID || "").trim();
   const limit = Number((params as any)?.limit);
   const take = Number.isFinite(limit) && limit > 0 ? Math.min(2000, Math.max(50, limit)) : 900;
 
@@ -193,17 +194,32 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
     const selectCols =
       "draft_id,updated_at,created_at_ms,updated_at_ms,status,calendar_hidden,scheduled_iso,scheduled_at,install_date,start_date,labor_days,queue_rank,estimate_assignee,customer_name,title,phone_number,project_address,selected_style_name,project_photo_url,preinstall_count,totals,job_tasks,job_task_snooze";
 
-    const res = await supabase
-      .from("quotes_entries")
-      .select(selectCols)
-      .eq("workspace_id", workspaceId)
-      .order("updated_at", { ascending: false })
-      .limit(take);
+    const fetchForWorkspace = async (wid: string) => {
+      const res = await supabase
+        .from("quotes_entries")
+        .select(selectCols)
+        .eq("workspace_id", wid)
+        .order("updated_at", { ascending: false })
+        .limit(take);
+      if ((res as any)?.error) throw (res as any).error;
+      return ((res as any)?.data ?? []) as QuotesEntryRow[];
+    };
 
-    if ((res as any)?.error) throw (res as any).error;
+    const primaryRows = await fetchForWorkspace(workspaceId);
+    const shouldFallback = Boolean(defaultWorkspaceId) && defaultWorkspaceId !== workspaceId;
+    let allRows = primaryRows;
 
-    const rows = ((res as any)?.data ?? []) as QuotesEntryRow[];
-    const out = rows
+    if (shouldFallback) {
+      let fallbackRows: QuotesEntryRow[] = [];
+      try {
+        fallbackRows = await fetchForWorkspace(defaultWorkspaceId);
+      } catch {
+        fallbackRows = [];
+      }
+      allRows = [...fallbackRows, ...primaryRows];
+    }
+
+    const out = allRows
       .map((r) => {
         const id = String((r as any)?.draft_id || "");
         if (!id) return null;
@@ -235,7 +251,24 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
       })
       .filter(Boolean);
 
-    return { ok: true as const, drafts: out as any[] };
+    const byId = new Map<string, any>();
+    const ts = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
+    for (const d of out as any[]) {
+      const id = String((d as any)?.id || "");
+      if (!id) continue;
+      const prev = byId.get(id);
+      if (!prev) {
+        byId.set(id, d);
+        continue;
+      }
+      const prevTs = ts(prev);
+      const nextTs = ts(d);
+      if (nextTs > prevTs) byId.set(id, d);
+    }
+
+    const merged = Array.from(byId.values()).sort((a, b) => ts(b) - ts(a));
+    const capped = merged.slice(0, take);
+    return { ok: true as const, drafts: capped as any[] };
   } catch (e: any) {
     const msg = String(e?.message || e || "");
     if (msg.toLowerCase().includes("relation") && msg.toLowerCase().includes("does not exist")) {
@@ -265,20 +298,39 @@ export async function deleteDraftRemote(params: { id: string; workspaceId?: stri
 export async function fetchDrafts(params?: { workspaceId?: string; limit?: number }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
   const workspaceId = resolveWorkspaceId(params?.workspaceId);
+  const defaultWorkspaceId = String(DEFAULT_WORKSPACE_ID || "").trim();
   const limit = Number((params as any)?.limit);
 
   try {
-    const q = supabase
-      .from("drafts")
-      .select("draft_id, draft, updated_at")
-      .eq("workspace_id", workspaceId)
-      .order("updated_at", { ascending: false });
+    const take = Number.isFinite(limit) && limit > 0 ? Math.max(1, Math.min(2000, limit)) : 900;
 
-    const { data, error } = Number.isFinite(limit) && limit > 0 ? await (q as any).limit(limit) : await q;
+    const fetchForWorkspace = async (wid: string) => {
+      const q = supabase
+        .from("drafts")
+        .select("draft_id, draft, updated_at")
+        .eq("workspace_id", wid)
+        .order("updated_at", { ascending: false });
 
-    if (error) throw error;
+      const { data, error } = await (q as any).limit(take);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    };
 
-    const drafts = (data ?? [])
+    const primaryRows = await fetchForWorkspace(workspaceId);
+    const shouldFallback = Boolean(defaultWorkspaceId) && defaultWorkspaceId !== workspaceId;
+    let allRows = primaryRows;
+
+    if (shouldFallback) {
+      let fallbackRows: any[] = [];
+      try {
+        fallbackRows = await fetchForWorkspace(defaultWorkspaceId);
+      } catch {
+        fallbackRows = [];
+      }
+      allRows = [...fallbackRows, ...primaryRows];
+    }
+
+    const mapped = allRows
       .map((r: any) => {
         const d = r?.draft ?? {};
         const id = String(r?.draft_id ?? d?.id ?? "");
@@ -299,7 +351,23 @@ export async function fetchDrafts(params?: { workspaceId?: string; limit?: numbe
         return true;
       });
 
-    return { ok: true as const, drafts };
+    const byId = new Map<string, any>();
+    const ts = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
+    for (const d of mapped as any[]) {
+      const id = String((d as any)?.id || "");
+      if (!id) continue;
+      const prev = byId.get(id);
+      if (!prev) {
+        byId.set(id, d);
+        continue;
+      }
+      const prevTs = ts(prev);
+      const nextTs = ts(d);
+      if (nextTs > prevTs) byId.set(id, d);
+    }
+
+    const merged = Array.from(byId.values()).sort((a, b) => ts(b) - ts(a));
+    return { ok: true as const, drafts: merged.slice(0, take) };
   } catch (e) {
     return { ok: false as const, reason: "error" as const, error: e, drafts: [] as any[] };
   }
