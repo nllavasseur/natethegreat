@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
-export const DEFAULT_WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID || "b0fbbfe6-9ee1-4e1b-bb9a-cb51ef240df7";
+export const LEGACY_WORKSPACE_ID = "b0fbbfe6-9ee1-4e1b-bb9a-cb51ef240df7";
+export const DEFAULT_WORKSPACE_ID = process.env.NEXT_PUBLIC_WORKSPACE_ID || LEGACY_WORKSPACE_ID;
 
 export function resolveWorkspaceId(workspaceId?: string) {
   const explicit = String(workspaceId ?? "").trim();
@@ -187,6 +188,7 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
   const workspaceId = resolveWorkspaceId(params?.workspaceId);
   const defaultWorkspaceId = String(DEFAULT_WORKSPACE_ID || "").trim();
+  const legacyWorkspaceId = String(LEGACY_WORKSPACE_ID || "").trim();
   const limit = Number((params as any)?.limit);
   const take = Number.isFinite(limit) && limit > 0 ? Math.min(2000, Math.max(50, limit)) : 900;
 
@@ -206,17 +208,22 @@ export async function fetchQuotesEntries(params?: { workspaceId?: string; limit?
     };
 
     const primaryRows = await fetchForWorkspace(workspaceId);
-    const shouldFallback = Boolean(defaultWorkspaceId) && defaultWorkspaceId !== workspaceId;
-    let allRows = primaryRows;
+    const fallbackWorkspaces = Array.from(
+      new Set(
+        [defaultWorkspaceId, legacyWorkspaceId]
+          .map((w) => String(w || "").trim())
+          .filter((w) => Boolean(w) && w !== workspaceId)
+      )
+    );
 
-    if (shouldFallback) {
-      let fallbackRows: QuotesEntryRow[] = [];
+    let allRows = primaryRows;
+    for (const wid of fallbackWorkspaces) {
       try {
-        fallbackRows = await fetchForWorkspace(defaultWorkspaceId);
+        const rows = await fetchForWorkspace(wid);
+        allRows = [...rows, ...allRows];
       } catch {
-        fallbackRows = [];
+        // ignore
       }
-      allRows = [...fallbackRows, ...primaryRows];
     }
 
     const out = allRows
@@ -299,6 +306,7 @@ export async function fetchDrafts(params?: { workspaceId?: string; limit?: numbe
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, drafts: [] as any[] };
   const workspaceId = resolveWorkspaceId(params?.workspaceId);
   const defaultWorkspaceId = String(DEFAULT_WORKSPACE_ID || "").trim();
+  const legacyWorkspaceId = String(LEGACY_WORKSPACE_ID || "").trim();
   const limit = Number((params as any)?.limit);
 
   try {
@@ -317,17 +325,22 @@ export async function fetchDrafts(params?: { workspaceId?: string; limit?: numbe
     };
 
     const primaryRows = await fetchForWorkspace(workspaceId);
-    const shouldFallback = Boolean(defaultWorkspaceId) && defaultWorkspaceId !== workspaceId;
-    let allRows = primaryRows;
+    const fallbackWorkspaces = Array.from(
+      new Set(
+        [defaultWorkspaceId, legacyWorkspaceId]
+          .map((w) => String(w || "").trim())
+          .filter((w) => Boolean(w) && w !== workspaceId)
+      )
+    );
 
-    if (shouldFallback) {
-      let fallbackRows: any[] = [];
+    let allRows = primaryRows;
+    for (const wid of fallbackWorkspaces) {
       try {
-        fallbackRows = await fetchForWorkspace(defaultWorkspaceId);
+        const rows = await fetchForWorkspace(wid);
+        allRows = [...rows, ...allRows];
       } catch {
-        fallbackRows = [];
+        // ignore
       }
-      allRows = [...fallbackRows, ...primaryRows];
     }
 
     const mapped = allRows
