@@ -156,7 +156,27 @@ function normalizePreInstallPhotos(input: unknown) {
 
 function stripDataUrlsFromPreInstall(input: unknown) {
   if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
-  return (input as any[]).filter((p) => p && typeof (p as any).src === "string" && !String((p as any).src || "").startsWith("data:"));
+  const out: Array<{ src: string; note: string; createdAt: number }> = [];
+  for (const v of input as any[]) {
+    if (typeof v === "string") {
+      const src = String(v || "");
+      if (!src) continue;
+      if (src.startsWith("data:")) continue;
+      out.push({ src, note: "", createdAt: Date.now() });
+      continue;
+    }
+    if (v && typeof v === "object") {
+      const src = typeof (v as any).src === "string" ? String((v as any).src || "") : "";
+      if (!src) continue;
+      if (src.startsWith("data:")) continue;
+      out.push({
+        src,
+        note: typeof (v as any).note === "string" ? (v as any).note : "",
+        createdAt: Number((v as any).createdAt) || Date.now()
+      });
+    }
+  }
+  return out;
 }
 
 function toQuotesDraftLite(d: DraftEntry): DraftEntry {

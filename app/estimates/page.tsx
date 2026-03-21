@@ -5115,8 +5115,9 @@ function EstimatesPageInner() {
     const out: Array<{ src: string; srcPath?: string; note: string; createdAt: number }> = [];
     for (const v of input) {
       if (typeof v === "string") {
-        if (!v.startsWith("data:")) continue;
-        out.push({ src: v, srcPath: undefined, note: "", createdAt: Date.now() });
+        const src = String(v || "");
+        if (!src) continue;
+        out.push({ src, srcPath: undefined, note: "", createdAt: Date.now() });
         continue;
       }
       if (v && typeof v === "object") {
