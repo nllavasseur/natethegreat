@@ -8,6 +8,7 @@ import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select 
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import { fetchDraft, upsertDraft, uploadDraftPhoto } from "@/lib/draftsStore";
+import { fetchCanonicalQuoteById } from "@/lib/canonicalStore";
 import type { QuoteItem, SectionKey } from "@/lib/types";
 
 const sectionOptions: { key: SectionKey; label: string }[] = [
@@ -6120,6 +6121,16 @@ function EstimatesPageInner() {
 
     if (!d) {
       try {
+        const canon = await fetchCanonicalQuoteById({ quoteId: id });
+        if ((canon as any)?.ok && (canon as any)?.quote) {
+          d = (canon as any).quote as any;
+        }
+      } catch {
+      }
+    }
+
+    if (!d) {
+      try {
         const remote = await fetchDraft({ id });
         if (remote.ok && remote.draft) {
           d = remote.draft as any;
@@ -6192,6 +6203,28 @@ function EstimatesPageInner() {
     let d: any = null;
     const source = opts?.source ?? "draft";
     const store = readDraftStore();
+    const isLite = (x: any) => {
+      if (!x || typeof x !== "object") return true;
+      const hasSegments = Array.isArray((x as any).segments);
+      const hasCards = Array.isArray((x as any).comboCards);
+      const hasItems = Array.isArray((x as any).items);
+      const hasFenceBuilder = (x as any).fenceBuilder && typeof (x as any).fenceBuilder === "object";
+      return !(hasSegments || hasCards || hasItems || hasFenceBuilder);
+    };
+    const ts = (x: any) => {
+      const u = Number((x as any)?.updatedAt);
+      if (Number.isFinite(u) && u > 0) return u;
+      const c = Number((x as any)?.createdAt);
+      if (Number.isFinite(c) && c > 0) return c;
+      return 0;
+    };
+    const mergePreferNewer = (local: any, remote: any) => {
+      if (!local) return remote;
+      if (!remote) return local;
+      const lt = ts(local);
+      const rt = ts(remote);
+      return rt > lt ? { ...(local as any), ...(remote as any) } : { ...(remote as any), ...(local as any) };
+    };
     if (source === "snapshot") {
       try {
         const raw = window.localStorage.getItem(unsavedSnapshotKey);
@@ -6202,29 +6235,61 @@ function EstimatesPageInner() {
     } else {
       d = store[id] as any;
     }
-    if (!d) {
+
+    if (source !== "snapshot" && id && id !== "__snapshot__" && (!d || isLite(d))) {
+      try {
+        hydratingRemoteRef.current = true;
+        const canon = await fetchCanonicalQuoteById({ quoteId: id });
+        if ((canon as any)?.ok && (canon as any)?.quote) {
+          const merged = mergePreferNewer(d, (canon as any).quote);
+          d = merged;
+          try {
+            const prev = store[id] as any;
+            if (prev && typeof prev === "object") {
+              const merged2: any = { ...prev, ...merged };
+
+              // Guardrails: don't let a remote draft that is missing task-related fields wipe out
+              // locally-entered task data.
+              if ((merged as any).jobTasks == null && (prev as any).jobTasks != null) merged2.jobTasks = (prev as any).jobTasks;
+              if ((merged as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged2.jobTaskSnooze = (prev as any).jobTaskSnooze;
+              if ((merged as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged2.jobTaskLabels = (prev as any).jobTaskLabels;
+              if ((merged as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged2.jobTaskHidden = (prev as any).jobTaskHidden;
+              if ((merged as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged2.jobCustomTasks = (prev as any).jobCustomTasks;
+
+              store[id] = merged2;
+              d = merged2;
+            } else {
+              store[id] = merged;
+            }
+            writeDraftStore(store);
+          } catch {
+          }
+        }
+      } catch {
+      }
+      hydratingRemoteRef.current = false;
+    }
+
+    if (source !== "snapshot" && id && id !== "__snapshot__" && (!d || isLite(d))) {
       try {
         hydratingRemoteRef.current = true;
         const remote = await fetchDraft({ id });
         if (remote.ok && remote.draft) {
-          d = remote.draft as any;
+          const merged = mergePreferNewer(d, remote.draft as any);
+          d = merged;
           try {
             const prev = store[id] as any;
             if (prev && typeof prev === "object") {
-              const merged: any = { ...prev, ...d };
-
-              // Guardrails: don't let a remote draft that is missing task-related fields wipe out
-              // locally-entered task data.
-              if ((d as any).jobTasks == null && (prev as any).jobTasks != null) merged.jobTasks = (prev as any).jobTasks;
-              if ((d as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged.jobTaskSnooze = (prev as any).jobTaskSnooze;
-              if ((d as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged.jobTaskLabels = (prev as any).jobTaskLabels;
-              if ((d as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged.jobTaskHidden = (prev as any).jobTaskHidden;
-              if ((d as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged.jobCustomTasks = (prev as any).jobCustomTasks;
-
-              store[id] = merged;
-              d = merged;
+              const merged2: any = { ...prev, ...merged };
+              if ((merged as any).jobTasks == null && (prev as any).jobTasks != null) merged2.jobTasks = (prev as any).jobTasks;
+              if ((merged as any).jobTaskSnooze == null && (prev as any).jobTaskSnooze != null) merged2.jobTaskSnooze = (prev as any).jobTaskSnooze;
+              if ((merged as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged2.jobTaskLabels = (prev as any).jobTaskLabels;
+              if ((merged as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged2.jobTaskHidden = (prev as any).jobTaskHidden;
+              if ((merged as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged2.jobCustomTasks = (prev as any).jobCustomTasks;
+              store[id] = merged2;
+              d = merged2;
             } else {
-              store[id] = d;
+              store[id] = merged;
             }
             writeDraftStore(store);
           } catch {
