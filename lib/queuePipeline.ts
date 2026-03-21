@@ -1,5 +1,7 @@
 import { upsertDraft } from "@/lib/draftsStore";
 import { upsertCanonicalQuote } from "@/lib/canonicalStore";
+import { DEFAULT_WORKSPACE_ID, resolveWorkspaceId } from "@/lib/draftsStore";
+import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 
 // Single source of truth for queue mutations.
 // - SOLD can only be authored via setStatusFromQuotes
@@ -107,6 +109,49 @@ function maxSoldRank(store: Record<string, QueueDraft>) {
   return max;
 }
 
+async function fetchRemoteMaxSoldRank() {
+  if (!supabaseConfigured) return null;
+  const workspaceId = resolveWorkspaceId();
+  const wid = workspaceId || DEFAULT_WORKSPACE_ID;
+  if (!wid) return null;
+
+  const parse = (v: any) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+  };
+
+  try {
+    const res: any = await supabase
+      .from("vf_quotes")
+      .select("queue_rank")
+      .eq("workspace_id", wid)
+      .eq("status", "sold")
+      .eq("calendar_hidden", false)
+      .order("queue_rank", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (res?.error) throw res.error;
+    return parse((res as any)?.data?.queue_rank);
+  } catch {
+  }
+
+  try {
+    const res2: any = await supabase
+      .from("calendar_entries")
+      .select("queue_rank")
+      .eq("workspace_id", wid)
+      .eq("status", "sold")
+      .eq("calendar_hidden", false)
+      .order("queue_rank", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (res2?.error) throw res2.error;
+    return parse((res2 as any)?.data?.queue_rank);
+  } catch {
+    return null;
+  }
+}
+
 async function safeUpsert(id: string, data: any) {
   try {
     try {
@@ -150,7 +195,13 @@ export async function setStatusFromQuotes(params: {
   if (status === "sold") {
     const needsRank = prevStatus !== "sold" || !hasValidRank(prev);
     if (needsRank) {
-      next.queueRank = maxSoldRank(store) + 1;
+      let maxRank = maxSoldRank(store);
+      try {
+        const remoteMax = await fetchRemoteMaxSoldRank();
+        if (Number.isFinite(Number(remoteMax)) && Number(remoteMax) > maxRank) maxRank = Number(remoteMax);
+      } catch {
+      }
+      next.queueRank = maxRank + 1;
     }
   }
 

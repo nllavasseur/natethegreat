@@ -1111,9 +1111,19 @@ export default function CalendarPage() {
 
     const onStorage = (e: StorageEvent) => {
       if (e.key && e.key !== "vf_estimate_drafts_v1" && e.key !== "vf_calendar_blockouts_v1" && e.key !== "vf_calendar_tasks_v1") return;
+      try {
+        hydrateLocalFull();
+      } catch {
+      }
       requestRefresh();
     };
-    const onDraftsChanged = () => requestRefresh();
+    const onDraftsChanged = () => {
+      try {
+        hydrateLocalFull();
+      } catch {
+      }
+      requestRefresh();
+    };
 
     window.addEventListener("storage", onStorage);
     window.addEventListener("vf-drafts-changed", onDraftsChanged as any);
