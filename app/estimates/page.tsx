@@ -6205,11 +6205,22 @@ function EstimatesPageInner() {
     const store = readDraftStore();
     const isLite = (x: any) => {
       if (!x || typeof x !== "object") return true;
-      const hasSegments = Array.isArray((x as any).segments);
-      const hasCards = Array.isArray((x as any).comboCards);
-      const hasItems = Array.isArray((x as any).items);
-      const hasFenceBuilder = (x as any).fenceBuilder && typeof (x as any).fenceBuilder === "object";
-      return !(hasSegments || hasCards || hasItems || hasFenceBuilder);
+      const segs = Array.isArray((x as any).segments) ? ((x as any).segments as any[]) : [];
+      const items = Array.isArray((x as any).items) ? ((x as any).items as any[]) : [];
+      const cards = Array.isArray((x as any).comboCards) ? ((x as any).comboCards as any[]) : [];
+      const fenceBuilder = (x as any).fenceBuilder && typeof (x as any).fenceBuilder === "object" ? (x as any).fenceBuilder : null;
+
+      const hasMeaningfulSegments = segs.some((s) => {
+        if (!s || typeof s !== "object") return false;
+        if ((s as any).removed) return false;
+        const len = Number((s as any).length) || 0;
+        return len > 0;
+      });
+      const hasMeaningfulItems = items.some((it) => it && typeof it === "object" && ((Number((it as any).qty) || 0) > 0 || (Number((it as any).unitPrice) || 0) > 0));
+      const hasMeaningfulCards = cards.length > 0 && cards.some((c) => c && typeof c === "object" && Boolean((c as any).selectedStyle));
+      const hasMeaningfulFenceBuilder = Boolean(fenceBuilder) && Object.keys(fenceBuilder || {}).length > 0;
+
+      return !(hasMeaningfulSegments || hasMeaningfulItems || hasMeaningfulCards || hasMeaningfulFenceBuilder);
     };
     const ts = (x: any) => {
       const u = Number((x as any)?.updatedAt);
@@ -6225,6 +6236,30 @@ function EstimatesPageInner() {
       const rt = ts(remote);
       return rt > lt ? { ...(local as any), ...(remote as any) } : { ...(remote as any), ...(local as any) };
     };
+    const mergePreferNewerWithTakeoff = (local: any, remote: any) => {
+      const merged = mergePreferNewer(local, remote);
+      if (!remote || typeof remote !== "object") return merged;
+      try {
+        const mergedAny: any = merged && typeof merged === "object" ? merged : {};
+        const remoteAny: any = remote;
+
+        if ((!Array.isArray(mergedAny.segments) || mergedAny.segments.length === 0) && Array.isArray(remoteAny.segments) && remoteAny.segments.length > 0) {
+          mergedAny.segments = remoteAny.segments;
+        }
+        if ((!Array.isArray(mergedAny.items) || mergedAny.items.length === 0) && Array.isArray(remoteAny.items) && remoteAny.items.length > 0) {
+          mergedAny.items = remoteAny.items;
+        }
+        if ((!Array.isArray(mergedAny.comboCards) || mergedAny.comboCards.length === 0) && Array.isArray(remoteAny.comboCards) && remoteAny.comboCards.length > 0) {
+          mergedAny.comboCards = remoteAny.comboCards;
+        }
+        if (!mergedAny.fenceBuilder && remoteAny.fenceBuilder && typeof remoteAny.fenceBuilder === "object") {
+          mergedAny.fenceBuilder = remoteAny.fenceBuilder;
+        }
+        return mergedAny;
+      } catch {
+        return merged;
+      }
+    };
     if (source === "snapshot") {
       try {
         const raw = window.localStorage.getItem(unsavedSnapshotKey);
@@ -6236,15 +6271,26 @@ function EstimatesPageInner() {
       d = store[id] as any;
     }
 
-    if (source !== "snapshot" && id && id !== "__snapshot__" && (!d || isLite(d))) {
+    const effectiveId = (() => {
+      if (source !== "snapshot") return id;
+      if (!d || typeof d !== "object") return "";
+      const p = typeof (d as any).draftParam === "string" ? String((d as any).draftParam) : "";
+      if (p) return p;
+      const did = typeof (d as any).draftId === "string" ? String((d as any).draftId) : "";
+      return did;
+    })();
+
+    const storageId = source === "snapshot" ? String(effectiveId || "") : String(id || "");
+
+    if (storageId && storageId !== "__snapshot__") {
       try {
         hydratingRemoteRef.current = true;
-        const canon = await fetchCanonicalQuoteById({ quoteId: id });
+        const canon = await fetchCanonicalQuoteById({ quoteId: storageId });
         if ((canon as any)?.ok && (canon as any)?.quote) {
-          const merged = mergePreferNewer(d, (canon as any).quote);
+          const merged = mergePreferNewerWithTakeoff(d, (canon as any).quote);
           d = merged;
           try {
-            const prev = store[id] as any;
+            const prev = store[storageId] as any;
             if (prev && typeof prev === "object") {
               const merged2: any = { ...prev, ...merged };
 
@@ -6256,10 +6302,10 @@ function EstimatesPageInner() {
               if ((merged as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged2.jobTaskHidden = (prev as any).jobTaskHidden;
               if ((merged as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged2.jobCustomTasks = (prev as any).jobCustomTasks;
 
-              store[id] = merged2;
+              store[storageId] = merged2;
               d = merged2;
             } else {
-              store[id] = merged;
+              store[storageId] = merged;
             }
             writeDraftStore(store);
           } catch {
@@ -6270,15 +6316,15 @@ function EstimatesPageInner() {
       hydratingRemoteRef.current = false;
     }
 
-    if (source !== "snapshot" && id && id !== "__snapshot__" && (!d || isLite(d))) {
+    if (storageId && storageId !== "__snapshot__" && (!d || isLite(d))) {
       try {
         hydratingRemoteRef.current = true;
-        const remote = await fetchDraft({ id });
+        const remote = await fetchDraft({ id: storageId });
         if (remote.ok && remote.draft) {
-          const merged = mergePreferNewer(d, remote.draft as any);
+          const merged = mergePreferNewerWithTakeoff(d, remote.draft as any);
           d = merged;
           try {
-            const prev = store[id] as any;
+            const prev = store[storageId] as any;
             if (prev && typeof prev === "object") {
               const merged2: any = { ...prev, ...merged };
               if ((merged as any).jobTasks == null && (prev as any).jobTasks != null) merged2.jobTasks = (prev as any).jobTasks;
@@ -6286,10 +6332,10 @@ function EstimatesPageInner() {
               if ((merged as any).jobTaskLabels == null && (prev as any).jobTaskLabels != null) merged2.jobTaskLabels = (prev as any).jobTaskLabels;
               if ((merged as any).jobTaskHidden == null && (prev as any).jobTaskHidden != null) merged2.jobTaskHidden = (prev as any).jobTaskHidden;
               if ((merged as any).jobCustomTasks == null && (prev as any).jobCustomTasks != null) merged2.jobCustomTasks = (prev as any).jobCustomTasks;
-              store[id] = merged2;
+              store[storageId] = merged2;
               d = merged2;
             } else {
-              store[id] = merged;
+              store[storageId] = merged;
             }
             writeDraftStore(store);
           } catch {

@@ -27,6 +27,25 @@ function parseUpdatedAtMs(updatedAt: unknown) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
+function hasMeaningfulDetailPayload(d: any) {
+  try {
+    if (!d || typeof d !== "object") return false;
+    if (Array.isArray((d as any).segments) && (d as any).segments.length > 0) return true;
+    if (Array.isArray((d as any).items) && (d as any).items.length > 0) return true;
+    if (Array.isArray((d as any).comboCards) && (d as any).comboCards.length > 0) return true;
+    if ((d as any).fenceBuilder && typeof (d as any).fenceBuilder === "object" && Object.keys((d as any).fenceBuilder || {}).length > 0) return true;
+    if ((d as any).materialsDetails && typeof (d as any).materialsDetails === "object" && Object.keys((d as any).materialsDetails || {}).length > 0) return true;
+    if (Array.isArray((d as any).takeoffManualItems) && (d as any).takeoffManualItems.length > 0) return true;
+    if (Array.isArray((d as any).takeoffPerPanelAddons) && (d as any).takeoffPerPanelAddons.length > 0) return true;
+    if ((d as any).takeoffUnitPriceOverrides && typeof (d as any).takeoffUnitPriceOverrides === "object" && Object.keys((d as any).takeoffUnitPriceOverrides || {}).length > 0) return true;
+    if ((d as any).materialUnitPrices && typeof (d as any).materialUnitPrices === "object" && Object.keys((d as any).materialUnitPrices || {}).length > 0) return true;
+    if ((d as any).contract && typeof (d as any).contract === "object" && Object.keys((d as any).contract || {}).length > 0) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export type CanonicalQuoteRow = {
   id: string;
   data?: any;
@@ -484,6 +503,8 @@ export async function upsertCanonicalQuote(params: { id: string; data: any; work
   };
 
   try {
+    const includeData = hasMeaningfulDetailPayload(data);
+
     const payloadBase: any = {
       workspace_id: workspaceId || DEFAULT_WORKSPACE_ID,
       id,
@@ -503,7 +524,7 @@ export async function upsertCanonicalQuote(params: { id: string; data: any; work
       title: (data as any)?.title ?? null,
       selected_style: (data as any)?.selectedStyle ?? null,
       totals: (data as any)?.totals ?? null,
-      data
+      ...(includeData ? { data } : {})
     };
 
     const payloadExtended: any = {
