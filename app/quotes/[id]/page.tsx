@@ -555,7 +555,7 @@ export default function QuoteDetailPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-xl font-black tracking-tight truncate">{title}</div>
+          <div className="text-xl font-black tracking-tight whitespace-normal break-words leading-tight">{title}</div>
           <div className="text-sm text-[var(--muted)]">Read-only view</div>
         </div>
         <div className="flex flex-wrap justify-start sm:justify-end gap-2 max-w-full">

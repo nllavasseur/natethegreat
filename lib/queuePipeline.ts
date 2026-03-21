@@ -191,6 +191,13 @@ export async function setStatusFromQuotes(params: {
     updatedAt: ts
   };
 
+  // Scheduled estimates are a special UI affordance and should not bleed into other statuses.
+  // If the quote is not an estimate anymore, clear scheduling metadata so stale values never leak into UI.
+  if (status !== "estimate") {
+    (next as any).scheduledAt = null;
+    (next as any).estimateAssignee = null;
+  }
+
   // Quotes is the only author of SOLD + enqueue.
   if (status === "sold") {
     const needsRank = prevStatus !== "sold" || !hasValidRank(prev);

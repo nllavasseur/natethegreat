@@ -11,6 +11,7 @@ import {
   deleteCanonicalJob,
   fetchCanonicalJobsByQuoteIds,
   fetchCanonicalQuoteSummaries,
+  upsertCanonicalQuote,
   upsertCanonicalJob
 } from "@/lib/canonicalStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
@@ -378,21 +379,24 @@ export default function QuotesPage() {
       void (async () => {
         const store = readDraftStore();
         const existingFromStore: any = store[sid];
-        const existingFromList: any = drafts.find((d) => d.id === sid);
+        const existingFromList: any = drafts.find((d) => String((d as any)?.id || "") === sid);
         const existing: any = existingFromStore ?? existingFromList;
         if (!existing) return;
 
         const now = Date.now();
 
+        const nextScheduledAt = scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : null;
+
         const nextStatus =
-          scheduledAt && String(scheduledAt).trim() !== ""
+          nextScheduledAt && String(nextScheduledAt).trim() !== ""
             ? "estimate"
             : (existing as any)?.status;
 
         const nextDraft = {
           ...(existingFromList ? { ...(existingFromList as any) } : {}),
           ...(existingFromStore ? { ...(existingFromStore as any) } : {}),
-          scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+          scheduledAt: nextScheduledAt,
+          estimateAssignee: nextScheduledAt ? (existing as any)?.estimateAssignee : null,
           updatedAt: now,
           calendarHidden: false,
           ...(nextStatus ? { status: nextStatus } : {})
@@ -403,17 +407,13 @@ export default function QuotesPage() {
           writeDraftStore(store as any);
         } catch {
         }
-        try {
-          await upsertDraft({ id: sid, data: nextDraft });
-        } catch {
-        }
-
         setDrafts((prev) => {
           const updated = (Array.isArray(prev) ? prev : []).map((d) =>
-            d.id === sid
+            String((d as any)?.id || "") === sid
               ? {
                   ...d,
-                  scheduledAt: scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : undefined,
+                  scheduledAt: nextScheduledAt,
+                  estimateAssignee: nextScheduledAt ? (d as any).estimateAssignee : null,
                   updatedAt: now,
                   calendarHidden: false,
                   ...(nextStatus ? { status: nextStatus as any } : {})
@@ -427,6 +427,16 @@ export default function QuotesPage() {
           return applyStableOrder(updated as any) as any;
         });
         notifyDraftsChanged();
+
+        try {
+          await upsertDraft({ id: sid, data: nextDraft });
+        } catch {
+        }
+
+        try {
+          await upsertCanonicalQuote({ id: sid, data: nextDraft });
+        } catch {
+        }
       })();
     } catch {
       // ignore
@@ -439,7 +449,7 @@ export default function QuotesPage() {
       void (async () => {
         const store = readDraftStore();
         const existingFromStore: any = store[sid];
-        const existingFromList: any = drafts.find((d) => d.id === sid);
+        const existingFromList: any = drafts.find((d) => String((d as any)?.id || "") === sid);
         const existing: any = existingFromStore ?? existingFromList;
         if (!existing) return;
 
@@ -448,7 +458,7 @@ export default function QuotesPage() {
         const nextDraft = {
           ...(existingFromList ? { ...(existingFromList as any) } : {}),
           ...(existingFromStore ? { ...(existingFromStore as any) } : {}),
-          estimateAssignee: assignee ?? undefined,
+          estimateAssignee: assignee ?? null,
           updatedAt: now
         };
 
@@ -457,17 +467,12 @@ export default function QuotesPage() {
           writeDraftStore(store as any);
         } catch {
         }
-        try {
-          await upsertDraft({ id: sid, data: nextDraft });
-        } catch {
-        }
-
         setDrafts((prev) => {
           const updated = (Array.isArray(prev) ? prev : []).map((d) =>
-            d.id === sid
+            String((d as any)?.id || "") === sid
               ? {
                   ...d,
-                  estimateAssignee: assignee ?? undefined,
+                  estimateAssignee: assignee ?? null,
                   updatedAt: now
                 }
               : d
@@ -479,6 +484,16 @@ export default function QuotesPage() {
           return applyStableOrder(updated as any) as any;
         });
         notifyDraftsChanged();
+
+        try {
+          await upsertDraft({ id: sid, data: nextDraft });
+        } catch {
+        }
+
+        try {
+          await upsertCanonicalQuote({ id: sid, data: nextDraft });
+        } catch {
+        }
       })();
     } catch {
       // ignore
@@ -937,6 +952,34 @@ export default function QuotesPage() {
       } catch {
       }
 
+      try {
+        const latestStore = readDraftStore();
+        scheduledPatched = (Array.isArray(scheduledPatched) ? scheduledPatched : []).map((d: any) => {
+          const id = String((d as any)?.id || "");
+          if (!id) return d;
+          const latest: any = (latestStore as any)[id];
+          if (!latest) return d;
+          const latestTs = getTs(latest);
+          const curTs = getTs(d);
+          const now = Date.now();
+          const isRecentLocal = latestTs > 0 && now - latestTs < 5 * 60 * 1000;
+          if (!(latestTs > curTs || isRecentLocal)) return d;
+          const latestScheduledAt = (() => {
+            const s = String((latest as any).scheduledAt || "").trim();
+            if (!s || s === "null" || s === "undefined") return "";
+            return s;
+          })();
+          const latestAssignee = (latest as any).estimateAssignee;
+          return {
+            ...(d as any),
+            scheduledAt: latestScheduledAt,
+            ...(latestAssignee !== undefined ? { estimateAssignee: latestAssignee } : {}),
+            updatedAt: Math.max(Number((d as any).updatedAt) || 0, latestTs)
+          };
+        }) as any;
+      } catch {
+      }
+
       if (!cancelled) setDraftsStable(scheduledPatched);
       try {
         writeQuotesDraftsCache(scheduledPatched);
@@ -1202,33 +1245,36 @@ export default function QuotesPage() {
 
   function setDraftStatus(id: string, status: DraftEntry["status"]) {
     try {
-      const existing = readDraftStore()[id] ?? drafts.find((d) => d.id === id);
+      const sid = String(id);
+      const existing = readDraftStore()[sid] ?? drafts.find((d) => String((d as any)?.id || "") === sid);
       if (!existing) return;
 
       try {
         const now = Date.now();
         const cache = readQuotesStatusCache();
-        const prev = cache[id];
+        const prev = cache[sid];
         if (!prev || now >= Number(prev.ts || 0)) {
-          cache[id] = { status, ts: now };
+          cache[sid] = { status, ts: now };
           writeQuotesStatusCache(cache);
         }
       } catch {
       }
 
-      void setStatusFromQuotes({ id, status, draftSnapshot: existing as any });
+      void setStatusFromQuotes({ id: sid, status, draftSnapshot: existing as any });
       setDrafts((prev) =>
         applyStableOrder(
           prev.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                status,
-                calendarHidden: status === "sold" ? false : status === "void" ? true : d.calendarHidden,
-                startDate: status === "void" ? undefined : (d as any).startDate,
-                installDate: status === "void" ? undefined : d.installDate
-              }
-            : d
+            String((d as any)?.id || "") === sid
+              ? {
+                  ...d,
+                  status,
+                  calendarHidden: status === "sold" ? false : status === "void" ? true : d.calendarHidden,
+                  scheduledAt: status === "estimate" ? (d as any).scheduledAt : null,
+                  estimateAssignee: status === "estimate" ? (d as any).estimateAssignee : null,
+                  startDate: status === "void" ? undefined : (d as any).startDate,
+                  installDate: status === "void" ? undefined : d.installDate
+                }
+              : d
           )
         )
       );
@@ -1587,7 +1633,11 @@ export default function QuotesPage() {
         laborBaseTotal: laborBaseTotalForCard,
         total,
         due,
-        scheduledAt: String((d as any).scheduledAt || ""),
+        scheduledAt: (() => {
+          const s = String((d as any).scheduledAt || "").trim();
+          if (!s || s === "null" || s === "undefined") return "";
+          return s;
+        })(),
         phoneNumber,
         preInstallPhotoCount,
         layoutSrc,
@@ -1916,7 +1966,6 @@ export default function QuotesPage() {
                 <SecondaryButton
                   onClick={() => {
                     setDraftScheduledAt(scheduleForId, null);
-                    if (scheduleForId) setDraftEstimateAssignee(scheduleForId, null);
                     setScheduleForId(null);
                     setScheduleDate("");
                     setScheduleTime("");
@@ -1970,7 +2019,9 @@ export default function QuotesPage() {
           ) : null}
           {customerStacks.map((stack) => {
             const expanded = Boolean(expandedCustomerStacks[stack.key]);
-            const hasScheduled = stack.cards.some((c) => Boolean(String((c as any).scheduledAt || "").trim()));
+            const hasScheduled = stack.cards.some(
+              (c) => (c as any).status === "estimate" && Boolean(String((c as any).scheduledAt || "").trim())
+            );
             const hasIncompleteTasks = stack.cards.some((c) => Boolean((c as any).hasIncompleteTasks));
             const firstUnscheduledEstimate = stack.cards.find(
               (c) => (c as any).status === "estimate" && !String((c as any).scheduledAt || "").trim()
@@ -2022,7 +2073,7 @@ export default function QuotesPage() {
                 >
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <div className="min-w-0">
-                      <div className="text-sm font-extrabold truncate">{stack.label}</div>
+                      <div className="text-sm font-extrabold whitespace-normal break-words">{stack.label}</div>
                       <div className="text-[11px] text-[var(--muted)]">
                         {stack.cards.length} quote{stack.cards.length === 1 ? "" : "s"}
                         {expanded ? " · Tap to collapse" : " · Tap to expand"}
@@ -2233,7 +2284,7 @@ export default function QuotesPage() {
                 </div>
 
                 <div className="min-w-0 text-center">
-                  <div className="text-[14px] font-extrabold truncate">
+                  <div className="text-[14px] font-extrabold whitespace-normal break-words leading-tight">
                     {String((q as any).estimateTitle || "").trim() ? String((q as any).estimateTitle || "") : q.title}
                   </div>
                 </div>
@@ -2256,8 +2307,8 @@ export default function QuotesPage() {
                         setOpenStatusId(null);
                         setConfirmDeleteId(null);
                         const store = readDraftStore();
-                        const cur = store[q.id] as any;
-                        const fromState = drafts.find((d) => d.id === q.id) as any;
+                        const cur = store[String((q as any).id || "")] as any;
+                        const fromState = drafts.find((d) => String((d as any)?.id || "") === String((q as any).id || "")) as any;
                         const existing = String((q as any)?.scheduledAt || fromState?.scheduledAt || cur?.scheduledAt || "");
                         const existingAssignee = String(
                           (q as any)?.estimateAssignee || fromState?.estimateAssignee || cur?.estimateAssignee || ""
@@ -2277,7 +2328,7 @@ export default function QuotesPage() {
                         "inline-flex items-center justify-center h-[28px] min-w-[84px] shrink-0 rounded-full border px-3 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
                       }
                     >
-                      {q.scheduledAt ? "Scheduled" : "Schedule"}
+                      {String((q as any).scheduledAt || "").trim() ? "Scheduled" : "Schedule"}
                     </button>
                   ) : (
                     <span
@@ -2409,7 +2460,7 @@ export default function QuotesPage() {
                       : "")
                   : ""}
               </div>
-              {q.status !== "pending" && String((q as any).scheduledAt || "") ? (
+              {q.status === "estimate" && String((q as any).scheduledAt || "").trim() ? (
                 <div className="text-[11px] text-[var(--muted)]">Scheduled {toDateLocalValue(String((q as any).scheduledAt || ""))}</div>
               ) : null}
                     </Link>
