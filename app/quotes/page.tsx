@@ -2189,7 +2189,7 @@ export default function QuotesPage() {
                           : "")
                       }
                     >
-              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 mb-2">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 mb-2">
                 <div className="relative">
                   <button
                     type="button"
@@ -2289,7 +2289,7 @@ export default function QuotesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 flex-nowrap min-h-[28px]">
+                <div className="flex items-center justify-end gap-2 flex-wrap sm:flex-nowrap min-h-[28px] col-span-2 sm:col-span-1">
                   {q.status === "estimate" ? (
                     <button
                       type="button"
