@@ -11760,7 +11760,7 @@ function EstimatesPageInner() {
             {(!takeoffError && (generatedMaterials?.length || 0) === 0 && takeoffDiagnostics) || takeoffError || saveError || saveNotice ? (
               <div
                 className="fixed left-0 right-0 z-50 transform-gpu will-change-transform isolate px-4"
-                style={{ bottom: isStandalone ? "76px" : "calc(max(calc(env(safe-area-inset-bottom) - 6px), 0px) + 76px)" }}
+                style={{ bottom: "calc(env(safe-area-inset-bottom) + 112px)" }}
                 aria-label="Estimate notices"
               >
                 <div className="mx-auto max-w-[980px] grid gap-2">
@@ -11808,8 +11808,7 @@ function EstimatesPageInner() {
             ) : null}
 
             <nav
-              className="fixed left-0 right-0 z-[9999] px-4 pointer-events-auto"
-              style={{ bottom: 0, touchAction: "manipulation" }}
+              className="fixed bottom-0 left-0 right-0 z-50 transform-gpu will-change-transform isolate"
               aria-label="Estimate actions"
               onPointerDown={(e) => {
                 e.stopPropagation();
@@ -11818,12 +11817,9 @@ function EstimatesPageInner() {
                 e.stopPropagation();
               }}
             >
-              <div className="mx-auto max-w-[980px]">
-                <div
-                  className="bg-[rgba(20,30,24,.75)] border border-[var(--stroke)] shadow-glass rounded-2xl flex flex-col justify-end"
-                  style={{ WebkitBackdropFilter: "none", backdropFilter: "none", paddingBottom: isStandalone ? "0px" : "max(calc(env(safe-area-inset-bottom) - 6px), 0px)" }}
-                >
-                  <div className="h-16 flex items-center justify-around">
+              <div className="mx-auto max-w-[980px] px-4 pb-[calc(env(safe-area-inset-bottom)+24px)]">
+                <div className="backdrop-blur-ios bg-[rgba(20,30,24,.55)] border border-[var(--stroke)] shadow-glass rounded-2xl p-3">
+                  <div className="mx-auto w-full max-w-[560px] flex items-center justify-between gap-3">
                     <PrimaryButton
                       type="button"
                       data-no-swipe="true"
@@ -11833,6 +11829,7 @@ function EstimatesPageInner() {
                       onClick={save}
                       disabled={saving || savingAsNew}
                       style={{ touchAction: "manipulation" }}
+                      className="shrink-0"
                     >
                       {saving ? "Saving…" : "Save"}
                     </PrimaryButton>
@@ -11845,6 +11842,7 @@ function EstimatesPageInner() {
                       onClick={saveAsNew}
                       disabled={saving || savingAsNew}
                       style={{ touchAction: "manipulation" }}
+                      className="shrink-0"
                     >
                       {savingAsNew ? "Saving…" : saveAsNewJustSaved ? "Saved" : "Save as new"}
                     </SecondaryButton>
@@ -11857,6 +11855,7 @@ function EstimatesPageInner() {
                       onClick={resetEstimate}
                       disabled={saving || savingAsNew}
                       style={{ touchAction: "manipulation" }}
+                      className="shrink-0"
                     >
                       Reset
                     </SecondaryButton>
