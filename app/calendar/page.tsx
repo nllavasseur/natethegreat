@@ -2759,8 +2759,8 @@ export default function CalendarPage() {
 
               <div
                 ref={queueListRef}
-                className="mt-2 grid content-start gap-2.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3"
-                style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+                className="mt-2 grid content-start gap-2.5 flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-3 transform-gpu will-change-transform"
+                style={{ overflowAnchor: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y", transform: "translateZ(0)" }}
               >
                 {soldQueue.length === 0 ? (
                   <div className="text-sm text-[var(--muted)]">No sold jobs in queue.</div>
@@ -2776,7 +2776,7 @@ export default function CalendarPage() {
                       key={j.id}
                       data-queue-id={j.id}
                       className={
-                        "rounded-2xl border px-2 py-2 transition-colors duration-150 " +
+                        "rounded-2xl border px-2 py-2 transition-colors duration-150 transform-gpu will-change-transform " +
                         (isHi
                           ? "border-[rgba(31,200,120,.55)] bg-[rgba(31,200,120,.16)]"
                           : "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)]")
