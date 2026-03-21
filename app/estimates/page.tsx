@@ -426,6 +426,7 @@ function EstimatesPageInner() {
   const router = useRouter();
   const restoringRef = useRef(false);
   const hydratingRemoteRef = useRef(false);
+  const [tapReady, setTapReady] = useState(false);
   const [draftParam, setDraftParam] = useState<string | null>(null);
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
@@ -458,6 +459,26 @@ function EstimatesPageInner() {
     } catch {
       setIsStandalone(Boolean((navigator as any)?.standalone));
     }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let raf1 = 0;
+    let raf2 = 0;
+    let t: any = null;
+    raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        t = window.setTimeout(() => setTapReady(true), 140);
+      });
+    });
+    return () => {
+      try {
+        if (raf1) window.cancelAnimationFrame(raf1);
+        if (raf2) window.cancelAnimationFrame(raf2);
+        if (t) window.clearTimeout(t);
+      } catch {
+      }
+    };
   }, []);
   const tracedSegments = useMemo(() => {
     if (tracePoints.length < 2) return [] as Array<{ label: string; a: { x: number; y: number }; b: { x: number; y: number } }>;
@@ -7592,7 +7613,9 @@ function EstimatesPageInner() {
                           </div>
                         </button>
 
-                        <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className={"mt-2 flex items-center justify-between gap-2 flex-nowrap min-h-[36px] " + (!tapReady ? "pointer-events-none" : "")}
+                          aria-busy={!tapReady}
+                        >
                           <div className="text-[11px] text-[var(--muted)]">LF {totalLf.toFixed(0)}</div>
                           <SecondaryButton
                             onClick={() => setMaterialsDetailsOpen(true)}
@@ -7601,7 +7624,7 @@ function EstimatesPageInner() {
                               ((materialsDetailsOpen || materialUnitPricesActive || (selectedStyle?.name === "Horizontal Cedar" ? horizontalCedarDetailsActive : materialsDetailsActive))
                                 ? "!bg-[rgba(255,214,10,.34)] !border-[rgba(255,214,10,.65)] !text-[rgba(255,244,200,.98)] hover:!bg-[rgba(255,214,10,.34)] "
                                 : "") +
-                              "transition-colors duration-0 active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
+                              "inline-flex items-center justify-center h-[36px] px-4 py-0 text-[13px] transition-colors duration-0 active:bg-[rgba(255,214,10,.34)] active:border-[rgba(255,214,10,.65)]"
                             }
                           >
                             Details
