@@ -231,6 +231,7 @@ function readDraftStore(): Record<string, DraftEntry> {
 
 export default function QuotesPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>(() => getQuotesDraftsSession<DraftEntry[]>() ?? []);
+  const [tapReady, setTapReady] = useState(false);
   const [statusFilter, setStatusFilter] = useState<DraftEntry["status"] | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [completedSearchQuery, setCompletedSearchQuery] = useState("");
@@ -245,6 +246,26 @@ export default function QuotesPage() {
   const [portalReady, setPortalReady] = useState(false);
   const [expandedCustomerStacks, setExpandedCustomerStacks] = useState<Record<string, boolean>>({});
   const [layoutViewerSrc, setLayoutViewerSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let raf1 = 0;
+    let raf2 = 0;
+    let t: any = null;
+    raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        t = window.setTimeout(() => setTapReady(true), 140);
+      });
+    });
+    return () => {
+      try {
+        if (raf1) window.cancelAnimationFrame(raf1);
+        if (raf2) window.cancelAnimationFrame(raf2);
+        if (t) window.clearTimeout(t);
+      } catch {
+      }
+    };
+  }, []);
 
   const diagEnabled = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -1941,7 +1962,9 @@ export default function QuotesPage() {
             style={{ minWidth: 0, WebkitAppearance: "none", appearance: "none" }}
           />
         </div>
-        <div className="mt-1 grid gap-2">
+        <div className={"mt-1 grid gap-2 " + (!tapReady ? "pointer-events-none" : "")}
+          aria-busy={!tapReady}
+        >
           {filteredCards.length === 0 ? (
             <div className="text-sm text-[var(--muted)]">No saved quotes yet. Save an estimate to see it here.</div>
           ) : null}
@@ -2215,7 +2238,7 @@ export default function QuotesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-2 flex-nowrap min-h-[28px]">
                   {q.status === "estimate" ? (
                     <button
                       type="button"
@@ -2251,18 +2274,29 @@ export default function QuotesPage() {
                         setScheduleAssignee(existingAssignee === "nate" || existingAssignee === "cam" ? (existingAssignee as any) : "");
                       }}
                       className={
-                        "rounded-full border px-2.5 py-1 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
+                        "inline-flex items-center justify-center h-[28px] min-w-[84px] shrink-0 rounded-full border px-3 text-[11px] font-black hover:bg-[rgba(255,255,255,.14)]"
                       }
                     >
                       {q.scheduledAt ? "Scheduled" : "Schedule"}
                     </button>
-                  ) : null}
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex items-center justify-center h-[28px] min-w-[84px] shrink-0 rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-3 text-[11px] font-black text-white invisible"
+                    >
+                      Schedule
+                    </span>
+                  )}
 
-                  {Number((q as any).preInstallPhotoCount) > 0 ? (
-                    <div className="rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 py-1 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] whitespace-nowrap">
-                      📎 {Number((q as any).preInstallPhotoCount) || 0}
-                    </div>
-                  ) : null}
+                  <div
+                    className={
+                      "inline-flex items-center justify-center h-[28px] min-w-[48px] shrink-0 rounded-full border border-[rgba(255,255,255,.16)] bg-[rgba(255,255,255,.10)] px-2 text-[11px] font-extrabold text-[rgba(255,255,255,.90)] whitespace-nowrap " +
+                      (Number((q as any).preInstallPhotoCount) > 0 ? "" : "invisible")
+                    }
+                    aria-hidden={Number((q as any).preInstallPhotoCount) > 0 ? undefined : true}
+                  >
+                    📎 {Number((q as any).preInstallPhotoCount) || 0}
+                  </div>
 
                   <button
                     type="button"
@@ -2281,7 +2315,7 @@ export default function QuotesPage() {
                       setConfirmDeleteId(null);
                       window.location.href = `/estimates/contract?draft=${encodeURIComponent(q.id)}`;
                     }}
-                    className="rounded-full border px-2 py-1 text-[11px] font-extrabold bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.90)]"
+                    className="inline-flex items-center justify-center h-[28px] shrink-0 rounded-full border px-3 text-[11px] font-extrabold bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.90)]"
                   >
                     Contract
                   </button>
@@ -2311,7 +2345,7 @@ export default function QuotesPage() {
                       }
                     }}
                     className={
-                      "rounded-full border px-2 py-1 text-[11px] font-extrabold " +
+                      "inline-flex items-center justify-center h-[28px] shrink-0 rounded-full border px-3 text-[11px] font-extrabold " +
                       (confirmDeleteId === q.id
                         ? "bg-[rgba(255,80,80,.30)] border-[rgba(255,80,80,.55)] text-white"
                         : "bg-[rgba(255,255,255,.10)] border-[rgba(255,255,255,.16)] text-[rgba(255,255,255,.85)]")
