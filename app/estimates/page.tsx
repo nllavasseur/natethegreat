@@ -192,8 +192,7 @@ function woodPicketName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar to
 
 function picketEffectiveSpacingIn(raw: any) {
   const base = Math.max(0.5, Number(raw) || 0);
-  if (base >= 7) return base;
-  return base + 1.5;
+  return base;
 }
 
 function woodTrimName(trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar") {
@@ -257,7 +256,7 @@ type MaterialsDetails = {
   railMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   topCapMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4";
-  picketSpacingIn: 5.5 | 8;
+  picketSpacingIn: 5.5 | 7 | 8;
   trimMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   twoByTwoMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar";
   horizontalCedarBoardProfile: "5/4" | "1x6";
@@ -2880,7 +2879,7 @@ function EstimatesPageInner() {
     if (selectedStyleKind === "wood_scalloped") {
       const fixedOrZero = (qty: number) => (totalLf > 0 ? qty : 0);
       const lf = Number(totalLf) || 0;
-      const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : 5.5) as 5.5 | 8;
+      const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : materialsDetails.picketSpacingIn === 7 ? 7 : 5.5) as 5.5 | 7 | 8;
       const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
       const segmentLengths = segments.map((s) => Number(s.length) || 0).filter((n) => n > 0);
 
@@ -3500,7 +3499,7 @@ function EstimatesPageInner() {
       const isPictureFramed = isPictureFramedFamily;
       const isFourFootPictureFramed = String(selectedStyle?.name || "").trim().toLowerCase() === "4' picture framed";
 
-      const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : 5.5) as 5.5 | 8;
+      const picketSpacingIn = (materialsDetails.picketSpacingIn === 8 ? 8 : materialsDetails.picketSpacingIn === 7 ? 7 : 5.5) as 5.5 | 7 | 8;
       const picketSpacingEffectiveIn = picketEffectiveSpacingIn(picketSpacingIn);
 
       const panels = segmentLengths.length
@@ -11061,13 +11060,14 @@ function EstimatesPageInner() {
                                     <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2">
                                       <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
                                       <Select
-                                        value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                                        value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : (materialsDetails as any).picketSpacingIn === 7 ? 7 : 5.5)}
                                         onChange={(e) => {
                                           const n = Number(e.target.value);
-                                          setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                                          setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : n === 7 ? 7 : 5.5) as 5.5 | 7 | 8 }));
                                         }}
                                       >
-                                        <option value="5.5">1.5" gap (7" on-center)</option>
+                                        <option value="5.5">Standard (5.5" on-center)</option>
+                                        <option value="7">1.5" gap (7" on-center)</option>
                                         <option value="8">2.5" gap (8" on-center)</option>
                                       </Select>
                                     </div>
@@ -11076,13 +11076,14 @@ function EstimatesPageInner() {
                                   <div className="mt-3">
                                     <div className="text-[11px] text-[var(--muted)] mb-1">Picket spacing</div>
                                     <Select
-                                      value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : 5.5)}
+                                      value={String((materialsDetails as any).picketSpacingIn === 8 ? 8 : (materialsDetails as any).picketSpacingIn === 7 ? 7 : 5.5)}
                                       onChange={(e) => {
                                         const n = Number(e.target.value);
-                                        setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : 5.5) as 5.5 | 8 }));
+                                        setMaterialsDetails((p) => ({ ...p, picketSpacingIn: (n === 8 ? 8 : n === 7 ? 7 : 5.5) as 5.5 | 7 | 8 }));
                                       }}
                                     >
-                                      <option value="5.5">1.5" gap (7" on-center)</option>
+                                      <option value="5.5">Standard (5.5" on-center)</option>
+                                      <option value="7">1.5" gap (7" on-center)</option>
                                       <option value="8">2.5" gap (8" on-center)</option>
                                     </Select>
                                   </div>
