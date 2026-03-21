@@ -392,18 +392,60 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
     // reorder/snap-back position or duration.
     const localIsSold = (prev as any).status === "sold" && !(prev as any).calendarHidden;
     if (localIsSold) {
-      byId.set(id, {
-        ...d,
-        ...prev,
-        status: (prev as any).status,
-        calendarHidden: (prev as any).calendarHidden,
-        queueRank: (prev as any).queueRank,
-        laborDays: (prev as any).laborDays,
-        originalLaborDays: (prev as any).originalLaborDays,
-        holdDate: (prev as any).holdDate,
-        allowSaturday: (prev as any).allowSaturday,
-        allowSunday: (prev as any).allowSunday
-      });
+      const merged: any = { ...(prev as any) };
+
+      // Prefer incoming display fields only when meaningful so local-lite copies
+      // can't wipe remote-enriched UI fields (causes flicker).
+      const setIfMeaningful = (key: string) => {
+        const v = (d as any)[key];
+        if (v == null) return;
+        if (typeof v === "string") {
+          if (!String(v).trim()) return;
+          merged[key] = v;
+          return;
+        }
+        if (typeof v === "object") {
+          if (key === "selectedStyle") {
+            const name = String((v as any)?.name || "").trim();
+            if (!name) return;
+          } else {
+            if (Object.keys(v as any).length === 0) return;
+          }
+          merged[key] = v;
+          return;
+        }
+        merged[key] = v;
+      };
+
+      setIfMeaningful("customerName");
+      setIfMeaningful("title");
+      setIfMeaningful("projectAddress");
+      setIfMeaningful("phoneNumber");
+      setIfMeaningful("selectedStyle");
+      setIfMeaningful("scheduledAt");
+      setIfMeaningful("estimateAssignee");
+
+      // Carry over any other incoming keys (non-display) that are defined.
+      try {
+        Object.keys(d as any).forEach((k) => {
+          if (merged[k] !== undefined) return;
+          const v = (d as any)[k];
+          if (v !== undefined) merged[k] = v;
+        });
+      } catch {
+      }
+
+      merged.status = (prev as any).status;
+      merged.calendarHidden = (prev as any).calendarHidden;
+      merged.queueRank = (prev as any).queueRank;
+      merged.laborDays = (prev as any).laborDays;
+      merged.originalLaborDays = (prev as any).originalLaborDays;
+      merged.holdDate = (prev as any).holdDate;
+      merged.allowSaturday = (prev as any).allowSaturday;
+      merged.allowSunday = (prev as any).allowSunday;
+      merged.queueLocked = (prev as any).queueLocked;
+      merged.queueLockedAt = (prev as any).queueLockedAt;
+      byId.set(id, merged as DraftEntry);
       return;
     }
 
