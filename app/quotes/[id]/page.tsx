@@ -6,6 +6,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { fetchDraft } from "@/lib/draftsStore";
+import { fetchCanonicalQuoteById } from "@/lib/canonicalStore";
 import type { QuoteItem } from "@/lib/types";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
@@ -30,6 +31,137 @@ type DraftEntry = {
   contract?: any;
   photos?: Array<{ url: string; createdAt?: number }>;
 };
+
+type QuoteDetailCacheEntry = {
+  id: string;
+  updatedAt: number;
+  cachedAt: number;
+  draft: DraftEntry;
+};
+
+const QUOTE_DETAIL_CACHE_KEY = "vf_quote_detail_cache_v1";
+const QUOTE_DETAIL_CACHE_MAX = 12;
+
+const quoteDetailMemoryCache = new Map<string, QuoteDetailCacheEntry>();
+
+function stripDataUrlsFromPreInstall(input: unknown) {
+  if (!Array.isArray(input)) return [] as Array<{ src: string; note?: string; createdAt?: number }>;
+  return (input as any[]).filter((p) => p && typeof (p as any).src === "string" && !String((p as any).src || "").startsWith("data:"));
+}
+
+function toQuoteDetailCacheLite(d: DraftEntry): DraftEntry {
+  const out: any = { ...(d as any) };
+  out.projectPhotoDataUrl = null;
+  out.preInstallPhotos = stripDataUrlsFromPreInstall((d as any)?.preInstallPhotos);
+  out.contract = null;
+  out.items = null;
+  return out as DraftEntry;
+}
+
+function readQuoteDetailCache(): QuoteDetailCacheEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(QUOTE_DETAIL_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as any) : null;
+    const list = Array.isArray(parsed?.entries) ? (parsed.entries as any[]) : [];
+    return list
+      .map((e) => {
+        const id = String(e?.id || "").trim();
+        const updatedAt = Number(e?.updatedAt) || 0;
+        const cachedAt = Number(e?.cachedAt) || 0;
+        const draft = e?.draft && typeof e.draft === "object" ? (e.draft as DraftEntry) : null;
+        if (!id || !draft) return null;
+        return { id, updatedAt, cachedAt, draft } as QuoteDetailCacheEntry;
+      })
+      .filter(Boolean) as QuoteDetailCacheEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function writeQuoteDetailCache(entries: QuoteDetailCacheEntry[]) {
+  if (typeof window === "undefined") return;
+  try {
+    const cleaned = (Array.isArray(entries) ? entries : [])
+      .filter((e) => e && typeof e.id === "string")
+      .sort((a, b) => Number(b.cachedAt || 0) - Number(a.cachedAt || 0))
+      .slice(0, QUOTE_DETAIL_CACHE_MAX);
+    const lite = cleaned.map((e) => ({
+      ...e,
+      draft: e?.draft ? toQuoteDetailCacheLite(e.draft) : (e as any).draft
+    }));
+    window.localStorage.setItem(QUOTE_DETAIL_CACHE_KEY, JSON.stringify({ updatedAt: Date.now(), entries: lite }));
+  } catch {
+  }
+}
+
+function seedQuoteDetailMemoryCacheFromStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    if (quoteDetailMemoryCache.size > 0) return;
+    const entries = readQuoteDetailCache();
+    for (const e of entries) {
+      quoteDetailMemoryCache.set(String(e.id), e);
+    }
+  } catch {
+  }
+}
+
+function touchQuoteDetailCache(entry: QuoteDetailCacheEntry) {
+  const id = String(entry.id || "").trim();
+  if (!id) return;
+  quoteDetailMemoryCache.set(id, entry);
+  try {
+    const all = Array.from(quoteDetailMemoryCache.values())
+      .sort((a, b) => Number(b.cachedAt || 0) - Number(a.cachedAt || 0))
+      .slice(0, QUOTE_DETAIL_CACHE_MAX);
+    writeQuoteDetailCache(all);
+  } catch {
+  }
+}
+
+function parseCanonicalQuoteToDraftEntry(id: string, q: any): DraftEntry {
+  const data = q && typeof q === "object" ? q : {};
+  const createdAt = Number((data as any)?.createdAt) || Date.now();
+  const updatedAt = Number((data as any)?.updatedAt) || undefined;
+  return {
+    ...(data as any),
+    id: String((data as any)?.id || id),
+    createdAt,
+    ...(updatedAt ? { updatedAt } : {})
+  } as DraftEntry;
+}
+
+function mergePreferNewer(local: DraftEntry | null, remote: DraftEntry | null, fallbackId: string): DraftEntry | null {
+  const l = local && typeof local === "object" ? local : null;
+  const r = remote && typeof remote === "object" ? remote : null;
+  if (!l && !r) return null;
+  if (!l) return r as any;
+  if (!r) return l as any;
+
+  const lid = String((l as any)?.id || fallbackId);
+  const rid = String((r as any)?.id || fallbackId);
+  const id = rid || lid || fallbackId;
+
+  const lts = Number((l as any)?.updatedAt ?? (l as any)?.createdAt ?? 0) || 0;
+  const rts = Number((r as any)?.updatedAt ?? (r as any)?.createdAt ?? 0) || 0;
+
+  const base = rts >= lts ? r : l;
+  const overlay = rts >= lts ? l : r;
+  const merged: any = { ...(base as any), ...(overlay as any), id };
+
+  if ((base as any)?.items != null && (overlay as any)?.items == null) merged.items = (base as any).items;
+  if ((base as any)?.segments != null && (overlay as any)?.segments == null) merged.segments = (base as any).segments;
+  if ((base as any)?.contract != null && (overlay as any)?.contract == null) merged.contract = (base as any).contract;
+  if ((base as any)?.photos != null && (overlay as any)?.photos == null) merged.photos = (base as any).photos;
+  if ((base as any)?.projectPhotoUrl != null && (overlay as any)?.projectPhotoUrl == null) merged.projectPhotoUrl = (base as any).projectPhotoUrl;
+  if ((base as any)?.projectPhotoPath != null && (overlay as any)?.projectPhotoPath == null) merged.projectPhotoPath = (base as any).projectPhotoPath;
+  if ((base as any)?.preInstallPhotos != null && (overlay as any)?.preInstallPhotos == null) merged.preInstallPhotos = (base as any).preInstallPhotos;
+
+  if (!(merged as any).createdAt) (merged as any).createdAt = Number((base as any)?.createdAt || (overlay as any)?.createdAt || Date.now());
+
+  return merged as DraftEntry;
+}
 
 function normalizePreInstallPhotos(input: unknown) {
   if (!Array.isArray(input)) return [] as Array<{ src: string; note: string; createdAt: number }>;
@@ -65,9 +197,9 @@ function readDraftStore(): Record<string, DraftEntry> {
 }
 
 export default function QuoteDetailPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams();
   const router = useRouter();
-  const id = String(params?.id ?? "");
+  const id = String((params as any)?.id || "");
   const [draft, setDraft] = React.useState<DraftEntry | null>(null);
   const [portalReady, setPortalReady] = React.useState(false);
   const [viewerIdx, setViewerIdx] = React.useState<number | null>(null);
@@ -93,33 +225,49 @@ export default function QuoteDetailPage() {
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
+      seedQuoteDetailMemoryCacheFromStorage();
       const store = readDraftStore();
       const local = store[id] ?? null;
 
-      const remote = await fetchDraft({ id });
-      if (cancelled) return;
-      if (remote.ok && remote.draft) {
-        const r = remote.draft as any;
-        const l = local as any;
-        const merged: DraftEntry = {
-          ...(l || {}),
-          ...(r || {}),
-          id: String((r as any)?.id || (l as any)?.id || id),
-          createdAt: Number((r as any)?.createdAt ?? (l as any)?.createdAt ?? Date.now())
-        } as any;
-
-        if ((r as any)?.items == null && (l as any)?.items != null) (merged as any).items = (l as any).items;
-        if ((r as any)?.segments == null && (l as any)?.segments != null) (merged as any).segments = (l as any).segments;
-        if ((r as any)?.contract == null && (l as any)?.contract != null) (merged as any).contract = (l as any).contract;
-        if ((r as any)?.photos == null && (l as any)?.photos != null) (merged as any).photos = (l as any).photos;
-        if ((r as any)?.projectPhotoUrl == null && (l as any)?.projectPhotoUrl != null) (merged as any).projectPhotoUrl = (l as any).projectPhotoUrl;
-        if ((r as any)?.projectPhotoPath == null && (l as any)?.projectPhotoPath != null) (merged as any).projectPhotoPath = (l as any).projectPhotoPath;
-        if ((r as any)?.preInstallPhotos == null && (l as any)?.preInstallPhotos != null) (merged as any).preInstallPhotos = (l as any).preInstallPhotos;
-
-        setDraft(merged);
-        return;
+      const mem = quoteDetailMemoryCache.get(String(id));
+      if (mem && mem.draft) {
+        setDraft(mem.draft);
+      } else {
+        const persisted = readQuoteDetailCache().find((e) => String(e.id) === String(id));
+        if (persisted?.draft) setDraft(persisted.draft);
+        else setDraft(local);
       }
-      setDraft(local);
+
+      // Canonical detail first.
+      let canonicalDraft: DraftEntry | null = null;
+      try {
+        const canon = await fetchCanonicalQuoteById({ quoteId: id });
+        if (cancelled) return;
+        if ((canon as any)?.ok && (canon as any)?.quote) {
+          canonicalDraft = parseCanonicalQuoteToDraftEntry(id, (canon as any).quote);
+        }
+      } catch {
+        canonicalDraft = null;
+      }
+
+      // Fallback to legacy drafts remote if canonical missing (should be rare).
+      if (!canonicalDraft) {
+        try {
+          const remote = await fetchDraft({ id });
+          if (cancelled) return;
+          if (remote.ok && remote.draft) canonicalDraft = remote.draft as any;
+        } catch {
+        }
+      }
+
+      const merged = mergePreferNewer(local as any, canonicalDraft as any, id);
+      if (cancelled) return;
+      setDraft(merged);
+
+      if (merged) {
+        const ts = Number((merged as any)?.updatedAt ?? (merged as any)?.createdAt ?? 0) || Date.now();
+        touchQuoteDetailCache({ id: String(id), updatedAt: ts, cachedAt: Date.now(), draft: merged });
+      }
     })();
     return () => {
       cancelled = true;
@@ -588,7 +736,7 @@ export default function QuoteDetailPage() {
           </div>
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Additional fees</div>
-            <div className="font-extrabold">{money(laborFeesTotal)}</div>
+            <div className="font-extrabold">{money(laborFeesTotalForView)}</div>
           </div>
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Fence removal</div>
@@ -596,7 +744,7 @@ export default function QuoteDetailPage() {
           </div>
           <div className="flex justify-between gap-3">
             <div className="text-[var(--muted)]">Labor</div>
-            <div className="font-extrabold">{money(laborBaseTotal)}</div>
+            <div className="font-extrabold">{money(laborBaseTotalForView)}</div>
           </div>
 
           <div className="h-px bg-[rgba(255,255,255,.12)] my-1" />

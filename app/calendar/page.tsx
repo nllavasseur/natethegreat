@@ -6,7 +6,7 @@ import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, re
 import {
   fetchCanonicalCalendarBlockouts,
   fetchCanonicalJobsWindow,
-  fetchCanonicalQuotesByIds
+  fetchCanonicalQuoteSummariesByIds
 } from "@/lib/canonicalStore";
 import { getCalendarDraftsSession, setCalendarDraftsSession } from "@/lib/sessionDraftsCache";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
@@ -498,9 +498,8 @@ function totalLfFromDraft(d: DraftEntry) {
 
 function openContractPreview(d: DraftEntry) {
   try {
-    if (!d || !(d as any).contract) return;
     try {
-      window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify((d as any).contract));
+      if (d && (d as any).contract) window.localStorage.setItem("vf_contract_preview_v1", JSON.stringify((d as any).contract));
     } catch {
     }
     const id = String((d as any).id || "").trim();
@@ -782,7 +781,7 @@ export default function CalendarPage() {
 
           let canonQuotes: any[] = [];
           try {
-            const qRes = await withTimeout(fetchCanonicalQuotesByIds({ quoteIds: jobQuoteIds }) as any, 3000);
+            const qRes = await withTimeout(fetchCanonicalQuoteSummariesByIds({ quoteIds: jobQuoteIds }) as any, 3000);
             if ((qRes as any)?.ok && Array.isArray((qRes as any)?.quotes)) canonQuotes = (qRes as any).quotes as any[];
           } catch {
             canonQuotes = [];

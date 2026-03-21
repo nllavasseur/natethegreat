@@ -35,7 +35,6 @@ begin
   end if;
 end;
 $$;
-
 -- 1) Canonical tables
 create table if not exists public.vf_quotes (
   workspace_id uuid not null,
@@ -57,6 +56,9 @@ create table if not exists public.vf_quotes (
   title text null,
   selected_style jsonb null,
   totals jsonb null,
+  scheduled_at text null,
+  project_photo_url text null,
+  preinstall_count integer null,
   data jsonb not null default '{}'::jsonb,
   primary key (workspace_id, id)
 );
@@ -88,6 +90,10 @@ begin
   end if;
 end;
 $$;
+
+alter table public.vf_quotes add column if not exists scheduled_at text;
+alter table public.vf_quotes add column if not exists project_photo_url text;
+alter table public.vf_quotes add column if not exists preinstall_count integer;
 
 create index if not exists vf_quotes_workspace_updated_idx on public.vf_quotes (workspace_id, updated_at desc);
 create index if not exists vf_quotes_workspace_status_idx on public.vf_quotes (workspace_id, status);
@@ -223,6 +229,9 @@ insert into public.vf_quotes (
   title,
   selected_style,
   totals,
+  scheduled_at,
+  project_photo_url,
+  preinstall_count,
   data
 )
 select
@@ -244,6 +253,15 @@ select
   nullif(d.draft->>'title','') as title,
   d.draft->'selectedStyle' as selected_style,
   d.draft->'totals' as totals,
+  nullif(coalesce(d.draft->>'scheduledAt',''), '') as scheduled_at,
+  nullif(d.draft->>'projectPhotoUrl','') as project_photo_url,
+  (
+    case
+      when jsonb_typeof(d.draft->'preInstallPhotos') = 'array' then jsonb_array_length(d.draft->'preInstallPhotos')
+      when coalesce(d.draft->>'preInstallCount','') ~ '^[0-9]+$' then (d.draft->>'preInstallCount')::int
+      else null
+    end
+  ) as preinstall_count,
   coalesce(d.draft,'{}'::jsonb) as data
 from public.drafts d
 where coalesce(d.draft_id,'') not in ('vf_calendar_blockouts_v1','vf_calendar_tasks_v1')
@@ -265,6 +283,9 @@ on conflict (workspace_id, id) do update set
   title = excluded.title,
   selected_style = excluded.selected_style,
   totals = excluded.totals,
+  scheduled_at = excluded.scheduled_at,
+  project_photo_url = excluded.project_photo_url,
+  preinstall_count = excluded.preinstall_count,
   data = excluded.data;
 
 -- 3) Backfill jobs from drafts that look scheduled
@@ -389,6 +410,9 @@ begin
     title,
     selected_style,
     totals,
+    scheduled_at,
+    project_photo_url,
+    preinstall_count,
     data
   ) values (
     new.workspace_id,
@@ -409,6 +433,15 @@ begin
     nullif(new.draft->>'title',''),
     new.draft->'selectedStyle',
     new.draft->'totals',
+    nullif(coalesce(new.draft->>'scheduledAt',''), ''),
+    nullif(new.draft->>'projectPhotoUrl',''),
+    (
+      case
+        when jsonb_typeof(new.draft->'preInstallPhotos') = 'array' then jsonb_array_length(new.draft->'preInstallPhotos')
+        when coalesce(new.draft->>'preInstallCount','') ~ '^[0-9]+$' then (new.draft->>'preInstallCount')::int
+        else null
+      end
+    ),
     coalesce(new.draft,'{}'::jsonb)
   )
   on conflict (workspace_id, id) do update set
@@ -428,6 +461,9 @@ begin
     title = excluded.title,
     selected_style = excluded.selected_style,
     totals = excluded.totals,
+    scheduled_at = excluded.scheduled_at,
+    project_photo_url = excluded.project_photo_url,
+    preinstall_count = excluded.preinstall_count,
     data = excluded.data;
 
   -- Jobs bridge: if draft has a schedule date, upsert job; else, delete it.

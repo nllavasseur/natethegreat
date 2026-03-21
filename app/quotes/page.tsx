@@ -10,7 +10,7 @@ import { DEFAULT_WORKSPACE_ID, fetchDrafts, fetchQuotesEntries, resolveWorkspace
 import {
   deleteCanonicalJob,
   fetchCanonicalJobsByQuoteIds,
-  fetchCanonicalQuotes,
+  fetchCanonicalQuoteSummaries,
   upsertCanonicalJob
 } from "@/lib/canonicalStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
@@ -698,11 +698,12 @@ export default function QuotesPage() {
       let snapshotList: DraftEntry[] = [];
       let draftsList: DraftEntry[] = [];
 
+      let canonicalOk = false;
+
       {
-        let canonicalOk = false;
 
         try {
-          const canon = await withTimeout(fetchCanonicalQuotes({ limit: remoteLimit }) as any, 3500);
+          const canon = await withTimeout(fetchCanonicalQuoteSummaries({ limit: remoteLimit }) as any, 3500);
           if ((canon as any)?.ok && Array.isArray((canon as any)?.quotes) && (canon as any).quotes.length > 0) {
             snapshotList = ((canon as any).quotes as DraftEntry[]) || [];
             canonicalOk = true;
@@ -786,20 +787,30 @@ export default function QuotesPage() {
       }
 
       try {
-        const remote = await withTimeout(fetchDrafts({ limit: remoteLimit }) as any, 3500);
-        draftsList = (remote as any)?.ok ? (((remote as any).drafts as DraftEntry[]) || []) : [];
-        if (diagEnabled) {
+        if (!canonicalOk) {
+          const remote = await withTimeout(fetchDrafts({ limit: remoteLimit }) as any, 3500);
+          draftsList = (remote as any)?.ok ? (((remote as any).drafts as DraftEntry[]) || []) : [];
+          if (diagEnabled) {
+            setRemoteDiag((prev) => ({
+              ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+              at: Date.now(),
+              supabaseConfigured,
+              workspaceId: resolveWorkspaceId(),
+              draftsFallback: {
+                ok: Boolean((remote as any)?.ok),
+                reason: String((remote as any)?.reason || ""),
+                count: draftsList.length,
+                error: (remote as any)?.error ? String(((remote as any).error as any)?.message || (remote as any).error || "") : undefined
+              }
+            }));
+          }
+        } else if (diagEnabled) {
           setRemoteDiag((prev) => ({
             ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
             at: Date.now(),
             supabaseConfigured,
             workspaceId: resolveWorkspaceId(),
-            draftsFallback: {
-              ok: Boolean((remote as any)?.ok),
-              reason: String((remote as any)?.reason || ""),
-              count: draftsList.length,
-              error: (remote as any)?.error ? String(((remote as any).error as any)?.message || (remote as any).error || "") : undefined
-            }
+            draftsFallback: { ok: true, reason: "skipped", count: 0 }
           }));
         }
       } catch (e: any) {

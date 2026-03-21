@@ -6,6 +6,15 @@ function isMissingRelationError(e: any) {
   return msg.includes("relation") && msg.includes("does not exist");
 }
 
+export async function fetchCanonicalQuoteById(params: { quoteId: string; workspaceId?: string }) {
+  const id = String(params.quoteId || "").trim();
+  if (!id) return { ok: true as const, quote: null as any };
+  const res = await fetchCanonicalQuotesByIds({ quoteIds: [id], workspaceId: params.workspaceId });
+  if (!(res as any)?.ok) return { ok: false as const, reason: (res as any)?.reason, error: (res as any)?.error, quote: null as any };
+  const q = Array.isArray((res as any).quotes) ? (res as any).quotes[0] : null;
+  return { ok: true as const, quote: q || null };
+}
+
 function isMissingColumnError(e: any) {
   const msg = String(e?.message || e || "").toLowerCase();
   return msg.includes("column") && msg.includes("does not exist");
@@ -39,6 +48,225 @@ export type CanonicalQuoteRow = {
   selected_style?: any;
   totals?: any;
 };
+
+export type CanonicalQuoteSummaryRow = {
+  id: string;
+  updated_at?: string;
+  created_at?: string;
+  status?: string | null;
+  calendar_hidden?: boolean | null;
+  queue_rank?: number | null;
+  labor_days?: number | null;
+  original_labor_days?: number | null;
+  allow_saturday?: boolean | null;
+  allow_sunday?: boolean | null;
+  hold_date?: string | null;
+  estimate_assignee?: string | null;
+  customer_name?: string | null;
+  phone_number?: string | null;
+  project_address?: string | null;
+  title?: string | null;
+  selected_style?: any;
+  totals?: any;
+  scheduled_at?: string | null;
+  project_photo_url?: string | null;
+  preinstall_count?: number | null;
+};
+
+export async function fetchCanonicalQuoteSummaries(params?: { workspaceId?: string; limit?: number }) {
+  if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, quotes: [] as any[] };
+
+  const workspaceId = resolveWorkspaceId(params?.workspaceId);
+  const limit = Number(params?.limit);
+  const take = Number.isFinite(limit) && limit > 0 ? Math.max(1, Math.min(2000, limit)) : 900;
+
+  try {
+    const selectSummaryCore =
+      "id,updated_at,created_at,status,calendar_hidden,queue_rank,labor_days,original_labor_days,allow_saturday,allow_sunday,hold_date,estimate_assignee,customer_name,phone_number,project_address,title,selected_style,totals";
+    const selectSummaryFull = `${selectSummaryCore},scheduled_at,project_photo_url,preinstall_count`;
+
+    let supportsExtended = true;
+
+    let res: any;
+    try {
+      res = await supabase
+        .from("vf_quotes")
+        .select(selectSummaryFull)
+        .eq("workspace_id", workspaceId)
+        .order("updated_at", { ascending: false })
+        .limit(take);
+      if (res?.error) throw res.error;
+    } catch (e: any) {
+      if (isMissingColumnError(e)) {
+        supportsExtended = false;
+        try {
+          res = await supabase
+            .from("vf_quotes")
+            .select(selectSummaryCore)
+            .eq("workspace_id", workspaceId)
+            .order("updated_at", { ascending: false })
+            .limit(take);
+          if (res?.error) throw res.error;
+        } catch (e2: any) {
+          if (isMissingColumnError(e2)) {
+            res = await supabase
+              .from("vf_quotes")
+              .select("id,updated_at,created_at,status")
+              .eq("workspace_id", workspaceId)
+              .order("updated_at", { ascending: false })
+              .limit(take);
+            if (res?.error) throw res.error;
+          } else {
+            throw e2;
+          }
+        }
+      } else {
+        throw e;
+      }
+    }
+
+    const rows = ((res as any)?.data ?? []) as CanonicalQuoteSummaryRow[];
+    const mapped = rows
+      .map((r) => {
+        const id = String((r as any)?.id || "");
+        if (!id) return null;
+
+        const updatedAtMs = parseUpdatedAtMs((r as any)?.updated_at);
+        const createdAtMs = parseUpdatedAtMs((r as any)?.created_at) || updatedAtMs;
+
+        const merged: any = {
+          id,
+          ...(updatedAtMs > 0 ? { updatedAt: updatedAtMs } : {}),
+          ...(createdAtMs > 0 ? { createdAt: createdAtMs } : {})
+        };
+
+        if ((r as any).status != null) merged.status = (r as any).status;
+        if ((r as any).calendar_hidden != null) merged.calendarHidden = (r as any).calendar_hidden;
+        if ((r as any).queue_rank != null) merged.queueRank = (r as any).queue_rank;
+        if ((r as any).labor_days != null) merged.laborDays = (r as any).labor_days;
+        if ((r as any).original_labor_days != null) merged.originalLaborDays = (r as any).original_labor_days;
+        if ((r as any).allow_saturday != null) merged.allowSaturday = (r as any).allow_saturday;
+        if ((r as any).allow_sunday != null) merged.allowSunday = (r as any).allow_sunday;
+        if ((r as any).hold_date != null) merged.holdDate = (r as any).hold_date;
+        if ((r as any).estimate_assignee != null) merged.estimateAssignee = (r as any).estimate_assignee;
+        if ((r as any).customer_name != null) merged.customerName = (r as any).customer_name;
+        if ((r as any).phone_number != null) merged.phoneNumber = (r as any).phone_number;
+        if ((r as any).project_address != null) merged.projectAddress = (r as any).project_address;
+        if ((r as any).title != null) merged.title = (r as any).title;
+        if ((r as any).selected_style != null) merged.selectedStyle = (r as any).selected_style;
+        if ((r as any).totals != null) merged.totals = (r as any).totals;
+        if ((r as any).scheduled_at != null) merged.scheduledAt = (r as any).scheduled_at;
+        if ((r as any).project_photo_url != null) merged.projectPhotoUrl = (r as any).project_photo_url;
+        if ((r as any).preinstall_count != null) merged.preInstallCount = (r as any).preinstall_count;
+
+        return merged;
+      })
+      .filter(Boolean);
+
+    return { ok: true as const, quotes: mapped as any[], supportsExtended };
+  } catch (e: any) {
+    if (isMissingRelationError(e)) {
+      return { ok: false as const, reason: "missing_relation" as const, quotes: [] as any[] };
+    }
+    return { ok: false as const, reason: "error" as const, error: e, quotes: [] as any[] };
+  }
+}
+
+export async function fetchCanonicalQuoteSummariesByIds(params: { quoteIds: string[]; workspaceId?: string }) {
+  if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, quotes: [] as any[] };
+
+  const workspaceId = resolveWorkspaceId(params.workspaceId);
+  const ids = (Array.isArray(params.quoteIds) ? params.quoteIds : []).map((x) => String(x || "").trim()).filter(Boolean);
+  if (ids.length === 0) return { ok: true as const, quotes: [] as any[] };
+
+  try {
+    const selectSummaryCore =
+      "id,updated_at,created_at,status,calendar_hidden,queue_rank,labor_days,original_labor_days,allow_saturday,allow_sunday,hold_date,estimate_assignee,customer_name,phone_number,project_address,title,selected_style,totals";
+    const selectSummaryFull = `${selectSummaryCore},scheduled_at,project_photo_url,preinstall_count`;
+
+    let supportsExtended = true;
+
+    let res: any;
+    try {
+      res = await supabase
+        .from("vf_quotes")
+        .select(selectSummaryFull)
+        .eq("workspace_id", workspaceId)
+        .in("id", ids);
+      if (res?.error) throw res.error;
+    } catch (e: any) {
+      if (isMissingColumnError(e)) {
+        supportsExtended = false;
+        try {
+          res = await supabase
+            .from("vf_quotes")
+            .select(selectSummaryCore)
+            .eq("workspace_id", workspaceId)
+            .in("id", ids);
+          if (res?.error) throw res.error;
+        } catch (e2: any) {
+          if (isMissingColumnError(e2)) {
+            res = await supabase
+              .from("vf_quotes")
+              .select("id,updated_at,created_at,status")
+              .eq("workspace_id", workspaceId)
+              .in("id", ids);
+            if (res?.error) throw res.error;
+          } else {
+            throw e2;
+          }
+        }
+      } else {
+        throw e;
+      }
+    }
+
+    const rows = ((res as any)?.data ?? []) as CanonicalQuoteSummaryRow[];
+    const mapped = rows
+      .map((r) => {
+        const id = String((r as any)?.id || "");
+        if (!id) return null;
+
+        const updatedAtMs = parseUpdatedAtMs((r as any)?.updated_at);
+        const createdAtMs = parseUpdatedAtMs((r as any)?.created_at) || updatedAtMs;
+
+        const merged: any = {
+          id,
+          ...(updatedAtMs > 0 ? { updatedAt: updatedAtMs } : {}),
+          ...(createdAtMs > 0 ? { createdAt: createdAtMs } : {})
+        };
+
+        if ((r as any).status != null) merged.status = (r as any).status;
+        if ((r as any).calendar_hidden != null) merged.calendarHidden = (r as any).calendar_hidden;
+        if ((r as any).queue_rank != null) merged.queueRank = (r as any).queue_rank;
+        if ((r as any).labor_days != null) merged.laborDays = (r as any).labor_days;
+        if ((r as any).original_labor_days != null) merged.originalLaborDays = (r as any).original_labor_days;
+        if ((r as any).allow_saturday != null) merged.allowSaturday = (r as any).allow_saturday;
+        if ((r as any).allow_sunday != null) merged.allowSunday = (r as any).allow_sunday;
+        if ((r as any).hold_date != null) merged.holdDate = (r as any).hold_date;
+        if ((r as any).estimate_assignee != null) merged.estimateAssignee = (r as any).estimate_assignee;
+        if ((r as any).customer_name != null) merged.customerName = (r as any).customer_name;
+        if ((r as any).phone_number != null) merged.phoneNumber = (r as any).phone_number;
+        if ((r as any).project_address != null) merged.projectAddress = (r as any).project_address;
+        if ((r as any).title != null) merged.title = (r as any).title;
+        if ((r as any).selected_style != null) merged.selectedStyle = (r as any).selected_style;
+        if ((r as any).totals != null) merged.totals = (r as any).totals;
+        if ((r as any).scheduled_at != null) merged.scheduledAt = (r as any).scheduled_at;
+        if ((r as any).project_photo_url != null) merged.projectPhotoUrl = (r as any).project_photo_url;
+        if ((r as any).preinstall_count != null) merged.preInstallCount = (r as any).preinstall_count;
+
+        return merged;
+      })
+      .filter(Boolean);
+
+    return { ok: true as const, quotes: mapped as any[], supportsExtended };
+  } catch (e: any) {
+    if (isMissingRelationError(e)) {
+      return { ok: false as const, reason: "missing_relation" as const, quotes: [] as any[] };
+    }
+    return { ok: false as const, reason: "error" as const, error: e, quotes: [] as any[] };
+  }
+}
 
 export async function fetchCanonicalQuotes(params?: { workspaceId?: string; limit?: number }) {
   if (!supabaseConfigured) return { ok: false as const, reason: "supabase_not_configured" as const, quotes: [] as any[] };
@@ -256,7 +484,7 @@ export async function upsertCanonicalQuote(params: { id: string; data: any; work
   };
 
   try {
-    const payload: any = {
+    const payloadBase: any = {
       workspace_id: workspaceId || DEFAULT_WORKSPACE_ID,
       id,
       updated_at: new Date().toISOString(),
@@ -278,8 +506,27 @@ export async function upsertCanonicalQuote(params: { id: string; data: any; work
       data
     };
 
-    const res = await supabase.from("vf_quotes").upsert(payload, { onConflict: "workspace_id,id" } as any);
-    if ((res as any)?.error) throw (res as any).error;
+    const payloadExtended: any = {
+      ...(payloadBase as any),
+      scheduled_at: (data as any)?.scheduledAt ?? null,
+      project_photo_url: (data as any)?.projectPhotoUrl ?? null,
+      preinstall_count: (() => {
+        const n = Number((data as any)?.preInstallCount);
+        return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+      })()
+    };
+
+    try {
+      const res = await supabase.from("vf_quotes").upsert(payloadExtended, { onConflict: "workspace_id,id" } as any);
+      if ((res as any)?.error) throw (res as any).error;
+    } catch (e: any) {
+      if (isMissingColumnError(e)) {
+        const res2 = await supabase.from("vf_quotes").upsert(payloadBase, { onConflict: "workspace_id,id" } as any);
+        if ((res2 as any)?.error) throw (res2 as any).error;
+      } else {
+        throw e;
+      }
+    }
     return { ok: true as const };
   } catch (e: any) {
     if (isMissingRelationError(e)) {
