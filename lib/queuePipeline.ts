@@ -1,4 +1,5 @@
 import { upsertDraft } from "@/lib/draftsStore";
+import { upsertCanonicalQuote } from "@/lib/canonicalStore";
 
 // Single source of truth for queue mutations.
 // - SOLD can only be authored via setStatusFromQuotes
@@ -108,6 +109,11 @@ function maxSoldRank(store: Record<string, QueueDraft>) {
 
 async function safeUpsert(id: string, data: any) {
   try {
+    try {
+      await upsertCanonicalQuote({ id: String(id), data });
+    } catch {
+      // ignore
+    }
     await upsertDraft({ id: String(id), data });
   } catch {
     // ignore

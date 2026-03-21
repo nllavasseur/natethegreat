@@ -3,6 +3,11 @@
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
 import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, resolveWorkspaceId, upsertDraft } from "@/lib/draftsStore";
+import {
+  fetchCanonicalCalendarBlockouts,
+  fetchCanonicalJobsWindow,
+  fetchCanonicalQuotesByIds
+} from "@/lib/canonicalStore";
 import { getCalendarDraftsSession, setCalendarDraftsSession } from "@/lib/sessionDraftsCache";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { createPortal } from "react-dom";
@@ -475,7 +480,7 @@ function formatTimeLocal(iso: string) {
     if (raw.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
     const dt = new Date(raw);
     if (!Number.isFinite(dt.getTime())) return "";
-    return dt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    return dt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true });
   } catch {
     return "";
   }
@@ -600,6 +605,7 @@ export default function CalendarPage() {
   const highlightTimeoutRef = React.useRef<number | null>(null);
   const queueListRef = React.useRef<HTMLDivElement | null>(null);
   const queueAnchorRef = React.useRef<{ id: string; anchorTop: number } | null>(null);
+  const completesBackfillAtRef = React.useRef(0);
   const debouncedRefreshFnRef = React.useRef<(() => void) | null>(null);
   const remoteRefreshInFlightRef = React.useRef(false);
   const remoteRefreshQueuedRef = React.useRef(false);
@@ -766,12 +772,86 @@ export default function CalendarPage() {
       } catch {
       }
 
+      // Canonical scheduling path: jobs is the only source of truth for scheduled work.
+      // Merge these into remoteList so scheduled installs always render even if legacy snapshots are stale.
+      try {
+        const jobsRes = await withTimeout(fetchCanonicalJobsWindow({ windowStartIso, windowEndIso }) as any, 3000);
+        if ((jobsRes as any)?.ok && Array.isArray((jobsRes as any)?.jobs) && (jobsRes as any).jobs.length > 0) {
+          const jobs = (jobsRes as any).jobs as Array<{ quote_id: string; start_date: string; duration_half_days: number }>;
+          const jobQuoteIds = jobs.map((j) => String((j as any)?.quote_id || "").trim()).filter(Boolean);
+
+          let canonQuotes: any[] = [];
+          try {
+            const qRes = await withTimeout(fetchCanonicalQuotesByIds({ quoteIds: jobQuoteIds }) as any, 3000);
+            if ((qRes as any)?.ok && Array.isArray((qRes as any)?.quotes)) canonQuotes = (qRes as any).quotes as any[];
+          } catch {
+            canonQuotes = [];
+          }
+
+          const byId = new Map<string, any>();
+          for (const q of canonQuotes) {
+            const id = String((q as any)?.id || "");
+            if (!id) continue;
+            byId.set(id, q);
+          }
+
+          // For any job whose quote isn't returned by canonical quotes yet, fall back to legacy drafts.
+          const missing = jobQuoteIds.filter((id) => !byId.has(id));
+          for (const id of missing) {
+            try {
+              const dr = await withTimeout(fetchDraft({ id }), 2500);
+              if ((dr as any)?.ok && (dr as any)?.draft) byId.set(id, (dr as any).draft);
+            } catch {
+            }
+          }
+
+          const scheduledDrafts: DraftEntry[] = jobs
+            .map((j) => {
+              const qid = String((j as any)?.quote_id || "").trim();
+              if (!qid) return null;
+              const base = byId.get(qid);
+              if (!base) return null;
+              const sd = String((j as any)?.start_date || "").slice(0, 10);
+              const dh = Number((j as any)?.duration_half_days);
+              return toCalendarDraftLite({
+                ...(base as any),
+                id: qid,
+                status: (base as any)?.status ?? "sold",
+                calendarHidden: false,
+                startDate: sd,
+                installDate: sd,
+                canonicalJob: true,
+                jobDurationHalfDays: Number.isFinite(dh) && dh > 0 ? Math.round(dh) : undefined,
+                // Preserve laborDays for span computation.
+                laborDays: (base as any)?.laborDays
+              } as any);
+            })
+            .filter(Boolean) as any;
+
+          if (scheduledDrafts.length > 0) {
+            remoteList = mergeDraftLists(remoteList, scheduledDrafts as any);
+            remoteListOk = true;
+          }
+        }
+      } catch {
+      }
+
       // Backfill completes/older drafts on a slower path so they still appear eventually.
       // This is intentionally not awaited; it updates drafts in-place when it finishes.
       const backfillCompletes = () => {
         void (async () => {
           try {
-            const res = await withTimeout(fetchDrafts({ limit: 1800 }), 12000);
+            try {
+              if (document.visibilityState !== "visible") return;
+            } catch {
+            }
+
+            const now = Date.now();
+            const cooldownMs = 10 * 60 * 1000;
+            if (now - completesBackfillAtRef.current < cooldownMs) return;
+            completesBackfillAtRef.current = now;
+
+            const res = await withTimeout(fetchDrafts({ limit: 700 }), 12000);
             if (!(res as any)?.ok) return;
 
             const latestStore = readDraftStore();
@@ -791,12 +871,13 @@ export default function CalendarPage() {
       };
 
       try {
-        const [draftsRes, blocksRes, tasksRes] = await Promise.all([
+        const [draftsRes, blocksRes, tasksRes, canonBlocksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
           // Calendar only needs a rolling window of recent drafts + sold queue.
           remoteListOk ? Promise.resolve({ ok: true, drafts: remoteList } as any) : withTimeout(fetchDrafts({ limit: 450 }), 4500),
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
-          withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500)
+          withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500),
+          withTimeout(fetchCanonicalCalendarBlockouts() as any, 2500)
         ]);
 
         remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : remoteList;
@@ -808,6 +889,34 @@ export default function CalendarPage() {
         remoteTasksOk = Boolean((tasksRes as any)?.ok);
         if (!remoteTasksOk) remoteTasksErr = String((tasksRes as any)?.reason || "");
         remoteTasks = Array.isArray((tasksRes as any)?.draft?.tasks) ? ((tasksRes as any).draft.tasks as CalendarTask[]) : [];
+
+        // Canonical blockouts overrides legacy reserved-draft list when available.
+        if ((canonBlocksRes as any)?.ok && Array.isArray((canonBlocksRes as any)?.blockouts)) {
+          try {
+            const canon = (canonBlocksRes as any).blockouts as any[];
+            const mapped = canon
+              .map((b) => {
+                const id = String((b as any)?.id || "");
+                const s = String((b as any)?.start_date || "").slice(0, 10);
+                const e = String((b as any)?.end_date || "").slice(0, 10);
+                if (!id || !s || !e) return null;
+                return {
+                  id,
+                  startIso: s,
+                  endIso: e,
+                  description: String((b as any)?.description || ""),
+                  createdAt: Date.now()
+                } as BlockOut;
+              })
+              .filter(Boolean) as BlockOut[];
+            if (mapped.length > 0) {
+              remoteBlocks = mapped;
+              remoteBlocksOk = true;
+              remoteBlocksErr = "";
+            }
+          } catch {
+          }
+        }
       } catch (e) {
         // ignore (offline/slow). Keep local data.
         const msg = String((e as any)?.message || e || "");
@@ -937,6 +1046,36 @@ export default function CalendarPage() {
         const workspaceId = resolveWorkspaceId();
         realtimeChannel = supabase
           .channel(`vf-calendar-${windowKey}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "vf_jobs",
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
+            },
+            () => requestRefresh()
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "vf_quotes",
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
+            },
+            () => requestRefresh()
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "vf_calendar_blockouts",
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
+            },
+            () => requestRefresh()
+          )
           .on(
             "postgres_changes",
             {
@@ -1367,8 +1506,21 @@ export default function CalendarPage() {
       occupiedEndByDay.set(k, dt);
     });
 
+    // Occupy fixed scheduled jobs (canonical jobs) so the queue never overlaps them.
+    drafts
+      .filter((d: any) => Boolean((d as any)?.canonicalJob) && !(d as any)?.calendarHidden)
+      .forEach((d: any) => {
+        const startIso = String((d as any).startDate || (d as any).installDate || "").slice(0, 10);
+        if (!startIso) return;
+        const allowSat = asBool((d as any).allowSaturday);
+        const allowSun = asBool((d as any).allowSunday);
+        const dh = Number((d as any).jobDurationHalfDays);
+        const spanDays = Number.isFinite(dh) && dh > 0 ? Math.max(1, Math.ceil(dh / 2)) : computeSpanDays((d as any).laborDays);
+        occupyRange(startIso, spanDays, (d as any).status as any, allowSat, allowSun);
+      });
+
     const soldJobs = drafts
-      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden)
+      .filter((d) => (d as any).status === "sold" && !(d as any).calendarHidden && !(d as any).canonicalJob)
       .slice()
       .sort((a, b) =>
         Number((a as any).queueRank ?? Number.POSITIVE_INFINITY) -
@@ -1631,6 +1783,20 @@ export default function CalendarPage() {
 
     const scheduledStartById = new Map<string, string>();
 
+    // Fixed scheduled jobs (canonical jobs) occupy capacity first and never move.
+    drafts
+      .filter((d: any) => Boolean((d as any)?.canonicalJob) && !(d as any)?.calendarHidden)
+      .forEach((d: any) => {
+        const iso = String(explicitStartIso(d) || "").slice(0, 10);
+        if (!iso) return;
+        scheduledStartById.set(String((d as any).id), iso);
+        const dh = Number((d as any).jobDurationHalfDays);
+        const spanDays = Number.isFinite(dh) && dh > 0 ? Math.max(1, Math.ceil(dh / 2)) : computeSpanDays((d as any).laborDays);
+        const allowSat = asBool((d as any).allowSaturday);
+        const allowSun = asBool((d as any).allowSunday);
+        occupyRange(iso, spanDays, (d as any).status as any, allowSat, allowSun);
+      });
+
     // Sold jobs: take schedule directly from soldQueue (single source of truth).
     // This prevents month view from drifting from the queue schedule.
     const soldJobs = (Array.isArray(soldQueue) ? soldQueue : [])
@@ -1728,11 +1894,14 @@ export default function CalendarPage() {
           : iso
             ? new Date(iso + "T12:00:00")
             : null;
-      const spanDays = hasSched || status === "estimate"
-        ? 1
-        : (Number.isFinite(Number((d as any).spanDays)) && Number((d as any).spanDays) > 0
-          ? Number((d as any).spanDays)
-          : computeSpanDays((d as any).laborDays));
+      const spanDays = (() => {
+        if (hasSched || status === "estimate") return 1;
+        const dh = Number((d as any).jobDurationHalfDays);
+        if (Number.isFinite(dh) && dh > 0) return Math.max(1, Math.ceil(dh / 2));
+        const explicitSpan = Number((d as any).spanDays);
+        if (Number.isFinite(explicitSpan) && explicitSpan > 0) return explicitSpan;
+        return computeSpanDays((d as any).laborDays);
+      })();
       const allowSat = asBool((d as any).allowSaturday);
       const allowSun = asBool((d as any).allowSunday);
       const end = dt
@@ -1761,6 +1930,24 @@ export default function CalendarPage() {
       placedEndByDay.set(k, dt);
     });
 
+    // Seed occupancy with fixed scheduled jobs so we only move non-fixed work.
+    allScheduled
+      .filter((j: any) => Boolean((j as any)?.canonicalJob) && (j as any).install instanceof Date)
+      .forEach((j: any) => {
+        const allowSat = asBool((j as any).allowSaturday);
+        const allowSun = asBool((j as any).allowSunday);
+        const span = Math.max(1, Number((j as any).spanDays) || 1);
+        const start = (j as any).install as Date;
+        const seq = workdaySequenceForJob(start, span, allowSat, allowSun);
+        const end = seq[seq.length - 1];
+        seq.forEach((day) => {
+          const k = toKey(day);
+          placed.add(k);
+          const prev = placedEndByDay.get(k);
+          if (!prev || end.getTime() > prev.getTime()) placedEndByDay.set(k, end);
+        });
+      });
+
     const resolveNoOverlap = (start: Date, span: number, allowSat: boolean, allowSun: boolean) => {
       let candidate = start;
       for (let guard = 0; guard < 366; guard++) {
@@ -1780,6 +1967,7 @@ export default function CalendarPage() {
         if ((j as any).calendarHidden) return false;
         const st = (j as any).status as DraftEntry["status"];
         if (st === "estimate" || st === "void" || st === "complete" || st === "pending") return false;
+        if (Boolean((j as any)?.canonicalJob)) return false;
         return (j as any).install instanceof Date && Number.isFinite(((j as any).install as Date).getTime());
       })
       .slice()
@@ -2116,13 +2304,19 @@ export default function CalendarPage() {
     (tasks || []).forEach((t) => {
       const iso = String((t as any).atIso || "");
       if (!iso) return;
-      const key = iso.slice(0, 10);
+      const dt = new Date(iso);
+      const key = Number.isFinite(dt.getTime()) ? toKey(dt) : iso.slice(0, 10);
       const arr = map.get(key) ?? [];
       arr.push(t);
       map.set(key, arr);
     });
     map.forEach((arr, k) => {
-      arr.sort((a, b) => String((a as any).atIso || "").localeCompare(String((b as any).atIso || "")));
+      arr.sort((a, b) => {
+        const at = new Date(String((a as any).atIso || "")).getTime();
+        const bt = new Date(String((b as any).atIso || "")).getTime();
+        if (Number.isFinite(at) && Number.isFinite(bt) && at !== bt) return at - bt;
+        return String((a as any).atIso || "").localeCompare(String((b as any).atIso || ""));
+      });
       map.set(k, arr);
     });
     return map;
@@ -2203,7 +2397,7 @@ export default function CalendarPage() {
                         <div className="min-w-0">
                           <div className="text-sm font-black truncate">{t.description || "Task"}</div>
                           <div className="text-[11px] text-[var(--muted)] mt-1">
-                            {String((t as any).atIso || "").slice(11, 16)}
+                            {formatTimeLocal(String((t as any).atIso || ""))}
                           </div>
                         </div>
                         <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(31,200,120,.95)" }} aria-hidden="true">
@@ -3311,7 +3505,7 @@ export default function CalendarPage() {
                         <div className="min-w-0">
                           <div className="text-[12px] font-black truncate">{t.description || "Task"}</div>
                           <div className="text-[11px] text-[var(--muted)] mt-1">
-                            {String((t as any).atIso || "").slice(11, 16)}
+                            {formatTimeLocal(String((t as any).atIso || ""))}
                           </div>
                         </div>
                         <button
@@ -3461,18 +3655,16 @@ export default function CalendarPage() {
               {dayTasks.map((t) => (
                 <div
                   key={t.id}
-                  className="rounded-2xl border border-[rgba(31,200,120,.35)] bg-[rgba(31,200,120,.10)] px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-[rgba(31,200,120,.35)] bg-[rgba(31,200,120,.10)] px-3 py-2"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="text-sm font-black truncate">{t.description || "Task"}</div>
-                      <div className="text-[11px] text-[var(--muted)] mt-1">
-                        {String((t as any).atIso || "").slice(11, 16)}
-                      </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-black truncate">{t.description || "Task"}</div>
+                    <div className="text-[11px] text-[var(--muted)] mt-1">
+                      {formatTimeLocal(String((t as any).atIso || ""))}
                     </div>
-                    <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(31,200,120,.95)" }} aria-hidden="true">
-                      <span className="text-[14px] leading-none">★</span>
-                    </div>
+                  </div>
+                  <div className="h-3 w-3 grid place-items-center" style={{ color: "rgba(31,200,120,.95)" }} aria-hidden="true">
+                    <span className="text-[14px] leading-none">★</span>
                   </div>
                 </div>
               ))}

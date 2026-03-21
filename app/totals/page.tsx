@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { GlassCard, SecondaryButton, SectionTitle } from "@/components/ui";
-import { DEFAULT_WORKSPACE_ID, fetchDrafts } from "@/lib/draftsStore";
+import { fetchDrafts } from "@/lib/draftsStore";
 import { money } from "@/lib/money";
-import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import type { QuoteItem } from "@/lib/types";
 
 type DraftEntry = {
@@ -26,6 +25,8 @@ type DraftEntry = {
   takeoffMaterials?: QuoteItem[];
   takeoffManualItems?: QuoteItem[];
 };
+
+const SOLD_JOB_LIMIT = 250;
 
 function readDraftStore(): Record<string, DraftEntry> {
   if (typeof window === "undefined") return {};
@@ -353,78 +354,21 @@ export default function TotalsPage() {
       const localStore = readDraftStore();
       const localList = Object.values(localStore).map((d) => ({ ...d }));
 
-      if (!cancelled && Array.isArray(localList) && localList.length) setDrafts(localList);
+      const ts = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
+      const isSold = (d: any) => String(d?.status || "estimate") === "sold";
+      const capSold = (list: any[]) =>
+        (Array.isArray(list) ? list : [])
+          .filter(isSold)
+          .sort((a, b) => ts(b) - ts(a))
+          .slice(0, SOLD_JOB_LIMIT);
+
+      if (!cancelled && Array.isArray(localList) && localList.length) setDrafts(capSold(localList));
 
       try {
         const remote = await fetchDrafts({ limit: 900 });
         const remoteList = remote.ok ? (remote.drafts as DraftEntry[]) : [];
         const merged = mergeDraftLists(localList, remoteList);
-        if (!cancelled) setDrafts(merged);
-      } catch {
-      }
-
-      try {
-        if (!supabaseConfigured) return;
-
-        const mapRows = (rows: any[]) => {
-          return (Array.isArray(rows) ? rows : [])
-            .map((r: any) => {
-              const d = r?.draft ?? {};
-              const id = String(r?.draft_id ?? d?.id ?? "");
-              const updatedAt = (() => {
-                const raw = String(r?.updated_at ?? "");
-                if (!raw) return undefined;
-                const ms = Date.parse(raw);
-                return Number.isFinite(ms) ? ms : undefined;
-              })();
-              return { ...d, id, ...(typeof updatedAt === "number" ? { updatedAt } : {}) } as DraftEntry;
-            })
-            .filter((d: any) => {
-              const id = String(d?.id || "");
-              if (!id) return false;
-              const kind = String((d as any)?.kind || "");
-              if (kind === "calendar_blockouts" || kind === "calendar_tasks") return false;
-              return true;
-            });
-        };
-
-        const pageSize = 1000;
-        let from = 0;
-        let all: DraftEntry[] = [];
-
-        for (let guard = 0; guard < 20; guard += 1) {
-          let data: any[] | null = null;
-          let error: any = null;
-
-          const base = supabase
-            .from("drafts")
-            .select("draft_id, draft, updated_at")
-            .eq("workspace_id", DEFAULT_WORKSPACE_ID)
-            .order("updated_at", { ascending: false })
-            .range(from, from + pageSize - 1);
-
-          try {
-            const resSold = await (base as any).eq("draft->>status", "sold");
-            data = resSold?.data ?? null;
-            error = resSold?.error ?? null;
-            if (error) throw error;
-          } catch (e: any) {
-            const resAll = await (base as any);
-            data = resAll?.data ?? null;
-            error = resAll?.error ?? null;
-            if (error) throw error;
-          }
-
-          const mapped = mapRows(data ?? []);
-          const soldOnly = mapped.filter((d: any) => String((d as any)?.status || "estimate") === "sold");
-          all = [...all, ...soldOnly];
-
-          if (!Array.isArray(data) || data.length < pageSize) break;
-          from += pageSize;
-        }
-
-        const mergedAll = mergeDraftLists(localList, all);
-        if (!cancelled) setDrafts(mergedAll);
+        if (!cancelled) setDrafts(capSold(merged));
       } catch {
       }
     })();

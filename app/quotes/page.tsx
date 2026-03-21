@@ -7,6 +7,12 @@ import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/compo
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import { DEFAULT_WORKSPACE_ID, fetchDrafts, fetchQuotesEntries, resolveWorkspaceId, upsertDraft } from "@/lib/draftsStore";
+import {
+  deleteCanonicalJob,
+  fetchCanonicalJobsByQuoteIds,
+  fetchCanonicalQuotes,
+  upsertCanonicalJob
+} from "@/lib/canonicalStore";
 import { fetchJobTasks } from "@/lib/jobTasksStore";
 import { setStatusFromQuotes } from "@/lib/queuePipeline";
 import { getQuotesDraftsSession, setQuotesDraftsSession } from "@/lib/sessionDraftsCache";
@@ -234,6 +240,7 @@ export default function QuotesPage() {
         at: number;
         supabaseConfigured: boolean;
         workspaceId: string;
+        canonicalQuotes?: { ok: boolean; reason?: string; count: number; error?: string };
         quotesEntries?: { ok: boolean; reason?: string; count: number; error?: string };
         draftsFallback?: { ok: boolean; reason?: string; count: number; error?: string };
         jobTasks?: { ok: boolean; reason?: string; count: number; error?: string };
@@ -587,6 +594,7 @@ export default function QuotesPage() {
   useEffect(() => {
     let cancelled = false;
     const getTs = (d: any) => Number(d?.updatedAt ?? d?.createdAt) || 0;
+    const remoteLimit = 450;
     const withTimeout = async <T,>(p: Promise<T>, ms: number) => {
       let t: any;
       try {
@@ -690,47 +698,95 @@ export default function QuotesPage() {
       let snapshotList: DraftEntry[] = [];
       let draftsList: DraftEntry[] = [];
 
-      try {
-        const snap = await withTimeout(fetchQuotesEntries({ limit: 900 }) as any, 3500);
-        if ((snap as any)?.ok && Array.isArray((snap as any)?.drafts)) {
-          snapshotList = ((snap as any).drafts as DraftEntry[]) || [];
+      {
+        let canonicalOk = false;
+
+        try {
+          const canon = await withTimeout(fetchCanonicalQuotes({ limit: remoteLimit }) as any, 3500);
+          if ((canon as any)?.ok && Array.isArray((canon as any)?.quotes) && (canon as any).quotes.length > 0) {
+            snapshotList = ((canon as any).quotes as DraftEntry[]) || [];
+            canonicalOk = true;
+            if (diagEnabled) {
+              setRemoteDiag((prev) => ({
+                ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+                at: Date.now(),
+                supabaseConfigured,
+                workspaceId: resolveWorkspaceId(),
+                canonicalQuotes: { ok: true, count: snapshotList.length }
+              }));
+            }
+          } else if (diagEnabled) {
+            setRemoteDiag((prev) => ({
+              ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+              at: Date.now(),
+              supabaseConfigured,
+              workspaceId: resolveWorkspaceId(),
+              canonicalQuotes: {
+                ok: false,
+                reason: String((canon as any)?.reason || ""),
+                count: 0,
+                error: (canon as any)?.error ? String(((canon as any).error as any)?.message || (canon as any).error || "") : undefined
+              }
+            }));
+          }
+        } catch (e: any) {
           if (diagEnabled) {
             setRemoteDiag((prev) => ({
               ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
               at: Date.now(),
               supabaseConfigured,
               workspaceId: resolveWorkspaceId(),
-              quotesEntries: { ok: true, count: snapshotList.length }
+              canonicalQuotes: { ok: false, reason: "error", count: 0, error: String(e?.message || e || "") }
             }));
           }
-        } else if (diagEnabled) {
-          setRemoteDiag((prev) => ({
-            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
-            at: Date.now(),
-            supabaseConfigured,
-            workspaceId: resolveWorkspaceId(),
-            quotesEntries: {
-              ok: false,
-              reason: String((snap as any)?.reason || ""),
-              count: 0,
-              error: (snap as any)?.error ? String(((snap as any).error as any)?.message || (snap as any).error || "") : undefined
-            }
-          }));
         }
-      } catch (e: any) {
-        if (diagEnabled) {
-          setRemoteDiag((prev) => ({
-            ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
-            at: Date.now(),
-            supabaseConfigured,
-            workspaceId: resolveWorkspaceId(),
-            quotesEntries: { ok: false, reason: "error", count: 0, error: String(e?.message || e || "") }
-          }));
+
+        if (!canonicalOk) {
+          try {
+            const snap = await withTimeout(fetchQuotesEntries({ limit: remoteLimit }) as any, 3500);
+            if ((snap as any)?.ok && Array.isArray((snap as any)?.drafts)) {
+              snapshotList = ((snap as any).drafts as DraftEntry[]) || [];
+              if (diagEnabled) {
+                setRemoteDiag((prev) => ({
+                  ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+                  at: Date.now(),
+                  supabaseConfigured,
+                  workspaceId: resolveWorkspaceId(),
+                  quotesEntries: { ok: true, count: snapshotList.length }
+                }));
+              }
+            } else if (diagEnabled) {
+              setRemoteDiag((prev) => ({
+                ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+                at: Date.now(),
+                supabaseConfigured,
+                workspaceId: resolveWorkspaceId(),
+                quotesEntries: {
+                  ok: false,
+                  reason: String((snap as any)?.reason || ""),
+                  count: 0,
+                  error: (snap as any)?.error
+                    ? String(((snap as any).error as any)?.message || (snap as any).error || "")
+                    : undefined
+                }
+              }));
+            }
+          } catch (e: any) {
+            if (diagEnabled) {
+              setRemoteDiag((prev) => ({
+                ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
+                at: Date.now(),
+                supabaseConfigured,
+                workspaceId: resolveWorkspaceId(),
+                quotesEntries: { ok: false, reason: "error", count: 0, error: String(e?.message || e || "") }
+              }));
+            }
+          }
         }
       }
 
       try {
-        const remote = await withTimeout(fetchDrafts({ limit: 900 }) as any, 3500);
+        const remote = await withTimeout(fetchDrafts({ limit: remoteLimit }) as any, 3500);
         draftsList = (remote as any)?.ok ? (((remote as any).drafts as DraftEntry[]) || []) : [];
         if (diagEnabled) {
           setRemoteDiag((prev) => ({
@@ -799,20 +855,50 @@ export default function QuotesPage() {
         .filter((d) => !tombstones[String((d as any)?.id || "")])
         .map((d) => toQuotesDraftLite({ ...(d as any) } as any));
       const mergedLitePatched = applyStatusCache(mergedLite);
-      if (!cancelled) setDraftsStable(mergedLitePatched);
+
+      let scheduledPatched = mergedLitePatched;
       try {
-        writeQuotesDraftsCache(mergedLitePatched);
+        const ids = mergedLitePatched.map((d: any) => String((d as any)?.id || "").trim()).filter(Boolean);
+        const jobsRes = await withTimeout(fetchCanonicalJobsByQuoteIds({ quoteIds: ids }) as any, 2500);
+        if ((jobsRes as any)?.ok && Array.isArray((jobsRes as any)?.jobs) && (jobsRes as any).jobs.length > 0) {
+          const byIdJob = new Map<string, any>();
+          for (const j of (jobsRes as any).jobs as any[]) {
+            const qid = String((j as any)?.quote_id || "").trim();
+            const sd = String((j as any)?.start_date || "").slice(0, 10);
+            if (!qid || !sd) continue;
+            byIdJob.set(qid, j);
+          }
+          if (byIdJob.size > 0) {
+            scheduledPatched = mergedLitePatched.map((d: any) => {
+              const j = byIdJob.get(String((d as any)?.id || ""));
+              if (!j) return d;
+              const sd = String((j as any)?.start_date || "").slice(0, 10);
+              return {
+                ...(d as any),
+                startDate: sd,
+                installDate: sd,
+                calendarHidden: false
+              };
+            }) as any;
+          }
+        }
+      } catch {
+      }
+
+      if (!cancelled) setDraftsStable(scheduledPatched);
+      try {
+        writeQuotesDraftsCache(scheduledPatched);
       } catch {
       }
 
       try {
-        writeQuotesRemoteIdsCache(mergedLitePatched.map((d: any) => String(d?.id || "")).filter(Boolean));
+        writeQuotesRemoteIdsCache(scheduledPatched.map((d: any) => String(d?.id || "")).filter(Boolean));
       } catch {
       }
 
       try {
         const nextStatusCache = { ...(statusCache as any) } as Record<string, { status: DraftEntry["status"]; ts: number }>;
-        for (const d of mergedLitePatched as any[]) {
+        for (const d of scheduledPatched as any[]) {
           const id = String((d as any)?.id || "");
           if (!id) continue;
           const s = (d as any)?.status as any;
@@ -826,23 +912,51 @@ export default function QuotesPage() {
       }
 
       try {
-        const ids = mergedLite.map((d) => String((d as any)?.id || "")).filter(Boolean);
-        const tasksRes = await withTimeout(fetchJobTasks({ draftIds: ids }) as any, 3500);
-        if (!cancelled && (tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
+        const now = Date.now();
+        const days7 = 7 * 24 * 60 * 60 * 1000;
+        const idsNeedingTasks = (Array.isArray(scheduledPatched) ? scheduledPatched : [])
+          .filter((d: any) => {
+            const status = String(d?.status || "");
+            if (status === "sold") return true;
+            const iso = String(d?.scheduledAt || "");
+            if (!iso) return false;
+            const ms = new Date(iso).getTime();
+            if (!Number.isFinite(ms)) return false;
+            const dt = ms - now;
+            return dt >= 0 && dt <= days7;
+          })
+          .map((d: any) => String(d?.id || "").trim())
+          .filter(Boolean);
+
+        const chunkSize = 120;
+        const chunks: string[][] = [];
+        for (let i = 0; i < idsNeedingTasks.length; i += chunkSize) chunks.push(idsNeedingTasks.slice(i, i + chunkSize));
+
+        const byIdTasks = new Map<string, any>();
+        for (const chunk of chunks) {
+          if (cancelled) break;
+          try {
+            const tasksRes = await withTimeout(fetchJobTasks({ draftIds: chunk }) as any, 3500);
+            if ((tasksRes as any)?.ok && Array.isArray((tasksRes as any)?.rows)) {
+              for (const r of (tasksRes as any).rows as any[]) {
+                const rid = String((r as any)?.draft_id || "");
+                if (!rid) continue;
+                byIdTasks.set(rid, r);
+              }
+            }
+          } catch {
+          }
+        }
+
+        if (!cancelled) {
           if (diagEnabled) {
             setRemoteDiag((prev) => ({
               ...(prev || { at: Date.now(), supabaseConfigured, workspaceId: resolveWorkspaceId() }),
               at: Date.now(),
               supabaseConfigured,
               workspaceId: resolveWorkspaceId(),
-              jobTasks: { ok: true, count: Number((tasksRes as any)?.rows?.length || 0) }
+              jobTasks: { ok: true, count: byIdTasks.size }
             }));
-          }
-          const byIdTasks = new Map<string, any>();
-          for (const r of (tasksRes as any).rows as any[]) {
-            const rid = String((r as any)?.draft_id || "");
-            if (!rid) continue;
-            byIdTasks.set(rid, r);
           }
 
           setDrafts((prev) => {
@@ -938,6 +1052,26 @@ export default function QuotesPage() {
         const workspaceId = resolveWorkspaceId();
         realtimeChannel = supabase
           .channel("vf-quotes")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "vf_quotes",
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
+            },
+            () => requestLoad()
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "vf_jobs",
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
+            },
+            () => requestLoad()
+          )
           .on(
             "postgres_changes",
             {
@@ -1106,15 +1240,38 @@ export default function QuotesPage() {
       const store = readDraftStore();
       const existing: any = drafts.find((d) => d.id === id) ?? store[id];
       if (!existing) return;
-      const nextDraft = { ...existing, startDate, installDate: startDate, calendarHidden: false, updatedAt: Date.now() };
-      try {
-        void upsertDraft({ id, data: nextDraft });
-      } catch {
-      }
-      setDrafts((prev) =>
-        applyStableOrder(prev.map((d) => (d.id === id ? { ...d, startDate, installDate: startDate, calendarHidden: false } : d)) as any) as any
-      );
-      notifyDraftsChanged();
+
+      const durationHalfDays = (() => {
+        const n = Number((existing as any)?.laborDays);
+        if (!Number.isFinite(n) || n <= 0) return 2;
+        return Math.max(1, Math.ceil(n * 2));
+      })();
+
+      const sid = String(id);
+      const iso = String(startDate || "").slice(0, 10);
+
+      void (async () => {
+        let wroteJob = false;
+        try {
+          const res = await upsertCanonicalJob({ quoteId: sid, startDate: iso, durationHalfDays });
+          wroteJob = Boolean((res as any)?.ok);
+        } catch {
+          wroteJob = false;
+        }
+
+        const nextDraft = { ...existing, startDate, installDate: startDate, calendarHidden: false, updatedAt: Date.now() };
+        if (!wroteJob) {
+          try {
+            void upsertDraft({ id: sid, data: nextDraft });
+          } catch {
+          }
+        }
+
+        setDrafts((prev) =>
+          applyStableOrder(prev.map((d) => (d.id === sid ? { ...d, startDate, installDate: startDate, calendarHidden: false } : d)) as any) as any
+        );
+        notifyDraftsChanged();
+      })();
     } catch {
       // ignore
     }
@@ -1125,15 +1282,30 @@ export default function QuotesPage() {
       const store = readDraftStore();
       const existing: any = drafts.find((d) => d.id === id) ?? store[id];
       if (!existing) return;
-      const nextDraft = { ...existing, startDate: undefined, installDate: undefined, calendarHidden: true, updatedAt: Date.now() };
-      try {
-        void upsertDraft({ id, data: nextDraft });
-      } catch {
-      }
-      setDrafts((prev) =>
-        applyStableOrder(prev.map((d) => (d.id === id ? { ...d, startDate: undefined, installDate: undefined, calendarHidden: true } : d)) as any) as any
-      );
-      notifyDraftsChanged();
+
+      const sid = String(id);
+      void (async () => {
+        let deletedJob = false;
+        try {
+          const res = await deleteCanonicalJob({ quoteId: sid });
+          deletedJob = Boolean((res as any)?.ok);
+        } catch {
+          deletedJob = false;
+        }
+
+        const nextDraft = { ...existing, startDate: undefined, installDate: undefined, calendarHidden: true, updatedAt: Date.now() };
+        if (!deletedJob) {
+          try {
+            void upsertDraft({ id: sid, data: nextDraft });
+          } catch {
+          }
+        }
+
+        setDrafts((prev) =>
+          applyStableOrder(prev.map((d) => (d.id === sid ? { ...d, startDate: undefined, installDate: undefined, calendarHidden: true } : d)) as any) as any
+        );
+        notifyDraftsChanged();
+      })();
     } catch {
       // ignore
     }
@@ -1546,6 +1718,12 @@ export default function QuotesPage() {
               <div className="mt-1 grid gap-1">
                 <div>supabaseConfigured: {String(Boolean(remoteDiag?.supabaseConfigured ?? supabaseConfigured))}</div>
                 <div>workspaceId: {String(remoteDiag?.workspaceId ?? resolveWorkspaceId() ?? "")}</div>
+                {remoteDiag?.canonicalQuotes ? (
+                  <div>
+                    quotes: {remoteDiag.canonicalQuotes.ok ? "ok" : "fail"} ({remoteDiag.canonicalQuotes.count})
+                    {remoteDiag.canonicalQuotes.error ? ` — ${remoteDiag.canonicalQuotes.error}` : ""}
+                  </div>
+                ) : null}
                 {remoteDiag?.quotesEntries ? (
                   <div>
                     quotes_entries: {remoteDiag.quotesEntries.ok ? "ok" : "fail"} ({remoteDiag.quotesEntries.count})
