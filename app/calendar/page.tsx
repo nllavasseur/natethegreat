@@ -6,6 +6,7 @@ import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, fe
 import {
   fetchCanonicalCalendarBlockouts,
   fetchCanonicalJobsWindow,
+  fetchCanonicalQuoteSummaries,
   fetchCanonicalQuoteSummariesByIds,
   upsertCanonicalQuote
 } from "@/lib/canonicalStore";
@@ -913,11 +914,17 @@ export default function CalendarPage() {
       };
 
       try {
-        const [draftsRes, quotesRes, blocksRes, tasksRes, canonBlocksRes] = await Promise.all([
+        const draftsBackfillPromise = remoteListOk
+          ? withTimeout(fetchDrafts({ limit: 700 }), 4500).catch(() => ({ ok: false, drafts: [] as any[] } as any))
+          : Promise.resolve({ ok: false, drafts: [] as any[] } as any);
+
+        const [draftsRes, quotesRes, canonQuotesRes, draftsBackfillRes, blocksRes, tasksRes, canonBlocksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
           // Calendar only needs a rolling window of recent drafts + sold queue.
           remoteListOk ? Promise.resolve({ ok: true, drafts: remoteList } as any) : withTimeout(fetchDrafts({ limit: 450 }), 4500),
           withTimeout(fetchQuotesEntries({ limit: 900 }) as any, 4500).catch(() => ({ ok: false, drafts: [] as any[] } as any)),
+          withTimeout(fetchCanonicalQuoteSummaries({ limit: 900 }) as any, 3500).catch(() => ({ ok: false, quotes: [] as any[] } as any)),
+          draftsBackfillPromise,
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
           withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500),
           withTimeout(fetchCanonicalCalendarBlockouts() as any, 2500)
@@ -926,33 +933,66 @@ export default function CalendarPage() {
         remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : remoteList;
 
         try {
+          const soldById = new Map<string, DraftEntry>();
+          const ts = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
+
+          const pushSold = (d: any) => {
+            const id = String(d?.id || "");
+            if (!id) return;
+            const prev = soldById.get(id);
+            if (!prev) {
+              soldById.set(id, d as any);
+              return;
+            }
+            if (ts(d) > ts(prev)) soldById.set(id, d as any);
+          };
+
           const quotesOk = Boolean((quotesRes as any)?.ok) && Array.isArray((quotesRes as any)?.drafts);
           if (quotesOk) {
-            const soldFromQuotes = (((quotesRes as any).drafts as DraftEntry[]) || []).filter(
-              (d: any) => String(d?.status || "") === "sold" && !Boolean((d as any)?.calendarHidden)
-            );
-            if (soldFromQuotes.length > 0) {
-              const soldById = new Map<string, DraftEntry>();
-              soldFromQuotes.forEach((d: any) => {
-                const id = String((d as any)?.id || "");
-                if (id) soldById.set(id, d as any);
-              });
-              const next: DraftEntry[] = [];
-              const seen = new Set<string>();
-              (Array.isArray(remoteList) ? remoteList : []).forEach((d: any) => {
-                const id = String((d as any)?.id || "");
-                if (!id) return;
-                const sold = soldById.get(id);
-                next.push(sold ? ({ ...(d as any), ...(sold as any) } as any) : (d as any));
-                seen.add(id);
-              });
-              soldById.forEach((sold, id) => {
-                if (seen.has(id)) return;
-                next.push(sold);
-              });
-              remoteList = next;
-              remoteListOk = true;
-            }
+            (((quotesRes as any).drafts as DraftEntry[]) || []).forEach((d: any) => {
+              const st = String(d?.status || "").trim().toLowerCase();
+              if (st !== "sold") return;
+              if (Boolean((d as any)?.calendarHidden)) return;
+              pushSold(d);
+            });
+          }
+
+          const canonQuotesOk = Boolean((canonQuotesRes as any)?.ok) && Array.isArray((canonQuotesRes as any)?.quotes);
+          if (canonQuotesOk) {
+            (((canonQuotesRes as any).quotes as DraftEntry[]) || []).forEach((d: any) => {
+              const st = String(d?.status || "").trim().toLowerCase();
+              if (st !== "sold") return;
+              if (Boolean((d as any)?.calendarHidden)) return;
+              pushSold(d);
+            });
+          }
+
+          const draftsBackfillOk = Boolean((draftsBackfillRes as any)?.ok) && Array.isArray((draftsBackfillRes as any)?.drafts);
+          if (draftsBackfillOk) {
+            (((draftsBackfillRes as any).drafts as DraftEntry[]) || []).forEach((d: any) => {
+              const st = String(d?.status || "").trim().toLowerCase();
+              if (st !== "sold") return;
+              if (Boolean((d as any)?.calendarHidden)) return;
+              pushSold(d);
+            });
+          }
+
+          if (soldById.size > 0) {
+            const next: DraftEntry[] = [];
+            const seen = new Set<string>();
+            (Array.isArray(remoteList) ? remoteList : []).forEach((d: any) => {
+              const id = String((d as any)?.id || "");
+              if (!id) return;
+              const sold = soldById.get(id);
+              next.push(sold ? ({ ...(d as any), ...(sold as any) } as any) : (d as any));
+              seen.add(id);
+            });
+            soldById.forEach((sold, id) => {
+              if (seen.has(id)) return;
+              next.push(sold);
+            });
+            remoteList = next;
+            remoteListOk = true;
           }
         } catch {
         }
