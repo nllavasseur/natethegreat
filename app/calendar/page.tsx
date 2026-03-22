@@ -2,11 +2,12 @@
 
 import React from "react";
 import { GlassCard, PrimaryButton, SecondaryButton, SectionTitle } from "@/components/ui";
-import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, resolveWorkspaceId, upsertDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchCalendarEntries, fetchDraft, fetchDrafts, fetchQuotesEntries, resolveWorkspaceId, upsertDraft } from "@/lib/draftsStore";
 import {
   fetchCanonicalCalendarBlockouts,
   fetchCanonicalJobsWindow,
-  fetchCanonicalQuoteSummariesByIds
+  fetchCanonicalQuoteSummariesByIds,
+  upsertCanonicalQuote
 } from "@/lib/canonicalStore";
 import { getCalendarDraftsSession, setCalendarDraftsSession } from "@/lib/sessionDraftsCache";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
@@ -118,7 +119,7 @@ const BLOCKOUTS_REMOTE_ID = "vf_calendar_blockouts_v1";
 
 const TASKS_REMOTE_ID = "vf_calendar_tasks_v1";
 
-const CALENDAR_ENTRIES_CACHE_KEY = "vf_calendar_entries_cache_v1";
+const CALENDAR_ENTRIES_CACHE_KEY = "vf_calendar_entries_cache_v2";
 
 function readCalendarEntriesCache(key: string): DraftEntry[] {
   if (typeof window === "undefined") return [];
@@ -182,7 +183,7 @@ type DraftEntry = {
   queueLockedAt?: number;
 };
 
-const CALENDAR_DRAFTS_CACHE_KEY = "vf_calendar_drafts_cache_v1";
+const CALENDAR_DRAFTS_CACHE_KEY = "vf_calendar_drafts_cache_v2";
 
 function toCalendarDraftLite(d: DraftEntry): DraftEntry {
   // Keep only fields used by calendar calculations/rendering.
@@ -912,16 +913,49 @@ export default function CalendarPage() {
       };
 
       try {
-        const [draftsRes, blocksRes, tasksRes, canonBlocksRes] = await Promise.all([
+        const [draftsRes, quotesRes, blocksRes, tasksRes, canonBlocksRes] = await Promise.all([
           // Limit drafts fetch to keep calendar responsive.
           // Calendar only needs a rolling window of recent drafts + sold queue.
           remoteListOk ? Promise.resolve({ ok: true, drafts: remoteList } as any) : withTimeout(fetchDrafts({ limit: 450 }), 4500),
+          withTimeout(fetchQuotesEntries({ limit: 900 }) as any, 4500).catch(() => ({ ok: false, drafts: [] as any[] } as any)),
           withTimeout(fetchDraft({ id: BLOCKOUTS_REMOTE_ID }), 4500),
           withTimeout(fetchDraft({ id: TASKS_REMOTE_ID }), 4500),
           withTimeout(fetchCanonicalCalendarBlockouts() as any, 2500)
         ]);
 
         remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : remoteList;
+
+        try {
+          const quotesOk = Boolean((quotesRes as any)?.ok) && Array.isArray((quotesRes as any)?.drafts);
+          if (quotesOk) {
+            const soldFromQuotes = (((quotesRes as any).drafts as DraftEntry[]) || []).filter(
+              (d: any) => String(d?.status || "") === "sold" && !Boolean((d as any)?.calendarHidden)
+            );
+            if (soldFromQuotes.length > 0) {
+              const soldById = new Map<string, DraftEntry>();
+              soldFromQuotes.forEach((d: any) => {
+                const id = String((d as any)?.id || "");
+                if (id) soldById.set(id, d as any);
+              });
+              const next: DraftEntry[] = [];
+              const seen = new Set<string>();
+              (Array.isArray(remoteList) ? remoteList : []).forEach((d: any) => {
+                const id = String((d as any)?.id || "");
+                if (!id) return;
+                const sold = soldById.get(id);
+                next.push(sold ? ({ ...(d as any), ...(sold as any) } as any) : (d as any));
+                seen.add(id);
+              });
+              soldById.forEach((sold, id) => {
+                if (seen.has(id)) return;
+                next.push(sold);
+              });
+              remoteList = next;
+              remoteListOk = true;
+            }
+          }
+        } catch {
+        }
 
         remoteBlocksOk = Boolean((blocksRes as any)?.ok);
         if (!remoteBlocksOk) remoteBlocksErr = String((blocksRes as any)?.reason || "");
