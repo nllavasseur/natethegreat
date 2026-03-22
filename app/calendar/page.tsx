@@ -2826,7 +2826,7 @@ export default function CalendarPage() {
               e.stopPropagation();
             }}
           >
-            <GlassCard className="w-full max-w-[440px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col max-h-[calc(100dvh-var(--vf-header-h,0px)-24px)]">
+            <GlassCard className="w-full max-w-[440px] mx-auto p-2 overflow-hidden overflow-x-hidden flex flex-col max-h-[calc(100dvh-var(--vf-header-h,0px)-24px)] bg-[rgba(78,91,49,.75)]">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm font-black">Job Queue</div>
               </div>
