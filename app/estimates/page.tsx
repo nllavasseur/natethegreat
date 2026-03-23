@@ -5,6 +5,7 @@ import NextImage from "next/image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { GlassCard, Input, PrimaryButton, SecondaryButton, SectionTitle, Select } from "@/components/ui";
+import { IconRefresh } from "@/components/icons";
 import { money } from "@/lib/money";
 import { computeMaterialsAndExpensesTotal, computeTotals } from "@/lib/totals";
 import { fetchDraft, upsertDraft, uploadDraftPhoto } from "@/lib/draftsStore";
@@ -1371,6 +1372,9 @@ function EstimatesPageInner() {
 
   const [takeoffUnitPriceOverrides, setTakeoffUnitPriceOverrides] = useState<Record<string, number>>({});
   const [takeoffUnitPriceOverrideDrafts, setTakeoffUnitPriceOverrideDrafts] = useState<Record<string, string>>({});
+
+  const [takeoffQtyOverrides, setTakeoffQtyOverrides] = useState<Record<string, number>>({});
+  const [takeoffQtyOverrideDrafts, setTakeoffQtyOverrideDrafts] = useState<Record<string, string>>({});
 
   function takeoffLineKeyForItem(m: any) {
     const name = String((m as any)?.name || "");
@@ -4336,6 +4340,7 @@ function EstimatesPageInner() {
         fenceBuilder,
         materialUnitPrices,
         takeoffUnitPriceOverrides,
+        takeoffQtyOverrides,
         laborDays,
         laborManualDays,
         laborManualCost,
@@ -4396,6 +4401,7 @@ function EstimatesPageInner() {
     fenceBuilder,
     materialUnitPrices,
     takeoffUnitPriceOverrides,
+    takeoffQtyOverrides,
     laborDays,
     laborManualDays,
     laborManualCost,
@@ -4487,6 +4493,7 @@ function EstimatesPageInner() {
       activeComboCardId,
       materialUnitPrices,
       takeoffUnitPriceOverrides,
+      takeoffQtyOverrides,
       laborDays,
       laborManualDays,
       laborManualCost,
@@ -4540,6 +4547,7 @@ function EstimatesPageInner() {
     setSaveError(null);
     setSaveNotice(null);
     try {
+      let localWriteOk = false;
       if (preInstallPendingCount > 0 || preInstallPhotos.some((p) => !String((p as any)?.src || "").trim())) {
         setSaveError("Photos are still processing. Please wait a moment and try saving again.");
         return;
@@ -4558,8 +4566,14 @@ function EstimatesPageInner() {
       store[id] = mergedPayload;
       try {
         writeDraftStore(store);
+        localWriteOk = true;
       } catch (e) {
-        if (!isQuotaError(e)) throw e;
+        if (!isQuotaError(e)) {
+          try {
+            setSaveNotice("Saved remotely (local storage unavailable on this device). ");
+          } catch {
+          }
+        } else {
         const quotaSanitized = sanitizePhotosForStorage({
           projectPhotoDataUrl:
             typeof (mergedPayload as any)?.projectPhotoDataUrl === "string" && String((mergedPayload as any).projectPhotoDataUrl).startsWith("data:")
@@ -4582,9 +4596,15 @@ function EstimatesPageInner() {
         store[id] = lite;
         try {
           writeDraftStore(store);
+          localWriteOk = true;
           setSaveNotice("Saved without local photo cache (storage full on this device). ");
         } catch (e2) {
-          if (!isQuotaError(e2)) throw e2;
+          if (!isQuotaError(e2)) {
+            try {
+              setSaveNotice("Saved remotely (local storage unavailable on this device). ");
+            } catch {
+            }
+          } else {
           // As a last resort, clear older local drafts until it fits.
           try {
             const entries = Object.entries(store)
@@ -4596,6 +4616,7 @@ function EstimatesPageInner() {
               delete working[ent.k];
               try {
                 writeDraftStore(working);
+                localWriteOk = true;
                 setSaveNotice("Saved after clearing old local drafts (storage full on this device). ");
                 break;
               } catch {
@@ -4605,6 +4626,7 @@ function EstimatesPageInner() {
             // If we still can't write, keep only the current draft and continue (remote save still happens).
             try {
               writeDraftStore({ [id]: lite });
+              localWriteOk = true;
               setSaveNotice("Saved without local history (storage full on this device). ");
             } catch {
               setSaveNotice("Saved remotely (local storage full on this device). ");
@@ -4612,12 +4634,20 @@ function EstimatesPageInner() {
           } catch {
             setSaveNotice("Saved remotely (local storage full on this device). ");
           }
+          }
+        }
         }
       }
       setDraftId(id);
 
       try {
-        await upsertDraft({ id, data: { ...(store[id] as any), _allowDestructiveUpdate: true } });
+        const res = await upsertDraft({ id, data: { ...(store[id] as any), _allowDestructiveUpdate: true } });
+        if (!res.ok && !localWriteOk) {
+          setSaveError(res.reason === "supabase_not_configured" ? "Failed to save: Remote saving is not configured." : "Failed to save.");
+        }
+        if (localWriteOk || res.ok) {
+          clearUnsavedSnapshot();
+        }
       } catch {
         // ignore
       }
@@ -4642,6 +4672,7 @@ function EstimatesPageInner() {
     setSaveError(null);
     setSaveNotice(null);
     try {
+      let localWriteOk = false;
       if (preInstallPendingCount > 0 || preInstallPhotos.some((p) => !String((p as any)?.src || "").trim())) {
         setSaveError("Photos are still processing. Please wait a moment and try saving again.");
         return;
@@ -4674,8 +4705,14 @@ function EstimatesPageInner() {
 
       try {
         tryWrite(store);
+        localWriteOk = true;
       } catch (e) {
-        if (!isQuotaError(e)) throw e;
+        if (!isQuotaError(e)) {
+          try {
+            setSaveNotice("Saved remotely (local storage unavailable on this device). ");
+          } catch {
+          }
+        } else {
         const quotaSanitized = sanitizePhotosForStorage({
           projectPhotoDataUrl:
             typeof (payload as any)?.projectPhotoDataUrl === "string" && String((payload as any).projectPhotoDataUrl).startsWith("data:")
@@ -4698,21 +4735,46 @@ function EstimatesPageInner() {
         store[id] = lite;
         try {
           tryWrite(store);
+          localWriteOk = true;
           setSaveNotice("Saved without local photo cache (storage full on this device). ");
         } catch (e2) {
-          if (!isQuotaError(e2)) throw e2;
-          const pruned = pruneAndWrite(store);
-          if (Object.keys(pruned).length <= 1) {
-            setSaveNotice("Saved without local history (storage full on this device). ");
+          if (!isQuotaError(e2)) {
+            try {
+              setSaveNotice("Saved remotely (local storage unavailable on this device). ");
+            } catch {
+            }
           } else {
-            setSaveNotice("Saved after clearing old local drafts (storage full on this device). ");
+            try {
+              const pruned = pruneAndWrite(store);
+              localWriteOk = true;
+              if (Object.keys(pruned).length <= 1) {
+                setSaveNotice("Saved without local history (storage full on this device). ");
+              } else {
+                setSaveNotice("Saved after clearing old local drafts (storage full on this device). ");
+              }
+            } catch {
+              try {
+                tryWrite({ [id]: lite });
+                localWriteOk = true;
+                setSaveNotice("Saved without local history (storage full on this device). ");
+              } catch {
+                setSaveNotice("Saved remotely (local storage full on this device). ");
+              }
+            }
           }
+        }
         }
       }
       setDraftId(id);
 
       try {
-        await upsertDraft({ id, data: { ...(store[id] as any), _allowDestructiveUpdate: true } });
+        const res = await upsertDraft({ id, data: { ...(store[id] as any), _allowDestructiveUpdate: true } });
+        if (!res.ok && !localWriteOk) {
+          setSaveError(res.reason === "supabase_not_configured" ? "Failed to save: Remote saving is not configured." : "Failed to save.");
+        }
+        if (localWriteOk || res.ok) {
+          clearUnsavedSnapshot();
+        }
       } catch {
         // ignore
       }
@@ -5084,8 +5146,22 @@ function EstimatesPageInner() {
   }
 
   function isQuotaError(e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e || "");
-    return msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("exceeded") || msg.toLowerCase().includes("storage");
+    try {
+      const anyErr = e as any;
+      const name = typeof anyErr?.name === "string" ? anyErr.name : "";
+      const code = typeof anyErr?.code === "number" ? anyErr.code : undefined;
+      const msg = e instanceof Error ? e.message : String(e || "");
+      const m = String(msg || "").toLowerCase();
+      const n = String(name || "").toLowerCase();
+
+      if (n.includes("quota")) return true;
+      if (m.includes("quota") || m.includes("exceeded") || m.includes("storage") || m.includes("ns_error_dom_quota_reached")) return true;
+      // WebKit/Safari variants
+      if (code === 22 || code === 1014) return true;
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   function sanitizePhotosForStorage(input: {
@@ -6119,6 +6195,9 @@ function EstimatesPageInner() {
     setTakeoffUnitPriceOverrides({});
     setTakeoffUnitPriceOverrideDrafts({});
 
+    setTakeoffQtyOverrides({});
+    setTakeoffQtyOverrideDrafts({});
+
     setTakeoffManualItems([]);
     setTakeoffManualDraft({ desc: "", qty: "", unitPrice: "" });
 
@@ -6213,6 +6292,9 @@ function EstimatesPageInner() {
 
     setTakeoffUnitPriceOverrides({});
     setTakeoffUnitPriceOverrideDrafts({});
+
+    setTakeoffQtyOverrides({});
+    setTakeoffQtyOverrideDrafts({});
 
     const additionalItems = Array.isArray(d.items)
       ? (d.items as any[]).filter((it) => it && typeof it === "object" && (it as any).section === "additional")
@@ -6707,6 +6789,22 @@ function EstimatesPageInner() {
       setTakeoffUnitPriceOverrides({});
     }
     setTakeoffUnitPriceOverrideDrafts({});
+
+    if ((d as any).takeoffQtyOverrides && typeof (d as any).takeoffQtyOverrides === "object") {
+      setTakeoffQtyOverrides(() => {
+        const incoming = (d as any).takeoffQtyOverrides as Record<string, any>;
+        const out: Record<string, number> = {};
+        for (const [k, v] of Object.entries(incoming)) {
+          const n = Number(v);
+          if (!Number.isFinite(n)) continue;
+          out[String(k)] = n;
+        }
+        return out;
+      });
+    } else {
+      setTakeoffQtyOverrides({});
+    }
+    setTakeoffQtyOverrideDrafts({});
 
     setTakeoffManualItems(
       Array.isArray((d as any).takeoffManualItems)

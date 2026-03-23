@@ -3,7 +3,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { money } from "@/lib/money";
-import { DEFAULT_WORKSPACE_ID, fetchDraft } from "@/lib/draftsStore";
+import { DEFAULT_WORKSPACE_ID, fetchDraft, resolveWorkspaceId } from "@/lib/draftsStore";
 import { supabase, supabaseConfigured } from "@/lib/supabaseClient";
 import { computeMaterialsAndExpensesTotal } from "@/lib/totals";
 import type { QuoteItem } from "@/lib/types";
@@ -323,6 +323,31 @@ export default function EstimateContractPage() {
   const [embed, setEmbed] = React.useState(false);
   const [draftId, setDraftId] = React.useState<string>("");
 
+  const setDataFromDraft = React.useCallback((id: string, draft: any) => {
+    try {
+      const hasLineItems = Array.isArray((draft as any)?.items) || Array.isArray((draft as any)?.takeoffMaterials) || Array.isArray((draft as any)?.segments);
+      if (!hasLineItems && (draft as any)?.contract) {
+        const c = (draft as any).contract as ContractData;
+        const estName = String(((draft as any)?.title ?? (draft as any)?.estimateName ?? (draft as any)?.name ?? "") || "").trim();
+        if (estName && !String((c as any)?.estimate?.name || "").trim()) {
+          setData({
+            ...(c as any),
+            estimate: {
+              ...((c as any).estimate || {}),
+              name: estName
+            }
+          } as any);
+        } else {
+          setData(c);
+        }
+        return;
+      }
+
+      setData(buildContractFromDraft(id, draft));
+    } catch {
+    }
+  }, []);
+
   const computeDocTitle = React.useCallback((d: ContractData | null) => {
     try {
       if (!d) return "Estimate";
@@ -345,26 +370,22 @@ export default function EstimateContractPage() {
 
     const refresh = async () => {
       try {
+        let localTs = 0;
+        try {
+          const store = readDraftStore();
+          const local = store?.[draftId];
+          if (local) {
+            localTs = Number((local as any)?.updatedAt ?? (local as any)?.createdAt ?? 0) || 0;
+            setDataFromDraft(draftId, local);
+          }
+        } catch {
+        }
+
         const remote = await fetchDraft({ id: draftId });
         if (cancelled) return;
         if (remote.ok && remote.draft) {
-          if ((remote.draft as any).contract) {
-            const c = (remote.draft as any).contract as ContractData;
-            const estName = String(((remote.draft as any)?.title ?? (remote.draft as any)?.estimateName ?? (remote.draft as any)?.name ?? "") || "").trim();
-            if (estName && !String((c as any)?.estimate?.name || "").trim()) {
-              setData({
-                ...(c as any),
-                estimate: {
-                  ...((c as any).estimate || {}),
-                  name: estName
-                }
-              } as any);
-            } else {
-              setData(c);
-            }
-            return;
-          }
-          setData(buildContractFromDraft(draftId, remote.draft));
+          const remoteTs = Number((remote.draft as any)?.updatedAt ?? (remote.draft as any)?.createdAt ?? 0) || 0;
+          if (remoteTs >= localTs) setDataFromDraft(draftId, remote.draft);
         }
       } catch {
       }
@@ -388,6 +409,7 @@ export default function EstimateContractPage() {
     let realtimeChannel: any = null;
     try {
       if (supabaseConfigured) {
+        const workspaceId = resolveWorkspaceId();
         realtimeChannel = supabase
           .channel(`vf-contract-${draftId}`)
           .on(
@@ -396,15 +418,33 @@ export default function EstimateContractPage() {
               event: "*",
               schema: "public",
               table: "drafts",
-              filter: `workspace_id=eq.${DEFAULT_WORKSPACE_ID},draft_id=eq.${draftId}`
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
-            () => debouncedRefresh()
+            (payload: any) => {
+              try {
+                const changedId = String(payload?.new?.draft_id ?? payload?.old?.draft_id ?? "");
+                if (changedId && changedId !== draftId) return;
+              } catch {
+              }
+              debouncedRefresh();
+            }
           )
           .subscribe();
       }
     } catch {
       realtimeChannel = null;
     }
+
+    const onChanged = () => {
+      debouncedRefresh();
+    };
+    window.addEventListener("vf-drafts-changed", onChanged);
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key && e.key !== "vf_estimate_drafts_v1") return;
+      debouncedRefresh();
+    };
+    window.addEventListener("storage", onStorage);
 
     const onVisibility = () => {
       try {
@@ -429,6 +469,8 @@ export default function EstimateContractPage() {
         if (realtimeChannel) supabase.removeChannel(realtimeChannel);
       } catch {
       }
+      window.removeEventListener("vf-drafts-changed", onChanged);
+      window.removeEventListener("storage", onStorage);
     };
   }, [draftId]);
 
@@ -454,54 +496,22 @@ export default function EstimateContractPage() {
         })();
         if (!cancelled) setDraftId(nextDraftId);
         if (nextDraftId) {
-          const remote = await fetchDraft({ id: nextDraftId });
-          if (!cancelled && remote.ok && remote.draft) {
-            if ((remote.draft as any).contract) {
-              const c = (remote.draft as any).contract as ContractData;
-              const estName = String(((remote.draft as any)?.title ?? (remote.draft as any)?.estimateName ?? (remote.draft as any)?.name ?? "") || "").trim();
-              if (estName && !String((c as any)?.estimate?.name || "").trim()) {
-                setData({
-                  ...(c as any),
-                  estimate: {
-                    ...((c as any).estimate || {}),
-                    name: estName
-                  }
-                } as any);
-              } else {
-                setData(c);
-              }
-              return;
-            }
-            setData(buildContractFromDraft(nextDraftId, remote.draft));
-            return;
-          }
-
-          // Fallback: local-only draft (not in Supabase) or offline.
+          let localTs = 0;
           try {
             const store = readDraftStore();
             const local = store?.[nextDraftId];
             if (!cancelled && local) {
-              if ((local as any).contract) {
-                const c = (local as any).contract as ContractData;
-                const estName = String(((local as any)?.title ?? (local as any)?.estimateName ?? (local as any)?.name ?? "") || "").trim();
-                if (estName && !String((c as any)?.estimate?.name || "").trim()) {
-                  setData({
-                    ...(c as any),
-                    estimate: {
-                      ...((c as any).estimate || {}),
-                      name: estName
-                    }
-                  } as any);
-                } else {
-                  setData(c);
-                }
-                return;
-              }
-              setData(buildContractFromDraft(nextDraftId, local));
-              return;
+              localTs = Number((local as any)?.updatedAt ?? (local as any)?.createdAt ?? 0) || 0;
+              setDataFromDraft(nextDraftId, local);
             }
           } catch {
-            // ignore
+          }
+
+          const remote = await fetchDraft({ id: nextDraftId });
+          if (!cancelled && remote.ok && remote.draft) {
+            const remoteTs = Number((remote.draft as any)?.updatedAt ?? (remote.draft as any)?.createdAt ?? 0) || 0;
+            if (remoteTs >= localTs) setDataFromDraft(nextDraftId, remote.draft);
+            return;
           }
         }
       } catch {
@@ -521,7 +531,7 @@ export default function EstimateContractPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [setDataFromDraft]);
 
   React.useEffect(() => {
     setPortalReady(true);

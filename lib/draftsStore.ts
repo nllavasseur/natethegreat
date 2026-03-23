@@ -84,9 +84,21 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
 
   try {
     const incoming = params.data;
-    const incomingUpdatedAt = draftUpdatedAtMs(incoming);
-    const incomingHasData = draftHasMeaningfulData(incoming);
-    let nextDraft = incoming;
+    const allowDestructiveUpdate = Boolean((incoming as any)?._allowDestructiveUpdate);
+    const incomingClean = (() => {
+      try {
+        if (!incoming || typeof incoming !== "object") return incoming;
+        const next: any = { ...(incoming as any) };
+        delete next._allowDestructiveUpdate;
+        return next;
+      } catch {
+        return incoming;
+      }
+    })();
+
+    const incomingUpdatedAt = draftUpdatedAtMs(incomingClean);
+    const incomingHasData = draftHasMeaningfulData(incomingClean);
+    let nextDraft = incomingClean;
 
     if (!RESERVED_DRAFT_IDS.has(String(params.id || ""))) {
       try {
@@ -110,18 +122,18 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
           const incomingEffectiveUpdatedAt = Math.max(incomingUpdatedAt, 0);
 
           if (remoteEffectiveUpdatedAt > 0 && incomingEffectiveUpdatedAt > 0 && remoteEffectiveUpdatedAt > incomingEffectiveUpdatedAt) {
-            if (!draftHasPatchIntent(incoming)) {
+            if (!allowDestructiveUpdate && !draftHasPatchIntent(incomingClean)) {
               return { ok: false as const, reason: "stale_write" as const };
             }
           }
 
-          if (!incomingHasData && remoteHasData && !draftHasPatchIntent(incoming)) {
+          if (!incomingHasData && remoteHasData && !allowDestructiveUpdate && !draftHasPatchIntent(incomingClean)) {
             return { ok: false as const, reason: "prevent_empty_overwrite" as const };
           }
 
           try {
-            if (remoteDraft && typeof remoteDraft === "object" && incoming && typeof incoming === "object") {
-              const merged: any = { ...(remoteDraft as any), ...(incoming as any) };
+            if (remoteDraft && typeof remoteDraft === "object" && incomingClean && typeof incomingClean === "object") {
+              const merged: any = { ...(remoteDraft as any), ...(incomingClean as any) };
               if ((incoming as any).items == null && (remoteDraft as any).items != null) merged.items = (remoteDraft as any).items;
               if ((incoming as any).takeoffMaterials == null && (remoteDraft as any).takeoffMaterials != null)
                 merged.takeoffMaterials = (remoteDraft as any).takeoffMaterials;
@@ -136,7 +148,7 @@ export async function upsertDraft(params: { id: string; data: any; workspaceId?:
               nextDraft = merged;
             }
           } catch {
-            nextDraft = incoming;
+            nextDraft = incomingClean;
           }
         }
       } catch {
