@@ -8117,63 +8117,41 @@ function EstimatesPageInner() {
                                       <div className="mt-1 grid grid-cols-12 gap-2 items-end">
                                         <div className="col-span-4">
                                           <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
-                                          <div className="flex items-center gap-2">
-                                            <Input
-                                              type="tel"
-                                              inputMode="decimal"
-                                              value={
-                                                takeoffQtyOverrideDrafts[takeoffLineKeyForItem(m)] ??
-                                                (() => {
-                                                  const k = takeoffLineKeyForItem(m);
-                                                  const override = Number((takeoffQtyOverrides as any)[k]);
-                                                  if (Number.isFinite(override)) return String(override);
-                                                  return String(Number((m as any).qty) || 0);
-                                                })()
-                                              }
-                                              onChange={(e) =>
-                                                setTakeoffQtyOverrideDrafts((prev) => ({
-                                                  ...prev,
-                                                  [takeoffLineKeyForItem(m)]: e.target.value
-                                                }))
-                                              }
-                                              onBlur={() => {
-                                                const k = takeoffLineKeyForItem(m);
-                                                const raw = takeoffQtyOverrideDrafts[k];
-                                                if (raw === undefined) return;
-                                                const trimmed = String(raw || "").trim();
-                                                const parsed = trimmed === "" ? NaN : Number(trimmed);
-                                                setTakeoffQtyOverrides((prev) => {
-                                                  const next = { ...prev };
-                                                  if (trimmed === "") {
-                                                    delete next[k];
-                                                  } else {
-                                                    next[k] = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+                                          <div className="grid gap-1">
+                                            <div className="flex items-center gap-2">
+                                              <div className="flex-1 min-w-0">
+                                                <Input
+                                                  className="w-full"
+                                                  type="tel"
+                                                  inputMode="decimal"
+                                                  value={
+                                                    takeoffQtyOverrideDrafts[takeoffLineKeyForItem(m)] ??
+                                                    (() => {
+                                                      const k = takeoffLineKeyForItem(m);
+                                                      const override = Number((takeoffQtyOverrides as any)[k]);
+                                                      if (Number.isFinite(override)) return String(override);
+                                                      return String(Number((m as any).qty) || 0);
+                                                    })()
                                                   }
-                                                  return next;
-                                                });
-                                                setTakeoffQtyOverrideDrafts((prev) => {
-                                                  const next = { ...prev };
-                                                  delete next[k];
-                                                  return next;
-                                                });
-                                              }}
-                                            />
-                                            <div className="text-[11px] text-[var(--muted)] whitespace-nowrap">{String((m as any).unit || "")}</div>
-                                            {(() => {
-                                              const k = takeoffLineKeyForItem(m);
-                                              const override = Number((takeoffQtyOverrides as any)[k]);
-                                              if (!Number.isFinite(override)) return null;
-                                              return (
-                                                <SecondaryButton
-                                                  type="button"
-                                                  data-no-swipe="true"
-                                                  className="px-2 py-2"
-                                                  aria-label="Reset quantity"
-                                                  title="Reset quantity"
-                                                  onClick={() => {
+                                                  onChange={(e) =>
+                                                    setTakeoffQtyOverrideDrafts((prev) => ({
+                                                      ...prev,
+                                                      [takeoffLineKeyForItem(m)]: e.target.value
+                                                    }))
+                                                  }
+                                                  onBlur={() => {
+                                                    const k = takeoffLineKeyForItem(m);
+                                                    const raw = takeoffQtyOverrideDrafts[k];
+                                                    if (raw === undefined) return;
+                                                    const trimmed = String(raw || "").trim();
+                                                    const parsed = trimmed === "" ? NaN : Number(trimmed);
                                                     setTakeoffQtyOverrides((prev) => {
                                                       const next = { ...prev };
-                                                      delete next[k];
+                                                      if (trimmed === "") {
+                                                        delete next[k];
+                                                      } else {
+                                                        next[k] = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+                                                      }
                                                       return next;
                                                     });
                                                     setTakeoffQtyOverrideDrafts((prev) => {
@@ -8181,24 +8159,51 @@ function EstimatesPageInner() {
                                                       delete next[k];
                                                       return next;
                                                     });
-                                                    setTakeoffMaterialsStable((prev) =>
-                                                      (Array.isArray(prev) ? prev : []).map((row) => {
-                                                        const rk = takeoffLineKeyForItem(row);
-                                                        if (rk !== k) return row;
-                                                        const auto = takeoffPerPanelAddonItems.find((x) => takeoffLineKeyForItem(x) === k);
-                                                        if (!auto) return row;
-                                                        const qty = Number((auto as any).qty) || 0;
-                                                        const unitPrice = Number((row as any).unitPrice) || 0;
-                                                        const lineTotal = Math.round(qty * unitPrice * 100) / 100;
-                                                        return { ...(row as any), qty, lineTotal } as QuoteItem;
-                                                      })
-                                                    );
                                                   }}
-                                                >
-                                                  <IconRefresh className="w-4 h-4" />
-                                                </SecondaryButton>
-                                              );
-                                            })()}
+                                                />
+                                              </div>
+                                              {(() => {
+                                                const k = takeoffLineKeyForItem(m);
+                                                const override = Number((takeoffQtyOverrides as any)[k]);
+                                                if (!Number.isFinite(override)) return null;
+                                                return (
+                                                  <SecondaryButton
+                                                    type="button"
+                                                    data-no-swipe="true"
+                                                    className="px-2 py-2"
+                                                    aria-label="Reset quantity"
+                                                    title="Reset quantity"
+                                                    onClick={() => {
+                                                      setTakeoffQtyOverrides((prev) => {
+                                                        const next = { ...prev };
+                                                        delete next[k];
+                                                        return next;
+                                                      });
+                                                      setTakeoffQtyOverrideDrafts((prev) => {
+                                                        const next = { ...prev };
+                                                        delete next[k];
+                                                        return next;
+                                                      });
+                                                      setTakeoffMaterialsStable((prev) =>
+                                                        (Array.isArray(prev) ? prev : []).map((row) => {
+                                                          const rk = takeoffLineKeyForItem(row);
+                                                          if (rk !== k) return row;
+                                                          const auto = takeoffPerPanelAddonItems.find((x) => takeoffLineKeyForItem(x) === k);
+                                                          if (!auto) return row;
+                                                          const qty = Number((auto as any).qty) || 0;
+                                                          const unitPrice = Number((row as any).unitPrice) || 0;
+                                                          const lineTotal = Math.round(qty * unitPrice * 100) / 100;
+                                                          return { ...(row as any), qty, lineTotal } as QuoteItem;
+                                                        })
+                                                      );
+                                                    }}
+                                                  >
+                                                    <IconRefresh className="w-4 h-4" />
+                                                  </SecondaryButton>
+                                                );
+                                              })()}
+                                            </div>
+                                            <div className="text-[11px] text-[var(--muted)]">{String((m as any).unit || "")}</div>
                                           </div>
                                         </div>
                                         <div className="col-span-4">
@@ -8249,98 +8254,103 @@ function EstimatesPageInner() {
                                   <div className="mt-1 grid grid-cols-12 gap-2 items-end">
                                     <div className="col-span-4">
                                       <div className="text-[11px] text-[var(--muted)] mb-1">Qty</div>
-                                      <div className="flex items-center gap-2">
-                                        <Input
-                                          type="tel"
-                                          inputMode="decimal"
-                                          value={
-                                            takeoffQtyOverrideDrafts[takeoffLineKeyForItem(m)] ??
-                                            (() => {
-                                              const k = takeoffLineKeyForItem(m);
-                                              const override = Number((takeoffQtyOverrides as any)[k]);
-                                              if (Number.isFinite(override)) return String(override);
-                                              return String(m.qty ?? 0);
-                                            })()
-                                          }
-                                          onChange={(e) =>
-                                            setTakeoffQtyOverrideDrafts((prev) => ({
-                                              ...prev,
-                                              [takeoffLineKeyForItem(m)]: e.target.value
-                                            }))
-                                          }
-                                          onBlur={() => {
-                                            const k = takeoffLineKeyForItem(m);
-                                            const raw = takeoffQtyOverrideDrafts[k];
-                                            if (raw === undefined) return;
-                                            const trimmed = String(raw || "").trim();
-                                            const parsed = trimmed === "" ? NaN : Number(trimmed);
-                                            setTakeoffQtyOverrides((prev) => {
-                                              const next = { ...prev };
-                                              if (trimmed === "") {
-                                                delete next[k];
-                                              } else {
-                                                next[k] = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+                                      <div className="grid gap-1">
+                                        <div className="flex items-center gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <Input
+                                              className="w-full"
+                                              type="tel"
+                                              inputMode="decimal"
+                                              value={
+                                                takeoffQtyOverrideDrafts[takeoffLineKeyForItem(m)] ??
+                                                (() => {
+                                                  const k = takeoffLineKeyForItem(m);
+                                                  const override = Number((takeoffQtyOverrides as any)[k]);
+                                                  if (Number.isFinite(override)) return String(override);
+                                                  return String(m.qty ?? 0);
+                                                })()
                                               }
-                                              return next;
-                                            });
-                                            setTakeoffMaterialsStable((prev) =>
-                                              (Array.isArray(prev) ? prev : []).map((row) => {
-                                                const rk = takeoffLineKeyForItem(row);
-                                                if (rk !== k) return row;
-                                                const qty = trimmed === "" ? Number((row as any).qty) || 0 : (Number.isFinite(parsed) ? Math.max(0, parsed) : 0);
-                                                const unitPrice = Number((row as any).unitPrice) || 0;
-                                                const lineTotal = Math.round(qty * unitPrice * 100) / 100;
-                                                return { ...(row as any), qty, lineTotal } as QuoteItem;
-                                              })
-                                            );
-                                            setTakeoffQtyOverrideDrafts((prev) => {
-                                              const next = { ...prev };
-                                              delete next[k];
-                                              return next;
-                                            });
-                                          }}
-                                        />
-                                        <div className="text-[11px] text-[var(--muted)] whitespace-nowrap">{String(m.unit || "")}</div>
-                                        {(() => {
-                                          const k = takeoffLineKeyForItem(m);
-                                          const override = Number((takeoffQtyOverrides as any)[k]);
-                                          if (!Number.isFinite(override)) return null;
-                                          return (
-                                            <SecondaryButton
-                                              type="button"
-                                              data-no-swipe="true"
-                                              className="px-2 py-2"
-                                              aria-label="Reset quantity"
-                                              title="Reset quantity"
-                                              onClick={() => {
+                                              onChange={(e) =>
+                                                setTakeoffQtyOverrideDrafts((prev) => ({
+                                                  ...prev,
+                                                  [takeoffLineKeyForItem(m)]: e.target.value
+                                                }))
+                                              }
+                                              onBlur={() => {
+                                                const k = takeoffLineKeyForItem(m);
+                                                const raw = takeoffQtyOverrideDrafts[k];
+                                                if (raw === undefined) return;
+                                                const trimmed = String(raw || "").trim();
+                                                const parsed = trimmed === "" ? NaN : Number(trimmed);
                                                 setTakeoffQtyOverrides((prev) => {
                                                   const next = { ...prev };
-                                                  delete next[k];
-                                                  return next;
-                                                });
-                                                setTakeoffQtyOverrideDrafts((prev) => {
-                                                  const next = { ...prev };
-                                                  delete next[k];
+                                                  if (trimmed === "") {
+                                                    delete next[k];
+                                                  } else {
+                                                    next[k] = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+                                                  }
                                                   return next;
                                                 });
                                                 setTakeoffMaterialsStable((prev) =>
                                                   (Array.isArray(prev) ? prev : []).map((row) => {
                                                     const rk = takeoffLineKeyForItem(row);
                                                     if (rk !== k) return row;
-                                                    const auto = generatedMaterials.find((x) => takeoffLineKeyForItem(x) === k);
-                                                    if (!auto) return row;
-                                                    const qty = Number((auto as any).qty) || 0;
+                                                    const qty = trimmed === "" ? Number((row as any).qty) || 0 : (Number.isFinite(parsed) ? Math.max(0, parsed) : 0);
                                                     const unitPrice = Number((row as any).unitPrice) || 0;
                                                     const lineTotal = Math.round(qty * unitPrice * 100) / 100;
                                                     return { ...(row as any), qty, lineTotal } as QuoteItem;
                                                   })
                                                 );
+                                                setTakeoffQtyOverrideDrafts((prev) => {
+                                                  const next = { ...prev };
+                                                  delete next[k];
+                                                  return next;
+                                                });
                                               }}
-                                            >
-                                              <IconRefresh className="w-4 h-4" />
-                                            </SecondaryButton>
-                                          );
-                                        })()}
+                                            />
+                                          </div>
+                                          {(() => {
+                                            const k = takeoffLineKeyForItem(m);
+                                            const override = Number((takeoffQtyOverrides as any)[k]);
+                                            if (!Number.isFinite(override)) return null;
+                                            return (
+                                              <SecondaryButton
+                                                type="button"
+                                                data-no-swipe="true"
+                                                className="px-2 py-2"
+                                                aria-label="Reset quantity"
+                                                title="Reset quantity"
+                                                onClick={() => {
+                                                  setTakeoffQtyOverrides((prev) => {
+                                                    const next = { ...prev };
+                                                    delete next[k];
+                                                    return next;
+                                                  });
+                                                  setTakeoffQtyOverrideDrafts((prev) => {
+                                                    const next = { ...prev };
+                                                    delete next[k];
+                                                    return next;
+                                                  });
+                                                  setTakeoffMaterialsStable((prev) =>
+                                                    (Array.isArray(prev) ? prev : []).map((row) => {
+                                                      const rk = takeoffLineKeyForItem(row);
+                                                      if (rk !== k) return row;
+                                                      const auto = generatedMaterials.find((x) => takeoffLineKeyForItem(x) === k);
+                                                      if (!auto) return row;
+                                                      const qty = Number((auto as any).qty) || 0;
+                                                      const unitPrice = Number((row as any).unitPrice) || 0;
+                                                      const lineTotal = Math.round(qty * unitPrice * 100) / 100;
+                                                      return { ...(row as any), qty, lineTotal } as QuoteItem;
+                                                    })
+                                                  );
+                                                }}
+                                              >
+                                                <IconRefresh className="w-4 h-4" />
+                                              </SecondaryButton>
+                                            );
+                                          })()}
+                                        </div>
+                                        <div className="text-[11px] text-[var(--muted)]">{String(m.unit || "")}</div>
                                       </div>
                                     </div>
                                     <div className="col-span-4">
