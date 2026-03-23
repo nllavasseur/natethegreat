@@ -43,3 +43,23 @@ export function IconPortfolio(props: P) {
     </svg>
   );
 }
+
+export function IconRefresh(props: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M20 12a8 8 0 1 1-2.34-5.66"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 4v6h-6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
