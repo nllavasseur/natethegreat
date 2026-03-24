@@ -153,6 +153,8 @@ type CalendarTask = {
   atIso: string;
   description: string;
   createdAt: number;
+  updatedAt?: number;
+  deletedAt?: number;
 };
 
 type DraftEntry = {
@@ -314,7 +316,18 @@ function readTaskStore(): CalendarTask[] {
   try {
     const raw = window.localStorage.getItem("vf_calendar_tasks_v1");
     const parsed = raw ? (JSON.parse(raw) as any) : [];
-    return Array.isArray(parsed) ? (parsed as CalendarTask[]) : [];
+    const list = Array.isArray(parsed) ? (parsed as any[]) : [];
+    return list
+      .filter((t) => t && typeof t === "object")
+      .map((t) => ({
+        id: String((t as any).id || ""),
+        atIso: String((t as any).atIso || ""),
+        description: String((t as any).description || ""),
+        createdAt: Number((t as any).createdAt) || 0,
+        updatedAt: Number((t as any).updatedAt) || undefined,
+        deletedAt: Number((t as any).deletedAt) || undefined
+      }))
+      .filter((t) => Boolean(t.id));
   } catch {
     return [];
   }
@@ -345,6 +358,7 @@ async function upsertTasksRemote(list: CalendarTask[]) {
 }
 
 function mergeTaskLists(localList: CalendarTask[], remoteList: CalendarTask[]) {
+  const ts = (t: any) => Number((t as any)?.updatedAt ?? (t as any)?.createdAt ?? 0) || 0;
   const byId = new Map<string, CalendarTask>();
   for (const t of Array.isArray(remoteList) ? remoteList : []) {
     const id = String((t as any)?.id || "");
@@ -359,8 +373,8 @@ function mergeTaskLists(localList: CalendarTask[], remoteList: CalendarTask[]) {
       byId.set(id, t);
       continue;
     }
-    const p = Number((prev as any)?.createdAt) || 0;
-    const n = Number((t as any)?.createdAt) || 0;
+    const p = ts(prev);
+    const n = ts(t);
     if (n >= p) byId.set(id, t);
   }
   return Array.from(byId.values());
@@ -1067,14 +1081,17 @@ export default function CalendarPage() {
       // After the fast path sets the calendar, kick off a slower backfill for completes.
       backfillCompletes();
 
-      const mergedBlocks = mergeBlockOutLists(localBlocks, remoteBlocks);
+      const latestLocalBlocks = readBlockOutStore();
+      const latestLocalTasks = readTaskStore();
+
+      const mergedBlocks = mergeBlockOutLists(latestLocalBlocks, remoteBlocks);
       try {
         writeBlockOutStore(mergedBlocks);
       } catch {
       }
       if (!cancelled) setBlockOuts(mergedBlocks);
 
-      const mergedTasks = mergeTaskLists(localTasks, remoteTasks);
+      const mergedTasks = mergeTaskLists(latestLocalTasks, remoteTasks);
       try {
         writeTaskStore(mergedTasks);
       } catch {
@@ -2426,7 +2443,7 @@ export default function CalendarPage() {
 
   const tasksByDay = React.useMemo(() => {
     const map = new Map<string, CalendarTask[]>();
-    (tasks || []).forEach((t) => {
+    (tasks || []).filter((t) => !Number((t as any).deletedAt)).forEach((t) => {
       const iso = String((t as any).atIso || "");
       if (!iso) return;
       const dt = new Date(iso);
@@ -3639,7 +3656,12 @@ export default function CalendarPage() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            const next = readTaskStore().filter((x) => x.id !== t.id);
+                            const now = Date.now();
+                            const prev = readTaskStore();
+                            const next = prev.map((x) => {
+                              if (x.id !== t.id) return x;
+                              return { ...(x as any), deletedAt: now, updatedAt: now } as CalendarTask;
+                            });
                             writeTaskStore(next);
                             setTasks(next);
                             void upsertTasksRemote(next);
@@ -3713,7 +3735,8 @@ export default function CalendarPage() {
                     if (!Number.isFinite(dt.getTime())) return;
                     const atIso = dt.toISOString();
                     const id = `t_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-                    const next: CalendarTask = { id, atIso, description: desc, createdAt: Date.now() };
+                    const now = Date.now();
+                    const next: CalendarTask = { id, atIso, description: desc, createdAt: now, updatedAt: now };
                     const list = [...readTaskStore(), next];
                     writeTaskStore(list);
                     setTasks(list);
