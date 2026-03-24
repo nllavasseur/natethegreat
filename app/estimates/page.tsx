@@ -11350,7 +11350,8 @@ function EstimatesPageInner() {
                               selectedStyleKind !== "wood_shadowbox" &&
                               selectedStyleKind !== "wood_shadowbox_pickets" &&
                               selectedStyleKind !== "wood_shadowbox_top_cap" &&
-                              selectedStyleKind !== "wood_board_on_board" ? (
+                              selectedStyleKind !== "wood_board_on_board" &&
+                              selectedStyleKind !== "wood_board_on_board_fence" ? (
                                 selectedStyleKind === "wood_niko" || selectedStyleKind === "wood_casto" ? (
                                   <div className="mt-3 grid grid-cols-2 gap-3">
                                     <div className="rounded-xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-2">
