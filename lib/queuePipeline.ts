@@ -152,16 +152,57 @@ async function fetchRemoteMaxSoldRank() {
   }
 }
 
-async function safeUpsert(id: string, data: any) {
+type RemoteUpsertResult = {
+  ok: boolean;
+  canonicalOk: boolean;
+  draftOk: boolean;
+  canonicalReason?: string;
+  draftReason?: string;
+};
+
+async function safeUpsert(id: string, data: any): Promise<RemoteUpsertResult> {
+  const sid = String(id);
+  let canonicalOk = false;
+  let draftOk = false;
+  let canonicalReason = "";
+  let draftReason = "";
+
   try {
-    try {
-      await upsertCanonicalQuote({ id: String(id), data });
-    } catch {
-      // ignore
-    }
-    await upsertDraft({ id: String(id), data });
+    const res = await upsertCanonicalQuote({ id: sid, data });
+    canonicalOk = Boolean((res as any)?.ok);
+    if (!canonicalOk) canonicalReason = String((res as any)?.reason || "canonical_upsert_failed");
+  } catch (e: any) {
+    canonicalOk = false;
+    canonicalReason = String(e?.message || e || "canonical_upsert_exception");
+  }
+
+  try {
+    const res = await upsertDraft({ id: sid, data });
+    draftOk = Boolean((res as any)?.ok);
+    if (!draftOk) draftReason = String((res as any)?.reason || "draft_upsert_failed");
+  } catch (e: any) {
+    draftOk = false;
+    draftReason = String(e?.message || e || "draft_upsert_exception");
+  }
+
+  const ok = Boolean(canonicalOk || draftOk);
+  return {
+    ok,
+    canonicalOk,
+    draftOk,
+    ...(canonicalReason ? { canonicalReason } : {}),
+    ...(draftReason ? { draftReason } : {})
+  };
+}
+
+function isLockedSlot(d: QueueDraft) {
+  try {
+    if ((d as any).queueLocked === false) return false;
+    const ts = Number((d as any).queueLockedAt);
+    const hasTs = Number.isFinite(ts) && ts > 0;
+    return Boolean((d as any).queueLocked === true || hasTs);
   } catch {
-    // ignore
+    return false;
   }
 }
 
@@ -215,9 +256,9 @@ export async function setStatusFromQuotes(params: {
   store[sid] = next;
   writeStore(store);
   writeQuotesStatusCache(sid, status, ts);
-  await safeUpsert(sid, next);
+  const remote = await safeUpsert(sid, next);
   notifyDraftsChanged();
-  return { ok: true as const, draft: next };
+  return { ok: true as const, draft: next, remoteOk: remote.ok, remote };
 }
 
 export async function adjustLaborDays(params: { id: string; delta: number; fallback?: QueueDraft }) {
@@ -235,9 +276,9 @@ export async function adjustLaborDays(params: { id: string; delta: number; fallb
   const next: QueueDraft = { ...prev, id: sid, laborDays: nextDays, originalLaborDays, updatedAt: now() };
   store[sid] = next;
   writeStore(store);
-  await safeUpsert(sid, next);
+  const remote = await safeUpsert(sid, next);
   notifyDraftsChanged();
-  return { ok: true as const, draft: next };
+  return { ok: true as const, draft: next, remoteOk: remote.ok, remote };
 }
 
 export async function resetLaborDays(params: { id: string; fallback?: QueueDraft }) {
@@ -250,9 +291,9 @@ export async function resetLaborDays(params: { id: string; fallback?: QueueDraft
   const next: QueueDraft = { ...prev, id: sid, laborDays: Math.max(1, Math.round(orig)), updatedAt: now() };
   store[sid] = next;
   writeStore(store);
-  await safeUpsert(sid, next);
+  const remote = await safeUpsert(sid, next);
   notifyDraftsChanged();
-  return { ok: true as const, draft: next };
+  return { ok: true as const, draft: next, remoteOk: remote.ok, remote };
 }
 
 export async function setHoldDate(params: { id: string; iso?: string; fallback?: QueueDraft }) {
@@ -262,9 +303,9 @@ export async function setHoldDate(params: { id: string; iso?: string; fallback?:
   const next: QueueDraft = { ...prev, id: sid, holdDate: params.iso, updatedAt: now() };
   store[sid] = next;
   writeStore(store);
-  await safeUpsert(sid, next);
+  const remote = await safeUpsert(sid, next);
   notifyDraftsChanged();
-  return { ok: true as const, draft: next };
+  return { ok: true as const, draft: next, remoteOk: remote.ok, remote };
 }
 
 export async function setQueueLocked(params: {
@@ -297,9 +338,9 @@ export async function setQueueLocked(params: {
 
   store[sid] = next;
   writeStore(store);
-  await safeUpsert(sid, next);
+  const remote = await safeUpsert(sid, next);
   notifyDraftsChanged();
-  return { ok: true as const, draft: next };
+  return { ok: true as const, draft: next, remoteOk: remote.ok, remote };
 }
 
 export async function toggleWeekendAllowed(params: { id: string; which: "sat" | "sun"; fallback?: QueueDraft }) {
@@ -316,9 +357,9 @@ export async function toggleWeekendAllowed(params: { id: string; which: "sat" | 
   const next: QueueDraft = { ...prev, id: sid, ...nextFlags, updatedAt: now() };
   store[sid] = next;
   writeStore(store);
-  await safeUpsert(sid, next);
+  const remote = await safeUpsert(sid, next);
   notifyDraftsChanged();
-  return { ok: true as const, draft: next };
+  return { ok: true as const, draft: next, remoteOk: remote.ok, remote };
 }
 
 function isHold(d: QueueDraft) {
@@ -360,6 +401,9 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
   const sold = soldQueueFromStore(store);
   const full = sold.map((d) => ({ ...d }));
 
+  const lockedSlots = new Set<number>();
+  const locked: QueueDraft[] = [];
+
   const holdSlots = new Set<number>();
   const holds: QueueDraft[] = [];
   const movable: QueueDraft[] = [];
@@ -367,20 +411,34 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
     if (isHold(d)) {
       holdSlots.add(idx);
       holds.push(d);
+    } else if (isLockedSlot(d)) {
+      lockedSlots.add(idx);
+      locked.push(d);
     } else {
       movable.push(d);
     }
   });
 
-  const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
+  const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx) && !lockedSlots.has(idx));
   const curFullIdx = full.findIndex((d) => String(d.id) === sid);
   if (curFullIdx === -1) return { ok: false as const, reason: "NOT_FOUND" as const };
   if (holdSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_HOLD" as const };
+  if (lockedSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_LOCKED" as const };
 
   const curMovIdx = movableSlots.indexOf(curFullIdx);
   if (curMovIdx === -1) return { ok: false as const, reason: "NOT_MOVABLE" as const };
   const nextMovIdx = curMovIdx + params.dir;
   if (nextMovIdx < 0 || nextMovIdx >= movableSlots.length) return { ok: false as const, reason: "OUT_OF_RANGE" as const };
+
+  const nextFullIdx = movableSlots[nextMovIdx];
+  try {
+    const min = Math.min(curFullIdx, nextFullIdx);
+    const max = Math.max(curFullIdx, nextFullIdx);
+    for (let i = min + 1; i <= max - 1; i++) {
+      if (lockedSlots.has(i)) return { ok: false as const, reason: "LOCKED_BARRIER" as const };
+    }
+  } catch {
+  }
 
   const from = movable.findIndex((d) => String(d.id) === sid);
   if (from === -1) return { ok: false as const, reason: "NOT_FOUND_MOVABLE" as const };
@@ -390,9 +448,10 @@ export async function moveSoldJobRelative(params: { id: string; dir: -1 | 1; sol
 
   const rebuilt: QueueDraft[] = new Array(full.length);
   let h = 0;
+  let l = 0;
   let m = 0;
   for (let i = 0; i < rebuilt.length; i++) {
-    rebuilt[i] = holdSlots.has(i) ? holds[h++] : movable[m++];
+    rebuilt[i] = holdSlots.has(i) ? holds[h++] : lockedSlots.has(i) ? locked[l++] : movable[m++];
   }
 
   // Persist new ranks (1..N)
@@ -422,6 +481,9 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
   const sold = soldQueueFromStore(store);
   const full = sold.map((d) => ({ ...d }));
 
+  const lockedSlots = new Set<number>();
+  const locked: QueueDraft[] = [];
+
   const holdSlots = new Set<number>();
   const holds: QueueDraft[] = [];
   const movable: QueueDraft[] = [];
@@ -429,19 +491,33 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
     if (isHold(d)) {
       holdSlots.add(idx);
       holds.push(d);
+    } else if (isLockedSlot(d)) {
+      lockedSlots.add(idx);
+      locked.push(d);
     } else {
       movable.push(d);
     }
   });
 
-  const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx));
+  const movableSlots = full.map((_, idx) => idx).filter((idx) => !holdSlots.has(idx) && !lockedSlots.has(idx));
   const curFullIdx = full.findIndex((d) => String(d.id) === sid);
   if (curFullIdx === -1) return { ok: false as const, reason: "NOT_FOUND" as const };
   if (holdSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_HOLD" as const };
+  if (lockedSlots.has(curFullIdx)) return { ok: false as const, reason: "IS_LOCKED" as const };
 
   const desiredFullIdx = Math.max(0, Math.min(full.length - 1, Math.round(params.targetPos) - 1));
+  if (lockedSlots.has(desiredFullIdx)) return { ok: false as const, reason: "TARGET_IS_LOCKED" as const };
   const desiredMovIdx = movableSlots.findIndex((idx) => idx === desiredFullIdx);
   if (desiredMovIdx === -1) return { ok: false as const, reason: "TARGET_IS_HOLD" as const };
+
+  try {
+    const min = Math.min(curFullIdx, desiredFullIdx);
+    const max = Math.max(curFullIdx, desiredFullIdx);
+    for (let i = min + 1; i <= max - 1; i++) {
+      if (lockedSlots.has(i)) return { ok: false as const, reason: "LOCKED_BARRIER" as const };
+    }
+  } catch {
+  }
 
   const from = movable.findIndex((d) => String(d.id) === sid);
   if (from === -1) return { ok: false as const, reason: "NOT_FOUND_MOVABLE" as const };
@@ -451,9 +527,10 @@ export async function moveSoldJobToPosition(params: { id: string; targetPos: num
 
   const rebuilt: QueueDraft[] = new Array(full.length);
   let h = 0;
+  let l = 0;
   let m = 0;
   for (let i = 0; i < rebuilt.length; i++) {
-    rebuilt[i] = holdSlots.has(i) ? holds[h++] : movable[m++];
+    rebuilt[i] = holdSlots.has(i) ? holds[h++] : lockedSlots.has(i) ? locked[l++] : movable[m++];
   }
 
   rebuilt.forEach((d, idx) => {

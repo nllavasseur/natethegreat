@@ -631,6 +631,8 @@ export default function CalendarPage() {
   const [dayPreviewOpen, setDayPreviewOpen] = React.useState(false);
   const suppressDayPreviewOpenUntilRef = React.useRef(0);
   const localMutationEpochRef = React.useRef(0);
+  const [pendingSaveById, setPendingSaveById] = React.useState<Record<string, { startedAt: number; op: string }>>({});
+  const [saveErrorById, setSaveErrorById] = React.useState<Record<string, string>>({});
   const [drafts, setDrafts] = React.useState<DraftEntry[]>(() => getCalendarDraftsSession<DraftEntry[]>() ?? []);
   const [blockOuts, setBlockOuts] = React.useState<BlockOut[]>([]);
   const [portalReady, setPortalReady] = React.useState(false);
@@ -699,9 +701,31 @@ export default function CalendarPage() {
   const setQueueLocked = React.useCallback((id: string, locked: boolean, startIso?: string, fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+    setPendingSaveById((prev) => ({ ...(prev as any), [sid]: { startedAt: Date.now(), op: "lock" } }));
+    setSaveErrorById((prev) => {
+      const next: any = { ...(prev as any) };
+      delete next[sid];
+      return next;
+    });
     void (async () => {
       const res = await setQueueLockedPipeline({ id: sid, locked, startIso, fallback: fallback as any });
+      setPendingSaveById((prev) => {
+        const next: any = { ...(prev as any) };
+        delete next[sid];
+        return next;
+      });
       if (!res.ok) return;
+      if ((res as any).remoteOk === false) {
+        const r = (res as any).remote;
+        const reason = String(r?.draftReason || r?.canonicalReason || "REMOTE_SAVE_FAILED");
+        setSaveErrorById((prev) => ({ ...(prev as any), [sid]: reason }));
+      } else {
+        setSaveErrorById((prev) => {
+          const next: any = { ...(prev as any) };
+          delete next[sid];
+          return next;
+        });
+      }
       setDrafts((prev) => {
         const nextOne = { ...(res.draft as any) };
         const idx = prev.findIndex((d) => String(d.id) === sid);
@@ -803,6 +827,8 @@ export default function CalendarPage() {
         return;
       }
       remoteRefreshInFlightRef.current = true;
+
+      const refreshStartedAt = Date.now();
 
       // Do remote fetch/merge in the background. On poor service this can take a while,
       // but the UI should already be populated from localStorage.
@@ -1060,12 +1086,53 @@ export default function CalendarPage() {
 
       // Re-read local store right before merge so recent local mutations (toggles, locks, moves)
       // can't be overwritten by a stale snapshot captured before the remote fetch finished.
-      const latestLocalList = readLocalLiteList();
+      const latestLocalList = (() => {
+        try {
+          // If there was a recent local mutation, prefer the authoritative local draft store.
+          // Calendar-specific caches can lag behind queuePipeline writes and cause UI to bounce.
+          if (Date.now() - localMutationEpochRef.current < 8000) {
+            const store = readDraftStore();
+            return Object.values(store).map((d) => toCalendarDraftLite(d));
+          }
+        } catch {
+        }
+        return readLocalLiteList();
+      })();
 
       const merged = mergeDraftLists(latestLocalList, remoteList);
 
       const mergedLite = (Array.isArray(merged) ? merged : []).map((d) => toCalendarDraftLite(d));
+
+      if (refreshStartedAt < localMutationEpochRef.current) {
+        remoteRefreshInFlightRef.current = false;
+        remoteRefreshQueuedRef.current = false;
+        window.setTimeout(() => void refreshRemote(), 0);
+        return;
+      }
+
       if (!cancelled) setDrafts(mergedLite);
+
+      try {
+        const remoteById = new Map<string, any>();
+        (Array.isArray(remoteList) ? remoteList : []).forEach((d: any) => {
+          const id = String(d?.id || "");
+          if (!id) return;
+          remoteById.set(id, d);
+        });
+        setSaveErrorById((prev) => {
+          const next: any = { ...(prev as any) };
+          Object.keys(next).forEach((id) => {
+            const r = remoteById.get(String(id));
+            if (!r) return;
+            const l = (Array.isArray(latestLocalList) ? latestLocalList : []).find((d: any) => String(d?.id || "") === String(id));
+            const rTs = Number((r as any)?.updatedAt ?? (r as any)?.createdAt ?? 0) || 0;
+            const lTs = Number((l as any)?.updatedAt ?? (l as any)?.createdAt ?? 0) || 0;
+            if (rTs >= lTs && rTs > 0) delete next[id];
+          });
+          return next;
+        });
+      } catch {
+      }
       try {
         writeCalendarDraftsCache(mergedLite);
       } catch {
@@ -1252,7 +1319,7 @@ export default function CalendarPage() {
     };
     const onDraftsChanged = () => {
       try {
-        hydrateLocalFull();
+        if (Date.now() - localMutationEpochRef.current > 1200) hydrateLocalFull();
       } catch {
       }
       requestRefresh();
@@ -1489,6 +1556,12 @@ export default function CalendarPage() {
   const toggleWeekendAllowed = React.useCallback((id: string, which: "sat" | "sun", fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+    setPendingSaveById((prev) => ({ ...(prev as any), [sid]: { startedAt: Date.now(), op: "weekend" } }));
+    setSaveErrorById((prev) => {
+      const next: any = { ...(prev as any) };
+      delete next[sid];
+      return next;
+    });
 
     // Optimistic UI: immediately toggle weekend flag in local state.
     setDrafts((prev) =>
@@ -1506,7 +1579,23 @@ export default function CalendarPage() {
 
     void (async () => {
       const res = await toggleWeekendAllowedPipeline({ id: sid, which, fallback: fallback as any });
+      setPendingSaveById((prev) => {
+        const next: any = { ...(prev as any) };
+        delete next[sid];
+        return next;
+      });
       if (!res.ok) return;
+      if ((res as any).remoteOk === false) {
+        const r = (res as any).remote;
+        const reason = String(r?.draftReason || r?.canonicalReason || "REMOTE_SAVE_FAILED");
+        setSaveErrorById((prev) => ({ ...(prev as any), [sid]: reason }));
+      } else {
+        setSaveErrorById((prev) => {
+          const next: any = { ...(prev as any) };
+          delete next[sid];
+          return next;
+        });
+      }
       setDrafts((prev) => {
         const nextOne = { ...(res.draft as any) };
         const idx = prev.findIndex((d) => String(d.id) === sid);
@@ -1520,6 +1609,12 @@ export default function CalendarPage() {
   const resetLaborDays = React.useCallback((id: string, fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+    setPendingSaveById((prev) => ({ ...(prev as any), [sid]: { startedAt: Date.now(), op: "labor" } }));
+    setSaveErrorById((prev) => {
+      const next: any = { ...(prev as any) };
+      delete next[sid];
+      return next;
+    });
 
     // Optimistic UI: immediately reset days in local state.
     setDrafts((prev) =>
@@ -1534,35 +1629,74 @@ export default function CalendarPage() {
 
     void (async () => {
       const res = await resetLaborDaysPipeline({ id: sid, fallback: fallback as any });
-      if (!res.ok) return;
-      const store = readDraftStore();
-      setDrafts((prev) => {
-        const byId = new Map<string, any>();
-        prev.forEach((d) => {
-          const id = String((d as any)?.id || "");
-          if (id) byId.set(id, d);
-        });
-        Object.entries(store).forEach(([k, v]) => {
-          const id = String((v as any)?.id || k);
-          if (!id) return;
-          const prevOne = byId.get(id);
-          byId.set(id, prevOne ? { ...(prevOne as any), ...(v as any) } : (v as any));
-        });
-        return Array.from(byId.values());
+      setPendingSaveById((prev) => {
+        const next: any = { ...(prev as any) };
+        delete next[sid];
+        return next;
       });
-      setHighlightQueueId(sid);
-      if (highlightTimeoutRef.current) window.clearTimeout(highlightTimeoutRef.current);
-      highlightTimeoutRef.current = window.setTimeout(() => setHighlightQueueId(null), 500);
+      if (!res.ok) return;
+      if ((res as any).remoteOk === false) {
+        const r = (res as any).remote;
+        const reason = String(r?.draftReason || r?.canonicalReason || "REMOTE_SAVE_FAILED");
+        setSaveErrorById((prev) => ({ ...(prev as any), [sid]: reason }));
+      } else {
+        setSaveErrorById((prev) => {
+          const next: any = { ...(prev as any) };
+          delete next[sid];
+          return next;
+        });
+      }
+      setDrafts((prev) => {
+        const nextOne = { ...((res as any).draft as any) };
+        const idx = prev.findIndex((d) => String(d.id) === sid);
+        if (idx >= 0) return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
+        return [...prev, nextOne as any];
+      });
     })();
   }, [drafts]);
 
   const setHoldDate = React.useCallback((id: string, iso: string | undefined) => {
     const sid = String(id);
+    localMutationEpochRef.current = Date.now();
+    setPendingSaveById((prev) => ({ ...(prev as any), [sid]: { startedAt: Date.now(), op: "hold" } }));
+    setSaveErrorById((prev) => {
+      const next: any = { ...(prev as any) };
+      delete next[sid];
+      return next;
+    });
+
+    // Optimistic UI: immediately reflect the hold date in local state.
+    setDrafts((prev) =>
+      prev.map((d) => {
+        if (String((d as any).id) !== sid) return d;
+        return { ...(d as any), holdDate: iso } as any;
+      })
+    );
     void (async () => {
       const res = await setHoldDatePipeline({ id: sid, iso, fallback: (drafts.find((d) => String(d.id) === sid) as any) });
+      setPendingSaveById((prev) => {
+        const next: any = { ...(prev as any) };
+        delete next[sid];
+        return next;
+      });
       if (!res.ok) return;
-      const store = readDraftStore();
-      setDrafts(Object.values(store).map((d) => ({ ...d })));
+      if ((res as any).remoteOk === false) {
+        const r = (res as any).remote;
+        const reason = String(r?.draftReason || r?.canonicalReason || "REMOTE_SAVE_FAILED");
+        setSaveErrorById((prev) => ({ ...(prev as any), [sid]: reason }));
+      } else {
+        setSaveErrorById((prev) => {
+          const next: any = { ...(prev as any) };
+          delete next[sid];
+          return next;
+        });
+      }
+      setDrafts((prev) => {
+        const nextOne = { ...(res.draft as any) };
+        const idx = prev.findIndex((d) => String(d.id) === sid);
+        if (idx >= 0) return prev.map((d) => (String(d.id) === sid ? { ...(d as any), ...(nextOne as any) } : d));
+        return [...prev, nextOne as any];
+      });
     })();
 
   }, [drafts]);
@@ -1570,6 +1704,12 @@ export default function CalendarPage() {
   const adjustLaborDays = React.useCallback((id: string, delta: number, fallback?: DraftEntry) => {
     const sid = String(id);
     localMutationEpochRef.current = Date.now();
+    setPendingSaveById((prev) => ({ ...(prev as any), [sid]: { startedAt: Date.now(), op: "labor" } }));
+    setSaveErrorById((prev) => {
+      const next: any = { ...(prev as any) };
+      delete next[sid];
+      return next;
+    });
 
     // Optimistic UI: immediately reflect the +/- in local state.
     setDrafts((prev) =>
@@ -1584,7 +1724,23 @@ export default function CalendarPage() {
 
     void (async () => {
       const res = await adjustLaborDaysPipeline({ id: sid, delta, fallback: fallback as any });
+      setPendingSaveById((prev) => {
+        const next: any = { ...(prev as any) };
+        delete next[sid];
+        return next;
+      });
       if (!res.ok) return;
+      if ((res as any).remoteOk === false) {
+        const r = (res as any).remote;
+        const reason = String(r?.draftReason || r?.canonicalReason || "REMOTE_SAVE_FAILED");
+        setSaveErrorById((prev) => ({ ...(prev as any), [sid]: reason }));
+      } else {
+        setSaveErrorById((prev) => {
+          const next: any = { ...(prev as any) };
+          delete next[sid];
+          return next;
+        });
+      }
       setDrafts((prev) => {
         const nextOne = { ...(res.draft as any) };
         const idx = prev.findIndex((d) => String(d.id) === sid);
@@ -1687,37 +1843,28 @@ export default function CalendarPage() {
 
       const lockTs = Number((d as any).queueLockedAt);
       const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
-      const isLocked = (d as any).queueLocked === true || hasLockTs;
+      const isLocked = (d as any).queueLocked === false ? false : (d as any).queueLocked === true || hasLockTs;
 
       const anchorIso = isLocked ? (lockAnchorIso(d) || legacyAnchorIso(d)) : "";
       const anchorStart = anchorIso ? new Date(anchorIso + "T12:00:00") : null;
       const anchorStarted = Boolean(anchorStart) && startOfDay(anchorStart as Date).getTime() <= today0.getTime();
       const requested = holdRequested || (isLocked ? anchorIso : "");
 
-      // If a sold job has started, keep it anchored unless the user explicitly
+      // If a sold job has started, keep it anchored (start + full span) unless the user explicitly
       // changes it by setting a hold date.
-      if (isLocked && anchorStarted && anchorIso && anchorStart) {
-        // Burn down the locked/current job by elapsed workdays since the anchor.
-        // Semantics: a new day consumes *yesterday only* (elapsed counts days strictly before today0).
-        const originalSeq = workdaySequenceForJob(anchorStart as Date, span, allowSat, allowSun);
-        const elapsed = originalSeq.filter((day) => startOfDay(day).getTime() < today0.getTime()).length;
-        const remaining = Math.max(0, span - elapsed);
-
-        // If no days remain, do not occupy future capacity (job should be marked complete).
-        if (remaining <= 0) {
+      if (isLocked && anchorStarted && anchorIso && anchorStart && !holdRequested) {
+        const seq = workdaySequenceForJob(anchorStart as Date, span, allowSat, allowSun);
+        const end = seq[seq.length - 1];
+        // If the full anchored job is already fully in the past, do not occupy future capacity.
+        if (end.getTime() < today0.getTime()) {
           lastQueuedEnd = null;
           return;
         }
 
-        const todayAllowed = !isNonWorkingDayForJob(today0, allowSat, allowSun);
-        const displayStart = todayAllowed ? today0 : nextWorkdayForJob(today0, allowSat, allowSun);
-        const remainingSeq = workdaySequenceForJob(displayStart, remaining, allowSat, allowSun);
-        const end = remainingSeq[remainingSeq.length - 1];
-        const iso = toKey(remainingSeq[0]);
-
+        const iso = toKey(seq[0]);
         scheduledStartById.set(String((d as any).id), iso);
-        effectiveSpanById.set(String((d as any).id), remaining);
-        remainingSeq.forEach((day) => {
+        effectiveSpanById.set(String((d as any).id), span);
+        seq.forEach((day) => {
           const k = toKey(day);
           occupied.add(k);
           const prev = occupiedEndByDay.get(k);
@@ -1844,21 +1991,51 @@ export default function CalendarPage() {
   }, [blockedDays.set, drafts, isNonWorkingDayForJob, nextWorkdayForJob, today0, workdaySequenceForJob]);
 
   React.useEffect(() => {
-    // Auto-lock only the job in queue position #1 (unless explicitly unlocked).
-    // Locking persists queueLockedAt so it never slides after midnight.
+    // Auto-lock only when the #1 job is active today (unless explicitly unlocked).
+    // This prevents future jobs from being anchored prematurely.
     const first = (soldQueue || [])[0] as any;
     if (!first) return;
 
     // Only #1 may be locked. If older data has other rows locked, unlock them.
     (soldQueue || []).slice(1).forEach((j: any) => {
       if (!j) return;
-      if (j.queueLocked === true) setQueueLocked(String(j.id), false, undefined, j);
+      if ((j as any).queueLocked === true) setQueueLocked(String((j as any).id), false, undefined, j);
     });
 
-    if (first.queueLocked === false) return;
-    if (first.queueLocked === true) return;
-    const startIso = String(first.installDate || first.startDate || "").slice(0, 10);
-    setQueueLocked(String(first.id), true, startIso || undefined, first);
+    const todayIso = toKey(today0);
+    const startIso = String((first as any).installDate || (first as any).startDate || "").slice(0, 10);
+    const endIso = (() => {
+      if (!startIso) return "";
+      try {
+        const explicitEnd = (first as any).end;
+        if (explicitEnd instanceof Date && Number.isFinite(explicitEnd.getTime())) return toKey(explicitEnd);
+
+        const allowSat = asBool((first as any).allowSaturday);
+        const allowSun = asBool((first as any).allowSunday);
+        const spanDays = (() => {
+          const s = Number((first as any).spanDays);
+          if (Number.isFinite(s) && s > 0) return Math.max(1, Math.round(s));
+          return computeSpanDays((first as any).laborDays);
+        })();
+        const start = new Date(startIso + "T12:00:00");
+        const seq = workdaySequenceForJob(start, Math.max(1, spanDays), allowSat, allowSun);
+        const last = seq[seq.length - 1];
+        return last instanceof Date && Number.isFinite(last.getTime()) ? toKey(last) : "";
+      } catch {
+        return "";
+      }
+    })();
+
+    const isActiveToday = Boolean(startIso && endIso && startIso <= todayIso && endIso >= todayIso);
+    if (!isActiveToday) return;
+
+    if ((first as any).queueLocked === false) return;
+    const lockTs = Number((first as any).queueLockedAt);
+    const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
+    const isLocked = (first as any).queueLocked === true || hasLockTs;
+    if (isLocked) return;
+
+    setQueueLocked(String((first as any).id), true, startIso || undefined, first);
   }, [soldQueue, setQueueLocked, today0]);
 
   React.useLayoutEffect(() => {
@@ -2281,7 +2458,7 @@ export default function CalendarPage() {
       })();
       const lockTs = Number((j as any).queueLockedAt);
       const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
-      const locked = (j as any).queueLocked === true || hasLockTs;
+      const locked = (j as any).queueLocked === false ? false : (j as any).queueLocked === true || hasLockTs;
       const dotColor = installColorMap.get(j.id) ?? colorForInstallId(j.id);
 
       const seqInfo = (() => {
@@ -2736,15 +2913,26 @@ export default function CalendarPage() {
                     <button
                       type="button"
                       data-no-swipe="true"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!moveOpenId) return;
                         const cur = typeof movePreviewPos === "number" ? movePreviewPos : 1;
-                        const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
+                        const fixed = soldQueue.map((j) => {
+                          const hold = Boolean(String((j as any).holdDate || "").slice(0, 10));
+                          const lockTs = Number((j as any).queueLockedAt);
+                          const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
+                          const locked = (j as any).queueLocked === false ? false : (j as any).queueLocked === true || hasLockTs;
+                          return Boolean(hold || locked);
+                        });
                         let next = cur - 1;
-                        while (next >= 1 && holds[next - 1]) next -= 1;
+                        while (next >= 1 && fixed[next - 1]) next -= 1;
                         if (next >= 1) {
+                          const res: any = await moveQueue(moveOpenId, -1);
+                          if (!res?.ok) {
+                            setMoveError(String(res?.reason || "MOVE_FAILED"));
+                            return;
+                          }
+                          setMoveError("");
                           setMovePreviewPos(next);
-                          moveQueue(moveOpenId, -1);
                         }
                       }}
                       className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
@@ -2764,15 +2952,26 @@ export default function CalendarPage() {
                     <button
                       type="button"
                       data-no-swipe="true"
-                      onClick={() => {
+                      onClick={async () => {
                         if (!moveOpenId) return;
                         const cur = typeof movePreviewPos === "number" ? movePreviewPos : 1;
-                        const holds = soldQueue.map((j) => Boolean(String((j as any).holdDate || "").slice(0, 10)));
+                        const fixed = soldQueue.map((j) => {
+                          const hold = Boolean(String((j as any).holdDate || "").slice(0, 10));
+                          const lockTs = Number((j as any).queueLockedAt);
+                          const hasLockTs = Number.isFinite(lockTs) && lockTs > 0;
+                          const locked = (j as any).queueLocked === false ? false : (j as any).queueLocked === true || hasLockTs;
+                          return Boolean(hold || locked);
+                        });
                         let next = cur + 1;
-                        while (next <= holds.length && holds[next - 1]) next += 1;
-                        if (next <= holds.length) {
+                        while (next <= fixed.length && fixed[next - 1]) next += 1;
+                        if (next <= fixed.length) {
+                          const res: any = await moveQueue(moveOpenId, 1);
+                          if (!res?.ok) {
+                            setMoveError(String(res?.reason || "MOVE_FAILED"));
+                            return;
+                          }
+                          setMoveError("");
                           setMovePreviewPos(next);
-                          moveQueue(moveOpenId, 1);
                         }
                       }}
                       className="w-full sm:w-auto rounded-2xl border border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)] px-5 py-4 text-[18px] font-black leading-none"
@@ -2862,6 +3061,8 @@ export default function CalendarPage() {
                   const isCurrentQueueJob = idx === 0;
                   const isActiveForUi = isCurrentQueueJob && hasStarted;
                   const canInteractLock = isCurrentQueueJob;
+                  const savePending = pendingSaveById[String(j.id)];
+                  const saveErr = saveErrorById[String(j.id)] || "";
                   return (
                     <div
                       key={j.id}
@@ -2901,6 +3102,21 @@ export default function CalendarPage() {
                               aria-hidden="true"
                             />
                             <div className="text-[14px] font-black text-white">#{idx + 1}</div>
+                            {savePending ? (
+                              <div
+                                className="rounded-full border border-[rgba(255,255,255,.18)] bg-[rgba(0,0,0,.18)] px-2 py-[2px] text-[10px] font-black leading-none text-white/90"
+                                title="Saving…"
+                              >
+                                Sync…
+                              </div>
+                            ) : saveErr ? (
+                              <div
+                                className="rounded-full border border-[rgba(255,80,80,.55)] bg-[rgba(255,80,80,.18)] px-2 py-[2px] text-[10px] font-black leading-none text-white"
+                                title={saveErr}
+                              >
+                                Unsynced
+                              </div>
+                            ) : null}
                           </div>
 
                           <div className="flex justify-center">
@@ -2978,10 +3194,11 @@ export default function CalendarPage() {
                           <button
                             type="button"
                             data-no-swipe="true"
-                            disabled={Boolean(hold)}
+                            disabled={Boolean(hold) || locked}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              if (locked) return;
                               setMoveOpenId(j.id);
                               setMovePreviewPos(idx + 1);
                               setMoveError("");
@@ -2989,7 +3206,7 @@ export default function CalendarPage() {
                             }}
                             className={
                               "rounded-2xl border px-4 py-2 text-[14px] font-black leading-none " +
-                              (hold
+                              (hold || locked
                                 ? "border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] opacity-50"
                                 : "border-[rgba(31,200,120,.45)] bg-[rgba(31,200,120,.12)]")
                             }
