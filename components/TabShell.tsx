@@ -48,8 +48,6 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    // If any modal left the body in a scroll-locked state, iOS can act like the top UI is blocked
-    // until the next scroll/paint. Always clear stale locks on route changes.
     const body = document.body;
     const html = document.documentElement;
     if (body.style.position === "fixed" || body.style.overflow === "hidden") {
