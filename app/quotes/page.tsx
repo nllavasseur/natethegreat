@@ -373,7 +373,7 @@ export default function QuotesPage() {
     }
   }, [drafts]);
 
-  function setDraftScheduledAt(id: string, scheduledAt: string | null) {
+  function setDraftScheduledAt(id: string, scheduledAt: string | null, estimateAssignee?: DraftEntry["estimateAssignee"] | null) {
     try {
       const sid = String(id);
       void (async () => {
@@ -387,6 +387,13 @@ export default function QuotesPage() {
 
         const nextScheduledAt = scheduledAt && String(scheduledAt).trim() !== "" ? scheduledAt : null;
 
+        const nextEstimateAssignee =
+          nextScheduledAt
+            ? estimateAssignee !== undefined
+              ? estimateAssignee
+              : (existing as any)?.estimateAssignee
+            : null;
+
         const nextStatus =
           nextScheduledAt && String(nextScheduledAt).trim() !== ""
             ? "estimate"
@@ -396,7 +403,7 @@ export default function QuotesPage() {
           ...(existingFromList ? { ...(existingFromList as any) } : {}),
           ...(existingFromStore ? { ...(existingFromStore as any) } : {}),
           scheduledAt: nextScheduledAt,
-          estimateAssignee: nextScheduledAt ? (existing as any)?.estimateAssignee : null,
+          estimateAssignee: nextEstimateAssignee,
           updatedAt: now,
           calendarHidden: false,
           ...(nextStatus ? { status: nextStatus } : {})
@@ -413,7 +420,7 @@ export default function QuotesPage() {
               ? {
                   ...d,
                   scheduledAt: nextScheduledAt,
-                  estimateAssignee: nextScheduledAt ? (d as any).estimateAssignee : null,
+                  estimateAssignee: nextEstimateAssignee,
                   updatedAt: now,
                   calendarHidden: false,
                   ...(nextStatus ? { status: nextStatus as any } : {})
@@ -1984,8 +1991,7 @@ export default function QuotesPage() {
                     // Treat date+time as local time; store as ISO.
                     const dt = new Date(`${d}T${t}`);
                     if (!Number.isFinite(dt.getTime())) return;
-                    setDraftScheduledAt(id, dt.toISOString());
-                    setDraftEstimateAssignee(id, (scheduleAssignee || null) as any);
+                    setDraftScheduledAt(id, dt.toISOString(), (scheduleAssignee ? (scheduleAssignee as any) : null) as any);
                     setScheduleForId(null);
                     setScheduleDate("");
                     setScheduleTime("");
