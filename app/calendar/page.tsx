@@ -245,6 +245,24 @@ function writeCalendarDraftsCache(list: DraftEntry[]) {
   }
 }
 
+function patchCalendarDraftsCacheById(id: string, patch: Partial<DraftEntry>) {
+  if (typeof window === "undefined") return;
+  const sid = String(id || "").trim();
+  if (!sid) return;
+  try {
+    const cached = readCalendarDraftsCache();
+    let found = false;
+    const next = (Array.isArray(cached) ? cached : []).map((d) => {
+      if (String((d as any)?.id || "") !== sid) return d;
+      found = true;
+      return { ...(d as any), ...(patch as any), id: sid } as any;
+    });
+    if (!found) next.push({ ...(patch as any), id: sid } as any);
+    writeCalendarDraftsCache(next as any);
+  } catch {
+  }
+}
+
 function readDraftStore(): Record<string, DraftEntry> {
   if (typeof window === "undefined") return {};
   try {
@@ -621,8 +639,8 @@ function workdaySequence(start: Date, count: number) {
 }
 
 function intersectsMonth(start: Date, end: Date, monthStart: Date) {
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-  return start.getTime() <= monthEnd.getTime() && end.getTime() >= monthStart.getTime();
+  const monthEndExclusive = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+  return start.getTime() < monthEndExclusive.getTime() && end.getTime() >= monthStart.getTime();
 }
 
 export default function CalendarPage() {
@@ -755,13 +773,20 @@ export default function CalendarPage() {
 
     const readLocalLiteList = () => {
       try {
+        const cachedDrafts = readCalendarDraftsCache();
         const cachedEntries = readCalendarEntriesCache(windowKey);
-        if (Array.isArray(cachedEntries) && cachedEntries.length) return cachedEntries.map((d) => ({ ...(d as any) }));
-      } catch {
-      }
-      try {
-        const cached = readCalendarDraftsCache();
-        if (Array.isArray(cached) && cached.length) return cached.map((d) => ({ ...(d as any) }));
+
+        const draftsOk = Array.isArray(cachedDrafts) && cachedDrafts.length;
+        const entriesOk = Array.isArray(cachedEntries) && cachedEntries.length;
+
+        if (draftsOk && entriesOk) {
+          return mergeDraftLists(
+            cachedDrafts.map((d) => ({ ...(d as any) })),
+            cachedEntries.map((d) => ({ ...(d as any) }))
+          );
+        }
+        if (draftsOk) return cachedDrafts.map((d) => ({ ...(d as any) }));
+        if (entriesOk) return cachedEntries.map((d) => ({ ...(d as any) }));
       } catch {
       }
       return [] as DraftEntry[];
@@ -810,7 +835,7 @@ export default function CalendarPage() {
           setDrafts((prev) => {
             const prevList = Array.isArray(prev) ? prev : [];
             if (prevList.length === 0) return localDrafts;
-            const merged = mergeDraftLists(prevList as any, localDrafts as any);
+            const merged = mergeDraftLists(localDrafts as any, prevList as any);
             return (Array.isArray(merged) ? merged : []) as any;
           });
         try {
@@ -944,7 +969,7 @@ export default function CalendarPage() {
             if (!cancelled) {
               setDrafts((prev) => {
                 const prevList = Array.isArray(prev) ? prev : [];
-                const merged = mergeDraftLists(prevList as any, mergedAllLite as any);
+                const merged = mergeDraftLists(mergedAllLite as any, prevList as any);
                 return (Array.isArray(merged) ? merged : []) as any;
               });
             }
@@ -1616,6 +1641,19 @@ export default function CalendarPage() {
       return next;
     });
 
+    try {
+      const curOriginal = Number((fallback as any)?.originalLaborDays);
+      const curLabor = Number((fallback as any)?.laborDays);
+      const nextDays =
+        Number.isFinite(curOriginal) && curOriginal > 0
+          ? Math.round(curOriginal)
+          : Number.isFinite(curLabor) && curLabor > 0
+            ? Math.round(curLabor)
+            : 1;
+      patchCalendarDraftsCacheById(sid, { laborDays: nextDays, updatedAt: Date.now() });
+    } catch {
+    }
+
     // Optimistic UI: immediately reset days in local state.
     setDrafts((prev) =>
       prev.map((d) => {
@@ -1710,6 +1748,14 @@ export default function CalendarPage() {
       delete next[sid];
       return next;
     });
+
+    try {
+      const cur = Number((fallback as any)?.laborDays);
+      const base = Number.isFinite(cur) && cur > 0 ? Math.round(cur) : 1;
+      const nextDays = Math.max(1, base + Math.sign(delta || 0));
+      patchCalendarDraftsCacheById(sid, { laborDays: nextDays, updatedAt: Date.now() });
+    } catch {
+    }
 
     // Optimistic UI: immediately reflect the +/- in local state.
     setDrafts((prev) =>
@@ -2063,6 +2109,32 @@ export default function CalendarPage() {
     const y = monthStart.getFullYear();
     const m = monthStart.getMonth();
 
+    const scheduledAtLocalDayKey = (scheduledAt: string) => {
+      const raw = String(scheduledAt || "").trim();
+      if (!raw) return "";
+      if (raw.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      try {
+        const dt = new Date(raw);
+        if (!Number.isFinite(dt.getTime())) return raw.slice(0, 10);
+        return toKey(dt);
+      } catch {
+        return raw.slice(0, 10);
+      }
+    };
+
+    const scheduledAtToLocalDate = (scheduledAt: string) => {
+      const raw = String(scheduledAt || "").trim();
+      if (!raw) return null;
+      // If we only have a date-only value (yyyy-mm-dd), parse as local noon to avoid UTC day shifts.
+      if (raw.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(raw)) return localNoonForIsoDate(raw);
+      try {
+        const dt = new Date(raw);
+        return Number.isFinite(dt.getTime()) ? dt : null;
+      } catch {
+        return null;
+      }
+    };
+
     const explicitStartIso = (d: DraftEntry) => {
       const s = String((d as any).scheduledAt || "");
       if (s) return s.slice(0, 10);
@@ -2122,7 +2194,10 @@ export default function CalendarPage() {
       .filter((d) => d && !(d as any).calendarHidden)
       .slice();
 
+    const soldQueueById = new Map<string, any>();
+
     soldJobs.forEach((d) => {
+      soldQueueById.set(String((d as any).id), d as any);
       const iso = String((d as any).installDate || (d as any).startDate || "").slice(0, 10);
       if (!iso) return;
       scheduledStartById.set(String((d as any).id), iso);
@@ -2198,35 +2273,46 @@ export default function CalendarPage() {
       }
 
       const status = (d as any).status as DraftEntry["status"];
+      const sid = String((d as any).id);
+      const soldSnap = status === "sold" ? soldQueueById.get(sid) : null;
       const explicit = explicitStartIso(d);
       const sched = String((d as any).scheduledAt || "");
       const iso =
         status === "sold"
-          ? scheduledStartById.get(String((d as any).id)) || ""
-          : scheduledStartById.get(String((d as any).id)) || explicit;
+          ? scheduledStartById.get(sid) || String((soldSnap as any)?.installDate || (soldSnap as any)?.startDate || "").slice(0, 10) || ""
+          : scheduledStartById.get(sid) || explicit;
 
       const hasSched = Boolean(sched) && status !== "sold" && status !== "void";
 
       const dt =
         hasSched
           ? localNoonForIsoDate(sched)
-          : iso
-            ? new Date(iso + "T12:00:00")
-            : null;
+          : status === "sold" && soldSnap && (soldSnap as any).install instanceof Date && Number.isFinite(((soldSnap as any).install as Date).getTime())
+            ? ((soldSnap as any).install as Date)
+            : iso
+              ? new Date(iso + "T12:00:00")
+              : null;
       const spanDays = (() => {
         if (hasSched || status === "estimate") return 1;
+        if (status === "sold") {
+          const s = Number((soldSnap as any)?.spanDays);
+          if (Number.isFinite(s) && s > 0) return Math.max(1, Math.round(s));
+          return computeSpanDays((d as any).laborDays);
+        }
         const dh = Number((d as any).jobDurationHalfDays);
         if (Number.isFinite(dh) && dh > 0) return Math.max(1, Math.ceil(dh / 2));
         const explicitSpan = Number((d as any).spanDays);
         if (Number.isFinite(explicitSpan) && explicitSpan > 0) return explicitSpan;
         return computeSpanDays((d as any).laborDays);
       })();
-      const allowSat = asBool((d as any).allowSaturday);
-      const allowSun = asBool((d as any).allowSunday);
+      const allowSat = status === "sold" && soldSnap ? asBool((soldSnap as any).allowSaturday) : asBool((d as any).allowSaturday);
+      const allowSun = status === "sold" && soldSnap ? asBool((soldSnap as any).allowSunday) : asBool((d as any).allowSunday);
       const end = dt
         ? status === "estimate"
           ? dt
-          : workdaySequenceForJob(dt, spanDays, allowSat, allowSun)[spanDays - 1]
+          : status === "sold" && soldSnap && (soldSnap as any).end instanceof Date && Number.isFinite(((soldSnap as any).end as Date).getTime())
+            ? ((soldSnap as any).end as Date)
+            : workdaySequenceForJob(dt, spanDays, allowSat, allowSun)[spanDays - 1]
         : null;
       return {
         ...d,
@@ -2361,7 +2447,7 @@ export default function CalendarPage() {
 
     parsed.sort((a, b) => String(a.id).localeCompare(String(b.id)));
     return parsed;
-  }, [blockedDays.set, drafts, isNonWorkingDayForJob, monthStart, nextWorkdayForJob, today0, workdaySequenceForJob]);
+  }, [blockedDays.set, drafts, isNonWorkingDayForJob, monthStart, nextWorkdayForJob, soldQueue, today0, workdaySequenceForJob]);
 
   const jobColors = React.useMemo(() => {
     const map = new Map<string, string>();
