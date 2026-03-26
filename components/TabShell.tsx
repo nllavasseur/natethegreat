@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -81,6 +82,36 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
       html.style.overflow = "";
     }
   }, [pathname]);
+
+  React.useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      const prefetch = () => {
+        try {
+          tabs.forEach((t) => {
+            if (!t?.href) return;
+            if (t.href === active) return;
+            try {
+              router.prefetch(t.href);
+            } catch {
+              // ignore
+            }
+          });
+        } catch {
+          // ignore
+        }
+      };
+
+      const ric = (window as any).requestIdleCallback as any;
+      if (typeof ric === "function") {
+        ric(prefetch, { timeout: 1500 });
+      } else {
+        window.setTimeout(prefetch, 50);
+      }
+    } catch {
+      // ignore
+    }
+  }, [active, router]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -316,15 +347,20 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                   const isActive = active === t.href;
                   const Icon = t.icon;
                   return (
-                    <button
+                    <Link
                       key={t.href}
-                      type="button"
-                      onClick={() => {
+                      href={t.href}
+                      prefetch
+                      aria-current={isActive ? "page" : undefined}
+                      onClick={(e) => {
                         try {
+                          if (isActive) {
+                            e.preventDefault();
+                            return;
+                          }
                           const currentPath = pathname || "";
                           saveScrollForPath(currentPath);
                           restorePathRef.current = t.href;
-                          router.push(t.href);
                         } catch {
                           try {
                             window.location.href = t.href;
@@ -347,7 +383,7 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                       >
                         {t.label}
                       </span>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
