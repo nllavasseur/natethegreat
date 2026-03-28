@@ -9182,7 +9182,7 @@ function EstimatesPageInner() {
                 <div className="max-h-[80dvh] overflow-y-auto">
                 <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
                   {(selectedFenceType === "wood" || selectedFenceType === "aluminum") ? (
-                    <div className="lg:col-span-2 rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                    <div className="lg:col-span-2 rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
                       <div className="text-[11px] text-[var(--muted)] mb-2">Concrete mix</div>
                       <div className="grid grid-cols-2 gap-2">
                         <button
