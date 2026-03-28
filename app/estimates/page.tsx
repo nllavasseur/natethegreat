@@ -242,6 +242,19 @@ function woodNailsItemName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar
   return `2\" Nails ${qty}ct Hot-Dipped Galvanized Ring Shank Nails`;
 }
 
+function concreteTakeoffRow(params: { concrete80Bags: number; concreteMix: "standard" | "fast_set" }) {
+  const concrete80 = Math.max(0, Math.floor(Number(params.concrete80Bags) || 0));
+  const requiredLbs = concrete80 * 80;
+  if (requiredLbs <= 0) return null;
+  const mix = params.concreteMix === "fast_set" ? "fast_set" : "standard";
+  if (mix === "fast_set") {
+    const qty = Math.ceil(requiredLbs / 50);
+    return { name: `Fast Set 50lb Bag (≈ ${concrete80} 80lb)`, qty, unit: "bag" as const };
+  }
+  const qty = Math.ceil(requiredLbs / 60);
+  return { name: `Concrete 60lb Bag (≈ ${concrete80} 80lb)`, qty, unit: "bag" as const };
+}
+
 const vinylColorSwatches: Record<string, { label: string; bg: string; fg: string; border: string }> = {
   White: { label: "White", bg: "rgba(255,255,255,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(255,255,255,.55)" },
   Tan: { label: "Tan", bg: "rgba(226,206,166,.92)", fg: "rgba(0,0,0,.9)", border: "rgba(226,206,166,.6)" },
@@ -319,6 +332,7 @@ type MaterialsDetails = {
   heavyDutyDoubleGateFlipLatchQty: number;
   heavyDutySlideBoltQty: number;
   concretePostMount4x4Qty: number;
+  concreteMix: "standard" | "fast_set";
 };
 
 type FenceBuilderCatalogItem = {
@@ -416,7 +430,8 @@ const DEFAULT_MATERIALS_DETAILS: MaterialsDetails = {
   scallopedUse16FtRails: false,
   heavyDutyDoubleGateFlipLatchQty: 0,
   heavyDutySlideBoltQty: 0,
-  concretePostMount4x4Qty: 0
+  concretePostMount4x4Qty: 0,
+  concreteMix: "standard"
 };
 
 export default function EstimatesPage() {
@@ -1122,7 +1137,8 @@ function EstimatesPageInner() {
       "1x6 x 6' Cedar pickets",
       "Wire mesh roll",
       "Post caps",
-      "Concrete 60lb Bag"
+      "Concrete 60lb Bag",
+      "Fast Set 50lb Bag"
     ];
   }, [woodUnitPriceItems]);
 
@@ -1425,6 +1441,7 @@ function EstimatesPageInner() {
       (Number(materialsDetails.railEndBracketPacks) || 0) !== 0 ||
       (Number(materialsDetails.heavyDutyDoubleGateFlipLatchQty) || 0) !== 0 ||
       (Number(materialsDetails.heavyDutySlideBoltQty) || 0) !== 0 ||
+      String(materialsDetails.concreteMix || "standard") !== "standard" ||
       (Number(extraPosts) || 0) !== 0
     );
   }, [extraPosts, materialsDetails]);
@@ -2071,7 +2088,8 @@ function EstimatesPageInner() {
     "1x6x12 Pressure Treated Boards": 8.58,
     "5/4x6x12 Cedar S4S Rails": 29.79,
     "5/4x6x12 CedarTone Rails": 17.69,
-    "Concrete 60lb Bag": 0,
+    "Concrete 60lb Bag": 4.27,
+    "Fast Set 50lb Bag": 7.17,
     "1x4 Cedar Boards": 9.98,
     "1x4 x 8' Trim": 0,
     "1x4 x 8' Cedar Trim": 0,
@@ -2196,7 +2214,7 @@ function EstimatesPageInner() {
     if (typeof window === "undefined") return;
     let cancelled = false;
 
-    const woodUnitPricesVersion = "2026-03-12-3";
+    const woodUnitPricesVersion = "2026-03-27-1";
     fetch(`/wood_unit_prices.csv?v=${encodeURIComponent(woodUnitPricesVersion)}`,
       {
         cache: "no-store",
@@ -2468,7 +2486,7 @@ function EstimatesPageInner() {
 
         // Built-in material keys map to existing takeoff item names.
         const name = k;
-        const unit = name.toLowerCase().includes("concrete") ? "bag" : "ea";
+        const unit = name.toLowerCase().includes("concrete") || name.toLowerCase().includes("fast set") ? "bag" : "ea";
         return { name, unit, unitPrice: undefined as any, fromCatalog: false };
       };
 
@@ -2482,8 +2500,8 @@ function EstimatesPageInner() {
       if (extraPostsQty > 0) recipeRows.push({ name: extraPostName, qty: extraPostsQty, unit: "ea" });
 
       const concrete80Bags = postsAll * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
-      if (concrete60Bags > 0) recipeRows.push({ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" });
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
+      if (concreteRow) recipeRows.push({ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit });
       if (materialsDetails.postCaps && postsAll > 0) recipeRows.push({ name: "Post caps", qty: postsAll, unit: "ea" });
 
       // Per-panel components.
@@ -2633,7 +2651,7 @@ function EstimatesPageInner() {
         const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
         const concrete80Bags = postsFence * 2;
-        const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+        const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
         const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
         const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
@@ -2657,7 +2675,7 @@ function EstimatesPageInner() {
           ...(verticalBoards + cornerCount > 0 ? [{ name: fiveQuarterVerticalName, qty: verticalBoards + cornerCount, unit: "ea" }] : []),
           ...(cedarS4SRails2x4x8 > 0 ? [{ name: rail8Name, qty: cedarS4SRails2x4x8, unit: "ea" }] : []),
           ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
-          ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+          ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "Stainless screws", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
           ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
@@ -2727,7 +2745,7 @@ function EstimatesPageInner() {
       const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = postsFence * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const extraPostName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: extraPostSizeSafe, postType: materialsDetails.postType });
@@ -2741,7 +2759,7 @@ function EstimatesPageInner() {
         ...(extraPostsQty > 0 ? [{ name: extraPostName, qty: extraPostsQty, unit: "ea" }] : []),
         { name: boardsName, qty: boards, unit: "ea" },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: postsFence, unit: "ea" }] : []),
@@ -2793,7 +2811,7 @@ function EstimatesPageInner() {
       const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingEffectiveIn) * 2) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
       const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
@@ -2810,7 +2828,7 @@ function EstimatesPageInner() {
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(pickets > 0 ? [{ name: picketName, qty: pickets, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
@@ -2868,7 +2886,7 @@ function EstimatesPageInner() {
       const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
       const rail8Name = woodRail2x4Name(8, materialsDetails.railMaterial);
@@ -2879,7 +2897,7 @@ function EstimatesPageInner() {
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(cattlePanels > 0 ? [{ name: "16' Cattle Panel", qty: cattlePanels, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(screwBoxes > 0 ? [{ name: screwName, qty: screwBoxes, unit: "box" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
@@ -2936,7 +2954,7 @@ function EstimatesPageInner() {
         : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
       const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
@@ -2955,7 +2973,7 @@ function EstimatesPageInner() {
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         { name: picketName, qty: pickets, unit: "ea" },
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
@@ -3016,7 +3034,7 @@ function EstimatesPageInner() {
         : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const boardName = isCedarLike(materialsDetails.shadowboxBoardMaterial)
         ? "1x4 Cedar Boards"
@@ -3033,7 +3051,7 @@ function EstimatesPageInner() {
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(shadowboxBoards > 0 ? [{ name: boardName, qty: shadowboxBoards, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
@@ -3084,7 +3102,7 @@ function EstimatesPageInner() {
       const pickets = lf > 0 ? Math.ceil(((lf * 12) / picketSpacingEffectiveIn) * 2) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
       const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
@@ -3101,7 +3119,7 @@ function EstimatesPageInner() {
         ...(rails2x4x8 > 0 ? [{ name: rail8Name, qty: rails2x4x8, unit: "ea" }] : []),
         ...(rails2x4x16 > 0 ? [{ name: rail16Name, qty: rails2x4x16, unit: "ea" }] : []),
         ...(pickets > 0 ? [{ name: picketName, qty: pickets, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(gateFramingAdd > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingAdd, unit: "ea" } as any] : []),
@@ -3145,7 +3163,7 @@ function EstimatesPageInner() {
       const screwBoxes = screwPieces > 0 ? Math.ceil((screwPieces * 6) / 350) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
@@ -3156,7 +3174,7 @@ function EstimatesPageInner() {
         { name: postName, qty: posts, unit: "ea" },
         ...(twoByTwo8 > 0 ? [{ name: twoByTwoName, qty: twoByTwo8, unit: "ea" }] : []),
         ...(oneBySix8 > 0 ? [{ name: oneBySixName, qty: oneBySix8, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -3212,7 +3230,7 @@ function EstimatesPageInner() {
       const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
@@ -3221,7 +3239,7 @@ function EstimatesPageInner() {
         ...(rails > 0 ? [{ name: "1x6x16 Poplar Rails", qty: rails, unit: "ea" }] : []),
         ...(verticalAdders > 0 ? [{ name: "1x6x16 Poplar Verticals", qty: verticalAdders, unit: "ea" }] : []),
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.fourRailPoplarPostCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -3278,7 +3296,7 @@ function EstimatesPageInner() {
       const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const postName = woodPostItemNameByDim({ postDim: materialsDetails.postDim, postSize: materialsDetails.postSize, postType: materialsDetails.postType });
 
@@ -3287,7 +3305,7 @@ function EstimatesPageInner() {
         ...(rails > 0 ? [{ name: railBoardName, qty: rails, unit: "ea" }] : []),
         ...(verticalAdders > 0 ? [{ name: railBoardName, qty: verticalAdders, unit: "ea" }] : []),
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
         ...(materialsDetails.fourRailWireMeshPostCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
         ...(materialsDetails.arbor ? [{ name: "Arbor", qty: fixedOrZero(1), unit: "ea" }] : []),
@@ -3335,7 +3353,7 @@ function EstimatesPageInner() {
       const staplesBoxes = staples > 0 ? Math.ceil(staples / 1000) : 0;
 
       const concrete80Bags = posts * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const gateFramingS4S = walkGates * 5 + doubleGates * 10;
       const cedarPickets = walkGates * 10 + doubleGates * 20;
@@ -3371,7 +3389,7 @@ function EstimatesPageInner() {
         { name: splitRailName, qty: rails, unit: "ea", priceKey: splitRailRailsPriceKey },
         ...(meshRolls > 0 ? [{ name: "Wire mesh roll", qty: meshRolls, unit: "ea" }] : []),
         ...(staplesBoxes > 0 ? [{ name: "Staples", qty: staplesBoxes, unit: "box" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(gateFramingS4S > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" } as any] : []),
         ...(cedarPickets > 0 ? [{ name: "Cedar pickets", qty: cedarPickets, unit: "ea" }] : []),
         ...(materialsDetails.postCaps ? [{ name: "Post caps", qty: posts, unit: "ea" }] : []),
@@ -3477,7 +3495,7 @@ function EstimatesPageInner() {
           materialsDetails.horizontalCedarBoardMaterial === "1x6 cedar";
         const deckScrewBoxes = !useStainlessScrews && screwCount > 0 ? Math.ceil(screwCount / 350) : 0;
         const concrete80Bags = postsFence * 2;
-        const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+        const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
         const gateFramingS4S = walkGates * 5 + doubleGates * 10;
 
         const rows: Array<{ name: string; qty: number; unit: string }> = [
@@ -3486,7 +3504,7 @@ function EstimatesPageInner() {
           { name: boardName, qty: boards, unit: "ea" },
           ...(useStainlessScrews && screwCount > 0 ? [{ name: "3\" screws 60 ct stainless steel", qty: screwCount, unit: "ea" }] : []),
           ...(deckScrewBoxes > 0 ? [{ name: "3\" Deck Screws", qty: deckScrewBoxes, unit: "box" }] : []),
-          ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+          ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
           ...(gateFramingS4S > 0 ? [{ name: woodGateFramingName(materialsDetails.railMaterial), priceKey: "Cedar S4S Gate Framing", qty: gateFramingS4S, unit: "ea" } as any] : []),
           ...(gateHingeKitsAdd > 0 ? [{ name: "Gate Hinge Kit", qty: gateHingeKitsAdd, unit: "ea" }] : []),
           ...(doubleGateKitsAdd > 0 ? [{ name: "Double gate kit", qty: doubleGateKitsAdd, unit: "ea" }] : []),
@@ -3584,7 +3602,7 @@ function EstimatesPageInner() {
             : (totalLf > 0 ? Math.ceil((totalLf * 12) / picketSpacingEffectiveIn) + 10 + Math.floor((totalLf + 1e-6) / 100) * 5 : 0);
 
       const concrete80Bags = postsFence * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
       const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
@@ -3638,7 +3656,7 @@ function EstimatesPageInner() {
         { name: picketName, qty: pickets, unit: "ea" },
         ...(trimBoards > 0 ? [{ name: trimNameFinal, qty: trimBoards, unit: "ea" }] : []),
         ...(latticePanels > 0 ? [{ name: latticeName, qty: latticePanels, unit: "ea" }] : []),
-        ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         ...(nailsBoxesFinal > 0 ? [{ name: nailsNameFinal, qty: nailsBoxesFinal, unit: "box" }] : []),
         ...(screwBoxes > 0 ? [{ name: "3\" Deck Screws", qty: screwBoxes, unit: "box" }] : []),
         ...(railEndBracketsQty > 0
@@ -3731,7 +3749,7 @@ function EstimatesPageInner() {
 
       // Concrete: 160lb per post (2x 80lb bags per post). Priced using 60lb bag line item.
       const concrete80Bags = Math.max(0, aluminumPostsSummary.total) * 2;
-      const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+      const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
       const heightLabel = h === 54 ? "4.5'" : `${Math.round(h / 12)}'`;
       const panelName = `${style} aluminum panel 6ft (${heightLabel})`;
@@ -3903,9 +3921,7 @@ function EstimatesPageInner() {
           : []),
         ...walkGateItems,
         ...doubleGateItems,
-        ...(concrete60Bags > 0
-          ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }]
-          : []),
+        ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
         { name: "Disposal", qty: fixedOrZero(1), unit: "ea" },
         { name: "Delivery", qty: fixedOrZero(1), unit: "ea" },
         { name: "Equipment Fees", qty: fixedOrZero(1), unit: "ea" }
@@ -3932,7 +3948,7 @@ function EstimatesPageInner() {
     const picketsPerFt = 1.3;
     const pickets = lf > 0 ? Math.ceil(lf * picketsPerFt) : 0;
     const concrete80Bags = posts * 2;
-    const concrete60Bags = concrete80Bags > 0 ? Math.ceil((concrete80Bags * 80) / 60) : 0;
+    const concreteRow = concreteTakeoffRow({ concrete80Bags, concreteMix: materialsDetails.concreteMix });
 
     const nailsPerBox = woodNailsBoxQty(materialsDetails.picketMaterial);
     const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
@@ -3964,7 +3980,7 @@ function EstimatesPageInner() {
       { name: postName, qty: posts, unit: "ea" },
       { name: railName, qty: rails, unit: "ea" },
       { name: picketName, qty: pickets, unit: "ea" },
-      ...(concrete60Bags > 0 ? [{ name: `Concrete 60lb Bag (≈ ${concrete80Bags} 80lb)`, qty: concrete60Bags, unit: "bag" }] : []),
+      ...(concreteRow ? [{ name: concreteRow.name, qty: concreteRow.qty, unit: concreteRow.unit }] : []),
       ...(trimBoards > 0 ? [{ name: trimName, qty: trimBoards, unit: "ea" }] : []),
       ...(nailsBoxes > 0 ? [{ name: nailsName, qty: nailsBoxes, unit: "box" }] : []),
       ...(railEndBracketsQty > 0
@@ -4476,6 +4492,25 @@ function EstimatesPageInner() {
     const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
     const preInstallForStorage = mergePreInstallForStorage(preInstallPhotos, sanitized.preInstallPhotos);
 
+    const normalizedMaterialsDetails = {
+      ...DEFAULT_MATERIALS_DETAILS,
+      ...(materialsDetails as any),
+      concreteMix: (materialsDetails as any)?.concreteMix === "fast_set" ? "fast_set" : "standard"
+    } as MaterialsDetails;
+
+    const normalizedComboCards = Array.isArray(comboCards)
+      ? comboCards
+          .filter((c: any) => c && typeof c === "object")
+          .map((c: any) => {
+            const mdBase = (c as any).materialsDetails && typeof (c as any).materialsDetails === "object"
+              ? ({ ...DEFAULT_MATERIALS_DETAILS, ...((c as any).materialsDetails as any) } as MaterialsDetails)
+              : DEFAULT_MATERIALS_DETAILS;
+            const concreteMix = (c as any)?.materialsDetails?.concreteMix === "fast_set" ? "fast_set" : "standard";
+            const nextMaterialsDetails = { ...mdBase, concreteMix } as MaterialsDetails;
+            return { ...(c as any), materialsDetails: nextMaterialsDetails };
+          })
+      : comboCards;
+
     return {
       id,
       createdAt,
@@ -4490,9 +4525,9 @@ function EstimatesPageInner() {
       projectPhotoDataUrl: projectDataBackup,
       selectedFenceType,
       selectedStyle,
-      materialsDetails,
+      materialsDetails: normalizedMaterialsDetails,
       extraPosts,
-      comboCards,
+      comboCards: normalizedComboCards,
       activeComboCardId,
       materialUnitPrices,
       takeoffUnitPriceOverrides,
@@ -6489,7 +6524,9 @@ function EstimatesPageInner() {
     // Restore combo cards (if present). Falls back to legacy single-card fields.
     const incomingCardsRaw = (d as any).comboCards;
     const incomingActiveIdRaw = (d as any).activeComboCardId;
-    if (Array.isArray(incomingCardsRaw) && incomingCardsRaw.length > 0) {
+    const hasComboCards = Array.isArray(incomingCardsRaw) && incomingCardsRaw.length > 0;
+    if (hasComboCards) {
+      const legacyConcreteMix = (d as any)?.materialsDetails?.concreteMix === "fast_set" ? "fast_set" : "standard";
       const normalizedCards = incomingCardsRaw
         .filter((c: any) => c && typeof c === "object")
         .map((c: any, idx: number) => {
@@ -6499,9 +6536,11 @@ function EstimatesPageInner() {
           const selectedStyle = c.selectedStyle && typeof c.selectedStyle === "object" && typeof c.selectedStyle.name === "string" && typeof c.selectedStyle.thumb === "string"
             ? { name: c.selectedStyle.name, thumb: c.selectedStyle.thumb }
             : null;
-          const materialsDetails = (c.materialsDetails && typeof c.materialsDetails === "object")
+          const materialsDetailsBase = (c.materialsDetails && typeof c.materialsDetails === "object")
             ? ({ ...DEFAULT_MATERIALS_DETAILS, ...(c.materialsDetails as any) } as MaterialsDetails)
             : DEFAULT_MATERIALS_DETAILS;
+          const concreteMix = (c as any)?.materialsDetails?.concreteMix === "fast_set" ? "fast_set" : legacyConcreteMix;
+          const materialsDetails = { ...materialsDetailsBase, concreteMix } as MaterialsDetails;
           const extraPosts = Number(c.extraPosts) || 0;
           const extraPostSizeRaw = Number((c as any).extraPostSize);
           const extraPostSize = Number.isFinite(extraPostSizeRaw) ? extraPostSizeRaw : 10;
@@ -6553,7 +6592,7 @@ function EstimatesPageInner() {
       setExtraPostSize(Number.isFinite(Number((d as any).extraPostSize)) ? Number((d as any).extraPostSize) : 10);
     }
 
-    if (d.materialsDetails && typeof d.materialsDetails === "object") {
+    if (!hasComboCards && d.materialsDetails && typeof d.materialsDetails === "object") {
       const dd = d.materialsDetails as any;
       const woodType = (dd.woodType === "Cedar" || dd.woodType === "Rough sawn cedar" || dd.woodType === "Cedar tone" || dd.woodType === "Pressure treated")
         ? dd.woodType
@@ -6714,6 +6753,7 @@ function EstimatesPageInner() {
         ? Math.max(0, Math.floor(Number(dd.vinylPostStiffeners)))
         : (typeof dd.vinylPostStiffeners === "boolean" ? (dd.vinylPostStiffeners ? 1 : 0) : 0);
       const mansfieldBlankGatePost = typeof dd.mansfieldBlankGatePost === "boolean" ? dd.mansfieldBlankGatePost : false;
+      const concreteMix = dd.concreteMix === "fast_set" ? "fast_set" : "standard";
 
       setMaterialsDetails((prev) => ({
         ...prev,
@@ -6751,6 +6791,7 @@ function EstimatesPageInner() {
         railEndBracketPacks,
         heavyDutyDoubleGateFlipLatchQty,
         heavyDutySlideBoltQty,
+        concreteMix,
         mansfieldWalkGateOptions,
         mansfieldDoubleGateOptions,
         atlanticWalkGateOptions,
@@ -7950,6 +7991,7 @@ function EstimatesPageInner() {
                                         const safeQty = Number.isFinite(qty) ? qty : 0;
                                         const safeUnitPrice = Number.isFinite(unitPrice) ? unitPrice : 0;
                                         if (!desc) return;
+                                        const unit = desc.toLowerCase().includes("concrete") || desc.toLowerCase().includes("fast set") || desc.toLowerCase().includes("bag") ? "bag" : "ea";
                                         const lineTotal = Math.round(safeQty * safeUnitPrice * 100) / 100;
                                         const id =
                                           typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
@@ -7962,7 +8004,7 @@ function EstimatesPageInner() {
                                             section: "materials",
                                             name: desc,
                                             qty: safeQty,
-                                            unit: "ea",
+                                            unit,
                                             unitPrice: safeUnitPrice,
                                             lineTotal
                                           } as any
@@ -9139,6 +9181,39 @@ function EstimatesPageInner() {
 
                 <div className="max-h-[80dvh] overflow-y-auto">
                 <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {(selectedFenceType === "wood" || selectedFenceType === "aluminum") ? (
+                    <div className="lg:col-span-2 rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                      <div className="text-[11px] text-[var(--muted)] mb-2">Concrete mix</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, concreteMix: "standard" }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (String(materialsDetails.concreteMix || "standard") === "standard"
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          Standard (60lb bag)
+                        </button>
+                        <button
+                          type="button"
+                          data-no-swipe="true"
+                          onClick={() => setMaterialsDetails((p) => ({ ...p, concreteMix: "fast_set" }))}
+                          className={
+                            "w-full rounded-xl px-3 py-2 text-[16px] md:text-sm border transition-none font-extrabold text-left " +
+                            (String(materialsDetails.concreteMix || "standard") === "fast_set"
+                              ? "bg-[rgba(255,214,10,.20)] border-[rgba(255,214,10,.55)]"
+                              : "bg-[rgba(255,255,255,.06)] border-[rgba(255,255,255,.12)]")
+                          }
+                        >
+                          Fast Set (50lb bag)
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                   {selectedFenceType === "wood" && String(selectedStyle?.name || "").trim().toLowerCase() === "fence builder" ? (
                     <>
                       <div className="rounded-2xl border border-[rgba(183,119,41,.62)] bg-[rgba(138,90,43,.72)] p-3">
