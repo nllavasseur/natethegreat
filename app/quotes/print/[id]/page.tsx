@@ -98,6 +98,7 @@ const PRINT_CSS = `
   --text:#111;
   --light:#F2F2F2;
   --mid:#E6E6E6;
+  --vf-print-scale: 1;
 }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; }
@@ -159,7 +160,7 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .noPrint{ display:none !important; }
   html,body{ height:auto; margin:0; padding:0; }
   body{ display:flex; justify-content:center; align-items:center; }
-  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; transform: scale(0.75); transform-origin: center; }
+  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; transform: scale(var(--vf-print-scale)); transform-origin: top center; }
 }
 .section, .table, .infoBox, .notesBox, .disclaimerBox, .totalsBox, .signatureBlock{
   break-inside: avoid;

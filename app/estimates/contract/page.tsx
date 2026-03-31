@@ -18,6 +18,30 @@ function readDraftStore(): Record<string, any> {
   }
 }
 
+function readUnsavedSnapshot(): any | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem("vf_estimate_unsaved_snapshot_v1");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function snapshotMatchesDraftId(snap: any, draftId: string) {
+  try {
+    if (!snap || typeof snap !== "object") return false;
+    const a = typeof (snap as any).draftParam === "string" ? String((snap as any).draftParam) : "";
+    const b = typeof (snap as any).draftId === "string" ? String((snap as any).draftId) : "";
+    const did = String(draftId || "").trim();
+    return Boolean(did) && (a === did || b === did);
+  } catch {
+    return false;
+  }
+}
+
 function buildContractFromDraft(draftId: string, draft: any): ContractData {
   const items: QuoteItem[] = Array.isArray(draft?.items) ? (draft.items as QuoteItem[]) : [];
   const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
@@ -66,7 +90,302 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     }
   })();
 
-  const materialsRows = items
+  const splitWithNeighborsEnabled = Boolean((draft as any)?.splitWithNeighborsEnabled);
+  const parties = (() => {
+    try {
+      const raw = Array.isArray((draft as any)?.parties) ? ((draft as any).parties as any[]) : [];
+      return raw
+        .filter((p) => p && typeof p === "object")
+        .map((p) => ({
+          id: String((p as any).id || "").trim(),
+          name: String((p as any).name || "")
+        }))
+        .filter((p) => Boolean(p.id));
+    } catch {
+      return [] as Array<{ id: string; name: string }>;
+    }
+  })();
+  const splitEnabled = splitWithNeighborsEnabled && parties.length >= 2;
+
+  const sharedAndSplit = (() => {
+    try {
+      const comboCards = Array.isArray((draft as any)?.comboCards) ? ((draft as any).comboCards as any[]) : [];
+      const baseCardId = typeof comboCards?.[0]?.id === "string" ? String(comboCards[0].id) : null;
+      const resolveSegmentCardId = (seg: any) => {
+        const cid = seg?.cardId ?? null;
+        return cid === null ? baseCardId : cid;
+      };
+
+      const computeSharedLfLegacy = () => {
+        const sharedCardIds = new Set(
+          comboCards
+            .filter((c, idx) => idx > 0 && Boolean((c as any)?.shared))
+            .map((c) => String((c as any)?.id || ""))
+            .filter((id) => Boolean(id))
+        );
+        if (!sharedCardIds.size) return 0;
+        return segments
+          .filter((s) => !Boolean((s as any)?.removed))
+          .filter((s) => (Number((s as any)?.length) || 0) > 0)
+          .filter((s) => sharedCardIds.has(String(resolveSegmentCardId(s) || "")))
+          .reduce((sum, s) => sum + (Number((s as any)?.length) || 0), 0);
+      };
+
+      const sharedLf = splitEnabled
+        ? segments
+            .filter((s) => !Boolean((s as any)?.removed))
+            .filter((s) => (Number((s as any)?.length) || 0) > 0)
+            .filter((s) => String((s as any)?.payerType || "").trim() === "shared")
+            .reduce((sum, s) => sum + (Number((s as any)?.length) || 0), 0)
+        : computeSharedLfLegacy();
+
+      const totalsForBreakdown = (() => {
+        const persisted = (draft as any)?.totals as any;
+        const persistedMaterialsSubtotal = Number(persisted?.materialsSubtotal);
+        const persistedLaborSubtotal = Number(persisted?.laborSubtotal);
+        const persistedAdditionalSubtotal = Number(persisted?.additionalSubtotal);
+        const persistedRemovalTotal = Number(persisted?.removalTotal);
+        const persistedTotal = Number(persisted?.total);
+        const persistedDepositTotal = Number(persisted?.depositTotal);
+
+        const hasPersistedTotals =
+          Number.isFinite(persistedMaterialsSubtotal) &&
+          Number.isFinite(persistedLaborSubtotal) &&
+          Number.isFinite(persistedAdditionalSubtotal) &&
+          Number.isFinite(persistedTotal);
+
+        const additionalServicesTotal = items
+          .filter((i) => i && (i as any).section === "additional")
+          .reduce((a, b) => a + (Number((b as any).lineTotal) || 0), 0);
+        const laborBaseTotal = items
+          .filter((i) => i && (i as any).section === "labor")
+          .filter((i) => String((i as any).name || "") === "Days labor")
+          .reduce((a, b) => a + (Number((b as any).lineTotal) || 0), 0);
+        const laborFeeTotal = items
+          .filter((i) => i && (i as any).section === "labor")
+          .filter((i) => String((i as any).name || "") !== "Days labor")
+          .reduce((a, b) => a + (Number((b as any).lineTotal) || 0), 0);
+
+        const takeoffMaterialsRaw: QuoteItem[] = Array.isArray(draft?.takeoffMaterials) ? (draft.takeoffMaterials as QuoteItem[]) : [];
+        const takeoffMaterials = (Array.isArray(takeoffMaterialsRaw) ? takeoffMaterialsRaw : []).filter(
+          (i) => i && (i as any).section === "materials"
+        );
+        const takeoffManualRaw: QuoteItem[] = Array.isArray((draft as any)?.takeoffManualItems)
+          ? (((draft as any).takeoffManualItems as any[]) as QuoteItem[])
+          : [];
+        const takeoffManualItems = (Array.isArray(takeoffManualRaw) ? takeoffManualRaw : []).filter(
+          (i) => i && (i as any).section === "materials"
+        );
+
+        const materialsAndExpensesTotalWithManual = hasPersistedTotals
+          ? round2(persistedMaterialsSubtotal)
+          : round2(
+              computeMaterialsAndExpensesTotal(
+                (takeoffMaterials?.length || 0) > 0
+                  ? ([...takeoffMaterials, ...takeoffManualItems] as QuoteItem[])
+                  : ([...items, ...takeoffManualItems] as QuoteItem[])
+              )
+            );
+        const tenPercentDiscountEnabled = Boolean((draft as any)?.tenPercentDiscountEnabled);
+        const tenPercentDiscountValue = tenPercentDiscountEnabled ? round2(materialsAndExpensesTotalWithManual * 0.1) : 0;
+        const materialsAndExpensesDiscounted = round2(materialsAndExpensesTotalWithManual - tenPercentDiscountValue);
+
+        const additionalFeesTotal = hasPersistedTotals
+          ? round2(persistedAdditionalSubtotal)
+          : round2((Number(additionalServicesTotal) || 0) + (Number(laborFeeTotal) || 0));
+        const laborBaseTotalRounded = hasPersistedTotals ? round2(persistedLaborSubtotal) : round2(laborBaseTotal);
+        const removalTotalRounded = Number.isFinite(persistedRemovalTotal) ? round2(persistedRemovalTotal) : round2(removalTotal);
+        const depositTotalWithManual = Number.isFinite(persistedDepositTotal) ? round2(persistedDepositTotal) : round2(materialsAndExpensesDiscounted);
+        const jobTotal = Number.isFinite(persistedTotal)
+          ? round2(persistedTotal)
+          : round2(materialsAndExpensesDiscounted + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
+
+        return {
+          jobTotal,
+          depositTotalWithManual,
+          laborBaseTotalRounded,
+          additionalFeesTotal,
+          removalTotalRounded
+        };
+      })();
+
+      const sharedTotal = (() => {
+        const lf = Number(totalLf) || 0;
+        if (lf <= 0) return 0;
+        const perLf = (Number(totalsForBreakdown.jobTotal) || 0) / lf;
+        return Math.round(perLf * (Number(sharedLf) || 0) * 100) / 100;
+      })();
+
+      const computeSplitBreakdown = () => {
+        if (!splitEnabled) return null;
+        const safeParties = parties;
+        const partyIdSet = new Set(safeParties.map((p) => p.id));
+        const primaryPartyId = safeParties[0]?.id || "";
+
+        const eligibleSegments = segments
+          .filter((s) => s && typeof s === "object")
+          .filter((s) => !Boolean((s as any).removed))
+          .filter((s) => (Number((s as any).length) || 0) > 0);
+
+        const lfShare: Record<string, number> = {};
+        const removalLfShare: Record<string, number> = {};
+        for (const p of safeParties) {
+          lfShare[p.id] = 0;
+          removalLfShare[p.id] = 0;
+        }
+
+        let sharedLfRaw = 0;
+        let totalLfRaw = 0;
+        let totalRemovalLfRaw = 0;
+
+        const cardLabelFor = (seg: any) => {
+          const cid = resolveSegmentCardId(seg);
+          if (!cid) return "";
+          const idx = comboCards.findIndex((c) => String((c as any)?.id || "") === String(cid));
+          const card = idx >= 0 ? comboCards[idx] : null;
+          const label = card && typeof (card as any).label === "string" ? String((card as any).label || "") : "";
+          const base = idx >= 0 ? `Card ${idx + 1}` : "Card";
+          return label.trim() ? `${base} - ${label.trim()}` : base;
+        };
+
+        const segmentBreakdown = eligibleSegments.map((seg: any) => {
+          const length = Number(seg.length) || 0;
+          totalLfRaw += length;
+
+          const payerTypeRaw = String(seg.payerType || "").trim();
+          const payerType: "individual" | "shared" = payerTypeRaw === "shared" ? "shared" : "individual";
+
+          const individualIdRaw = typeof seg.payerPartyId === "string" ? String(seg.payerPartyId || "").trim() : "";
+          const sharedIdsRaw = Array.isArray(seg.payerPartyIds) ? (seg.payerPartyIds as any[]).map((x) => String(x || "").trim()) : [];
+          const sharedIds = sharedIdsRaw.filter((id) => partyIdSet.has(id));
+
+          const finalType = payerType === "shared" && sharedIds.length >= 2 ? "shared" : "individual";
+          const finalIndividualId = partyIdSet.has(individualIdRaw) ? individualIdRaw : primaryPartyId;
+          const finalSharedIds = sharedIds.length >= 2 ? sharedIds : [];
+
+          const participants = finalType === "shared" ? finalSharedIds : [finalIndividualId];
+          if (finalType === "shared") sharedLfRaw += length;
+
+          const per = participants.length ? length / participants.length : 0;
+          for (const pid of participants) {
+            lfShare[pid] = (Number(lfShare[pid]) || 0) + per;
+          }
+
+          const removal = Boolean((seg as any).removal) || Boolean((seg as any).removed);
+          if (removal) {
+            totalRemovalLfRaw += length;
+            for (const pid of participants) {
+              removalLfShare[pid] = (Number(removalLfShare[pid]) || 0) + per;
+            }
+          }
+
+          return {
+            id: String(seg.id || ""),
+            label: String(seg.label || ""),
+            length,
+            removal,
+            gateType: String(seg.gateType || "none"),
+            payerType: finalType,
+            payerPartyId: finalType === "individual" ? finalIndividualId : undefined,
+            payerPartyIds: finalType === "shared" ? finalSharedIds : undefined,
+            cardId: resolveSegmentCardId(seg),
+            cardLabel: cardLabelFor(seg)
+          };
+        });
+
+        const allocateCents = (total: number, shares: Record<string, number>) => {
+          const centsTotal = Math.round((Number(total) || 0) * 100);
+          const totalShare = Object.values(shares).reduce((a, b) => a + (Number(b) || 0), 0);
+          const base: Record<string, number> = {};
+          if (centsTotal === 0 || totalShare <= 0) {
+            for (const p of safeParties) base[p.id] = 0;
+            return base;
+          }
+          const tmp = safeParties.map((p) => {
+            const share = Number(shares[p.id]) || 0;
+            const raw = (centsTotal * share) / totalShare;
+            const floored = Math.floor(raw);
+            return { id: p.id, floored, frac: raw - floored };
+          });
+          const sumBase = tmp.reduce((a, b) => a + b.floored, 0);
+          let remainder = centsTotal - sumBase;
+          tmp.sort((a, b) => b.frac - a.frac);
+          for (const t of tmp) base[t.id] = t.floored;
+          let i = 0;
+          while (remainder > 0 && tmp.length) {
+            const id = tmp[i % tmp.length].id;
+            base[id] = (base[id] || 0) + 1;
+            remainder -= 1;
+            i += 1;
+          }
+          return base;
+        };
+
+        const materialsCents = allocateCents(totalsForBreakdown.depositTotalWithManual, lfShare);
+        const laborCents = allocateCents(totalsForBreakdown.laborBaseTotalRounded, lfShare);
+        const additionalCents = allocateCents(totalsForBreakdown.additionalFeesTotal, lfShare);
+        const removalCents = allocateCents(
+          totalsForBreakdown.removalTotalRounded,
+          totalRemovalLfRaw > 0 ? removalLfShare : Object.fromEntries(safeParties.map((p) => [p.id, 0]))
+        );
+
+        const partiesOut = safeParties.map((p) => {
+          const materials = round2((materialsCents[p.id] || 0) / 100);
+          const labor = round2((laborCents[p.id] || 0) / 100);
+          const additional = round2((additionalCents[p.id] || 0) / 100);
+          const removal = round2((removalCents[p.id] || 0) / 100);
+          const deposit = materials;
+          const total = round2(materials + labor + additional + removal);
+          const remaining = Math.max(0, round2(total - deposit));
+          return {
+            id: p.id,
+            name: p.name,
+            lfShare: round2(Number(lfShare[p.id]) || 0),
+            removalLfShare: round2(Number(removalLfShare[p.id]) || 0),
+            materials,
+            labor,
+            additional,
+            removal,
+            deposit,
+            remaining,
+            total
+          };
+        });
+
+        return {
+          segmentBreakdown,
+          partyBreakdown: {
+            totalLf: round2(totalLfRaw),
+            sharedLf: round2(sharedLfRaw),
+            removalLf: round2(totalRemovalLfRaw),
+            parties: partiesOut
+          }
+        };
+      };
+
+      const breakdown = computeSplitBreakdown();
+      return { sharedLf: round2(sharedLf), sharedTotal: round2(sharedTotal), breakdown };
+    } catch {
+      return { sharedLf: 0, sharedTotal: 0, breakdown: null };
+    }
+  })();
+
+  const takeoffMaterialsForRowsRaw: QuoteItem[] = Array.isArray(draft?.takeoffMaterials) ? (draft.takeoffMaterials as QuoteItem[]) : [];
+  const takeoffMaterialsForRows = (Array.isArray(takeoffMaterialsForRowsRaw) ? takeoffMaterialsForRowsRaw : [])
+    .filter((i) => i && (i as any).section === "materials")
+    .filter((i) => (Number((i as any).qty) || 0) > 0);
+  const takeoffManualForRowsRaw: QuoteItem[] = Array.isArray((draft as any)?.takeoffManualItems)
+    ? (((draft as any).takeoffManualItems as any[]) as QuoteItem[])
+    : [];
+  const takeoffManualForRowsItems = (Array.isArray(takeoffManualForRowsRaw) ? takeoffManualForRowsRaw : [])
+    .filter((i) => i && (i as any).section === "materials")
+    .filter((i) => (Number((i as any).qty) || 0) > 0);
+
+  const materialsRowSource: QuoteItem[] =
+    (takeoffMaterialsForRows?.length || 0) > 0
+      ? ([...takeoffMaterialsForRows, ...takeoffManualForRowsItems] as QuoteItem[])
+      : ([...items, ...takeoffManualForRowsItems] as QuoteItem[]);
+  const materialsRows = materialsRowSource
     .filter((i) => i.section === "materials" && (Number(i.qty) || 0) > 0)
     .map((i) => ({
       name: String(i.name || ""),
@@ -219,6 +538,12 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
       totalLf,
       walkGateCount: gateCounts.walk,
       doubleGateCount: gateCounts.dbl,
+      sharedLf: Number(sharedAndSplit.sharedLf) || 0,
+      sharedTotal: Number(sharedAndSplit.sharedTotal) || 0,
+      splitWithNeighborsEnabled: splitEnabled,
+      parties: splitEnabled ? (Array.isArray((draft as any)?.parties) ? ((draft as any).parties as any[]) : []) : undefined,
+      segmentBreakdown: splitEnabled ? ((sharedAndSplit as any)?.breakdown?.segmentBreakdown as any) : undefined,
+      partyBreakdown: splitEnabled ? ((sharedAndSplit as any)?.breakdown?.partyBreakdown as any) : undefined,
       depositTotal: depositTotalWithManual,
       notes,
       disclaimer: "",
@@ -265,6 +590,38 @@ type ContractData = {
     doubleGateCount?: number;
     sharedLf?: number;
     sharedTotal?: number;
+    splitWithNeighborsEnabled?: boolean;
+    parties?: Array<{ id: string; name: string; phone?: string; email?: string }>;
+    segmentBreakdown?: Array<{
+      id: string;
+      label: string;
+      length: number;
+      removal: boolean;
+      gateType: string;
+      payerType: "individual" | "shared";
+      payerPartyId?: string;
+      payerPartyIds?: string[];
+      cardId?: string | null;
+      cardLabel?: string;
+    }>;
+    partyBreakdown?: {
+      totalLf: number;
+      sharedLf: number;
+      removalLf: number;
+      parties: Array<{
+        id: string;
+        name: string;
+        lfShare: number;
+        removalLfShare: number;
+        materials: number;
+        labor: number;
+        additional: number;
+        removal: number;
+        deposit: number;
+        remaining: number;
+        total: number;
+      }>;
+    };
     depositTotal: number;
     notes: string;
     disclaimer: string;
@@ -371,14 +728,21 @@ export default function EstimateContractPage() {
     const refresh = async () => {
       try {
         let localTs = 0;
-        try {
-          const store = readDraftStore();
-          const local = store?.[draftId];
-          if (local) {
-            localTs = Number((local as any)?.updatedAt ?? (local as any)?.createdAt ?? 0) || 0;
-            setDataFromDraft(draftId, local);
+
+        const snap = readUnsavedSnapshot();
+        if (snapshotMatchesDraftId(snap, draftId)) {
+          localTs = Number.MAX_SAFE_INTEGER;
+          setDataFromDraft(draftId, snap);
+        } else {
+          try {
+            const store = readDraftStore();
+            const local = store?.[draftId];
+            if (local) {
+              localTs = Number((local as any)?.updatedAt ?? (local as any)?.createdAt ?? 0) || 0;
+              setDataFromDraft(draftId, local);
+            }
+          } catch {
           }
-        } catch {
         }
 
         const remote = await fetchDraft({ id: draftId });
@@ -497,6 +861,12 @@ export default function EstimateContractPage() {
         if (!cancelled) setDraftId(nextDraftId);
         if (nextDraftId) {
           let localTs = 0;
+
+          const snap = readUnsavedSnapshot();
+          if (!cancelled && snapshotMatchesDraftId(snap, nextDraftId)) {
+            localTs = Number.MAX_SAFE_INTEGER;
+            setDataFromDraft(nextDraftId, snap);
+          } else {
           try {
             const store = readDraftStore();
             const local = store?.[nextDraftId];
@@ -505,6 +875,7 @@ export default function EstimateContractPage() {
               setDataFromDraft(nextDraftId, local);
             }
           } catch {
+          }
           }
 
           const remote = await fetchDraft({ id: nextDraftId });
@@ -545,18 +916,167 @@ export default function EstimateContractPage() {
     }
   }, [computeDocTitle, data]);
 
-  const setPrintScale = React.useCallback(() => {
+  const printHiddenElsRef = React.useRef<HTMLElement[]>([]);
+  const [printScaleMode, setPrintScaleMode] = React.useState<string>("auto");
+  const printScaleModeRef = React.useRef<string>("auto");
+
+  const applyPrintIsolation = React.useCallback(() => {
+    try {
+      const outer = document.querySelector(".printOuter");
+      if (!outer) return;
+      const hidden: HTMLElement[] = [];
+      for (const child of Array.from(document.body.children)) {
+        if (!(child instanceof HTMLElement)) continue;
+        if (child.contains(outer)) continue;
+        child.classList.add("vfPrintHide");
+        hidden.push(child);
+      }
+      printHiddenElsRef.current = hidden;
+    } catch {
+    }
+  }, []);
+
+  const clearPrintIsolation = React.useCallback(() => {
+    try {
+      for (const el of printHiddenElsRef.current) {
+        try {
+          el.classList.remove("vfPrintHide");
+        } catch {
+        }
+      }
+      printHiddenElsRef.current = [];
+    } catch {
+    }
+  }, []);
+
+  const setPrintScale = React.useCallback((modeOverride?: string) => {
+    const effectiveMode = typeof modeOverride === "string" && modeOverride ? modeOverride : printScaleModeRef.current;
     const el = pageRef.current;
     if (!el) return;
 
-    document.documentElement.style.setProperty("--vf-print-scale", "0.75");
-  }, []);
+    try {
+      document.documentElement.style.setProperty("--vf-print-scale", "1");
+
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.classList.add("vfPrintMeasuring");
+      clone.classList.add("vfMeasureClone");
+      clone.style.position = "fixed";
+      clone.style.left = "-10000px";
+      clone.style.top = "0";
+      clone.style.visibility = "hidden";
+      clone.style.pointerEvents = "none";
+      clone.style.width = "8.1in";
+      clone.style.maxWidth = "8.1in";
+      clone.style.margin = "0";
+      clone.style.padding = "0.28in 0.16in 0.18in";
+      clone.style.boxSizing = "border-box";
+      clone.style.background = "#fff";
+      clone.style.transform = "none";
+      (clone.style as any).webkitTransform = "none";
+
+      document.body.appendChild(clone);
+
+      const PAGE_W = 8.5 * 96;
+      const PAGE_H = 11 * 96;
+      const PAGE_MARGIN_X = 0.16 * 96;
+      const PAGE_MARGIN_TOP = 0.36 * 96;
+      const PAGE_MARGIN_BOTTOM = 0.24 * 96;
+      const SIDE_SAFE = 0.08 * 96;
+      const TOP_SAFE = 0.16 * 96;
+      const BOTTOM_SAFE = 0.16 * 96;
+      const TOP_GAP = 0.08 * 96;
+
+      const availW = PAGE_W - PAGE_MARGIN_X * 2 - SIDE_SAFE;
+      const availH = PAGE_H - PAGE_MARGIN_TOP - PAGE_MARGIN_BOTTOM - TOP_GAP - TOP_SAFE - BOTTOM_SAFE;
+
+      const rect = clone.getBoundingClientRect();
+      const w = Math.max(1, Number((clone as any).scrollWidth) || rect.width);
+      const h = Math.max(1, Number((clone as any).scrollHeight) || rect.height);
+      document.documentElement.style.setProperty("--vf-print-content-w", `${Math.ceil(w)}px`);
+      document.documentElement.style.setProperty("--vf-print-content-h", `${Math.ceil(h)}px`);
+      const scaleW = availW / w;
+      const scaleH = availH / h;
+      const scale = Math.min(scaleW, scaleH, 1) * 0.85;
+      const clamped = Math.max(0.2, Math.min(1, scale));
+      const est: any = (data as any)?.estimate;
+      const prefers85 =
+        Boolean(est?.splitWithNeighborsEnabled) &&
+        ((Number(est?.sharedLf) || 0) > 0 || (Number(est?.sharedTotal) || 0) > 0);
+      const autoCap = prefers85 ? 0.85 : 1;
+      const chosenCap = effectiveMode === "auto" ? autoCap : Number(effectiveMode) / 100;
+      const userCap = Number.isFinite(chosenCap) ? Math.max(0.2, Math.min(1, chosenCap)) : 1;
+      const finalScale = Math.min(clamped, userCap, 0.80);
+      const rounded = Math.round(finalScale * 1000) / 1000;
+      document.documentElement.style.setProperty("--vf-print-scale", String(rounded));
+
+      try {
+        clone.remove();
+      } catch {
+      }
+    } catch {
+      const fallbackFromMode = (() => {
+        if (effectiveMode !== "auto") {
+          const n = Number(effectiveMode);
+          if (!Number.isFinite(n)) return 0.8;
+          return Math.max(0.2, Math.min(0.8, n / 100));
+        }
+        return 0.8;
+      })();
+      document.documentElement.style.setProperty("--vf-print-scale", String(fallbackFromMode));
+    }
+  }, [data]);
 
   React.useEffect(() => {
-    const onBeforePrint = () => setPrintScale();
+    try {
+      if (!data) return;
+      const t = window.setTimeout(() => setPrintScale(), 0);
+      return () => window.clearTimeout(t);
+    } catch {
+      return;
+    }
+  }, [data, printScaleMode, setPrintScale]);
+
+  React.useEffect(() => {
+    const onBeforePrint = () => {
+      applyPrintIsolation();
+      setPrintScale();
+    };
     window.addEventListener("beforeprint", onBeforePrint);
-    return () => window.removeEventListener("beforeprint", onBeforePrint);
-  }, [setPrintScale]);
+    const onAfterPrint = () => clearPrintIsolation();
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, [applyPrintIsolation, clearPrintIsolation, setPrintScale]);
+
+  React.useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      if (!window.matchMedia) return;
+      const mql = window.matchMedia("print");
+
+      const handler = (e: any) => {
+        const matches = typeof e?.matches === "boolean" ? e.matches : Boolean(mql.matches);
+        if (matches) {
+          applyPrintIsolation();
+        } else {
+          clearPrintIsolation();
+        }
+      };
+
+      if (typeof (mql as any).addEventListener === "function") {
+        (mql as any).addEventListener("change", handler);
+        return () => (mql as any).removeEventListener("change", handler);
+      }
+
+      if (typeof (mql as any).addListener === "function") {
+        (mql as any).addListener(handler);
+        return () => (mql as any).removeListener(handler);
+      }
+    } catch {
+    }
+  }, [applyPrintIsolation, clearPrintIsolation, setPrintScale]);
 
   const handlePrint = React.useCallback(() => {
     try {
@@ -564,9 +1084,10 @@ export default function EstimateContractPage() {
     } catch {
       // ignore
     }
-    setPrintScale();
-    requestAnimationFrame(() => window.print());
-  }, [computeDocTitle, data, setPrintScale]);
+    applyPrintIsolation();
+    setPrintScale(printScaleModeRef.current);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  }, [applyPrintIsolation, computeDocTitle, data, setPrintScale]);
 
   const handleEmail = React.useCallback(() => {
     try {
@@ -604,6 +1125,24 @@ export default function EstimateContractPage() {
     (Number(estimate.walkGateCount ?? 0) || 0) + (Number(estimate.doubleGateCount ?? 0) || 0);
   const sharedLf = Number(estimate.sharedLf ?? 0);
   const sharedTotal = Number(estimate.sharedTotal ?? 0);
+  const splitMode =
+    Boolean((estimate as any)?.splitWithNeighborsEnabled) &&
+    Array.isArray((estimate as any)?.partyBreakdown?.parties) &&
+    ((estimate as any).partyBreakdown.parties as any[]).length >= 2;
+  const partyBreakdown = splitMode ? ((estimate as any).partyBreakdown as any) : null;
+  const segmentBreakdown = splitMode && Array.isArray((estimate as any)?.segmentBreakdown)
+    ? (((estimate as any).segmentBreakdown as any[]) as any[])
+    : [];
+  const partyNameById = (() => {
+    const m = new Map<string, string>();
+    const list = Array.isArray((estimate as any)?.parties) ? ((estimate as any).parties as any[]) : [];
+    for (const p of list) {
+      const id = typeof (p as any)?.id === "string" ? String((p as any).id) : "";
+      if (!id) continue;
+      m.set(id, String((p as any)?.name || "").trim());
+    }
+    return m;
+  })();
   const descriptionText = `${estimate.styleTitle}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`;
   const estimateDisplayName = String((estimate as any)?.name || "").trim();
   const descriptionDisplayText = estimateDisplayName
@@ -643,6 +1182,39 @@ export default function EstimateContractPage() {
                 <button onClick={handleEmail} className="backBtnHalf" disabled={!estimate.customer.email}>Email</button>
                 <button onClick={handlePrint} className="backBtnHalf">Print / Save PDF</button>
               </div>
+              <div className="stickyScaleRow">
+                <div className="stickyScaleLabel">Print scale</div>
+                <select
+                  className="stickyScaleSelect"
+                  value={printScaleMode}
+                  onChange={(e) => {
+                    const v = String(e.target.value || "");
+                    printScaleModeRef.current = v;
+                    if (v !== "auto") {
+                      const n = Number(v);
+                      if (!Number.isFinite(n)) return;
+                      if (n < 60 || n > 80) return;
+                      try {
+                        document.documentElement.style.setProperty(
+                          "--vf-print-scale",
+                          String(Math.max(0.2, Math.min(0.8, n / 100)))
+                        );
+                      } catch {
+                      }
+                    }
+                    setPrintScaleMode(v);
+                    try {
+                      setPrintScale(v);
+                    } catch {
+                    }
+                  }}
+                >
+                  <option value="auto">Auto</option>
+                  {Array.from({ length: 21 }, (_, idx) => 80 - idx).map((n) => (
+                    <option key={n} value={String(n)}>{n}%</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>,
           document.body
@@ -650,9 +1222,12 @@ export default function EstimateContractPage() {
           : null)
         : null}
 
-      <main ref={(el) => {
-        pageRef.current = el;
-      }} className="page">
+      <div className="printOuter">
+        <div className="printPos">
+          <div className="printScale">
+            <main ref={(el) => {
+              pageRef.current = el;
+            }} className="page">
         <header className="topHeader">
           <div className="brand">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -769,6 +1344,190 @@ export default function EstimateContractPage() {
           </div>
         </section>
 
+        {splitMode && partyBreakdown ? (
+          <section className="workBlock">
+            <div className="workHeader">
+              <div>Segments (paid by)</div>
+            </div>
+            <div className="workBody" style={{ paddingTop: 8, paddingBottom: 8 }}>
+              {segmentBreakdown.length ? (
+                <div style={{ border: "1px solid var(--mid)", borderRadius: 10, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "0.9in 1.9in 0.7in 1fr 0.7in",
+                      gap: 0,
+                      background: "var(--green)",
+                      color: "#fff",
+                      fontSize: 9,
+                      fontWeight: 900,
+                      padding: "4px 7px"
+                    }}
+                  >
+                    <div>Segment</div>
+                    <div>Card</div>
+                    <div style={{ textAlign: "right" }}>LF</div>
+                    <div>Paid by</div>
+                    <div style={{ textAlign: "right" }}>Remove</div>
+                  </div>
+                  {segmentBreakdown.map((seg: any, idx: number) => {
+                    const payerType = String(seg?.payerType || "").trim() === "shared" ? "shared" : "individual";
+                    const payerLabel = (() => {
+                      if (payerType === "shared") {
+                        const ids = Array.isArray(seg?.payerPartyIds) ? (seg.payerPartyIds as any[]) : [];
+                        const names = ids
+                          .map((id) => partyNameById.get(String(id || "")) || "")
+                          .map((n) => String(n || "").trim())
+                          .filter((n) => Boolean(n));
+                        return names.length ? `Shared: ${names.join(", ")}` : "Shared";
+                      }
+                      const pid = String(seg?.payerPartyId || "");
+                      const name = partyNameById.get(pid) || "";
+                      return `Individual: ${String(name || "").trim() || "(unnamed)"}`;
+                    })();
+                    return (
+                      <div
+                        key={String(seg?.id || idx)}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "0.9in 1.9in 0.7in 1fr 0.7in",
+                          padding: "4px 7px",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          background: idx % 2 ? "var(--light)" : "#fff",
+                          borderTop: "1px solid var(--mid)"
+                        }}
+                      >
+                        <div>{String(seg?.label || "")}</div>
+                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{String(seg?.cardLabel || "")}</div>
+                        <div style={{ textAlign: "right" }}>{Math.round((Number(seg?.length) || 0) * 100) / 100}</div>
+                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{payerLabel}</div>
+                        <div style={{ textAlign: "right" }}>{Boolean(seg?.removal) ? "Yes" : ""}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ fontSize: 9, fontWeight: 700 }}>No segments.</div>
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        {splitMode && partyBreakdown ? (
+          <section className="workBlock">
+            <div className="workHeader">
+              <div>Per-party prorated breakdown</div>
+              <div className="workHeaderRight">
+                <div>Shared LF</div>
+                <div className="workLf">{Math.round(Number(partyBreakdown.sharedLf || 0))}</div>
+              </div>
+            </div>
+            <div className="workBody" style={{ paddingTop: 8, paddingBottom: 8 }}>
+              {Array.isArray(partyBreakdown.parties) ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 8,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                    alignItems: "start"
+                  }}
+                >
+                  {partyBreakdown.parties.map((p: any, idx: number) => {
+                    const name = String(p?.name || "").trim() || `Party ${idx + 1}`;
+                    return (
+                      <div key={String(p?.id || idx)} style={{ border: "1px solid var(--mid)", borderRadius: 10, padding: "6px 7px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                          <div style={{ fontSize: 10, fontWeight: 900 }}>{name}</div>
+                          <div style={{ fontSize: 9, fontWeight: 800 }}>{Math.round((Number(p?.lfShare) || 0) * 100) / 100} LF share</div>
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 4,
+                            display: "grid",
+                            gridTemplateColumns: "1fr auto",
+                            gap: 3,
+                            fontSize: 9,
+                            fontWeight: 700
+                          }}
+                        >
+                          <div>Materials &amp; Expenses</div>
+                          <div style={{ textAlign: "right" }}>{money(Number(p?.materials) || 0)}</div>
+                          <div>Labor</div>
+                          <div style={{ textAlign: "right" }}>{money(Number(p?.labor) || 0)}</div>
+                          <div>Additional fees</div>
+                          <div style={{ textAlign: "right" }}>{money(Number(p?.additional) || 0)}</div>
+                          <div>Fence removal</div>
+                          <div style={{ textAlign: "right" }}>{money(Number(p?.removal) || 0)}</div>
+                          <div style={{ fontWeight: 900 }}>Total</div>
+                          <div style={{ textAlign: "right", fontWeight: 900 }}>{money(Number(p?.total) || 0)}</div>
+                          <div>Deposit</div>
+                          <div style={{ textAlign: "right" }}>{money(Number(p?.deposit) || 0)}</div>
+                          <div>Remaining</div>
+                          <div style={{ textAlign: "right" }}>{money(Number(p?.remaining) || 0)}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {sharedLf > 0 || (splitMode && partyBreakdown && Array.isArray(partyBreakdown.parties)) ? (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 4 }}>
+              {sharedLf > 0 && sharedTotal > 0 ? (
+                <div
+                  style={{
+                    border: "1px solid var(--mid)",
+                    borderRadius: 10,
+                    padding: "6px 7px"
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 9, fontWeight: 900 }}>
+                    <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Shared</div>
+                    <div style={{ whiteSpace: "nowrap" }}>{money(sharedTotal)}</div>
+                  </div>
+                  <div style={{ marginTop: 2, display: "flex", justifyContent: "space-between", gap: 8, fontSize: 8.5, fontWeight: 700 }}>
+                    <div>{Math.round(sharedLf)} LF</div>
+                    <div />
+                  </div>
+                </div>
+              ) : null}
+
+              {splitMode && partyBreakdown && Array.isArray(partyBreakdown.parties)
+                ? partyBreakdown.parties.map((p: any, idx: number) => {
+                    const name = String(p?.name || "").trim() || `Party ${idx + 1}`;
+                    const total = Number(p?.total) || 0;
+                    const deposit = Number(p?.deposit) || 0;
+                    const remaining = Number(p?.remaining) || 0;
+                    return (
+                      <div
+                        key={String(p?.id || idx)}
+                        style={{
+                          border: "1px solid var(--mid)",
+                          borderRadius: 10,
+                          padding: "6px 7px"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 9, fontWeight: 900 }}>
+                          <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+                          <div style={{ whiteSpace: "nowrap" }}>{money(total)}</div>
+                        </div>
+                        <div style={{ marginTop: 2, display: "flex", justifyContent: "space-between", gap: 8, fontSize: 8.5, fontWeight: 700 }}>
+                          <div>Dep {money(deposit)}</div>
+                          <div>Rem {money(remaining)}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                : null}
+            </div>
+          </div>
+        ) : null}
+
         <section className="bottomGrid">
           <div className="disclaimer">
             <div className="discTitle">Disclaimer:</div>
@@ -777,11 +1536,15 @@ export default function EstimateContractPage() {
           </div>
 
           <div className="totalCost">
-            {sharedLf > 0 && sharedTotal > 0 ? (
-              <div style={{ marginBottom: 8 }}>
-                <div className="totalCostLabel">Shared Portion</div>
-                <div style={{ fontSize: 10, fontWeight: 800, marginTop: 2 }}>{Math.round(sharedLf)} LF</div>
-                <div className="totalCostValue">{money(sharedTotal)}</div>
+            {Boolean((estimate as any)?.splitWithNeighborsEnabled) && !(splitMode && partyBreakdown && Array.isArray(partyBreakdown.parties)) ? (
+              <div style={{ marginBottom: 10, textAlign: "left" }}>
+                <div className="totalCostLabel">Per-party totals</div>
+                <div style={{ fontSize: 9, fontWeight: 800, marginTop: 3, color: "#A52B2B" }}>
+                  Split is enabled, but per-party breakdown is not available.
+                </div>
+                <div style={{ fontSize: 8.5, fontWeight: 700, marginTop: 2 }}>
+                  Make sure you have 2+ parties and assign segment payers.
+                </div>
               </div>
             ) : null}
 
@@ -799,34 +1562,68 @@ export default function EstimateContractPage() {
         </div>
 
         <div className="sigLines">
-          <div className="sigLineRow">
-            <div className="sigLine" />
-            <div className="sigLabel">Homeowner Signature</div>
-          </div>
-          <div className="sigLineRow">
-            <div className="sigLine" />
-            <div className="sigLabel">Homeowner Print</div>
-          </div>
-          <div className="sigLineRow">
-            <div className="sigLine" />
-            <div className="sigLabel">Date</div>
+          {splitMode && partyBreakdown && Array.isArray(partyBreakdown.parties)
+            ? partyBreakdown.parties.map((p: any, idx: number) => {
+                const name = String(p?.name || "").trim() || `Party ${idx + 1}`;
+                return (
+                  <div key={String(p?.id || idx)} style={{ marginTop: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.8fr", gap: 10, marginTop: 8 }}>
+                      <div>
+                        <div className="sigLine" />
+                        <div className="sigLabel">{name} Signature</div>
+                      </div>
+                      <div>
+                        <div className="sigLine" />
+                        <div className="sigLabel">{name} Print</div>
+                      </div>
+                      <div>
+                        <div className="sigLine" />
+                        <div className="sigLabel">Date</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            : (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.8fr", gap: 10, marginTop: 8 }}>
+                  <div>
+                    <div className="sigLine" />
+                    <div className="sigLabel">Homeowner Signature</div>
+                  </div>
+                  <div>
+                    <div className="sigLine" />
+                    <div className="sigLabel">Homeowner Print</div>
+                  </div>
+                  <div>
+                    <div className="sigLine" />
+                    <div className="sigLabel">Date</div>
+                  </div>
+                </div>
+              </>
+            )}
+        </div>
+            </main>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }
 
 const PRINT_CSS = `
-:root{ --green:#244B2A; --brown:#8A5A2B; --text:#111; --light:#F4F4F4; --mid:#E6E6E6; --vf-print-scale:1; }
+:root{ --green:#244B2A; --brown:#8A5A2B; --text:#111; --light:#F4F4F4; --mid:#E6E6E6; --vf-print-scale:0.80; --vf-print-content-w: 778px; --vf-print-content-h: 1056px; }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; background:#fff; }
+body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .page{ width: 8.5in; margin: 0 auto; padding: 0.35in 0.28in 0.14in; }
 .controls{ padding:10px; display:flex; justify-content:center; }
 .btn{ padding:10px 14px; border-radius:10px; border:1px solid #ddd; background:#fff; cursor:pointer; font-weight:600; }
 .noPrint{ display:block; }
 .topHeader{ display:grid; grid-template-columns: 3.2in 1fr; align-items:start; gap:6px; }
 .headerImage{ display:block; height:124px; width:auto; object-fit:contain; margin-top:0; }
+.vfPrintMeasuring .topHeader{ gap:2px; }
+.vfPrintMeasuring .headerImage{ height:96px; }
 .docTitleCentered{ text-align:center; font-size:30px; font-weight:900; margin:0 0 2px; line-height:1; }
 .contact{ text-align:right; font-size:9px; line-height:1.2; margin-top:0; }
 .contactBold{ font-weight:800; }
@@ -873,6 +1670,20 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
 .stickyBack{ position:fixed; left:0; right:0; bottom:0; z-index:50; padding:0 16px calc(env(safe-area-inset-bottom) + 16px); }
 .stickyBackInner{ max-width:980px; margin:0 auto; padding-top:12px; }
 .stickyBar{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+.stickyScaleRow{ margin-top:10px; display:flex; justify-content:center; align-items:center; gap:10px; }
+.stickyScaleLabel{ color:#fff; font-size:12px; font-weight:900; letter-spacing:.01em; opacity:.92; }
+.stickyScaleSelect{
+  height:44px;
+  border-radius:12px;
+  padding:0 12px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(20,30,24,.55);
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.01em;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
 .backBtnHalf{
   width:100%;
   height:64px;
@@ -888,59 +1699,91 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
   box-shadow: 0 12px 30px rgba(0,0,0,.35);
 }
 @media print{
-  @page{ size: letter; margin: 0.10in; }
-  .noPrint{ display:none !important; }
-  html, body{
-    width: 100% !important;
-    background:#fff !important;
-    filter:none !important;
-    -webkit-filter:none !important;
+  @page {
+    size: letter;
+    margin: 0.36in 0.16in 0.24in 0.16in;
   }
-  body{
+
+  html, body, #__next {
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    display: block !important;
+  }
+
+  .printOuter {
+    width: 100% !important;
     display: flex !important;
     justify-content: center !important;
     align-items: flex-start !important;
-  }
-  *{
-    filter:none !important;
-    -webkit-filter:none !important;
-    backdrop-filter:none !important;
-    -webkit-backdrop-filter:none !important;
-  }
-  .page{
-    /* Keep the contract centered even if the user adjusts the print dialog scaling. */
-    box-sizing: border-box;
-    width: 8.1in;
-    max-width: 100%;
-    margin: 0;
-    padding:0.10in 0.28in;
-    background:#fff;
-    box-shadow:none;
-    height: auto;
-    overflow: visible;
-    zoom: 1;
-    transform: scale(var(--vf-print-scale));
-    transform-origin: top center;
-    break-after: avoid;
-    page-break-after: avoid;
+    margin: 0 !important;
+    padding: 0.08in 0 0 !important;
+    overflow: visible !important;
   }
 
-  .topHeader{ gap:2px; }
-  .headerImage{ height:96px; }
+  .printPos {
+    width: calc(var(--vf-print-content-w) * var(--vf-print-scale)) !important;
+    height: calc(var(--vf-print-content-h) * var(--vf-print-scale)) !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    overflow: visible !important;
+  }
+
+  .printScale {
+    width: var(--vf-print-content-w) !important;
+    margin: 0 auto !important;
+    height: var(--vf-print-content-h) !important;
+    transform: scale(var(--vf-print-scale)) !important;
+    -webkit-transform: scale(var(--vf-print-scale)) !important;
+    transform-origin: top center !important;
+    -webkit-transform-origin: top center !important;
+  }
+
+  .page {
+    width: 8.1in !important;
+    margin: 0 auto !important;
+    padding: 0.24in 0.16in 0.06in !important;
+    box-sizing: border-box !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .noPrint,
+  .stickyBack,
+  nextjs-portal,
+  #__next-route-announcer,
+  [aria-live] {
+    display: none !important;
+  }
+
+  .vfMeasureClone,
+  .vfPrintHide{
+    display:none !important;
+  }
 }
 .workBlock, .materialsBlock, .notesBlock{ break-inside: avoid; page-break-inside: avoid; }
 
 @media screen{
-  html, body{ height: 100%; }
+  html, body{ height: auto; }
   body{
     background:#fff;
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: block;
     padding: 24px 0 140px;
+    overflow-y: auto;
   }
   .page{
     box-shadow: 0 10px 30px rgba(0,0,0,.12);
@@ -948,7 +1791,7 @@ html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,Bli
     width: min(720px, calc(100vw - 48px));
     max-width: 720px;
     padding: 22px;
-    margin: 0;
+    margin: 0 auto;
   }
 }
 `;

@@ -447,11 +447,15 @@ function EstimatesPageInner() {
   const [debugTotals, setDebugTotals] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  type Party = { id: string; name: string; phone?: string; email?: string };
+  type SegmentPayerType = "individual" | "shared";
   const [estimateName, setEstimateName] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [projectAddress, setProjectAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
+  const [splitWithNeighborsEnabled, setSplitWithNeighborsEnabled] = useState<boolean>(false);
+  const [parties, setParties] = useState<Party[]>([]);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [projectPhoto, setProjectPhoto] = useState<File | null>(null);
   const [projectPhotoUrl, setProjectPhotoUrl] = useState<string | null>(null);
@@ -463,6 +467,29 @@ function EstimatesPageInner() {
   const [photoViewerY, setPhotoViewerY] = useState(0);
   const [measureOpen, setMeasureOpen] = useState(false);
   const [tracePoints, setTracePoints] = useState<Array<{ x: number; y: number }>>([]);
+
+  function makeId(prefix: string) {
+    try {
+      if (typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function") {
+        return `${prefix}-${(crypto as any).randomUUID()}`;
+      }
+    } catch {
+    }
+    return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function getPrimaryPartyId(nextParties: Party[]) {
+    return nextParties[0]?.id || "";
+  }
+
+  function ensurePartiesForSplitMode() {
+    setParties((prev) => {
+      const safe = Array.isArray(prev) ? prev.filter((p) => p && typeof p === "object" && String((p as any).id || "").trim()) : [];
+      if (safe.length) return safe as any;
+      const id = makeId("party");
+      return [{ id, name: String(customerName || "") }];
+    });
+  }
 
   useEffect(() => {
     try {
@@ -521,6 +548,9 @@ function EstimatesPageInner() {
       gate?: boolean;
       cardId?: string | null;
       gateType?: "none" | "walk" | "double";
+      payerType?: SegmentPayerType;
+      payerPartyId?: string;
+      payerPartyIds?: string[];
     }>
   >([]);
   const [notes, setNotes] = useState("");
@@ -557,7 +587,19 @@ function EstimatesPageInner() {
         typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
           ? (crypto as any).randomUUID()
           : `${Date.now()}-${i}-${s.label}`;
-      return { id, label: s.label, length, removed: false, removal: false, cardId: null, gateType: "none" as const };
+      const primaryPartyId = parties[0]?.id;
+      return {
+        id,
+        label: s.label,
+        length,
+        removed: false,
+        removal: false,
+        cardId: null,
+        gateType: "none" as const,
+        payerType: splitWithNeighborsEnabled ? ("individual" as const) : undefined,
+        payerPartyId: splitWithNeighborsEnabled && primaryPartyId ? primaryPartyId : undefined,
+        payerPartyIds: undefined
+      };
     });
     setSegments(next);
     setMeasureOpen(false);
@@ -985,6 +1027,7 @@ function EstimatesPageInner() {
     extraPosts: number;
     extraPostSize?: number;
     shared?: boolean;
+    label?: string;
   };
 
   const [stylePickerIdx, setStylePickerIdx] = useState<boolean>(false);
@@ -1208,7 +1251,8 @@ function EstimatesPageInner() {
       materialsDetails: DEFAULT_MATERIALS_DETAILS,
       extraPosts: 0,
       extraPostSize: 10,
-      shared: false
+      shared: false,
+      label: ""
     }
   ]);
   const [activeComboCardId, setActiveComboCardId] = useState<string>(initialComboCardId);
@@ -1301,6 +1345,17 @@ function EstimatesPageInner() {
   }
 
   const sharedLf = useMemo(() => {
+    if (splitWithNeighborsEnabled && parties.length >= 2) {
+      return segments
+        .filter((s) => !s.removed)
+        .filter((s) => (Number(s.length) || 0) > 0)
+        .filter((s) => {
+          if (String((s as any).payerType || "") !== "shared") return false;
+          const ids = Array.isArray((s as any).payerPartyIds) ? ((s as any).payerPartyIds as any[]) : [];
+          return ids.map((x) => String(x || "").trim()).filter((x) => Boolean(x)).length >= 2;
+        })
+        .reduce((sum, s) => sum + (Number(s.length) || 0), 0);
+    }
     const sharedCardIds = new Set(comboCards.filter((c, idx) => idx > 0 && Boolean(c.shared)).map((c) => c.id));
     if (!sharedCardIds.size) return 0;
     return segments
@@ -1308,7 +1363,7 @@ function EstimatesPageInner() {
       .filter((s) => (Number(s.length) || 0) > 0)
       .filter((s) => sharedCardIds.has(resolveSegmentCardId(s) || ""))
       .reduce((sum, s) => sum + (Number(s.length) || 0), 0);
-  }, [comboCards, segments]);
+  }, [comboCards, parties.length, segments, splitWithNeighborsEnabled]);
 
   const [items, setItems] = useState<QuoteItem[]>([]);
 
@@ -4346,6 +4401,8 @@ function EstimatesPageInner() {
         projectAddress,
         phoneNumber,
         email,
+        splitWithNeighborsEnabled,
+        parties,
         // Keep photo state in the snapshot so navigating away/back doesn't wipe in-progress photo edits.
         // Prefer remote URL if available; otherwise keep a small local data backup.
         projectPhotoUrl: projectUrlSafe || projectDataBackup,
@@ -4409,6 +4466,8 @@ function EstimatesPageInner() {
     projectAddress,
     phoneNumber,
     email,
+    splitWithNeighborsEnabled,
+    parties,
     projectPhotoUrl,
     projectPhotoPath,
     selectedFenceType,
@@ -4519,6 +4578,8 @@ function EstimatesPageInner() {
       projectAddress,
       phoneNumber,
       email,
+      splitWithNeighborsEnabled,
+      parties,
       // Prefer remote URL if available; otherwise keep a small local data backup so the preview survives saves.
       projectPhotoUrl: projectUrlSafe || projectDataBackup,
       projectPhotoPath,
@@ -4834,6 +4895,171 @@ function EstimatesPageInner() {
   }
 
   function buildContractPayload(overrideDraftId?: string) {
+    function computeSplitBreakdown() {
+      try {
+        if (!splitWithNeighborsEnabled) return null;
+        const safeParties = (Array.isArray(parties) ? parties : [])
+          .filter((p) => p && typeof p === "object")
+          .map((p) => ({ id: String((p as any).id || "").trim(), name: String((p as any).name || "") }))
+          .filter((p) => Boolean(p.id));
+        if (safeParties.length < 2) return null;
+
+        const primaryPartyId = safeParties[0]?.id || "";
+        const partyIdSet = new Set(safeParties.map((p) => p.id));
+
+        const eligibleSegments = (Array.isArray(segments) ? segments : [])
+          .filter((s) => s && typeof s === "object")
+          .filter((s) => !Boolean((s as any).removed))
+          .filter((s) => (Number((s as any).length) || 0) > 0);
+
+        const combo = Array.isArray(comboCards) ? comboCards : [];
+        const baseCardId = combo[0]?.id ?? null;
+        const resolveCardId = (seg: any) => {
+          const cid = seg?.cardId ?? null;
+          return cid === null ? baseCardId : cid;
+        };
+        const cardLabelFor = (seg: any) => {
+          const cid = resolveCardId(seg);
+          if (!cid) return "";
+          const idx = combo.findIndex((c) => c.id === cid);
+          const card = idx >= 0 ? combo[idx] : null;
+          const label = card && typeof (card as any).label === "string" ? String((card as any).label || "") : "";
+          const base = idx >= 0 ? `Card ${idx + 1}` : "Card";
+          return label.trim() ? `${base} - ${label.trim()}` : base;
+        };
+
+        const lfShare: Record<string, number> = {};
+        const removalLfShare: Record<string, number> = {};
+        for (const p of safeParties) {
+          lfShare[p.id] = 0;
+          removalLfShare[p.id] = 0;
+        }
+
+        let sharedLfRaw = 0;
+        let totalLfRaw = 0;
+        let totalRemovalLfRaw = 0;
+
+        const segmentBreakdown = eligibleSegments.map((seg: any) => {
+          const length = Number(seg.length) || 0;
+          totalLfRaw += length;
+
+          const payerTypeRaw = String(seg.payerType || "").trim();
+          const payerType: "individual" | "shared" = payerTypeRaw === "shared" ? "shared" : "individual";
+
+          const individualIdRaw = typeof seg.payerPartyId === "string" ? String(seg.payerPartyId || "").trim() : "";
+          const sharedIdsRaw = Array.isArray(seg.payerPartyIds) ? (seg.payerPartyIds as any[]).map((x) => String(x || "").trim()) : [];
+          const sharedIds = sharedIdsRaw.filter((id) => partyIdSet.has(id));
+
+          const finalType = payerType === "shared" && sharedIds.length >= 2 ? "shared" : "individual";
+          const finalIndividualId = partyIdSet.has(individualIdRaw) ? individualIdRaw : primaryPartyId;
+          const finalSharedIds = sharedIds.length >= 2 ? sharedIds : [];
+
+          const participants = finalType === "shared" ? finalSharedIds : [finalIndividualId];
+          if (finalType === "shared") sharedLfRaw += length;
+
+          const per = participants.length ? length / participants.length : 0;
+          for (const pid of participants) {
+            lfShare[pid] = (Number(lfShare[pid]) || 0) + per;
+          }
+
+          const removal = Boolean(seg.removal) || Boolean(seg.removed);
+          if (removal) {
+            totalRemovalLfRaw += length;
+            for (const pid of participants) {
+              removalLfShare[pid] = (Number(removalLfShare[pid]) || 0) + per;
+            }
+          }
+
+          return {
+            id: String(seg.id || ""),
+            label: String(seg.label || ""),
+            length,
+            removal,
+            gateType: String(seg.gateType || "none"),
+            payerType: finalType,
+            payerPartyId: finalType === "individual" ? finalIndividualId : undefined,
+            payerPartyIds: finalType === "shared" ? finalSharedIds : undefined,
+            cardId: resolveCardId(seg),
+            cardLabel: cardLabelFor(seg)
+          };
+        });
+
+        const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+
+        const allocateCents = (total: number, shares: Record<string, number>) => {
+          const centsTotal = Math.round((Number(total) || 0) * 100);
+          const totalShare = Object.values(shares).reduce((a, b) => a + (Number(b) || 0), 0);
+          const base: Record<string, number> = {};
+          if (centsTotal === 0 || totalShare <= 0) {
+            for (const p of safeParties) base[p.id] = 0;
+            return base;
+          }
+          const tmp = safeParties.map((p) => {
+            const share = Number(shares[p.id]) || 0;
+            const raw = (centsTotal * share) / totalShare;
+            const floored = Math.floor(raw);
+            return { id: p.id, floored, frac: raw - floored };
+          });
+          const sumBase = tmp.reduce((a, b) => a + b.floored, 0);
+          let remainder = centsTotal - sumBase;
+          tmp.sort((a, b) => b.frac - a.frac);
+          for (const t of tmp) {
+            base[t.id] = t.floored;
+          }
+          let i = 0;
+          while (remainder > 0 && tmp.length) {
+            const id = tmp[i % tmp.length].id;
+            base[id] = (base[id] || 0) + 1;
+            remainder -= 1;
+            i += 1;
+          }
+          return base;
+        };
+
+        const materialsCents = allocateCents(materialsDepositTotal, lfShare);
+        const laborCents = allocateCents(laborBaseTotal, lfShare);
+        const additionalCents = allocateCents(additionalFeesTotal, lfShare);
+        const removalCents = allocateCents(removalTotal, totalRemovalLfRaw > 0 ? removalLfShare : Object.fromEntries(safeParties.map((p) => [p.id, 0])));
+
+        const partiesOut = safeParties.map((p) => {
+          const materials = round2((materialsCents[p.id] || 0) / 100);
+          const labor = round2((laborCents[p.id] || 0) / 100);
+          const additional = round2((additionalCents[p.id] || 0) / 100);
+          const removal = round2((removalCents[p.id] || 0) / 100);
+          const deposit = materials;
+          const total = round2(materials + labor + additional + removal);
+          const remaining = Math.max(0, round2(total - deposit));
+          return {
+            id: p.id,
+            name: p.name,
+            lfShare: round2(Number(lfShare[p.id]) || 0),
+            removalLfShare: round2(Number(removalLfShare[p.id]) || 0),
+            materials,
+            labor,
+            additional,
+            removal,
+            deposit,
+            remaining,
+            total
+          };
+        });
+
+        return {
+          parties: safeParties,
+          segmentBreakdown,
+          partyBreakdown: {
+            totalLf: round2(totalLfRaw),
+            sharedLf: round2(sharedLfRaw),
+            removalLf: round2(totalRemovalLfRaw),
+            parties: partiesOut
+          }
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    const splitBreakdown = computeSplitBreakdown();
     const materialsRows = items
       .filter((i) => i.section === "materials" && (Number(i.qty) || 0) > 0)
       .map((i) => ({
@@ -4924,6 +5150,10 @@ function EstimatesPageInner() {
         doubleGateCount: doubleGatesValue,
         sharedLf: Number(sharedLf) || 0,
         sharedTotal: Number(sharedTotal) || 0,
+        splitWithNeighborsEnabled: Boolean(splitWithNeighborsEnabled),
+        parties: Array.isArray(parties) ? parties : [],
+        segmentBreakdown: (splitBreakdown as any)?.segmentBreakdown,
+        partyBreakdown: (splitBreakdown as any)?.partyBreakdown,
         depositTotal: Number(materialsDepositTotal) || 0,
         notes,
         disclaimer: "",
@@ -4975,9 +5205,21 @@ function EstimatesPageInner() {
   function addSegment() {
     const opts = segmentOptions();
     const nextLabel = opts[Math.min(segments.length, opts.length - 1)] ?? "A–B";
+    const primaryPartyId = parties[0]?.id;
     setSegments((prev) => [
       ...prev,
-      { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, label: nextLabel, length: 0, removed: false, removal: false, cardId: null, gateType: "none" }
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        label: nextLabel,
+        length: 0,
+        removed: false,
+        removal: false,
+        cardId: null,
+        gateType: "none",
+        payerType: splitWithNeighborsEnabled ? ("individual" as const) : undefined,
+        payerPartyId: splitWithNeighborsEnabled && primaryPartyId ? primaryPartyId : undefined,
+        payerPartyIds: undefined
+      }
     ]);
   }
 
@@ -4991,6 +5233,9 @@ function EstimatesPageInner() {
       gate?: boolean;
       cardId?: string | null;
       gateType?: "none" | "walk" | "double";
+      payerType?: SegmentPayerType;
+      payerPartyId?: string;
+      payerPartyIds?: string[];
     }>
   ) {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -6200,15 +6445,18 @@ function EstimatesPageInner() {
         ? (crypto as any).randomUUID()
         : `card-${Date.now()}`;
 
+    setEstimateName("");
     setCustomerName("");
     setProjectAddress("");
     setPhoneNumber("");
     setEmail("");
+    setSplitWithNeighborsEnabled(false);
+    setParties([]);
     setDraftId(null);
     setProjectPhoto(null);
-    setStylePickerIdx(false);
-    setMaterialsDetailsOpen(false);
-    setMeasureOpen(false);
+    setProjectPhotoUrl(null);
+    setProjectPhotoPath(null);
+    setProjectPhotoDataUrl(null);
     setTracePoints([]);
     setTenPercentDiscountEnabled(false);
     setOcrBusy(false);
@@ -6235,7 +6483,8 @@ function EstimatesPageInner() {
         materialsDetails: DEFAULT_MATERIALS_DETAILS,
         extraPosts: 0,
         extraPostSize: 10,
-        shared: false
+        shared: false,
+        label: ""
       }
     ]);
     setActiveComboCardId(nextComboCardId);
@@ -6308,6 +6557,9 @@ function EstimatesPageInner() {
     setPhoneNumber(String(d.phoneNumber ?? ""));
     setEmail(String(d.email ?? ""));
 
+    setSplitWithNeighborsEnabled(Boolean((d as any).splitWithNeighborsEnabled));
+    setParties(Array.isArray((d as any).parties) ? ((d as any).parties as any[]) : []);
+
     setProjectPhoto(null);
     setProjectPhotoPath(null);
     setProjectPhotoUrl(null);
@@ -6333,7 +6585,8 @@ function EstimatesPageInner() {
         selectedStyle: null,
         materialsDetails: DEFAULT_MATERIALS_DETAILS,
         extraPosts: 0,
-        shared: false
+        shared: false,
+        label: ""
       }
     ]);
     setActiveComboCardId(nextComboCardId);
@@ -6514,6 +6767,35 @@ function EstimatesPageInner() {
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
     setEmail(String(d.email ?? ""));
+
+    const nextSplitEnabled = Boolean((d as any).splitWithNeighborsEnabled);
+    const nextPartiesRaw = Array.isArray((d as any).parties) ? ((d as any).parties as any[]) : [];
+    const nextParties = nextPartiesRaw
+      .filter((p) => p && typeof p === "object")
+      .map((p) => ({
+        id: String((p as any).id || "").trim(),
+        name: String((p as any).name || ""),
+        phone: typeof (p as any).phone === "string" ? String((p as any).phone || "") : undefined,
+        email: typeof (p as any).email === "string" ? String((p as any).email || "") : undefined
+      }))
+      .filter((p) => Boolean(p.id));
+    const primaryPartyId = (() => {
+      const existing = nextParties[0];
+      if (existing?.id) return existing.id;
+      const pid =
+        typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
+          ? (crypto as any).randomUUID()
+          : `party-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      return pid;
+    })();
+    const primaryPartyName = String(d.customerName ?? "") || "";
+    const effectiveParties = nextSplitEnabled
+      ? (nextParties.length
+        ? nextParties
+        : ([{ id: primaryPartyId, name: primaryPartyName }] as Party[]))
+      : nextParties;
+    setSplitWithNeighborsEnabled(nextSplitEnabled);
+    setParties(effectiveParties);
     setProjectPhoto(null);
     setProjectPhotoPath(typeof (d as any).projectPhotoPath === "string" ? (d as any).projectPhotoPath : null);
     const loadedUrl = typeof (d as any).projectPhotoUrl === "string" ? (d as any).projectPhotoUrl : null;
@@ -6545,7 +6827,8 @@ function EstimatesPageInner() {
           const extraPostSizeRaw = Number((c as any).extraPostSize);
           const extraPostSize = Number.isFinite(extraPostSizeRaw) ? extraPostSizeRaw : 10;
           const shared = typeof c.shared === "boolean" ? c.shared : false;
-          return { id: cid, fenceType, vinylStyleTab, selectedStyle, materialsDetails, extraPosts, extraPostSize, shared };
+          const label = typeof (c as any).label === "string" ? String((c as any).label) : "";
+          return { id: cid, fenceType, vinylStyleTab, selectedStyle, materialsDetails, extraPosts, extraPostSize, shared, label };
         });
 
       const normalizedActiveId =
@@ -6908,7 +7191,26 @@ function EstimatesPageInner() {
             const cardId = (s?.cardId === null || typeof s?.cardId === "string") ? s.cardId : null;
             const legacyRemoved = Boolean(s?.removed);
             const removal = Boolean((s as any).removal) || legacyRemoved;
-            return { ...s, removed: false, removal, cardId, gateType, gate: gateType === "walk" };
+            const payerType = String((s as any).payerType || "").trim() === "shared" ? ("shared" as const) : ("individual" as const);
+            const payerPartyId = typeof (s as any).payerPartyId === "string" ? String((s as any).payerPartyId) : "";
+            const payerPartyIdsRaw = Array.isArray((s as any).payerPartyIds) ? ((s as any).payerPartyIds as any[]) : [];
+            const payerPartyIds = payerPartyIdsRaw.map((x) => String(x || "").trim()).filter((x) => Boolean(x));
+            const normalizedPartyIds = new Set(effectiveParties.map((p) => p.id));
+            const payerPartyIdsFiltered = payerPartyIds.filter((pid) => normalizedPartyIds.has(pid));
+            const effectivePayerPartyId = normalizedPartyIds.has(payerPartyId) ? payerPartyId : primaryPartyId;
+            const effectivePayerType = nextSplitEnabled ? payerType : undefined;
+
+            return {
+              ...s,
+              removed: false,
+              removal,
+              cardId,
+              gateType,
+              gate: gateType === "walk",
+              payerType: effectivePayerType,
+              payerPartyId: nextSplitEnabled ? effectivePayerPartyId : undefined,
+              payerPartyIds: nextSplitEnabled && payerType === "shared" ? payerPartyIdsFiltered : undefined
+            };
           })
         : []
     );
@@ -6927,11 +7229,77 @@ function EstimatesPageInner() {
     try {
       const STORAGE_KEY = "vf_contract_preview_v1";
 
-      if (!draftParam) {
-        writeUnsavedSnapshot();
+      if (splitWithNeighborsEnabled && parties.length >= 2) {
+        const validPartyIds = new Set(parties.map((p) => p.id));
+        const invalidShared = (Array.isArray(segments) ? segments : [])
+          .filter((s) => s && typeof s === "object")
+          .filter((s) => !Boolean((s as any).removed))
+          .filter((s) => (Number((s as any).length) || 0) > 0)
+          .filter((s) => String((s as any).payerType || "").trim() === "shared")
+          .filter((s) => {
+            const idsRaw = Array.isArray((s as any).payerPartyIds) ? ((s as any).payerPartyIds as any[]) : [];
+            const ids = idsRaw.map((x) => String(x || "").trim()).filter((x) => Boolean(x) && validPartyIds.has(x));
+            return ids.length < 2;
+          });
+        if (invalidShared.length) {
+          setSaveError("Shared segments must have at least 2 selected parties before generating a contract.");
+          return;
+        }
       }
+
       const id = String(draftParam || draftId || "").trim() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       if (!draftId) setDraftId(id);
+
+      try {
+        const comboPayload = {
+          comboCards,
+          activeComboCardId
+        };
+
+        const sanitized = sanitizePhotosForStorage({ projectPhotoDataUrl, preInstallPhotos });
+        const projectDataBackup = sanitized.projectPhotoDataUrl;
+        const projectUrlSafe = typeof projectPhotoUrl === "string" && projectPhotoUrl.startsWith("data:") ? null : projectPhotoUrl;
+        const preInstallForStorage = mergePreInstallForStorage(preInstallPhotos, sanitized.preInstallPhotos);
+
+        const snapshotPayload = {
+          draftId: id,
+          draftParam: String(draftParam || "").trim() || id,
+          customerName,
+          projectAddress,
+          phoneNumber,
+          email,
+          splitWithNeighborsEnabled,
+          parties,
+          projectPhotoUrl: projectUrlSafe || projectDataBackup,
+          projectPhotoPath,
+          projectPhotoDataUrl: projectDataBackup,
+          selectedFenceType,
+          selectedStyle,
+          materialsDetails,
+          extraPosts,
+          ...comboPayload,
+          fenceBuilder,
+          materialUnitPrices,
+          takeoffUnitPriceOverrides,
+          takeoffQtyOverrides,
+          laborDays,
+          laborManualDays,
+          laborManualCost,
+          gradingPrice,
+          treeRemovalPrice,
+          toughDigEnabled,
+          gradeEnabled,
+          stumpGrindingPrice,
+          doubleGateCount: effectiveDoubleGateCount,
+          referenceLength,
+          notes,
+          preInstallPhotos: preInstallForStorage,
+          segments,
+          items
+        };
+        window.localStorage.setItem(unsavedSnapshotKey, JSON.stringify(snapshotPayload));
+      } catch {
+      }
 
       const payload = buildContractPayload(id);
 
@@ -7120,6 +7488,115 @@ function EstimatesPageInner() {
               <div className="text-[11px] text-[var(--muted)] mb-1">Email</div>
               <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
             </div>
+
+            <div className="md:col-span-2">
+              <div className="text-[11px] text-[var(--muted)] mb-1">Split with neighbors</div>
+              <div className="flex items-center gap-2">
+                <SecondaryButton
+                  type="button"
+                  data-no-swipe="true"
+                  aria-pressed={splitWithNeighborsEnabled}
+                  className={(splitWithNeighborsEnabled ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] " : "") + "px-3 py-2"}
+                  onClick={() => {
+                    const next = !splitWithNeighborsEnabled;
+                    setSplitWithNeighborsEnabled(next);
+                    if (next) {
+                      ensurePartiesForSplitMode();
+                      setSegments((prev) => {
+                        const baseParties = parties.length ? parties : [{ id: makeId("party"), name: String(customerName || "") }];
+                        const primaryPartyId = getPrimaryPartyId(baseParties as any);
+                        return (Array.isArray(prev) ? prev : []).map((s) => {
+                          const payerType = String((s as any).payerType || "").trim() === "shared" ? ("shared" as const) : ("individual" as const);
+                          const payerPartyId = typeof (s as any).payerPartyId === "string" && String((s as any).payerPartyId).trim()
+                            ? String((s as any).payerPartyId)
+                            : primaryPartyId;
+                          return {
+                            ...s,
+                            payerType: (s as any).payerType ? (s as any).payerType : payerType,
+                            payerPartyId: (s as any).payerPartyId ? (s as any).payerPartyId : payerPartyId
+                          };
+                        });
+                      });
+                    }
+                  }}
+                >
+                  {splitWithNeighborsEnabled ? "Enabled" : "Disabled"}
+                </SecondaryButton>
+
+                {splitWithNeighborsEnabled ? (
+                  <div className="text-[11px] text-[var(--muted)]">Assign each segment to an individual party or mark it shared.</div>
+                ) : null}
+              </div>
+            </div>
+
+            {splitWithNeighborsEnabled ? (
+              <div className="md:col-span-2 rounded-2xl border border-[rgba(255,255,255,.12)] bg-[rgba(255,255,255,.06)] p-3">
+                <div className="text-[11px] text-[var(--muted)] mb-2">Parties</div>
+                <div className="grid gap-2">
+                  {(parties.length ? parties : [{ id: makeId("party"), name: String(customerName || "") }]).map((p, idx) => (
+                    <div key={p.id} className="grid grid-cols-12 gap-2 items-center">
+                      <div className="col-span-10">
+                        <Input
+                          value={String(p.name || "")}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setParties((prev) =>
+                              (Array.isArray(prev) ? prev : []).map((x) => (x.id === p.id ? { ...x, name: v } : x))
+                            );
+                          }}
+                          placeholder={idx === 0 ? "Primary party name" : "Party name"}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <SecondaryButton
+                          type="button"
+                          data-no-swipe="true"
+                          disabled={idx === 0 && parties.length <= 1}
+                          onClick={() => {
+                            setParties((prev) => {
+                              const current = Array.isArray(prev) ? prev : [];
+                              const next = current.filter((x) => x.id !== p.id);
+                              return next.length ? next : current;
+                            });
+                            setSegments((prev) => {
+                              const currentParties = parties.filter((x) => x.id !== p.id);
+                              const fallbackPartyId = currentParties[0]?.id || parties[0]?.id || "";
+                              return (Array.isArray(prev) ? prev : []).map((s) => {
+                                const pt = String((s as any).payerType || "").trim();
+                                const ind = pt !== "shared";
+                                const payerPartyId = String((s as any).payerPartyId || "");
+                                const sharedIds = Array.isArray((s as any).payerPartyIds) ? ((s as any).payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                if (ind) {
+                                  if (payerPartyId === p.id) return { ...s, payerPartyId: fallbackPartyId };
+                                  return s;
+                                }
+                                const filtered = sharedIds.filter((id) => id !== p.id);
+                                if (filtered.length >= 2) return { ...s, payerPartyIds: filtered };
+                                return { ...s, payerType: "individual" as any, payerPartyId: fallbackPartyId, payerPartyIds: undefined };
+                              });
+                            });
+                          }}
+                          className="w-full px-2 py-2 text-[12px]"
+                        >
+                          ✕
+                        </SecondaryButton>
+                      </div>
+                    </div>
+                  ))}
+                  <PrimaryButton
+                    type="button"
+                    data-no-swipe="true"
+                    onClick={() => {
+                      const id = makeId("party");
+                      setParties((prev) => [...(Array.isArray(prev) ? prev : []), { id, name: "" }]);
+                    }}
+                    className="px-3 py-2 text-[12px]"
+                  >
+                    Add party
+                  </PrimaryButton>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -7396,6 +7873,89 @@ function EstimatesPageInner() {
                   </SecondaryButton>
                 </div>
               </div>
+
+              {splitWithNeighborsEnabled ? (
+                <div className="mt-2 grid gap-2">
+                  <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SecondaryButton
+                      type="button"
+                      data-no-swipe="true"
+                      aria-pressed={String((seg as any).payerType || "individual") !== "shared"}
+                      onClick={() => {
+                        const primaryPartyId = parties[0]?.id || "";
+                        patchSegment(seg.id, { payerType: "individual", payerPartyId: String((seg as any).payerPartyId || "") || primaryPartyId, payerPartyIds: undefined });
+                      }}
+                      className={(String((seg as any).payerType || "individual") !== "shared" ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] " : "") + "px-3 py-2 text-[12px]"}
+                    >
+                      Individual
+                    </SecondaryButton>
+                    <SecondaryButton
+                      type="button"
+                      data-no-swipe="true"
+                      disabled={parties.length < 2}
+                      aria-pressed={String((seg as any).payerType || "") === "shared"}
+                      onClick={() => {
+                        if (parties.length < 2) return;
+                        const ids = parties.map((p) => p.id);
+                        const existing = Array.isArray((seg as any).payerPartyIds) ? ((seg as any).payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                        const next = existing.filter((id) => ids.includes(id));
+                        patchSegment(seg.id, { payerType: "shared", payerPartyIds: next as any });
+                      }}
+                      className={(String((seg as any).payerType || "") === "shared" ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] " : "") + "px-3 py-2 text-[12px]"}
+                    >
+                      Shared
+                    </SecondaryButton>
+                  </div>
+
+                  {String((seg as any).payerType || "individual") === "shared" ? (
+                    <div className="grid gap-1">
+                      {parties.map((p) => {
+                        const current = Array.isArray((seg as any).payerPartyIds) ? ((seg as any).payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                        const selected = current.includes(p.id);
+                        return (
+                          <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? Array.from(new Set([...current, p.id]))
+                                  : current.filter((id) => id !== p.id);
+                                patchSegment(seg.id, { payerPartyIds: next as any });
+                              }}
+                            />
+                            <span>{String(p.name || "(unnamed)")}</span>
+                          </label>
+                        );
+                      })}
+                      {(() => {
+                        const current = Array.isArray((seg as any).payerPartyIds)
+                          ? ((seg as any).payerPartyIds as any[]).map((x) => String(x || "").trim()).filter((x) => Boolean(x))
+                          : [];
+                        if (current.length >= 2) return null;
+                        return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared segment.</div>;
+                      })()}
+                      {parties.length < 2 ? (
+                        <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div>
+                      <Select
+                        value={String((seg as any).payerPartyId || parties[0]?.id || "")}
+                        onChange={(e) => patchSegment(seg.id, { payerPartyId: e.target.value })}
+                      >
+                        {parties.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {String(p.name || "(unnamed)")}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           ))}
 
@@ -7653,6 +8213,18 @@ function EstimatesPageInner() {
                                 </div>
                               </div>
 
+                              <div className="mt-2">
+                                <div className="text-[11px] text-[var(--muted)] mb-1">Label</div>
+                                <Input
+                                  value={String((c as any).label || "")}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setComboCards((prev) => prev.map((x) => (x.id === c.id ? { ...x, label: v } : x)));
+                                  }}
+                                  placeholder="(optional)"
+                                />
+                              </div>
+
                               {comboCards.length > 1 && segments.length ? (
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   {segments
@@ -7712,7 +8284,8 @@ function EstimatesPageInner() {
                                   selectedStyle,
                                   materialsDetails,
                                   extraPosts,
-                                  shared: false
+                                  shared: false,
+                                  label: ""
                                 }
                               ]);
                               setActiveComboCardId(id);
