@@ -996,7 +996,7 @@ export default function EstimateContractPage() {
       document.documentElement.style.setProperty("--vf-print-content-h", `${Math.ceil(h)}px`);
       const scaleW = availW / w;
       const scaleH = availH / h;
-      const scale = Math.min(scaleW, scaleH, 1) * 0.85;
+      const scale = Math.min(scaleW, scaleH, 1) * 0.80;
       const clamped = Math.max(0.2, Math.min(1, scale));
       const est: any = (data as any)?.estimate;
       const prefers85 =

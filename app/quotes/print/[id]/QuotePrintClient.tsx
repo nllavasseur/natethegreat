@@ -37,6 +37,62 @@ function readDraftStore(): Record<string, DraftEntry> {
 
 export default function QuotePrintClient({ id, printCss }: { id: string; printCss: string }) {
   const [draft, setDraft] = React.useState<DraftEntry | null>(null);
+  const pageRef = React.useRef<HTMLElement | null>(null);
+
+  const setPrintScale = React.useCallback(() => {
+    const el = pageRef.current;
+    if (!el) return;
+
+    try {
+      document.documentElement.style.setProperty("--vf-print-scale", "1");
+
+      const clone = el.cloneNode(true) as HTMLElement;
+      clone.style.position = "fixed";
+      clone.style.left = "-10000px";
+      clone.style.top = "0";
+      clone.style.visibility = "hidden";
+      clone.style.pointerEvents = "none";
+      clone.style.width = "8.5in";
+      clone.style.maxWidth = "8.5in";
+      clone.style.margin = "0";
+      clone.style.padding = "0.20in";
+      clone.style.boxSizing = "border-box";
+      clone.style.background = "#fff";
+      clone.style.transform = "none";
+      (clone.style as any).webkitTransform = "none";
+      document.body.appendChild(clone);
+
+      const PAGE_W = 8.5 * 96;
+      const PAGE_H = 11 * 96;
+      const PAGE_MARGIN = 0.2 * 96;
+
+      const availW = PAGE_W - PAGE_MARGIN * 2;
+      const availH = PAGE_H - PAGE_MARGIN * 2;
+
+      const rect = clone.getBoundingClientRect();
+      const w = Math.max(1, Number((clone as any).scrollWidth) || rect.width);
+      const h = Math.max(1, Number((clone as any).scrollHeight) || rect.height);
+      document.documentElement.style.setProperty("--vf-print-content-w", `${Math.ceil(w)}px`);
+      document.documentElement.style.setProperty("--vf-print-content-h", `${Math.ceil(h)}px`);
+
+      const scaleW = availW / w;
+      const scaleH = availH / h;
+      const scale = Math.min(scaleW, scaleH, 1) * 0.85;
+      const clamped = Math.max(0.2, Math.min(1, scale));
+      const rounded = Math.round(clamped * 1000) / 1000;
+      document.documentElement.style.setProperty("--vf-print-scale", String(rounded));
+
+      try {
+        clone.remove();
+      } catch {
+      }
+    } catch {
+      try {
+        document.documentElement.style.setProperty("--vf-print-scale", "0.8");
+      } catch {
+      }
+    }
+  }, []);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -54,6 +110,17 @@ export default function QuotePrintClient({ id, printCss }: { id: string; printCs
       cancelled = true;
     };
   }, [id]);
+
+  React.useEffect(() => {
+    if (!draft) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => setPrintScale()));
+  }, [draft, setPrintScale]);
+
+  React.useEffect(() => {
+    const onBeforePrint = () => setPrintScale();
+    window.addEventListener("beforeprint", onBeforePrint);
+    return () => window.removeEventListener("beforeprint", onBeforePrint);
+  }, [setPrintScale]);
 
   const items = Array.isArray(draft?.items) ? (draft!.items as QuoteItem[]) : [];
   const takeoffMaterialsRaw = Array.isArray((draft as any)?.takeoffMaterials) ? (((draft as any).takeoffMaterials as any[]) as QuoteItem[]) : [];
@@ -131,21 +198,28 @@ export default function QuotePrintClient({ id, printCss }: { id: string; printCs
           </button>
         </div>
 
-        <main className="page">
-          <header className="headerRow">
-            <div className="headerLeft">
-              <div className="logo placeholder" />
-              <div>
-                <div className="companyName">Vasseur Fencing</div>
-                <div className="tagline">Fencing Contractor</div>
-              </div>
-            </div>
-
-            <div className="headerRight">
-              <div className="rightBold">Estimate</div>
-              <div>{new Date().toLocaleDateString("en-US")}</div>
-            </div>
-          </header>
+        <div className="printOuter">
+          <div className="printPos">
+            <div className="printScale">
+              <main
+                ref={(el) => {
+                  pageRef.current = el;
+                }}
+                className="page"
+              >
+                <header className="headerRow">
+                  <div className="headerLeft">
+                    <div className="logo placeholder" />
+                    <div>
+                      <div className="companyName">Vasseur Fencing</div>
+                      <div className="tagline">Fencing Contractor</div>
+                    </div>
+                  </div>
+                  <div className="headerRight">
+                    <div className="rightBold">Estimate</div>
+                    <div>{new Date().toLocaleDateString("en-US")}</div>
+                  </div>
+                </header>
 
           <div className="divider" />
           <div className="estimateTitle">ESTIMATE</div>
@@ -203,6 +277,9 @@ export default function QuotePrintClient({ id, printCss }: { id: string; printCs
             </div>
           </section>
         </main>
+            </div>
+          </div>
+        </div>
       </body>
     </html>
   );

@@ -98,7 +98,9 @@ const PRINT_CSS = `
   --text:#111;
   --light:#F2F2F2;
   --mid:#E6E6E6;
-  --vf-print-scale: 1;
+  --vf-print-scale: 0.80;
+  --vf-print-content-w: 816px;
+  --vf-print-content-h: 1056px;
 }
 *{ box-sizing:border-box; }
 html,body{ margin:0; padding:0; color:var(--text); font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif; }
@@ -159,8 +161,11 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page{ size: letter; margin: 0.20in; }
   .noPrint{ display:none !important; }
   html,body{ height:auto; margin:0; padding:0; }
-  body{ display:flex; justify-content:center; align-items:center; }
-  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; transform: scale(var(--vf-print-scale)); transform-origin: top center; }
+  body{ display:block; }
+  .printOuter{ width: 100% !important; display:flex !important; justify-content:center !important; align-items:flex-start !important; margin:0 !important; padding: 0 !important; overflow:visible !important; }
+  .printPos{ width: calc(var(--vf-print-content-w) * var(--vf-print-scale)) !important; height: calc(var(--vf-print-content-h) * var(--vf-print-scale)) !important; margin: 0 auto !important; display:flex !important; justify-content:center !important; align-items:flex-start !important; overflow:visible !important; }
+  .printScale{ width: var(--vf-print-content-w) !important; height: var(--vf-print-content-h) !important; transform: scale(var(--vf-print-scale)) !important; -webkit-transform: scale(var(--vf-print-scale)) !important; transform-origin: top center !important; -webkit-transform-origin: top center !important; }
+  .page{ width: 8.5in; margin:0; padding:0.20in; height:auto; overflow:visible; transform:none; }
 }
 .section, .table, .infoBox, .notesBox, .disclaimerBox, .totalsBox, .signatureBlock{
   break-inside: avoid;
