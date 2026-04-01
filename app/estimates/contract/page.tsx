@@ -1789,13 +1789,13 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     justify-content: center !important;
     align-items: flex-start !important;
     margin: 0 !important;
-    padding: 0.08in 0 0 !important;
+    padding: 0 !important;
     overflow: visible !important;
   }
 
   .printPos {
     width: calc(var(--vf-print-content-w) * var(--vf-print-scale)) !important;
-    height: calc(var(--vf-print-content-h) * var(--vf-print-scale)) !important;
+    height: auto !important;
     margin: 0 auto !important;
     display: flex !important;
     justify-content: center !important;
@@ -1806,7 +1806,7 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .printScale {
     width: var(--vf-print-content-w) !important;
     margin: 0 auto !important;
-    height: var(--vf-print-content-h) !important;
+    height: auto !important;
     transform: scale(var(--vf-print-scale)) !important;
     -webkit-transform: scale(var(--vf-print-scale)) !important;
     transform-origin: top center !important;
