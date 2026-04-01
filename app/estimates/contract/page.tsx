@@ -1069,8 +1069,7 @@ export default function EstimateContractPage() {
       const autoCap = prefers85 ? 0.85 : 1;
       const chosenCap = effectiveMode === "auto" ? autoCap : Number(effectiveMode) / 100;
       const userCap = Number.isFinite(chosenCap) ? Math.max(0.2, Math.min(1, chosenCap)) : 1;
-      const printSafety = effectiveMode === "auto" ? 0.93 : 1;
-      const finalScale = Math.min(clamped, userCap, 0.80) * printSafety;
+      const finalScale = Math.min(clamped, userCap, 0.80);
       const rounded = Math.round(finalScale * 1000) / 1000;
       document.documentElement.style.setProperty("--vf-print-scale", String(rounded));
 
@@ -1085,7 +1084,7 @@ export default function EstimateContractPage() {
           if (!Number.isFinite(n)) return 0.8;
           return Math.max(0.2, Math.min(0.8, n / 100));
         }
-        return 0.8 * 0.93;
+        return 0.8;
       })();
       document.documentElement.style.setProperty("--vf-print-scale", String(fallbackFromMode));
     }
