@@ -1795,22 +1795,27 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   .printPos {
     width: calc(var(--vf-print-content-w) * var(--vf-print-scale)) !important;
-    height: auto !important;
+    height: calc(var(--vf-print-content-h) * var(--vf-print-scale)) !important;
     margin: 0 auto !important;
     display: flex !important;
     justify-content: center !important;
     align-items: flex-start !important;
-    overflow: visible !important;
+    overflow: hidden !important;
+    position: relative !important;
   }
 
   .printScale {
     width: var(--vf-print-content-w) !important;
     margin: 0 auto !important;
-    height: auto !important;
+    height: var(--vf-print-content-h) !important;
     transform: scale(var(--vf-print-scale)) !important;
     -webkit-transform: scale(var(--vf-print-scale)) !important;
     transform-origin: top center !important;
     -webkit-transform-origin: top center !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 50% !important;
+    translate: -50% 0 !important;
   }
 
   .page {
