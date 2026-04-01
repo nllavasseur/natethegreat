@@ -2,6 +2,9 @@ export type SectionKey = "materials" | "labor" | "additional";
 
 export type QuoteItem = {
   id?: string;
+  payerType?: "individual" | "shared";
+  payerPartyId?: string;
+  payerPartyIds?: string[];
   section: SectionKey;
   priceKey?: string;
   name: string;

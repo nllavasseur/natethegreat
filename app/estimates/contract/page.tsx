@@ -297,8 +297,14 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
           const centsTotal = Math.round((Number(total) || 0) * 100);
           const totalShare = Object.values(shares).reduce((a, b) => a + (Number(b) || 0), 0);
           const base: Record<string, number> = {};
-          if (centsTotal === 0 || totalShare <= 0) {
+          if (centsTotal === 0) {
             for (const p of safeParties) base[p.id] = 0;
+            return base;
+          }
+          if (totalShare <= 0) {
+            for (const p of safeParties) base[p.id] = 0;
+            const fallbackId = String(primaryPartyId || safeParties[0]?.id || "").trim();
+            if (fallbackId) base[fallbackId] = centsTotal;
             return base;
           }
           const tmp = safeParties.map((p) => {
@@ -321,9 +327,67 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
           return base;
         };
 
+        const additionalCents = (() => {
+          const base: Record<string, number> = {};
+          for (const p of safeParties) base[p.id] = 0;
+
+          const feeItems = (Array.isArray(items) ? items : [])
+            .filter((i) => i && typeof i === "object")
+            .filter((i: any) => {
+              const section = String(i.section || "").trim();
+              if (section === "additional") return true;
+              if (section === "labor" && String(i.name || "") !== "Days labor") return true;
+              return false;
+            })
+            .filter((i: any) => Math.round((Number(i.lineTotal) || 0) * 100) !== 0);
+
+          for (const it of feeItems as any[]) {
+            const centsTotal = Math.round((Number((it as any).lineTotal) || 0) * 100);
+            if (!centsTotal) continue;
+
+            const payerTypeRaw = String((it as any).payerType || "").trim();
+            const payerType: "individual" | "shared" = payerTypeRaw === "shared" ? "shared" : "individual";
+
+            const individualIdRaw = typeof (it as any).payerPartyId === "string" ? String((it as any).payerPartyId || "").trim() : "";
+            const sharedIdsRaw = Array.isArray((it as any).payerPartyIds)
+              ? (((it as any).payerPartyIds as any[]) || []).map((x) => String(x || "").trim())
+              : [];
+            const sharedIds = sharedIdsRaw.filter((id) => partyIdSet.has(id));
+
+            const finalType = payerType === "shared" && sharedIds.length >= 2 ? "shared" : "individual";
+            const finalIndividualId = partyIdSet.has(individualIdRaw) ? individualIdRaw : primaryPartyId;
+            const finalSharedIds = sharedIds.length >= 2 ? sharedIds : [];
+
+            const participants = finalType === "shared" ? finalSharedIds : [finalIndividualId];
+            const participantSet = new Set(participants);
+
+            const denom = participants.length || 1;
+            const per = Math.trunc(centsTotal / denom);
+            let remainder = centsTotal - per * denom;
+
+            for (const p of safeParties) {
+              if (!participantSet.has(p.id)) continue;
+              base[p.id] = (base[p.id] || 0) + per;
+              if (remainder > 0) {
+                base[p.id] = (base[p.id] || 0) + 1;
+                remainder -= 1;
+              }
+            }
+          }
+
+          const expected = Math.round((Number(totalsForBreakdown.additionalFeesTotal) || 0) * 100);
+          const actual = Object.values(base).reduce((a, b) => a + (Number(b) || 0), 0);
+          const delta = expected - actual;
+          if (delta !== 0) {
+            const fallbackId = String(primaryPartyId || safeParties[0]?.id || "").trim();
+            if (fallbackId) base[fallbackId] = (base[fallbackId] || 0) + delta;
+          }
+
+          return base;
+        })();
+
         const materialsCents = allocateCents(totalsForBreakdown.depositTotalWithManual, lfShare);
         const laborCents = allocateCents(totalsForBreakdown.laborBaseTotalRounded, lfShare);
-        const additionalCents = allocateCents(totalsForBreakdown.additionalFeesTotal, lfShare);
         const removalCents = allocateCents(
           totalsForBreakdown.removalTotalRounded,
           totalRemovalLfRaw > 0 ? removalLfShare : Object.fromEntries(safeParties.map((p) => [p.id, 0]))

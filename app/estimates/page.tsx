@@ -19,7 +19,15 @@ const sectionOptions: { key: SectionKey; label: string }[] = [
 ];
 
 function emptyItem(section: SectionKey): QuoteItem {
-  return { section, name: "", qty: section === "additional" ? 0 : 1, unit: "ea", unitPrice: 0, lineTotal: 0 };
+  return {
+    id: `item-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    section,
+    name: "",
+    qty: section === "additional" ? 0 : 1,
+    unit: "ea",
+    unitPrice: 0,
+    lineTotal: 0
+  };
 }
 
 function normalizeUnitPriceKey(name: string) {
@@ -4990,8 +4998,14 @@ function EstimatesPageInner() {
           const centsTotal = Math.round((Number(total) || 0) * 100);
           const totalShare = Object.values(shares).reduce((a, b) => a + (Number(b) || 0), 0);
           const base: Record<string, number> = {};
-          if (centsTotal === 0 || totalShare <= 0) {
+          if (centsTotal === 0) {
             for (const p of safeParties) base[p.id] = 0;
+            return base;
+          }
+          if (totalShare <= 0) {
+            for (const p of safeParties) base[p.id] = 0;
+            const fallbackId = String(primaryPartyId || safeParties[0]?.id || "").trim();
+            if (fallbackId) base[fallbackId] = centsTotal;
             return base;
           }
           const tmp = safeParties.map((p) => {
@@ -5016,9 +5030,67 @@ function EstimatesPageInner() {
           return base;
         };
 
+        const additionalCents = (() => {
+          const base: Record<string, number> = {};
+          for (const p of safeParties) base[p.id] = 0;
+
+          const feeItems = (Array.isArray(items) ? items : [])
+            .filter((i) => i && typeof i === "object")
+            .filter((i: any) => {
+              const section = String(i.section || "").trim();
+              if (section === "additional") return true;
+              if (section === "labor" && String(i.name || "") !== "Days labor") return true;
+              return false;
+            })
+            .filter((i: any) => Math.round((Number(i.lineTotal) || 0) * 100) !== 0);
+
+          for (const it of feeItems as any[]) {
+            const centsTotal = Math.round((Number((it as any).lineTotal) || 0) * 100);
+            if (!centsTotal) continue;
+
+            const payerTypeRaw = String((it as any).payerType || "").trim();
+            const payerType: "individual" | "shared" = payerTypeRaw === "shared" ? "shared" : "individual";
+
+            const individualIdRaw = typeof (it as any).payerPartyId === "string" ? String((it as any).payerPartyId || "").trim() : "";
+            const sharedIdsRaw = Array.isArray((it as any).payerPartyIds)
+              ? (((it as any).payerPartyIds as any[]) || []).map((x) => String(x || "").trim())
+              : [];
+            const sharedIds = sharedIdsRaw.filter((id) => partyIdSet.has(id));
+
+            const finalType = payerType === "shared" && sharedIds.length >= 2 ? "shared" : "individual";
+            const finalIndividualId = partyIdSet.has(individualIdRaw) ? individualIdRaw : primaryPartyId;
+            const finalSharedIds = sharedIds.length >= 2 ? sharedIds : [];
+
+            const participants = finalType === "shared" ? finalSharedIds : [finalIndividualId];
+            const participantSet = new Set(participants);
+
+            const denom = participants.length || 1;
+            const per = Math.trunc(centsTotal / denom);
+            let remainder = centsTotal - per * denom;
+
+            for (const p of safeParties) {
+              if (!participantSet.has(p.id)) continue;
+              base[p.id] = (base[p.id] || 0) + per;
+              if (remainder > 0) {
+                base[p.id] = (base[p.id] || 0) + 1;
+                remainder -= 1;
+              }
+            }
+          }
+
+          const expected = Math.round((Number(additionalFeesTotal) || 0) * 100);
+          const actual = Object.values(base).reduce((a, b) => a + (Number(b) || 0), 0);
+          const delta = expected - actual;
+          if (delta !== 0) {
+            const fallbackId = String(primaryPartyId || safeParties[0]?.id || "").trim();
+            if (fallbackId) base[fallbackId] = (base[fallbackId] || 0) + delta;
+          }
+
+          return base;
+        })();
+
         const materialsCents = allocateCents(materialsDepositTotal, lfShare);
         const laborCents = allocateCents(laborBaseTotal, lfShare);
-        const additionalCents = allocateCents(additionalFeesTotal, lfShare);
         const removalCents = allocateCents(removalTotal, totalRemovalLfRaw > 0 ? removalLfShare : Object.fromEntries(safeParties.map((p) => [p.id, 0])));
 
         const partiesOut = safeParties.map((p) => {
@@ -6418,19 +6490,73 @@ function EstimatesPageInner() {
     // Keep generated materials + labor line in sync so totals work.
     setItems((prev) => {
       const manual = prev.filter((it) => it.section !== "materials" && it.section !== "labor");
+      const validPartyIds = new Set(
+        (Array.isArray(parties) ? parties : [])
+          .map((p) => String((p as any)?.id || "").trim())
+          .filter((id) => Boolean(id))
+      );
+      const primaryPartyId = String((Array.isArray(parties) ? parties : [])[0]?.id || "").trim();
+      const prevLaborByName = new Map(
+        (Array.isArray(prev) ? prev : [])
+          .filter((it) => it && typeof it === "object")
+          .filter((it: any) => String(it.section || "") === "labor")
+          .map((it: any) => [String(it.name || ""), it] as const)
+      );
+      const mergePayer = (it: QuoteItem) => {
+        const prevMatch: any = prevLaborByName.get(String((it as any).name || "")) || null;
+
+        const payerTypeRaw = String(prevMatch?.payerType ?? (it as any).payerType ?? "").trim();
+        const payerType: "individual" | "shared" = payerTypeRaw === "shared" ? "shared" : "individual";
+
+        const payerPartyIdRaw = String(prevMatch?.payerPartyId ?? (it as any).payerPartyId ?? "").trim();
+        const payerPartyIdsRaw = Array.isArray(prevMatch?.payerPartyIds)
+          ? (prevMatch.payerPartyIds as any[]).map((x) => String(x || "").trim())
+          : Array.isArray((it as any).payerPartyIds)
+            ? (((it as any).payerPartyIds as any[]) || []).map((x) => String(x || "").trim())
+            : [];
+        const payerPartyIds = payerPartyIdsRaw.filter((id) => validPartyIds.has(id));
+
+        const effectiveType = splitWithNeighborsEnabled ? payerType : undefined;
+        const effectivePartyId = validPartyIds.has(payerPartyIdRaw) ? payerPartyIdRaw : primaryPartyId;
+        const effectivePartyIds = payerPartyIds.length ? payerPartyIds : undefined;
+
+        return {
+          ...(it as any),
+          payerType: effectiveType,
+          payerPartyId: splitWithNeighborsEnabled ? effectivePartyId : undefined,
+          payerPartyIds: splitWithNeighborsEnabled && payerType === "shared" ? (effectivePartyIds as any) : undefined
+        } as QuoteItem;
+      };
       const laborExtras = [
         toughDigItem,
         gradeSurchargeItem,
         gradingItem,
         treeRemovalItem,
         stumpGrindingItem
-      ].filter((it) => it.lineTotal !== 0);
+      ]
+        .map(mergePayer)
+        .filter((it) => it.lineTotal !== 0);
       return [...takeoffMaterialsWithAdditional, laborItem, ...laborExtras, ...manual];
     });
-  }, [laborItem, takeoffMaterialsWithAdditional, toughDigItem, gradeSurchargeItem, gradingItem, treeRemovalItem, stumpGrindingItem]);
+  }, [gradeSurchargeItem, gradingItem, laborItem, parties, splitWithNeighborsEnabled, stumpGrindingItem, takeoffMaterialsWithAdditional, toughDigItem, treeRemovalItem]);
 
   function addItem(section: SectionKey) {
-    setItems((prev) => [...prev, emptyItem(section)]);
+    setItems((prev) => {
+      const base = emptyItem(section);
+      if (section === "additional" && splitWithNeighborsEnabled) {
+        const primaryPartyId = parties[0]?.id || "";
+        return [
+          ...prev,
+          {
+            ...base,
+            payerType: "individual",
+            payerPartyId: primaryPartyId,
+            payerPartyIds: undefined
+          }
+        ];
+      }
+      return [...prev, base];
+    });
   }
 
   function removeItem(idx: number) {
@@ -9151,6 +9277,99 @@ function EstimatesPageInner() {
                             Tough dig (adds 5%)
                           </SecondaryButton>
                           <div className="mt-1 text-[11px] text-[var(--muted)]">{money(toughDigItem.lineTotal)}</div>
+
+                          {splitWithNeighborsEnabled && toughDigEnabled ? (() => {
+                            const idx = items.findIndex((it) => String((it as any)?.section || "") === "labor" && String((it as any)?.name || "") === "Tough dig (5%)");
+                            if (idx < 0) return null;
+                            const row = items[idx] as any;
+                            return (
+                              <div className="mt-2 grid gap-2">
+                                <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    aria-pressed={String(row.payerType || "individual") !== "shared"}
+                                    onClick={() => {
+                                      const primaryPartyId = parties[0]?.id || "";
+                                      recalc(idx, { payerType: "individual", payerPartyId: String(row.payerPartyId || "") || primaryPartyId, payerPartyIds: undefined });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "individual") !== "shared"
+                                        ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Individual
+                                  </SecondaryButton>
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    disabled={parties.length < 2}
+                                    aria-pressed={String(row.payerType || "") === "shared"}
+                                    onClick={() => {
+                                      if (parties.length < 2) return;
+                                      const ids = parties.map((p) => p.id);
+                                      const existing = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const next = existing.filter((id) => ids.includes(id));
+                                      recalc(idx, { payerType: "shared", payerPartyId: undefined, payerPartyIds: next as any });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "") === "shared"
+                                        ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Shared
+                                  </SecondaryButton>
+                                </div>
+
+                                {String(row.payerType || "individual") === "shared" ? (
+                                  <div className="grid gap-1">
+                                    {parties.map((p) => {
+                                      const current = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const selected = current.includes(p.id);
+                                      return (
+                                        <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                              const next = e.target.checked
+                                                ? Array.from(new Set([...current, p.id]))
+                                                : current.filter((id) => id !== p.id);
+                                              recalc(idx, { payerPartyIds: next as any });
+                                            }}
+                                          />
+                                          <span>{String(p.name || "(unnamed)")}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {(() => {
+                                      const current = Array.isArray(row.payerPartyIds)
+                                        ? (row.payerPartyIds as any[]).map((x) => String(x || "").trim()).filter((x) => Boolean(x))
+                                        : [];
+                                      if (current.length >= 2) return null;
+                                      return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared item.</div>;
+                                    })()}
+                                    {parties.length < 2 ? (
+                                      <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <Select value={String(row.payerPartyId || parties[0]?.id || "")} onChange={(e) => recalc(idx, { payerPartyId: e.target.value })}>
+                                      {parties.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {String(p.name || "(unnamed)")}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })() : null}
                         </div>
 
                         <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-3">
@@ -9167,7 +9386,403 @@ function EstimatesPageInner() {
                             Steep grade (adds 5%)
                           </SecondaryButton>
                           <div className="mt-1 text-[11px] text-[var(--muted)]">{money(gradeSurchargeItem.lineTotal)}</div>
+
+                          {splitWithNeighborsEnabled && gradeEnabled ? (() => {
+                            const idx = items.findIndex((it) => String((it as any)?.section || "") === "labor" && String((it as any)?.name || "") === "Steep grade (5%)");
+                            if (idx < 0) return null;
+                            const row = items[idx] as any;
+                            return (
+                              <div className="mt-2 grid gap-2">
+                                <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    aria-pressed={String(row.payerType || "individual") !== "shared"}
+                                    onClick={() => {
+                                      const primaryPartyId = parties[0]?.id || "";
+                                      recalc(idx, { payerType: "individual", payerPartyId: String(row.payerPartyId || "") || primaryPartyId, payerPartyIds: undefined });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "individual") !== "shared"
+                                        ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Individual
+                                  </SecondaryButton>
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    disabled={parties.length < 2}
+                                    aria-pressed={String(row.payerType || "") === "shared"}
+                                    onClick={() => {
+                                      if (parties.length < 2) return;
+                                      const ids = parties.map((p) => p.id);
+                                      const existing = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const next = existing.filter((id) => ids.includes(id));
+                                      recalc(idx, { payerType: "shared", payerPartyId: undefined, payerPartyIds: next as any });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "") === "shared"
+                                        ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Shared
+                                  </SecondaryButton>
+                                </div>
+
+                                {String(row.payerType || "individual") === "shared" ? (
+                                  <div className="grid gap-1">
+                                    {parties.map((p) => {
+                                      const current = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const selected = current.includes(p.id);
+                                      return (
+                                        <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                              const next = e.target.checked
+                                                ? Array.from(new Set([...current, p.id]))
+                                                : current.filter((id) => id !== p.id);
+                                              recalc(idx, { payerPartyIds: next as any });
+                                            }}
+                                          />
+                                          <span>{String(p.name || "(unnamed)")}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {(() => {
+                                      const current = Array.isArray(row.payerPartyIds)
+                                        ? (row.payerPartyIds as any[]).map((x) => String(x || "").trim()).filter((x) => Boolean(x))
+                                        : [];
+                                      if (current.length >= 2) return null;
+                                      return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared item.</div>;
+                                    })()}
+                                    {parties.length < 2 ? (
+                                      <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <Select value={String(row.payerPartyId || parties[0]?.id || "")} onChange={(e) => recalc(idx, { payerPartyId: e.target.value })}>
+                                      {parties.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {String(p.name || "(unnamed)")}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })() : null}
                         </div>
+
+                        {splitWithNeighborsEnabled ? (() => {
+                          const idx = items.findIndex((it) => String((it as any)?.section || "") === "labor" && String((it as any)?.name || "") === "Grading");
+                          if (idx < 0) return null;
+                          const row = items[idx] as any;
+                          if (Math.round((Number(row.lineTotal) || 0) * 100) === 0) return null;
+                          return (
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-[12px] font-black">Grading</div>
+                                <div className="text-[11px] text-[var(--muted)]">{money(Number(row.lineTotal) || 0)}</div>
+                              </div>
+
+                              <div className="mt-2 grid gap-2">
+                                <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    aria-pressed={String(row.payerType || "individual") !== "shared"}
+                                    onClick={() => {
+                                      const primaryPartyId = parties[0]?.id || "";
+                                      recalc(idx, { payerType: "individual", payerPartyId: String(row.payerPartyId || "") || primaryPartyId, payerPartyIds: undefined });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "individual") !== "shared"
+                                        ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Individual
+                                  </SecondaryButton>
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    disabled={parties.length < 2}
+                                    aria-pressed={String(row.payerType || "") === "shared"}
+                                    onClick={() => {
+                                      if (parties.length < 2) return;
+                                      const ids = parties.map((p) => p.id);
+                                      const existing = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const next = existing.filter((id) => ids.includes(id));
+                                      recalc(idx, { payerType: "shared", payerPartyId: undefined, payerPartyIds: next as any });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "") === "shared"
+                                        ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Shared
+                                  </SecondaryButton>
+                                </div>
+
+                                {String(row.payerType || "individual") === "shared" ? (
+                                  <div className="grid gap-1">
+                                    {parties.map((p) => {
+                                      const current = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const selected = current.includes(p.id);
+                                      return (
+                                        <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                              const next = e.target.checked
+                                                ? Array.from(new Set([...current, p.id]))
+                                                : current.filter((id) => id !== p.id);
+                                              recalc(idx, { payerPartyIds: next as any });
+                                            }}
+                                          />
+                                          <span>{String(p.name || "(unnamed)")}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {(() => {
+                                      const current = Array.isArray(row.payerPartyIds)
+                                        ? (row.payerPartyIds as any[]).map((x) => String(x || "").trim()).filter((x) => Boolean(x))
+                                        : [];
+                                      if (current.length >= 2) return null;
+                                      return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared item.</div>;
+                                    })()}
+                                    {parties.length < 2 ? (
+                                      <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <Select value={String(row.payerPartyId || parties[0]?.id || "")} onChange={(e) => recalc(idx, { payerPartyId: e.target.value })}>
+                                      {parties.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {String(p.name || "(unnamed)")}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })() : null}
+
+                        {splitWithNeighborsEnabled ? (() => {
+                          const idx = items.findIndex((it) => String((it as any)?.section || "") === "labor" && String((it as any)?.name || "") === "Tree removal");
+                          if (idx < 0) return null;
+                          const row = items[idx] as any;
+                          if (Math.round((Number(row.lineTotal) || 0) * 100) === 0) return null;
+                          return (
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-[12px] font-black">Tree removal</div>
+                                <div className="text-[11px] text-[var(--muted)]">{money(Number(row.lineTotal) || 0)}</div>
+                              </div>
+
+                              <div className="mt-2 grid gap-2">
+                                <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    aria-pressed={String(row.payerType || "individual") !== "shared"}
+                                    onClick={() => {
+                                      const primaryPartyId = parties[0]?.id || "";
+                                      recalc(idx, { payerType: "individual", payerPartyId: String(row.payerPartyId || "") || primaryPartyId, payerPartyIds: undefined });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "individual") !== "shared"
+                                        ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Individual
+                                  </SecondaryButton>
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    disabled={parties.length < 2}
+                                    aria-pressed={String(row.payerType || "") === "shared"}
+                                    onClick={() => {
+                                      if (parties.length < 2) return;
+                                      const ids = parties.map((p) => p.id);
+                                      const existing = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const next = existing.filter((id) => ids.includes(id));
+                                      recalc(idx, { payerType: "shared", payerPartyId: undefined, payerPartyIds: next as any });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "") === "shared"
+                                        ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Shared
+                                  </SecondaryButton>
+                                </div>
+
+                                {String(row.payerType || "individual") === "shared" ? (
+                                  <div className="grid gap-1">
+                                    {parties.map((p) => {
+                                      const current = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const selected = current.includes(p.id);
+                                      return (
+                                        <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                              const next = e.target.checked
+                                                ? Array.from(new Set([...current, p.id]))
+                                                : current.filter((id) => id !== p.id);
+                                              recalc(idx, { payerPartyIds: next as any });
+                                            }}
+                                          />
+                                          <span>{String(p.name || "(unnamed)")}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {(() => {
+                                      const current = Array.isArray(row.payerPartyIds)
+                                        ? (row.payerPartyIds as any[]).map((x) => String(x || "").trim()).filter((x) => Boolean(x))
+                                        : [];
+                                      if (current.length >= 2) return null;
+                                      return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared item.</div>;
+                                    })()}
+                                    {parties.length < 2 ? (
+                                      <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <Select value={String(row.payerPartyId || parties[0]?.id || "")} onChange={(e) => recalc(idx, { payerPartyId: e.target.value })}>
+                                      {parties.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {String(p.name || "(unnamed)")}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })() : null}
+
+                        {splitWithNeighborsEnabled ? (() => {
+                          const idx = items.findIndex((it) => String((it as any)?.section || "") === "labor" && String((it as any)?.name || "") === "Stump grinding");
+                          if (idx < 0) return null;
+                          const row = items[idx] as any;
+                          if (Math.round((Number(row.lineTotal) || 0) * 100) === 0) return null;
+                          return (
+                            <div className="rounded-xl border border-[rgba(255,255,255,.10)] bg-[rgba(255,255,255,.05)] p-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-[12px] font-black">Stump grinding</div>
+                                <div className="text-[11px] text-[var(--muted)]">{money(Number(row.lineTotal) || 0)}</div>
+                              </div>
+
+                              <div className="mt-2 grid gap-2">
+                                <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    aria-pressed={String(row.payerType || "individual") !== "shared"}
+                                    onClick={() => {
+                                      const primaryPartyId = parties[0]?.id || "";
+                                      recalc(idx, { payerType: "individual", payerPartyId: String(row.payerPartyId || "") || primaryPartyId, payerPartyIds: undefined });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "individual") !== "shared"
+                                        ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Individual
+                                  </SecondaryButton>
+                                  <SecondaryButton
+                                    type="button"
+                                    data-no-swipe="true"
+                                    disabled={parties.length < 2}
+                                    aria-pressed={String(row.payerType || "") === "shared"}
+                                    onClick={() => {
+                                      if (parties.length < 2) return;
+                                      const ids = parties.map((p) => p.id);
+                                      const existing = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const next = existing.filter((id) => ids.includes(id));
+                                      recalc(idx, { payerType: "shared", payerPartyId: undefined, payerPartyIds: next as any });
+                                    }}
+                                    className={
+                                      (String(row.payerType || "") === "shared"
+                                        ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] "
+                                        : "") + "px-3 py-2 text-[12px]"
+                                    }
+                                  >
+                                    Shared
+                                  </SecondaryButton>
+                                </div>
+
+                                {String(row.payerType || "individual") === "shared" ? (
+                                  <div className="grid gap-1">
+                                    {parties.map((p) => {
+                                      const current = Array.isArray(row.payerPartyIds) ? (row.payerPartyIds as any[]).map((x) => String(x || "")) : [];
+                                      const selected = current.includes(p.id);
+                                      return (
+                                        <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            onChange={(e) => {
+                                              const next = e.target.checked
+                                                ? Array.from(new Set([...current, p.id]))
+                                                : current.filter((id) => id !== p.id);
+                                              recalc(idx, { payerPartyIds: next as any });
+                                            }}
+                                          />
+                                          <span>{String(p.name || "(unnamed)")}</span>
+                                        </label>
+                                      );
+                                    })}
+                                    {(() => {
+                                      const current = Array.isArray(row.payerPartyIds)
+                                        ? (row.payerPartyIds as any[]).map((x) => String(x || "").trim()).filter((x) => Boolean(x))
+                                        : [];
+                                      if (current.length >= 2) return null;
+                                      return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared item.</div>;
+                                    })()}
+                                    {parties.length < 2 ? (
+                                      <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <Select value={String(row.payerPartyId || parties[0]?.id || "")} onChange={(e) => recalc(idx, { payerPartyId: e.target.value })}>
+                                      {parties.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                          {String(p.name || "(unnamed)")}
+                                        </option>
+                                      ))}
+                                    </Select>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })() : null}
 
                       </div>
                     </div>
@@ -9260,6 +9875,111 @@ function EstimatesPageInner() {
                               <SecondaryButton onClick={() => removeItem(idx)} className="w-full">✕</SecondaryButton>
                             </div>
                           </div>
+
+                          {splitWithNeighborsEnabled && isAdditional ? (
+                            <div className="mt-2 grid gap-2">
+                              <div className="text-[11px] text-[var(--muted)]">Paid by</div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <SecondaryButton
+                                  type="button"
+                                  data-no-swipe="true"
+                                  aria-pressed={String((row as any).payerType || "individual") !== "shared"}
+                                  onClick={() => {
+                                    const primaryPartyId = parties[0]?.id || "";
+                                    recalc(idx, {
+                                      payerType: "individual",
+                                      payerPartyId: String((row as any).payerPartyId || "") || primaryPartyId,
+                                      payerPartyIds: undefined
+                                    });
+                                  }}
+                                  className={
+                                    (String((row as any).payerType || "individual") !== "shared"
+                                      ? "!bg-[rgba(60,140,255,.24)] !border-[rgba(60,140,255,.70)] !text-[rgba(235,245,255,.98)] "
+                                      : "") + "px-3 py-2 text-[12px]"
+                                  }
+                                >
+                                  Individual
+                                </SecondaryButton>
+                                <SecondaryButton
+                                  type="button"
+                                  data-no-swipe="true"
+                                  disabled={parties.length < 2}
+                                  aria-pressed={String((row as any).payerType || "") === "shared"}
+                                  onClick={() => {
+                                    if (parties.length < 2) return;
+                                    const ids = parties.map((p) => p.id);
+                                    const existing = Array.isArray((row as any).payerPartyIds)
+                                      ? (((row as any).payerPartyIds as any[]) || []).map((x) => String(x || ""))
+                                      : [];
+                                    const next = existing.filter((id) => ids.includes(id));
+                                    recalc(idx, {
+                                      payerType: "shared",
+                                      payerPartyId: undefined,
+                                      payerPartyIds: next as any
+                                    });
+                                  }}
+                                  className={
+                                    (String((row as any).payerType || "") === "shared"
+                                      ? "!bg-[rgba(255,214,10,.30)] !border-[rgba(255,214,10,.55)] !text-[rgba(255,244,200,.98)] "
+                                      : "") + "px-3 py-2 text-[12px]"
+                                  }
+                                >
+                                  Shared
+                                </SecondaryButton>
+                              </div>
+
+                              {String((row as any).payerType || "individual") === "shared" ? (
+                                <div className="grid gap-1">
+                                  {parties.map((p) => {
+                                    const current = Array.isArray((row as any).payerPartyIds)
+                                      ? (((row as any).payerPartyIds as any[]) || []).map((x) => String(x || ""))
+                                      : [];
+                                    const selected = current.includes(p.id);
+                                    return (
+                                      <label key={p.id} className="flex items-center gap-2 text-[12px] font-black">
+                                        <input
+                                          type="checkbox"
+                                          checked={selected}
+                                          onChange={(e) => {
+                                            const next = e.target.checked
+                                              ? Array.from(new Set([...current, p.id]))
+                                              : current.filter((id) => id !== p.id);
+                                            recalc(idx, { payerPartyIds: next as any });
+                                          }}
+                                        />
+                                        <span>{String(p.name || "(unnamed)")}</span>
+                                      </label>
+                                    );
+                                  })}
+                                  {(() => {
+                                    const current = Array.isArray((row as any).payerPartyIds)
+                                      ? (((row as any).payerPartyIds as any[]) || [])
+                                          .map((x) => String(x || "").trim())
+                                          .filter((x) => Boolean(x))
+                                      : [];
+                                    if (current.length >= 2) return null;
+                                    return <div className="text-[11px] text-[var(--muted)]">Select at least 2 parties to split this shared item.</div>;
+                                  })()}
+                                  {parties.length < 2 ? (
+                                    <div className="text-[11px] text-[var(--muted)]">Add at least 2 parties to use Shared.</div>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <div>
+                                  <Select
+                                    value={String((row as any).payerPartyId || parties[0]?.id || "")}
+                                    onChange={(e) => recalc(idx, { payerPartyId: e.target.value })}
+                                  >
+                                    {parties.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {String(p.name || "(unnamed)")}
+                                      </option>
+                                    ))}
+                                  </Select>
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
                           <div className="mt-2 text-right text-sm font-black">{money(row.lineTotal)}</div>
                         </div>
                       );
