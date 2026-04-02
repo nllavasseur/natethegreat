@@ -4409,6 +4409,7 @@ function EstimatesPageInner() {
         projectAddress,
         phoneNumber,
         email,
+        tenPercentDiscountEnabled,
         splitWithNeighborsEnabled,
         parties,
         // Keep photo state in the snapshot so navigating away/back doesn't wipe in-progress photo edits.
@@ -4474,6 +4475,7 @@ function EstimatesPageInner() {
     projectAddress,
     phoneNumber,
     email,
+    tenPercentDiscountEnabled,
     splitWithNeighborsEnabled,
     parties,
     projectPhotoUrl,
@@ -7394,6 +7396,7 @@ function EstimatesPageInner() {
           projectAddress,
           phoneNumber,
           email,
+          tenPercentDiscountEnabled,
           splitWithNeighborsEnabled,
           parties,
           projectPhotoUrl: projectUrlSafe || projectDataBackup,
