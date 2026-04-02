@@ -906,6 +906,7 @@ export default function EstimateContractPage() {
     let cancelled = false;
 
     (async () => {
+      let nextDraftId = "";
       try {
         try {
           const q = new URLSearchParams(window.location.search);
@@ -914,7 +915,7 @@ export default function EstimateContractPage() {
           setEmbed(false);
         }
 
-        const nextDraftId = (() => {
+        nextDraftId = (() => {
           try {
             const q = new URLSearchParams(window.location.search);
             return String(q.get("draft") || "").trim();
@@ -954,9 +955,25 @@ export default function EstimateContractPage() {
       }
 
       try {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
+        let raw: string | null = null;
+        try {
+          raw = window.localStorage.getItem(STORAGE_KEY);
+        } catch {
+          raw = null;
+        }
+        if (!raw) {
+          try {
+            raw = window.sessionStorage.getItem(STORAGE_KEY);
+          } catch {
+            raw = null;
+          }
+        }
         if (!raw) return;
         const parsed = JSON.parse(raw);
+        if (nextDraftId) {
+          const cachedId = String((parsed as any)?.estimate?.id || "").trim();
+          if (cachedId && cachedId !== nextDraftId) return;
+        }
         if (!cancelled) setData(parsed);
       } catch {
         // ignore

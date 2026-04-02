@@ -7433,7 +7433,10 @@ function EstimatesPageInner() {
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       } catch {
-        // ignore
+        try {
+          window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+        }
       }
 
       // Navigate with draft id so contract page can fetch even if localStorage is unavailable.
