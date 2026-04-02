@@ -1800,7 +1800,7 @@ body{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     display: flex !important;
     justify-content: center !important;
     align-items: flex-start !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     position: relative !important;
   }
 
