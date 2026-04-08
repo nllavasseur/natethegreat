@@ -352,11 +352,12 @@ export default function TabShell({ children }: { children: React.ReactNode }) {
                       aria-current={isActive ? "page" : undefined}
                       onClick={(e) => {
                         try {
-                          if (isActive) {
+                          const currentPath = pathname || "";
+                          const isExactTabRoot = currentPath === t.href;
+                          if (isExactTabRoot) {
                             e.preventDefault();
                             return;
                           }
-                          const currentPath = pathname || "";
                           saveScrollForPath(currentPath);
                           restorePathRef.current = t.href;
                         } catch {
