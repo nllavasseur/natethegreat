@@ -2137,7 +2137,7 @@ export default function CalendarPage() {
 
     const explicitStartIso = (d: DraftEntry) => {
       const s = String((d as any).scheduledAt || "");
-      if (s) return s.slice(0, 10);
+      if (s) return scheduledAtLocalDayKey(s) || s.slice(0, 10);
       return String((d as any).startDate || d.installDate || "");
     };
 
@@ -2284,9 +2284,11 @@ export default function CalendarPage() {
 
       const hasSched = Boolean(sched) && status !== "sold" && status !== "void";
 
+      const schedDayIso = hasSched ? (scheduledAtLocalDayKey(sched) || sched.slice(0, 10)) : "";
+
       const dt =
         hasSched
-          ? localNoonForIsoDate(sched)
+          ? scheduledAtToLocalDate(sched) || localNoonForIsoDate(sched)
           : status === "sold" && soldSnap && (soldSnap as any).install instanceof Date && Number.isFinite(((soldSnap as any).install as Date).getTime())
             ? ((soldSnap as any).install as Date)
             : iso
@@ -2316,8 +2318,8 @@ export default function CalendarPage() {
         : null;
       return {
         ...d,
-        startDate: hasSched ? sched.slice(0, 10) : iso,
-        installDate: hasSched ? sched.slice(0, 10) : iso,
+        startDate: hasSched ? schedDayIso : iso,
+        installDate: hasSched ? schedDayIso : iso,
         status,
         install: dt,
         end,
