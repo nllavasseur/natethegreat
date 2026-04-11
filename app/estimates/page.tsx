@@ -199,6 +199,21 @@ function woodPicketName(picketMaterial: "Pressure treated" | "Cedar" | "Cedar to
   return "6' Pressure Treated Dog Ear Pickets";
 }
 
+function woodPicketNameByHeight(
+  picketMaterial: "Pressure treated" | "Cedar" | "Cedar tone" | "Rough sawn cedar" | "Rough sawn cedar 5/8" | "Rough sawn cedar 3/4",
+  heightFt: number
+) {
+  const h = Math.floor(Number(heightFt) || 0);
+  if (h >= 8) {
+    if (picketMaterial === "Rough sawn cedar 5/8") return "8' Rough Sawn Cedar Dog Ear Pickets 5/8";
+    if (picketMaterial === "Rough sawn cedar 3/4") return "8' Rough Sawn Cedar Dog Ear Pickets 3/4";
+    if (isCedarLike(picketMaterial)) return "8' Cedar Dog Ear Pickets";
+    if (picketMaterial === "Cedar tone") return "8' CedarTone Dog Ear Pickets";
+    return "8' Pressure Treated Dog Ear Pickets";
+  }
+  return woodPicketName(picketMaterial);
+}
+
 function picketEffectiveSpacingIn(raw: any) {
   const base = Math.max(0.5, Number(raw) || 0);
   return base;
@@ -2117,6 +2132,16 @@ function EstimatesPageInner() {
   }, [materialsDetails.postSize, selectedStyleKind]);
 
   useEffect(() => {
+    if (selectedStyleKind !== "wood_standard") return;
+    if (useHorizontalCedarTakeoff) return;
+
+    const heightFt = Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6);
+    if (heightFt < 8) return;
+    if (materialsDetails.postSize === 12) return;
+    setMaterialsDetails((p) => ({ ...p, postSize: 12 }));
+  }, [materialsDetails.postSize, materialsDetails.vinylPanelHeightFt, selectedStyleKind, useHorizontalCedarTakeoff]);
+
+  useEffect(() => {
     if (!useHorizontalCedarTakeoff) return;
 
     if (postSizeTouchedRef.current) return;
@@ -2140,6 +2165,7 @@ function EstimatesPageInner() {
     "6x6 x 8' Cedar S4S Post": 145.99,
     "6x6 x 10' Cedar S4S Post": 166.79,
     "6' Pressure Treated Dog Ear Pickets": 2.38,
+    "8' Pressure Treated Dog Ear Pickets": 4.98,
     "6' Rough Sawn Cedar Dog Ear Pickets 5/8": 4.78,
     "6' Rough Sawn Cedar Dog Ear Pickets 3/4": 5.95,
     "2x4 8' Cedar S4S Rails": 14.99,
@@ -2277,7 +2303,7 @@ function EstimatesPageInner() {
     if (typeof window === "undefined") return;
     let cancelled = false;
 
-    const woodUnitPricesVersion = "2026-03-27-1";
+    const woodUnitPricesVersion = "2026-04-10-1";
     fetch(`/wood_unit_prices.csv?v=${encodeURIComponent(woodUnitPricesVersion)}`,
       {
         cache: "no-store",
@@ -3623,7 +3649,8 @@ function EstimatesPageInner() {
 
       // Rails for picture-framed family styles (7.5' centers) are style-specific.
       // Assumption from you: styles will have either topCaps OR postCaps on.
-      const heightFt = Math.max(4, Math.min(6, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
+      const heightMax = selectedStyleKind === "wood_standard" ? 8 : 6;
+      const heightFt = Math.max(4, Math.min(heightMax, Math.floor(Number(materialsDetails.vinylPanelHeightFt) || 6)));
       const pictureFramedRailsPerSection = (isFourFootPictureFramedKind
         ? (materialsDetails.postCaps ? 3 : 2)
         : (isNiko
@@ -3634,7 +3661,10 @@ function EstimatesPageInner() {
                     ? (materialsDetails.postCaps ? 5 : 4)
                     : (materialsDetails.postCaps ? 4 : 3)))));
 
-      const standardRailsPerSection16 = selectedStyleKind === "wood_standard" && heightFt <= 4 ? 2 : 3;
+      const standardRailsPerSection16 =
+        selectedStyleKind === "wood_standard"
+          ? (heightFt >= 8 ? 4 : heightFt <= 4 ? 2 : 3)
+          : 3;
 
       const rails = isPictureFramed
         ? (segmentLengths.length
@@ -3671,7 +3701,9 @@ function EstimatesPageInner() {
       const nailsName = woodNailsItemName(materialsDetails.picketMaterial);
       const nailsBoxes = pickets > 0 ? Math.ceil((pickets * 6) / nailsPerBox) : 0;
 
-      const picketName = woodPicketName(materialsDetails.picketMaterial);
+      const picketName = selectedStyleKind === "wood_standard"
+        ? woodPicketNameByHeight(materialsDetails.picketMaterial, heightFt)
+        : woodPicketName(materialsDetails.picketMaterial);
 
       const trimMaterialFinal = isPictureFramed
         ? (materialsDetails.pictureFrameTrimMaterial || materialsDetails.trimMaterial)
@@ -12441,7 +12473,7 @@ function EstimatesPageInner() {
                               Math.max(
                                 4,
                                 Math.min(
-                                  6,
+                                  selectedStyleKind === "wood_standard" && !useHorizontalCedarTakeoff ? 8 : 6,
                                   Math.floor(
                                     Number(materialsDetails.vinylPanelHeightFt) || (selectedStyleKind === "wood_scalloped" ? 5 : 6)
                                   )
@@ -12453,7 +12485,7 @@ function EstimatesPageInner() {
                           >
                             {(selectedStyleKind === "wood_scalloped"
                               ? [4, 5, 6]
-                              : [4, 5, 6]).map((h) => (
+                              : (selectedStyleKind === "wood_standard" && !useHorizontalCedarTakeoff ? [4, 5, 6, 8] : [4, 5, 6])).map((h) => (
                               <option key={h} value={String(h)}>{h}'</option>
                             ))}
                           </Select>
