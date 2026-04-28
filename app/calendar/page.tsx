@@ -421,11 +421,14 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
       return;
     }
 
+    const prevTs = Number((prev as any).updatedAt ?? (prev as any).createdAt ?? 0) || 0;
+    const nextTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
+
     // Queue is the control center for SOLD jobs.
     // If local says a job is sold, always keep local queue-control fields so remote refresh cannot
     // reorder/snap-back position or duration.
     const localIsSold = (prev as any).status === "sold" && !(prev as any).calendarHidden;
-    if (localIsSold) {
+    if (localIsSold && (nextTs <= prevTs || nextTs <= 0)) {
       const merged: any = { ...(prev as any) };
 
       // Prefer incoming display fields only when meaningful so local-lite copies
@@ -482,9 +485,6 @@ function mergeDraftLists(local: DraftEntry[], remote: DraftEntry[]) {
       byId.set(id, merged as DraftEntry);
       return;
     }
-
-    const prevTs = Number((prev as any).updatedAt ?? (prev as any).createdAt ?? 0) || 0;
-    const nextTs = Number((d as any).updatedAt ?? (d as any).createdAt ?? 0) || 0;
 
     // Prefer whichever copy is newer; fall back to local if equal.
     if (nextTs > prevTs) byId.set(id, { ...prev, ...d });
@@ -596,6 +596,10 @@ function markDraftComplete(id: string) {
       updatedAt: Date.now()
     };
     window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+    try {
+      void upsertCanonicalQuote({ id, data: (store as any)[id] });
+    } catch {
+    }
     try {
       void upsertDraft({ id, data: (store as any)[id] });
     } catch {
@@ -997,6 +1001,21 @@ export default function CalendarPage() {
 
         remoteList = (draftsRes as any)?.ok ? ((draftsRes as any)?.drafts as DraftEntry[]) : remoteList;
 
+        const draftsBackfillList: DraftEntry[] =
+          Boolean((draftsBackfillRes as any)?.ok) && Array.isArray((draftsBackfillRes as any)?.drafts)
+            ? (((draftsBackfillRes as any).drafts as DraftEntry[]) || [])
+            : [];
+
+        // Ensure the remote draft list incorporates newer status changes that may not be present
+        // in calendar snapshots (e.g. completion / status toggles).
+        if (draftsBackfillList.length > 0) {
+          try {
+            remoteList = mergeDraftLists(remoteList, draftsBackfillList as any);
+            remoteListOk = true;
+          } catch {
+          }
+        }
+
         try {
           const soldById = new Map<string, DraftEntry>();
           const ts = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
@@ -1032,9 +1051,8 @@ export default function CalendarPage() {
             });
           }
 
-          const draftsBackfillOk = Boolean((draftsBackfillRes as any)?.ok) && Array.isArray((draftsBackfillRes as any)?.drafts);
-          if (draftsBackfillOk) {
-            (((draftsBackfillRes as any).drafts as DraftEntry[]) || []).forEach((d: any) => {
+          if (draftsBackfillList.length > 0) {
+            draftsBackfillList.forEach((d: any) => {
               const st = String(d?.status || "").trim().toLowerCase();
               if (st !== "sold") return;
               if (Boolean((d as any)?.calendarHidden)) return;
@@ -1049,7 +1067,9 @@ export default function CalendarPage() {
               const id = String((d as any)?.id || "");
               if (!id) return;
               const sold = soldById.get(id);
-              next.push(sold ? ({ ...(d as any), ...(sold as any) } as any) : (d as any));
+              const st = String((d as any)?.status || "").trim().toLowerCase();
+              const shouldMergeSold = Boolean(sold) && (st === "sold" || !st);
+              next.push(shouldMergeSold ? ({ ...(d as any), ...(sold as any) } as any) : (d as any));
               seen.add(id);
             });
             soldById.forEach((sold, id) => {
@@ -1136,6 +1156,54 @@ export default function CalendarPage() {
       }
 
       if (!cancelled) setDrafts(mergedLite);
+
+      // If remote has a newer authoritative copy of queue/status metadata, patch it back into the
+      // local draft store so stale local SOLD entries don't keep reasserting on future loads.
+      try {
+        if (Date.now() - localMutationEpochRef.current > 9000) {
+          const store = readDraftStore();
+          const ts = (d: any) => Number(d?.updatedAt ?? d?.createdAt ?? 0) || 0;
+          let changed = false;
+
+          (Array.isArray(remoteList) ? remoteList : []).forEach((r: any) => {
+            const id = String(r?.id || "");
+            if (!id) return;
+            const l = (store as any)[id];
+            if (!l) return;
+            const rTs = ts(r);
+            const lTs = ts(l);
+            if (!(rTs > 0 && rTs > lTs)) return;
+
+            const next: any = { ...(l as any) };
+            const setIfDefined = (k: string) => {
+              if ((r as any)[k] !== undefined) next[k] = (r as any)[k];
+            };
+
+            setIfDefined("status");
+            setIfDefined("calendarHidden");
+            setIfDefined("queueRank");
+            setIfDefined("laborDays");
+            setIfDefined("originalLaborDays");
+            setIfDefined("holdDate");
+            setIfDefined("allowSaturday");
+            setIfDefined("allowSunday");
+            setIfDefined("queueLocked");
+            setIfDefined("queueLockedAt");
+            setIfDefined("updatedAt");
+
+            (store as any)[id] = next;
+            changed = true;
+          });
+
+          if (changed) {
+            try {
+              window.localStorage.setItem("vf_estimate_drafts_v1", JSON.stringify(store));
+            } catch {
+            }
+          }
+        }
+      } catch {
+      }
 
       try {
         const remoteById = new Map<string, any>();
@@ -1286,6 +1354,16 @@ export default function CalendarPage() {
               event: "*",
               schema: "public",
               table: "vf_quotes",
+              filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
+            },
+            () => requestRefresh()
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "drafts",
               filter: `workspace_id=eq.${workspaceId || DEFAULT_WORKSPACE_ID}`
             },
             () => requestRefresh()
