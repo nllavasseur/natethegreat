@@ -924,6 +924,24 @@ export default function EstimateContractPage() {
           }
         })();
         if (!cancelled) setDraftId(nextDraftId);
+
+        try {
+          const hash = String(window.location.hash || "");
+          const match = hash.match(/(?:^#|&)c=([^&]+)/);
+          if (match && match[1]) {
+            const bin = window.atob(decodeURIComponent(match[1]));
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const json = new TextDecoder().decode(bytes);
+            const parsedHash = JSON.parse(json);
+            if (parsedHash && typeof parsedHash === "object" && !cancelled) {
+              setData(parsedHash);
+              return;
+            }
+          }
+        } catch {
+        }
+
         if (nextDraftId) {
           let localTs = 0;
 
@@ -1159,6 +1177,41 @@ export default function EstimateContractPage() {
     }
   }, [applyPrintIsolation, clearPrintIsolation, setPrintScale]);
 
+  const isIosStandalone = React.useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const nav: any = window.navigator;
+      const standalone =
+        Boolean(nav?.standalone) ||
+        Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      if (!standalone) return false;
+      const ua = String(nav?.userAgent || "");
+      const isIos = /iPad|iPhone|iPod/i.test(ua) || (nav?.platform === "MacIntel" && Number(nav?.maxTouchPoints) > 1);
+      return isIos;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const buildSafariPrintUrl = React.useCallback(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("autoprint", "1");
+      if (data) {
+        const json = JSON.stringify(data);
+        const bytes = new TextEncoder().encode(json);
+        let bin = "";
+        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        const b64 = window.btoa(bin);
+        u.hash = `c=${encodeURIComponent(b64)}`;
+      }
+      return u.toString();
+    } catch {
+      return window.location.href;
+    }
+  }, [data]);
+
   const handlePrint = React.useCallback(() => {
     try {
       document.title = computeDocTitle(data);
@@ -1172,7 +1225,75 @@ export default function EstimateContractPage() {
     } catch {
       // ignore
     }
-    window.print();
+
+    let printEventFired = false;
+    const markFired = () => {
+      printEventFired = true;
+    };
+    let mql: MediaQueryList | null = null;
+    try {
+      window.addEventListener("beforeprint", markFired, { once: true });
+      if (window.matchMedia) {
+        mql = window.matchMedia("print");
+        if (typeof (mql as any).addEventListener === "function") {
+          (mql as any).addEventListener("change", markFired, { once: true });
+        }
+      }
+    } catch {
+    }
+
+    try {
+      window.print();
+    } catch {
+    }
+
+    try {
+      window.removeEventListener("beforeprint", markFired);
+      if (mql && typeof (mql as any).removeEventListener === "function") {
+        (mql as any).removeEventListener("change", markFired);
+      }
+    } catch {
+    }
+
+    if (isIosStandalone && !printEventFired) {
+      clearPrintIsolation();
+      try {
+        const safariUrl = buildSafariPrintUrl();
+        const a = document.createElement("a");
+        a.href = safariUrl;
+        a.target = "_blank";
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch {
+        try {
+          window.open(buildSafariPrintUrl(), "_blank");
+        } catch {
+        }
+      }
+    }
+  }, [applyPrintIsolation, buildSafariPrintUrl, clearPrintIsolation, computeDocTitle, data, isIosStandalone, setPrintScale]);
+
+  const autoPrintTriggeredRef = React.useRef(false);
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !data || autoPrintTriggeredRef.current) return;
+    try {
+      const q = new URLSearchParams(window.location.search);
+      if (q.get("autoprint") !== "1") return;
+      autoPrintTriggeredRef.current = true;
+      const t = window.setTimeout(() => {
+        try {
+          document.title = computeDocTitle(data);
+        } catch {
+        }
+        applyPrintIsolation();
+        setPrintScale(printScaleModeRef.current);
+        window.print();
+      }, 350);
+      return () => window.clearTimeout(t);
+    } catch {
+    }
   }, [applyPrintIsolation, computeDocTitle, data, setPrintScale]);
 
   const handleEmail = React.useCallback(() => {
