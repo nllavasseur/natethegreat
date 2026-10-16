@@ -1167,7 +1167,12 @@ export default function EstimateContractPage() {
     }
     applyPrintIsolation();
     setPrintScale(printScaleModeRef.current);
-    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+    try {
+      pageRef.current?.getBoundingClientRect();
+    } catch {
+      // ignore
+    }
+    window.print();
   }, [applyPrintIsolation, computeDocTitle, data, setPrintScale]);
 
   const handleEmail = React.useCallback(() => {
