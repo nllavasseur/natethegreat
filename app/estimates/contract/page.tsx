@@ -546,7 +546,30 @@ function buildContractFromDraft(draftId: string, draft: any): ContractData {
     ? round2(persistedTotal)
     : round2(materialsAndExpensesDiscounted + additionalFeesTotal + removalTotalRounded + laborBaseTotalRounded);
 
-  const estimateName = String(((draft as any)?.title ?? (draft as any)?.estimateName ?? (draft as any)?.name ?? "") || "").trim();
+  const estimateName = (() => {
+    const direct = String(((draft as any)?.title ?? (draft as any)?.estimateName ?? (draft as any)?.name ?? (draft as any)?.contract?.estimate?.name ?? "") || "").trim();
+    if (direct) return direct;
+    try {
+      if (draftId) {
+        const store = readDraftStore();
+        const saved = store?.[draftId] as any;
+        const fromSaved = String((saved?.title ?? saved?.estimateName ?? saved?.name ?? saved?.contract?.estimate?.name ?? "") || "").trim();
+        if (fromSaved) return fromSaved;
+      }
+      if (typeof window !== "undefined") {
+        const raw = window.localStorage.getItem("vf_contract_preview_v1") || window.sessionStorage.getItem("vf_contract_preview_v1");
+        if (raw) {
+          const parsed = JSON.parse(raw) as any;
+          if (!draftId || String(parsed?.estimate?.id || "").trim() === String(draftId).trim()) {
+            const fromPreview = String(parsed?.estimate?.name || "").trim();
+            if (fromPreview) return fromPreview;
+          }
+        }
+      }
+    } catch {
+    }
+    return "";
+  })();
   const customerName = String(draft?.customerName || "");
   const phoneNumber = String(draft?.phoneNumber || "");
   const email = String(draft?.email || "");
@@ -734,7 +757,7 @@ function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: nu
   return out.length ? out : [""];
 }
 
-function jpegDataUrlToLetterPdfBytes(jpegDataUrl: string, imgW: number, imgH: number): Uint8Array {
+function jpegDataUrlToLetterPdfBytes(jpegDataUrl: string, imgW: number, imgH: number, docTitle: string): Uint8Array {
   const commaIdx = jpegDataUrl.indexOf(",");
   const b64 = commaIdx >= 0 ? jpegDataUrl.slice(commaIdx + 1) : jpegDataUrl;
   const bin = window.atob(b64);
@@ -753,6 +776,11 @@ function jpegDataUrlToLetterPdfBytes(jpegDataUrl: string, imgW: number, imgH: nu
     chunks.push(b);
     offset += b.length;
   };
+
+  const pdfTitleEscaped = String(docTitle || "Estimate")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
 
   const offsets: number[] = [0];
   pushStr("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n");
@@ -779,13 +807,16 @@ function jpegDataUrlToLetterPdfBytes(jpegDataUrl: string, imgW: number, imgH: nu
   offsets[5] = offset;
   pushStr(`5 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`);
 
+  offsets[6] = offset;
+  pushStr(`6 0 obj\n<< /Title (${pdfTitleEscaped}) >>\nendobj\n`);
+
   const xrefStart = offset;
-  pushStr("xref\n0 6\n0000000000 65535 f \n");
-  for (let i = 1; i <= 5; i++) {
+  pushStr("xref\n0 7\n0000000000 65535 f \n");
+  for (let i = 1; i <= 6; i++) {
     const pad = String(offsets[i]).padStart(10, "0");
     pushStr(`${pad} 00000 n \n`);
   }
-  pushStr(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
+  pushStr(`trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
 
   const out = new Uint8Array(offset);
   let pos = 0;
@@ -1306,8 +1337,8 @@ function renderContractPdfFile(data: ContractData, docTitle: string, scaleMode: 
   );
 
   const jpegDataUrl = pageCanvas.toDataURL("image/jpeg", 0.92);
-  const pdfBytes = jpegDataUrlToLetterPdfBytes(jpegDataUrl, pageCanvas.width, pageCanvas.height);
   const safeName = String(docTitle || "Estimate").replace(/[\\/:*?"<>|]+/g, "-").trim() || "Estimate";
+  const pdfBytes = jpegDataUrlToLetterPdfBytes(jpegDataUrl, pageCanvas.width, pageCanvas.height, safeName);
   const fileName = safeName.toLowerCase().endsWith(".pdf") ? safeName : `${safeName}.pdf`;
   const ab = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength) as ArrayBuffer;
   const blob = new Blob([ab], { type: "application/pdf" });
@@ -1382,10 +1413,11 @@ export default function EstimateContractPage() {
       const customer = String((d as any)?.estimate?.customer?.name || "").trim();
       const address = String((d as any)?.estimate?.projectAddress || "").trim();
       const style = String((d as any)?.estimate?.styleTitle || "").trim();
+      const effectiveEstName = estName || style;
 
-      if (customer && estName) return `${customer}, (${estName})`;
-      if (estName) return estName;
-      return customer || address || style || "Estimate";
+      if (customer && effectiveEstName) return `${customer}, (${effectiveEstName})`;
+      if (effectiveEstName) return effectiveEstName;
+      return customer || address || "Estimate";
     } catch {
       return "Estimate";
     }

@@ -4437,6 +4437,8 @@ function EstimatesPageInner() {
       const payload = {
         draftId,
         draftParam,
+        title: estimateName,
+        estimateName,
         customerName,
         projectAddress,
         phoneNumber,
@@ -6922,7 +6924,7 @@ function EstimatesPageInner() {
 
     const snapDraftId = source === "snapshot" && typeof (d as any).draftId === "string" ? String((d as any).draftId) : null;
     setDraftId(source === "snapshot" ? snapDraftId : id);
-    setEstimateName(String((d as any).title ?? ""));
+    setEstimateName(String((d as any).title ?? (d as any).estimateName ?? ""));
     setCustomerName(String(d.customerName ?? ""));
     setProjectAddress(String(d.projectAddress ?? ""));
     setPhoneNumber(String(d.phoneNumber ?? ""));
@@ -7424,6 +7426,8 @@ function EstimatesPageInner() {
         const snapshotPayload = {
           draftId: id,
           draftParam: String(draftParam || "").trim() || id,
+          title: estimateName,
+          estimateName,
           customerName,
           projectAddress,
           phoneNumber,
