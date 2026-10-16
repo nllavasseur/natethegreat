@@ -1785,7 +1785,7 @@ export default function EstimateContractPage() {
         if (res && typeof nav?.share === "function") {
           const canShareFiles = typeof nav.canShare === "function" ? nav.canShare({ files: [res.file] }) : true;
           if (canShareFiles) {
-            void nav.share({ files: [res.file], title: docTitle }).catch(() => {});
+            void nav.share({ files: [res.file] }).catch(() => {});
             return;
           }
         }
