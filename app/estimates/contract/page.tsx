@@ -709,6 +709,612 @@ type ContractData = {
 
 const STORAGE_KEY = "vf_contract_preview_v1";
 
+function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const out: string[] = [];
+  const paragraphs = String(text ?? "").split(/\r?\n/);
+  for (const para of paragraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) {
+      out.push("");
+      continue;
+    }
+    const words = trimmed.split(/\s+/);
+    let line = "";
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width <= maxWidth || !line) {
+        line = test;
+      } else {
+        out.push(line);
+        line = word;
+      }
+    }
+    if (line) out.push(line);
+  }
+  return out.length ? out : [""];
+}
+
+function jpegDataUrlToLetterPdfBytes(jpegDataUrl: string, imgW: number, imgH: number): Uint8Array {
+  const commaIdx = jpegDataUrl.indexOf(",");
+  const b64 = commaIdx >= 0 ? jpegDataUrl.slice(commaIdx + 1) : jpegDataUrl;
+  const bin = window.atob(b64);
+  const jpegBytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) jpegBytes[i] = bin.charCodeAt(i);
+
+  const enc = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  let offset = 0;
+  const pushStr = (s: string) => {
+    const b = enc.encode(s);
+    chunks.push(b);
+    offset += b.length;
+  };
+  const pushBytes = (b: Uint8Array) => {
+    chunks.push(b);
+    offset += b.length;
+  };
+
+  const offsets: number[] = [0];
+  pushStr("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n");
+
+  offsets[1] = offset;
+  pushStr("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+  offsets[2] = offset;
+  pushStr("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+
+  offsets[3] = offset;
+  pushStr(
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n"
+  );
+
+  offsets[4] = offset;
+  pushStr(
+    `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`
+  );
+  pushBytes(jpegBytes);
+  pushStr("\nendstream\nendobj\n");
+
+  const contentStream = "q\n612 0 0 792 0 0 cm\n/Im0 Do\nQ\n";
+  offsets[5] = offset;
+  pushStr(`5 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`);
+
+  const xrefStart = offset;
+  pushStr("xref\n0 6\n0000000000 65535 f \n");
+  for (let i = 1; i <= 5; i++) {
+    const pad = String(offsets[i]).padStart(10, "0");
+    pushStr(`${pad} 00000 n \n`);
+  }
+  pushStr(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`);
+
+  const out = new Uint8Array(offset);
+  let pos = 0;
+  for (const c of chunks) {
+    out.set(c, pos);
+    pos += c.length;
+  }
+  return out;
+}
+
+function renderContractPdfFile(data: ContractData, docTitle: string, scaleMode: string): { file: File; blob: Blob } | null {
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
+  const { company, estimate, sections, totals } = data;
+  const totalLf = Number(estimate.totalLf ?? sections.labor?.[0]?.qty ?? 0);
+  const removalTotal = Number(totals.removalTotal ?? 0);
+  const installationTotal = Math.round((Number(totals.laborSubtotal || 0) + Number(totals.additionalSubtotal || 0)) * 100) / 100;
+  const gateCount = (Number(estimate.walkGateCount ?? 0) || 0) + (Number(estimate.doubleGateCount ?? 0) || 0);
+  const sharedLf = Number(estimate.sharedLf ?? 0);
+  const sharedTotal = Number(estimate.sharedTotal ?? 0);
+  const splitMode =
+    Boolean((estimate as any)?.splitWithNeighborsEnabled) &&
+    Array.isArray((estimate as any)?.partyBreakdown?.parties) &&
+    ((estimate as any).partyBreakdown.parties as any[]).length >= 2;
+  const partyBreakdown = splitMode ? ((estimate as any).partyBreakdown as any) : null;
+  const segmentBreakdown =
+    splitMode && Array.isArray((estimate as any)?.segmentBreakdown) ? ((estimate as any).segmentBreakdown as any[]) : [];
+  const partyNameById = new Map<string, string>();
+  const partyList = Array.isArray((estimate as any)?.parties) ? ((estimate as any).parties as any[]) : [];
+  for (const p of partyList) {
+    const id = typeof p?.id === "string" ? String(p.id) : "";
+    if (id) partyNameById.set(id, String(p?.name || "").trim());
+  }
+
+  const descriptionText = `${estimate.styleTitle}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`;
+  const estimateDisplayName = String((estimate as any)?.name || "").trim();
+  const descriptionDisplayText = estimateDisplayName
+    ? `${estimateDisplayName}${gateCount ? ` + ${gateCount} gate${gateCount === 1 ? "" : "s"}` : ""}`
+    : descriptionText;
+  const acceptanceText =
+    "The above prices, specifications and conditions are satisfactory and hereby accepted. You are authorized to do the work as specified.\n" +
+    "By signing below you agree to have Vasseur Fencing complete all listed line items above in this document.\n" +
+    "We look forward to working with you!";
+  const effectiveTotal = (() => {
+    const base = Number(totals.total) || 0;
+    const candidate =
+      Math.round(
+        (Number(totals.materialsSubtotal || 0) +
+          Number(totals.laborSubtotal || 0) +
+          Number(totals.additionalSubtotal || 0) +
+          removalTotal) *
+          100
+      ) / 100;
+    const baseRounded = Math.round(base * 100) / 100;
+    if (Math.abs(candidate - baseRounded) <= 0.01) return baseRounded;
+    if (removalTotal > 0 && Math.abs(candidate - removalTotal - baseRounded) <= 0.01) return candidate;
+    return baseRounded;
+  })();
+  const remainingBalance = Math.max(0, Math.round((effectiveTotal - Number(estimate.depositTotal)) * 100) / 100);
+  const estimateIncludesText =
+    "Estimate Includes all labor, materials, taxes, 811 miss dig ticket, and a 12 month workmanship warranty.\n" +
+    `-The "Materials & Expences" ${money(estimate.depositTotal)} must be paid prior to ordering materials.\n` +
+    `-The remaining Balance of ${money(remainingBalance)} is due upon completion of the fence.`;
+
+  const DPR = 2.5;
+  const CONTENT_W = 778;
+  const PAD_X = 16;
+  const INNER_W = CONTENT_W - PAD_X * 2;
+  const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif';
+  const GREEN = "#244B2A";
+  const BROWN = "#8A5A2B";
+  const LIGHT = "#F4F4F4";
+  const MID = "#E6E6E6";
+  const TEXT = "#111111";
+
+  const workCanvas = document.createElement("canvas");
+  workCanvas.width = Math.round(CONTENT_W * DPR);
+  workCanvas.height = Math.round(2800 * DPR);
+  const ctx = workCanvas.getContext("2d");
+  if (!ctx) return null;
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, CONTENT_W, 2800);
+  ctx.textBaseline = "top";
+
+  let y = 20;
+
+  // Header: logo left, contact right
+  let headerBottom = y;
+  try {
+    const imgEl = document.querySelector("img.headerImage") as HTMLImageElement | null;
+    if (imgEl && imgEl.complete && imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0) {
+      const h = 96;
+      const w = (imgEl.naturalWidth / imgEl.naturalHeight) * h;
+      ctx.drawImage(imgEl, PAD_X, y, w, h);
+      headerBottom = Math.max(headerBottom, y + h);
+    }
+  } catch {
+  }
+
+  let contactY = y;
+  ctx.textAlign = "right";
+  ctx.fillStyle = TEXT;
+  if (company.salespersonName) {
+    ctx.font = `800 9px ${FONT}`;
+    ctx.fillText(String(company.salespersonName), CONTENT_W - PAD_X, contactY);
+    contactY += 11;
+  }
+  ctx.font = `400 9px ${FONT}`;
+  for (const line of company.addressLines ?? []) {
+    ctx.fillText(String(line), CONTENT_W - PAD_X, contactY);
+    contactY += 11;
+  }
+  if (company.email) {
+    ctx.fillText(String(company.email), CONTENT_W - PAD_X, contactY);
+    contactY += 11;
+  }
+  if (company.phone) {
+    ctx.fillText(String(company.phone), CONTENT_W - PAD_X, contactY);
+    contactY += 11;
+  }
+  y = Math.max(headerBottom, contactY) + 2;
+
+  // Title "Estimate"
+  ctx.textAlign = "center";
+  ctx.fillStyle = TEXT;
+  ctx.font = `900 30px ${FONT}`;
+  ctx.fillText("Estimate", CONTENT_W / 2, y);
+  y += 32;
+
+  // Rule
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(PAD_X, y, INNER_W, 2);
+  y += 5;
+
+  // Submitted block
+  const drawCenteredLabelValue = (label: string, val: string) => {
+    ctx.font = `800 9px ${FONT}`;
+    const lw = label ? ctx.measureText(label + " ").width : 0;
+    ctx.font = `600 9px ${FONT}`;
+    const vw = val ? ctx.measureText(val).width : 0;
+    const startX = (CONTENT_W - (lw + vw)) / 2;
+    ctx.textAlign = "left";
+    if (label) {
+      ctx.font = `800 9px ${FONT}`;
+      ctx.fillText(label, startX, y);
+    }
+    if (val) {
+      ctx.font = `600 9px ${FONT}`;
+      ctx.fillText(val, startX + lw, y);
+    }
+    y += 11;
+  };
+  drawCenteredLabelValue("Submitted on:", String(estimate.submittedOn || ""));
+  drawCenteredLabelValue("Estimate For:", "");
+  if (estimate.customer.name) drawCenteredLabelValue("", String(estimate.customer.name));
+  if (estimate.projectAddress) drawCenteredLabelValue("", String(estimate.projectAddress));
+  if (estimate.customer.phone) drawCenteredLabelValue("", String(estimate.customer.phone));
+  if (estimate.customer.email) drawCenteredLabelValue("", String(estimate.customer.email));
+  y += 3;
+
+  // Style bar
+  ctx.fillStyle = BROWN;
+  ctx.fillRect(PAD_X, y, INNER_W, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.textAlign = "center";
+  ctx.fillText(estimateDisplayName || estimate.styleTitle || "", CONTENT_W / 2, y + 4);
+  y += 22;
+
+  // Description bar + row
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(PAD_X, y, INNER_W, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Description", PAD_X + 7, y + 4);
+  ctx.textAlign = "right";
+  ctx.fillText("Quantity LF", CONTENT_W - PAD_X - 7, y + 4);
+  y += 18;
+
+  ctx.fillStyle = TEXT;
+  ctx.font = `700 10px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText(descriptionDisplayText, PAD_X + 7, y + 4);
+  ctx.textAlign = "right";
+  ctx.fillText(String(Math.round(totalLf)), CONTENT_W - PAD_X - 7, y + 4);
+  ctx.fillStyle = MID;
+  ctx.fillRect(PAD_X, y + 17, INNER_W, 1);
+  y += 24;
+
+  // Materials & Expenses
+  const colUnitW = 105;
+  const colQtyW = 86;
+  const qtyRightX = CONTENT_W - PAD_X - colUnitW - 8;
+  const unitRightX = CONTENT_W - PAD_X - 7;
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(PAD_X, y, INNER_W, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Materials & Expenses", PAD_X + 7, y + 4);
+  ctx.textAlign = "right";
+  ctx.fillText("Quantity", qtyRightX, y + 4);
+  ctx.fillText("Unit Price", unitRightX, y + 4);
+  y += 18;
+
+  const matMaxNameW = INNER_W - colUnitW - colQtyW - 24;
+  (sections.materials || []).forEach((r, idx) => {
+    ctx.font = `400 9.5px ${FONT}`;
+    const lines = wrapTextLines(ctx, String(r.name || ""), matMaxNameW);
+    const rowH = Math.max(17, lines.length * 12 + 5);
+    ctx.fillStyle = idx % 2 ? LIGHT : "#FFFFFF";
+    ctx.fillRect(PAD_X, y, INNER_W, rowH);
+    ctx.strokeStyle = MID;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(PAD_X + 0.5, y + 0.5, INNER_W - 1, rowH - 1);
+
+    ctx.fillStyle = TEXT;
+    ctx.textAlign = "left";
+    ctx.font = `400 9.5px ${FONT}`;
+    lines.forEach((ln, li) => {
+      ctx.fillText(ln, PAD_X + 7, y + 3 + li * 12);
+    });
+    ctx.textAlign = "right";
+    ctx.font = `700 9.5px ${FONT}`;
+    ctx.fillText(String(r.qty ?? ""), qtyRightX, y + 3);
+    ctx.fillText(money(r.unitPrice), unitRightX, y + 3);
+    y += rowH;
+  });
+
+  // Deposit row
+  y += 4;
+  const priceBoxW = 192;
+  const priceBoxX = CONTENT_W - PAD_X - priceBoxW;
+  ctx.fillStyle = BROWN;
+  ctx.fillRect(priceBoxX, y, priceBoxW, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 9.5px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Deposit Total", priceBoxX + 7, y + 4);
+  ctx.textAlign = "right";
+  ctx.fillText(money(estimate.depositTotal), CONTENT_W - PAD_X - 7, y + 4);
+  y += 24;
+
+  // Installation (Labor) block
+  const laborTopY = y;
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(PAD_X, y, INNER_W, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Installation (Labor)", PAD_X + 7, y + 4);
+  ctx.textAlign = "right";
+  ctx.fillText(`Total LF   ${Math.round(totalLf)}`, CONTENT_W - PAD_X - 7, y + 4);
+  y += 24;
+
+  ctx.fillStyle = TEXT;
+  ctx.font = `400 8.5px ${FONT}`;
+  ctx.textAlign = "left";
+  const installNotesLines = wrapTextLines(ctx, estimate.notes || "Install fence per estimate details.", INNER_W - 14);
+  for (const ln of installNotesLines) {
+    ctx.fillText(ln, PAD_X + 7, y);
+    y += 11.5;
+  }
+  const extraLaborRows = [...(sections.labor || []), ...(sections.additional || [])];
+  if (extraLaborRows.length) {
+    y += 4;
+    ctx.font = `700 9px ${FONT}`;
+    for (const r of extraLaborRows) {
+      const label = String(r.name || "") === "Days labor" ? "Labor" : String(r.name || "");
+      ctx.textAlign = "left";
+      ctx.fillText(label, PAD_X + 7, y);
+      ctx.textAlign = "right";
+      ctx.fillText(money(r.price), CONTENT_W - PAD_X - 7, y);
+      y += 11.5;
+    }
+  }
+  y = Math.max(y + 4, laborTopY + 18 + 34);
+  ctx.fillStyle = BROWN;
+  ctx.fillRect(priceBoxX, y, priceBoxW, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 9.5px ${FONT}`;
+  ctx.textAlign = "right";
+  ctx.fillText(money(installationTotal), CONTENT_W - PAD_X - 7, y + 4);
+  y += 18;
+  ctx.strokeStyle = MID;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(PAD_X + 0.5, laborTopY + 0.5, INNER_W - 1, y - laborTopY - 1);
+  y += 6;
+
+  // Fence Removal block
+  const remTopY = y;
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(PAD_X, y, INNER_W, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Fence Removal", PAD_X + 7, y + 4);
+  ctx.textAlign = "right";
+  ctx.fillText(`Total LF   ${Math.round(totalLf)}`, CONTENT_W - PAD_X - 7, y + 4);
+  y += 24;
+  ctx.fillStyle = TEXT;
+  ctx.font = `400 8.5px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Remove and dispose of all old fencing and concrete.", PAD_X + 7, y);
+  y = Math.max(y + 16, remTopY + 18 + 34);
+  ctx.fillStyle = BROWN;
+  ctx.fillRect(priceBoxX, y, priceBoxW, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 9.5px ${FONT}`;
+  ctx.textAlign = "right";
+  ctx.fillText(money(removalTotal), CONTENT_W - PAD_X - 7, y + 4);
+  y += 18;
+  ctx.strokeStyle = MID;
+  ctx.strokeRect(PAD_X + 0.5, remTopY + 0.5, INNER_W - 1, y - remTopY - 1);
+  y += 6;
+
+  // Notes block
+  const notesTopY = y;
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(PAD_X, y, INNER_W, 18);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Notes", PAD_X + 7, y + 4);
+  y += 24;
+  ctx.fillStyle = TEXT;
+  ctx.font = `400 8.5px ${FONT}`;
+  ctx.textAlign = "center";
+  const stdNotes =
+    "All of the utilities for the property will have been marked by 811 Miss Dig under Vasseur Fencing's name for liability purposes,\n" +
+    "and it is homeowners responcibility to obtain appropriate permits for project if necessary, including any compliance's with HOA.";
+  for (const ln of wrapTextLines(ctx, stdNotes, INNER_W - 14)) {
+    ctx.fillText(ln, CONTENT_W / 2, y);
+    y += 11.5;
+  }
+  y += 4;
+  ctx.strokeStyle = MID;
+  ctx.strokeRect(PAD_X + 0.5, notesTopY + 0.5, INNER_W - 1, y - notesTopY - 1);
+  y += 6;
+
+  // Split with neighbors blocks if enabled
+  if (splitMode && partyBreakdown && Array.isArray(partyBreakdown.parties)) {
+    const pbTopY = y;
+    ctx.fillStyle = GREEN;
+    ctx.fillRect(PAD_X, y, INNER_W, 18);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `900 10px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText("Per-party prorated breakdown", PAD_X + 7, y + 4);
+    ctx.textAlign = "right";
+    ctx.fillText(`Shared LF   ${Math.round(Number(partyBreakdown.sharedLf || 0))}`, CONTENT_W - PAD_X - 7, y + 4);
+    y += 24;
+
+    const partiesArr = partyBreakdown.parties as any[];
+    const cols = Math.min(3, Math.max(2, partiesArr.length));
+    const gap = 8;
+    const cardW = (INNER_W - 14 - gap * (cols - 1)) / cols;
+    const cardH = 108;
+    for (let i = 0; i < partiesArr.length; i += cols) {
+      const rowSlice = partiesArr.slice(i, i + cols);
+      rowSlice.forEach((p: any, cIdx: number) => {
+        const cx = PAD_X + 7 + cIdx * (cardW + gap);
+        ctx.strokeStyle = MID;
+        ctx.strokeRect(cx + 0.5, y + 0.5, cardW - 1, cardH - 1);
+        const name = String(p?.name || "").trim() || `Party ${i + cIdx + 1}`;
+        ctx.fillStyle = TEXT;
+        ctx.font = `900 9.5px ${FONT}`;
+        ctx.textAlign = "left";
+        ctx.fillText(name, cx + 6, y + 5);
+        ctx.font = `800 8.5px ${FONT}`;
+        ctx.textAlign = "right";
+        ctx.fillText(`${Math.round((Number(p?.lfShare) || 0) * 100) / 100} LF`, cx + cardW - 6, y + 5);
+
+        const rows: Array<[string, string, boolean?]> = [
+          ["Materials & Expenses", money(Number(p?.materials) || 0)],
+          ["Labor", money(Number(p?.labor) || 0)],
+          ["Additional fees", money(Number(p?.additional) || 0)],
+          ["Fence removal", money(Number(p?.removal) || 0)],
+          ["Total", money(Number(p?.total) || 0), true],
+          ["Deposit", money(Number(p?.deposit) || 0)],
+          ["Remaining", money(Number(p?.remaining) || 0)]
+        ];
+        let ry = y + 19;
+        for (const [k, v, bold] of rows) {
+          ctx.font = `${bold ? 900 : 700} 8.5px ${FONT}`;
+          ctx.textAlign = "left";
+          ctx.fillText(k, cx + 6, ry);
+          ctx.textAlign = "right";
+          ctx.fillText(v, cx + cardW - 6, ry);
+          ry += 12;
+        }
+      });
+      y += cardH + 6;
+    }
+    ctx.strokeStyle = MID;
+    ctx.strokeRect(PAD_X + 0.5, pbTopY + 0.5, INNER_W - 1, y - pbTopY - 1);
+    y += 6;
+  }
+
+  // Bottom grid: Disclaimer left, Total Cost right
+  y += 2;
+  const discW = INNER_W - priceBoxW - 10;
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(PAD_X, y, discW, 1);
+  let discY = y + 6;
+  ctx.fillStyle = TEXT;
+  ctx.font = `900 7.5px ${FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("Disclaimer:", PAD_X, discY);
+  discY += 11;
+  ctx.font = `400 7.5px ${FONT}`;
+  for (const ln of wrapTextLines(ctx, estimateIncludesText, discW)) {
+    ctx.fillText(ln, PAD_X, discY);
+    discY += 10;
+  }
+  for (const ln of wrapTextLines(ctx, String(estimate.disclaimer || ""), discW)) {
+    ctx.fillText(ln, PAD_X, discY);
+    discY += 10;
+  }
+
+  const totalCenterX = priceBoxX + priceBoxW / 2;
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#A52B2B";
+  ctx.font = `900 11px ${FONT}`;
+  ctx.fillText("Total Cost", totalCenterX, Math.max(y + 12, discY - 28));
+  ctx.fillStyle = TEXT;
+  ctx.font = `900 12px ${FONT}`;
+  ctx.fillText(money(totals.total), totalCenterX, Math.max(y + 26, discY - 14));
+
+  y = Math.max(discY, y + 42) + 6;
+
+  // Homeowner Contract bar + text
+  const contractLines = [
+    ...wrapTextLines(ctx, acceptanceText, INNER_W - 14),
+    ...(estimate.contractText ? wrapTextLines(ctx, String(estimate.contractText), INNER_W - 14) : [])
+  ];
+  const contractBoxH = 22 + contractLines.length * 10.5 + 8;
+  ctx.fillStyle = BROWN;
+  ctx.fillRect(PAD_X, y, INNER_W, contractBoxH);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "center";
+  ctx.font = `900 10px ${FONT}`;
+  ctx.fillText("Homeowner Contract", CONTENT_W / 2, y + 5);
+  let cy = y + 21;
+  ctx.font = `400 8.2px ${FONT}`;
+  for (const ln of contractLines) {
+    ctx.fillText(ln, CONTENT_W / 2, cy);
+    cy += 10.5;
+  }
+  y += contractBoxH + 14;
+
+  // Signature lines
+  const drawSigRow = (sigLabel: string, printLabel: string) => {
+    const gap = 10;
+    const w1 = (INNER_W - gap * 2) * (1 / 2.8);
+    const w2 = w1;
+    const w3 = (INNER_W - gap * 2) * (0.8 / 2.8);
+    const x1 = PAD_X;
+    const x2 = x1 + w1 + gap;
+    const x3 = x2 + w2 + gap;
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(x1, y, w1, 1);
+    ctx.fillRect(x2, y, w2, 1);
+    ctx.fillRect(x3, y, w3, 1);
+    ctx.fillStyle = TEXT;
+    ctx.font = `400 8.5px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText(sigLabel, x1, y + 4);
+    ctx.fillText(printLabel, x2, y + 4);
+    ctx.fillText("Date", x3, y + 4);
+    y += 22;
+  };
+
+  if (splitMode && partyBreakdown && Array.isArray(partyBreakdown.parties)) {
+    (partyBreakdown.parties as any[]).forEach((p: any, idx: number) => {
+      const name = String(p?.name || "").trim() || `Party ${idx + 1}`;
+      drawSigRow(`${name} Signature`, `${name} Print`);
+    });
+  } else {
+    drawSigRow("Homeowner Signature", "Homeowner Print");
+  }
+
+  const contentH = y + 8;
+
+  // Compose onto US Letter page (816 x 1056 at DPR)
+  const PAGE_W = 816;
+  const PAGE_H = 1056;
+  const availW = PAGE_W - 32;
+  const availH = PAGE_H - 56;
+  const scaleW = availW / CONTENT_W;
+  const scaleH = availH / contentH;
+  const userScale = scaleMode !== "auto" && Number.isFinite(Number(scaleMode)) ? Number(scaleMode) / 100 : 1;
+  const fitScale = Math.min(scaleW, scaleH, 1, userScale > 0 ? userScale / 0.8 : 1);
+
+  const pageCanvas = document.createElement("canvas");
+  pageCanvas.width = Math.round(PAGE_W * DPR);
+  pageCanvas.height = Math.round(PAGE_H * DPR);
+  const pctx = pageCanvas.getContext("2d");
+  if (!pctx) return null;
+  pctx.fillStyle = "#FFFFFF";
+  pctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+  const destW = CONTENT_W * fitScale * DPR;
+  const destH = contentH * fitScale * DPR;
+  const destX = (pageCanvas.width - destW) / 2;
+  const destY = 24 * DPR;
+  pctx.drawImage(
+    workCanvas,
+    0,
+    0,
+    Math.round(CONTENT_W * DPR),
+    Math.round(contentH * DPR),
+    destX,
+    destY,
+    destW,
+    destH
+  );
+
+  const jpegDataUrl = pageCanvas.toDataURL("image/jpeg", 0.92);
+  const pdfBytes = jpegDataUrlToLetterPdfBytes(jpegDataUrl, pageCanvas.width, pageCanvas.height);
+  const safeName = String(docTitle || "Estimate").replace(/[\\/:*?"<>|]+/g, "-").trim() || "Estimate";
+  const fileName = safeName.toLowerCase().endsWith(".pdf") ? safeName : `${safeName}.pdf`;
+  const ab = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength) as ArrayBuffer;
+  const blob = new Blob([ab], { type: "application/pdf" });
+  const file = new File([blob], fileName, { type: "application/pdf" });
+  return { file, blob };
+}
+
 function Table({ title, rows }: { title: string; rows: ContractRow[] }) {
   return (
     <section className="section">
@@ -1159,11 +1765,46 @@ export default function EstimateContractPage() {
   }, [applyPrintIsolation, clearPrintIsolation]);
 
   const handlePrint = React.useCallback(() => {
+    const docTitle = computeDocTitle(data);
     try {
-      document.title = computeDocTitle(data);
+      document.title = docTitle;
     } catch {
       // ignore
     }
+
+    const nav: any = typeof window !== "undefined" ? window.navigator : null;
+    const isStandalone =
+      Boolean(nav?.standalone) ||
+      Boolean(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+    const ua = String(nav?.userAgent || "");
+    const isIos = /iPad|iPhone|iPod/i.test(ua) || (nav?.platform === "MacIntel" && Number(nav?.maxTouchPoints) > 1);
+
+    if (isIos && isStandalone && data) {
+      try {
+        const res = renderContractPdfFile(data, docTitle, printScaleModeRef.current);
+        if (res && typeof nav?.share === "function") {
+          const canShareFiles = typeof nav.canShare === "function" ? nav.canShare({ files: [res.file] }) : true;
+          if (canShareFiles) {
+            void nav.share({ files: [res.file], title: docTitle }).catch(() => {});
+            return;
+          }
+        }
+        if (res) {
+          const url = URL.createObjectURL(res.blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = res.file.name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.setTimeout(() => URL.revokeObjectURL(url), 15000);
+          return;
+        }
+      } catch {
+        // fall through to window.print()
+      }
+    }
+
     applyPrintIsolation();
     window.print();
   }, [applyPrintIsolation, computeDocTitle, data]);
